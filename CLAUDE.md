@@ -29,7 +29,7 @@ Everything in this repository is English: code, comments, commit messages, docs,
 
 - Work on the branch the task names. Push after every finished piece of work.
 - Merge only when the task explicitly allows it. After a merge, check CI for the merge commit (`gh run list --branch master`) and report it.
-- Never force-push, reset, or delete branches unless the task says so.
+- Never force-push or reset. After a branch is merged and the CI run on `master` for the merge commit is green, delete the branch on origin and locally.
 - Data and accounts created for a test are removed by that test.
 
 ## Before reporting

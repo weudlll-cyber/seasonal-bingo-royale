@@ -1,0 +1,14 @@
+# @file   osv-scanner.toml
+# @brief  Accepted osv-scanner findings, each with a reason and an expiry date.
+#
+# Responsibility: let the CI security job pass on findings that are reviewed and not
+#                 exploitable here; every entry expires so it is reviewed again.
+# Used by:        .github/workflows/ci.yml (job security)
+# Spec:           docs/spec/03-security-architecture.md §18
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-19
+reason = """braces 3.0.3 (stack exhaustion on deeply nested patterns) has no fixed release. \
+It is a dev-only dependency (eslint-plugin-boundaries -> micromatch) that only expands \
+the repository's own lint globs, never untrusted input, and it is not in the image."""

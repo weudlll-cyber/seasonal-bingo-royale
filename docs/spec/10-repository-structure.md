@@ -13,11 +13,11 @@ seasonal-bingo-royale/
 ├─ CONTRIBUTING.md              Branching, commits, review checklist link
 ├─ .editorconfig  .gitattributes  .gitignore  .nvmrc  .npmrc
 ├─ package.json  pnpm-workspace.yaml  pnpm-lock.yaml
-├─ tsconfig.base.json  eslint.config.js  prettier.config.js  vitest.workspace.ts
+├─ tsconfig.base.json  eslint.config.js  prettier.config.js  vitest.config.ts (projects)
 ├─ lefthook.yml  renovate.json
 ├─ .vscode/                     extensions.json, launch.json, settings.json
 ├─ .github/
-│  ├─ workflows/                ci.yml, release.yml, codeql.yml, load.yml
+│  ├─ workflows/                ci.yml, release.yml, codeql.yml
 │  ├─ ISSUE_TEMPLATE/  PULL_REQUEST_TEMPLATE.md (contains the review checklist)
 │  └─ CODEOWNERS
 ├─ assets/                      Source brand assets as delivered (see assets/README.md)

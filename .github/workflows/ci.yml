@@ -1,0 +1,93 @@
+# @file   .github/workflows/ci.yml
+# @brief  CI: verify, security scans and the container image on every push and PR.
+#
+# Responsibility: run what "pnpm verify" runs, the dependency/secret scans, and on the way
+#                 to master build, scan and size-check the image. Any red job blocks merge.
+# Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml
+# Spec:           docs/spec/08-devops-architecture.md §3–§4, docs/spec/03-security-architecture.md §18
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  # One group per branch and event, so a push and its PR do not cancel each other.
+  group: ci-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  # Every merge commit on master must get its own finished run.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+# Scanner images pinned by digest, like the actions by commit SHA.
+env:
+  OSV_SCANNER_IMAGE: ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
+  GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # The same script developers run locally: format check, lint, typecheck, tests.
+      - run: pnpm verify
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # gitleaks scans the full history, not just the last commit.
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: pnpm audit (production dependencies)
+        run: pnpm audit --prod --audit-level high
+      - name: osv-scanner (lockfile)
+        run: |
+          set +e
+          docker run --rm -v "$PWD:/src" -w /src "$OSV_SCANNER_IMAGE" scan source \
+            --config=osv-scanner.toml --lockfile=pnpm-lock.yaml --format json --output-file osv.json
+          code=$?
+          set -e
+          # Exit 1 means "findings"; anything else besides 0 is a scanner error.
+          if [ "$code" -ne 0 ] && [ "$code" -ne 1 ]; then exit "$code"; fi
+          jq -r '.results[]?.packages[]? | .package as $p | .groups[]?
+            | "\($p.name)@\($p.version) \(.ids | join(",")) severity=\(.max_severity // "unknown")"' osv.json
+          # High = CVSS >= 7. An unrated finding counts as high so nothing slips through.
+          high=$(jq '[.results[]?.packages[]?.groups[]?
+            | select((.max_severity // "") == "" or (.max_severity | tonumber) >= 7)] | length' osv.json)
+          if [ "$high" -gt 0 ]; then
+            echo "::error::$high high or critical osv-scanner finding(s)"
+            exit 1
+          fi
+      - name: gitleaks (full history)
+        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
+
+  image:
+    # Only on the way to master: PRs to master and pushes to master.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: sbr:ci
+      # Size budget from docs/spec/08-devops-architecture.md §3 (uncompressed, as Docker reports it).
+      MAX_IMAGE_BYTES: 250000000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build -t "$IMAGE" .
+      - name: Trivy (HIGH/CRITICAL with a fix available)
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$IMAGE"
+      - name: Size budget
+        run: |
+          size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
+          echo "Image size: $((size / 1000000)) MB (budget $((MAX_IMAGE_BYTES / 1000000)) MB)"
+          if [ "$size" -gt "$MAX_IMAGE_BYTES" ]; then
+            echo "::error::Image exceeds the size budget"
+            exit 1
+          fi
