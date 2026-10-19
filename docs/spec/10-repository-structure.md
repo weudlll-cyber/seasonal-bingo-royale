@@ -91,8 +91,9 @@ seasonal-bingo-royale/
 | Parameters | ≤ 4 (use an object beyond) | ESLint `max-params` |
 | Layer dependencies | §3 of [02-software-architecture.md](02-software-architecture.md) | `eslint-plugin-boundaries` |
 | No default exports, no `any`, no non-null `!` | — | ESLint + `tsc` strict |
-| Dead code | No unused exports/files/deps | `knip` in `lint` job |
-| Duplication | ≤ 3 % | `jscpd` in `lint` job |
+| Unused variables and imports | none | ESLint `no-unused-vars` (TS variant) |
+
+Dead code beyond unused variables, duplication and file headers are not policed by extra tools; they are kept in order by careful work: every change updates code, headers, comments and docs together, and reviews use the checklist in §5 (decided 2026-10-08 for the owner’s projects, applied here).
 
 ## 3. Standard file header
 
@@ -112,7 +113,7 @@ Every source file (TS, TSX, SQL, shell, YAML workflow) starts with:
  */
 ```
 
-`@brief` one line; `Responsibility` max three lines; `Spec` points at the governing section. A lint rule (`eslint-plugin-headers` or a 30-line local rule) checks presence and that `@file` matches the path. Header and inline comments are updated in the same commit as the code they describe.
+`@brief` one line; `Responsibility` max three lines; `Spec` points at the governing section. Header and inline comments are updated in the same commit as the code they describe.
 
 ## 4. Naming
 

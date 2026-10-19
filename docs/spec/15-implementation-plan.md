@@ -18,8 +18,8 @@ Legend — **Spec**: governing sections · **Accept**: acceptance criteria · **
 ### Phase 0 — Foundation
 
 **WP-01 Monorepo and tooling**
-Spec: 10 §1–§4, 08 §8. Already in the repo from the start (2026-10-19), to be kept and extended: `LICENSE`, `.gitattributes`, `.gitignore`, `.vscode/extensions.json`, `.claude/settings.json`, `CLAUDE.md`, `docs/`, `assets/`. pnpm workspace with all packages/apps as empty shells; TS strict base config; ESLint (boundaries, max-lines, header rule, no default export), Prettier, knip, jscpd; Vitest workspace; lefthook; VS Code workspace; CLAUDE.md; CONTRIBUTING.md; code-review checklist; BACKLOG.md/OPEN.md.
-Accept: `pnpm verify` green; a deliberate layer violation and a missing header both fail lint (shown in report, then removed). Owner sees: —
+Spec: 10 §1–§4, 08 §8. Already in the repo from the start (2026-10-19), to be kept and extended: `LICENSE`, `.gitattributes`, `.gitignore`, `.vscode/extensions.json`, `.claude/settings.json`, `CLAUDE.md`, `docs/`, `assets/`. pnpm workspace with all packages/apps as empty shells; TS strict base config; ESLint (boundaries, max-lines, no default export, unused variables), Prettier; Vitest workspace; lefthook; VS Code workspace; CLAUDE.md; CONTRIBUTING.md; code-review checklist; BACKLOG.md/OPEN.md.
+Accept: `pnpm verify` green; a deliberate layer violation fails lint (shown in report, then removed). Owner sees: —
 
 **WP-02 CI pipeline and container**
 Spec: 08 §3–§4, 03 §18. `ci.yml` (lint, unit, integration placeholder, security scans, image build + Trivy), `release.yml` skeleton, Dockerfile multi-stage non-root, `compose.dev.yml` (Postgres, Mailpit).

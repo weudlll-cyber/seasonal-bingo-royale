@@ -26,7 +26,7 @@ Triggers: push on every branch, pull requests to `master`, tags.
 
 | Job | Contents | Blocks merge |
 |---|---|---|
-| `lint` | ESLint (incl. boundaries, max-lines, header rule), Prettier check, `tsc --noEmit` (all packages) | yes |
+| `lint` | ESLint (incl. boundaries, max-lines, unused variables), Prettier check, `tsc --noEmit` (all packages) | yes |
 | `unit` | Vitest for `domain`, `application`, `contracts`, clients; coverage thresholds (§ [12-testing-strategy.md](12-testing-strategy.md)) | yes |
 | `integration` | Vitest + Testcontainers Postgres for `server` | yes |
 | `e2e` | Build, start stack in Compose, Playwright smoke suite (Chromium + Firefox + WebKit mobile viewport) | yes on PR to `master` |
