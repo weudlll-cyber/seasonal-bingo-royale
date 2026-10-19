@@ -1,0 +1,11 @@
+# @file   .prettierignore
+# @brief  Files Prettier leaves untouched.
+#
+# Responsibility: skip generated files, delivered assets, the owner-authored specification
+#                 and the settings file that Claude Code itself rewrites.
+# Spec:           docs/spec/10-repository-structure.md §1
+pnpm-lock.yaml
+LICENSE
+assets/
+docs/spec/
+.claude/

@@ -1,0 +1,12 @@
+/**
+ * @file   packages/contracts/tsconfig.json
+ * @module contracts
+ * @brief  TypeScript settings for @sbr/contracts.
+ *
+ * Responsibility: extend the shared strict base and limit the program to src/.
+ * Spec:           docs/spec/10-repository-structure.md §2
+ */
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"]
+}

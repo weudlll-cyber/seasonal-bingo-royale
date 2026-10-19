@@ -1,0 +1,13 @@
+# @file   lefthook.yml
+# @brief  Git hooks: format staged files before each commit.
+#
+# Responsibility: keep the pre-commit hook fast (Prettier on staged files only); every
+#                 heavier check runs in "pnpm verify" and CI.
+# Spec:           docs/spec/08-devops-architecture.md §8
+pre-commit:
+  commands:
+    format:
+      # No glob: --ignore-unknown skips what Prettier cannot parse; .prettierignore still applies.
+      run: pnpm exec prettier --write --ignore-unknown {staged_files}
+      # Re-stage the files Prettier rewrote so the commit contains the formatted version.
+      stage_fixed: true

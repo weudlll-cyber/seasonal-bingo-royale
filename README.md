@@ -2,7 +2,9 @@
 
 Multiplayer Bingo with battle-royale elimination and the four Seasonal Tokens seasons as a core mechanic. Realtime and asynchronous play, standalone or embedded in a host website.
 
-**Status:** specification complete, implementation not started.
+**Status:** specification complete; monorepo and tooling in place (WP-01), nothing runnable yet.
+
+Quick start: Node 22+ and pnpm, then `pnpm install` and `pnpm verify`. Details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 - Specification: [docs/spec/README.md](docs/spec/README.md)
 - Open items: [docs/OPEN.md](docs/OPEN.md) · full list: [docs/BACKLOG.md](docs/BACKLOG.md)
