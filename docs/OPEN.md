@@ -2,6 +2,6 @@
 
 Full list: [BACKLOG.md](BACKLOG.md).
 
-- Implementation: WP-01, WP-02, SPEC-MODES-1, WP-03, WP-04, WP-05 and WP-06 done; next is WP-07 (domain: royale structure and classic round flow).
+- Implementation: WP-01, WP-02, SPEC-MODES-1, WP-03, WP-04, WP-05, WP-06 and WP-07 done; next is WP-08 (Quick Test in the browser; owner-facing, not merged).
 - Three small pieces in the website repository, needed only for Phase 6: login handoff endpoint, chat room `bingo`, embeddable call view (consumed by WP-25b).
 - Optional: app icon and sounds.
