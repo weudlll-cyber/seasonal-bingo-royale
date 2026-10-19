@@ -9,6 +9,8 @@ playwright-report/
 .env
 .env.*
 !.env.example
+# Committed templates with placeholder values, e.g. ops/.env.dev.example
+!.env.*.example
 # Editor and OS noise
 .DS_Store
 Thumbs.db

@@ -1,0 +1,38 @@
+# @file   ops/compose.dev.yml
+# @brief  Local development services: PostgreSQL 17 and Mailpit.
+#
+# Responsibility: the backing services "pnpm dev" needs, reachable from this machine only
+#                 (ports bound to 127.0.0.1). Not for staging or production (ops/compose.yml).
+# Depends on:     ops/.env.dev.example (placeholder credentials), optional ops/.env.dev
+# Spec:           docs/spec/08-devops-architecture.md §1, docs/spec/09-deployment-architecture.md §1
+#
+# Start: docker compose -f ops/compose.dev.yml up -d
+name: sbr-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    env_file:
+      - path: .env.dev.example
+      # Personal overrides; git ignores .env.dev, so local values never get committed.
+      - path: .env.dev
+        required: false
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Catches every outgoing mail; web UI at http://127.0.0.1:8025.
+  mailpit:
+    image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    ports:
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # web UI
+
+volumes:
+  pgdata:
