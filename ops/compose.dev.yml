@@ -3,22 +3,24 @@
 #
 # Responsibility: the backing services "pnpm dev" needs, reachable from this machine only
 #                 (ports bound to 127.0.0.1). Not for staging or production (ops/compose.yml).
-# Depends on:     ops/.env.dev.example (placeholder credentials), optional ops/.env.dev
+# Depends on:     ops/.env.dev.example (ports, placeholder credentials), optional ops/.env.dev
 # Spec:           docs/spec/08-devops-architecture.md §1, docs/spec/09-deployment-architecture.md §1
 #
-# Start: docker compose -f ops/compose.dev.yml up -d
+# Start (paths relative to the repository root):
+#   docker compose --env-file ops/.env.dev.example -f ops/compose.dev.yml up -d
+# Personal overrides (ignored by git) go in a second, later --env-file ops/.env.dev.
+# Every value comes from the env file; ":?" stops Compose if it was not passed.
 name: sbr-dev
 
 services:
   postgres:
     image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
-    env_file:
-      - path: .env.dev.example
-      # Personal overrides; git ignores .env.dev, so local values never get committed.
-      - path: .env.dev
-        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?pass --env-file ops/.env.dev.example}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?pass --env-file ops/.env.dev.example}
+      POSTGRES_DB: ${POSTGRES_DB:?pass --env-file ops/.env.dev.example}
     ports:
-      - '127.0.0.1:5432:5432'
+      - '127.0.0.1:${SBR_DEV_POSTGRES_PORT:?pass --env-file ops/.env.dev.example}:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,12 +29,12 @@ services:
       timeout: 3s
       retries: 10
 
-  # Catches every outgoing mail; web UI at http://127.0.0.1:8025.
+  # Catches every outgoing mail of the dev server.
   mailpit:
     image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
     ports:
-      - '127.0.0.1:1025:1025' # SMTP
-      - '127.0.0.1:8025:8025' # web UI
+      - '127.0.0.1:${SBR_DEV_MAILPIT_SMTP_PORT:?pass --env-file ops/.env.dev.example}:1025'
+      - '127.0.0.1:${SBR_DEV_MAILPIT_UI_PORT:?pass --env-file ops/.env.dev.example}:8025'
 
 volumes:
   pgdata:
