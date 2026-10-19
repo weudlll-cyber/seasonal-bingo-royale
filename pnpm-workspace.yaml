@@ -18,3 +18,5 @@ allowBuilds:
   # Its postinstall only downloads a native binding as a fallback; the platform-specific
   # optional dependency already ships it.
   unrs-resolver: false
+  # Its postinstall runs "lefthook install" (skipped in CI), wiring the git hooks of lefthook.yml.
+  lefthook: true
