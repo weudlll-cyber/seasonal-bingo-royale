@@ -1,0 +1,35 @@
+/**
+ * @file   .vscode/launch.json
+ * @brief  Debug configurations for Vitest.
+ *
+ * Responsibility: debug the test file open in the editor, or the whole suite, with
+ *                 breakpoints in TypeScript sources. Server debug arrives with WP-03.
+ * Spec:           docs/spec/08-devops-architecture.md §8
+ */
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Vitest: current file",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run", "${relativeFile}"],
+      "autoAttachChildProcesses": true,
+      "smartStep": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Vitest: all tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+      "args": ["run"],
+      "autoAttachChildProcesses": true,
+      "smartStep": true,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal"
+    }
+  ]
+}

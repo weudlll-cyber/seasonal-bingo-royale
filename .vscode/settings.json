@@ -1,0 +1,19 @@
+/**
+ * @file   .vscode/settings.json
+ * @brief  Shared VS Code workspace settings.
+ *
+ * Responsibility: format on save with Prettier, apply ESLint fixes on save using the flat
+ *                 config eslint.config.js, use the repo's TypeScript.
+ * Spec:           docs/spec/08-devops-architecture.md §8
+ */
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.useFlatConfig": true,
+  // Same compiler version as "pnpm typecheck", not the one bundled with VS Code.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
