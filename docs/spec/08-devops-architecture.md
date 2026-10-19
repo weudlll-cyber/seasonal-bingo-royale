@@ -14,7 +14,7 @@ Every environment runs the **same container image**; differences are environment
 
 ## 2. Branching and release flow
 
-- `master` is always releasable and protected: PR required, CI green required, linear history.
+- `master` is always releasable and protected: PR required, CI green required, merges are merge commits (one topic = one branch = one merge).
 - One topic = one branch until the topic is done, then one merge (owner workflow rule).
 - Every push to any branch runs the fast CI checks (§3) so feature branches are verified before merge.
 - Releases: tag `vX.Y.Z` (SemVer) on `master` → release workflow builds, signs and publishes the image `ghcr.io/<org>/seasonal-bingo-royale:X.Y.Z` plus SBOM and release notes generated from Conventional Commits.
@@ -79,4 +79,4 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 - VS Code workspace file with recommended extensions (ESLint, Prettier, Vitest, Playwright, Docker, EditorConfig) and launch configs for server debug and Vitest.
 - `pnpm dev` starts everything for local work; `pnpm verify` runs exactly what CI’s blocking jobs run except e2e/image.
 - `CLAUDE.md` at the repo root tells Claude Code the rules (see [10-repository-structure.md](10-repository-structure.md)).
-- Pre-commit hook (lefthook): format staged files, gitleaks on staged diff. Fast (< 5 s); heavy checks stay in CI.
+- Pre-commit hook (lefthook): formats staged files only. Fast (< 5 s); gitleaks and every heavier check run in CI, not in the hook.

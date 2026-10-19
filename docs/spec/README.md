@@ -47,7 +47,7 @@ Complete blueprint for implementation by Claude Code. No code yet.
 | # | Topic | Decision |
 |---|---|---|
 | D1 | License | AGPL-3.0-or-later, copyright `weudlll-cyber` (same as the race game and the website). |
-| D2 | Original Seasonal Tokens logo and icons | Not shipped in a public repository. This repository is private; see [assets/README.md](../../assets/README.md) for what must be removed before it ever becomes public. |
+| D2 | Original Seasonal Tokens logo and icons | The repository was made public on 2026-10-19 with the Seasonal Tokens icons, logo and font included; the same files are already public in the Seasonal Entertainment website repository. See [assets/README.md](../../assets/README.md). |
 | D3 | Login when the game runs on the Seasonal Entertainment website | `jwt-handoff`. Checked against the website repository on 2026-10-19: it has its own server-side sessions and its own embed tokens, but no OpenID Connect provider. The website backend will sign a short-lived handoff token for its logged-in user ([07](07-integration-architecture.md) §4). That endpoint is a separate task in the website repository. |
 | D4 | Embedding | Only on sites an admin has approved. |
 | D5 | Chat on the website | Inside the website the game shows one dedicated room of the website chat (room slug `bingo`, through the website’s `/embed/chat`). Standalone installations use the game’s own chat ([07](07-integration-architecture.md) §6). |

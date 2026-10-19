@@ -2,7 +2,7 @@
 
 Source assets. Build steps copy optimized versions into the apps; files here are never edited in place.
 
-> **Licence note:** the Seasonal Tokens logo and season icons belong to the Seasonal Tokens project. They must not be shipped in a public, downloadable repository (decided 2026-10-19). This repository is therefore private. Before the repository or a release image is ever made public, `assets/seasons/`, `assets/brand/logo.svg` and `assets/fonts/` have to be removed from it, and the build must fall back to neutral placeholders that every operator replaces in the admin panel (Appearance → Branding).
+> **Licence note:** the Seasonal Tokens logo, season icons and the Luxora Grotesk font belong to the Seasonal Tokens project. This repository was made public on 2026-10-19 with these files included; the same files are already public in the Seasonal Entertainment website repository. They are not covered by this repository's AGPL licence. Operators can replace the branding in the admin panel (Appearance → Branding).
 
 ## Received (2026-10-19, copied from the Seasonal Entertainment website repository)
 
