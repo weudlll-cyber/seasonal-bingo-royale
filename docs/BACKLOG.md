@@ -26,3 +26,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | Brand assets (season icons, logo, colours, font)                                                                     | Copied from the website repository, assets/README.md | 2026-10-19 |
 | WP-01 Monorepo and tooling                                                                                           | Branch feat/wp-01-tooling                            | 2026-10-19 |
 | WP-02 CI pipeline and container                                                                                      | Branch feat/wp-02-ci                                 | 2026-10-20 |
+| PERMS-1 permission list                                                                                              | Branch chore/perms-1                                 | 2026-10-20 |
