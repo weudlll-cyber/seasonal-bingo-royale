@@ -6,7 +6,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 ### Implementation
 
-- WP-06 … WP-30 (docs/spec/15-implementation-plan.md) — not started
+- WP-07 … WP-30 (docs/spec/15-implementation-plan.md) — not started
 
 ### Needed from the website repository (Phase 6 only)
 
@@ -32,3 +32,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | WP-03 Server skeleton and database                                                                                   | Branch feat/wp-03-server                             | 2026-10-20 |
 | WP-04 Contracts: ruleset schema and defaults                                                                         | Branch feat/wp-04-contracts                          | 2026-10-20 |
 | WP-05 Domain: cards, draws, patterns, commitment                                                                     | Branch feat/wp-05-domain-core                        | 2026-10-20 |
+| WP-06 Domain: scoring and seasons                                                                                    | Branch feat/wp-06-scoring                            | 2026-10-20 |

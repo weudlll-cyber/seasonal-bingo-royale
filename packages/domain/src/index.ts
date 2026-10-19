@@ -51,3 +51,27 @@ export {
   type MarkMask,
 } from './card/patterns.js';
 export { commitSeed, verifyCommitment } from './commitment.js';
+export { scoreMark, type MarkScoring } from './scoring/basePoints.js';
+export { speedBonus, type SpeedBonusCfg } from './scoring/speedBonus.js';
+export {
+  scorePattern,
+  type PatternScoringCfg,
+  type PatternScoreInput,
+} from './scoring/patternScoring.js';
+export {
+  INITIAL_EFFECT_STATE,
+  hasActivatedAllSeasons,
+  markSeasonActivated,
+  type EffectState,
+  type GrowthState,
+  type MultiplierState,
+  type SeasonsBitmask,
+} from './seasons/effectState.js';
+export { type Effect, type EffectType } from './seasons/effectCatalog.js';
+export { applyEffect, type ApplyEffectResult, type HarvestContext } from './seasons/applyEffect.js';
+export { consumeShield, onDraw, onMarkInsideGrowth } from './seasons/tickEffects.js';
+export {
+  checkSeasonComplete,
+  type SeasonCompleteCfg,
+  type SeasonCompleteResult,
+} from './seasons/seasonComplete.js';
