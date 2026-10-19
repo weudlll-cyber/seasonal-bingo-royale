@@ -11,6 +11,9 @@ playwright-report/
 !.env.example
 # Committed templates with placeholder values, e.g. ops/.env.dev.example
 !.env.*.example
+# Night runs (docs/NIGHT-RUN.md): the run log and the task text stay local
+logs/
+night-task.md
 # Editor and OS noise
 .DS_Store
 Thumbs.db
