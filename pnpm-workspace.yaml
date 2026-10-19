@@ -20,3 +20,9 @@ allowBuilds:
   unrs-resolver: false
   # Its postinstall runs "lefthook install" (skipped in CI), wiring the git hooks of lefthook.yml.
   lefthook: true
+
+# Forced versions for transitive dependencies. Remove an entry once its parent ships the fix.
+overrides:
+  # eslint-plugin-boundaries 7.2.0 pins handlebars 4.7.9 (GHSA-8r5x-fm3f-whwj, GHSA-p8wg-vrv2-v86f,
+  # GHSA-xw65-4hp5-5hc7); 4.7.10 is the patch release that fixes them.
+  handlebars@4.7.9: 4.7.10
