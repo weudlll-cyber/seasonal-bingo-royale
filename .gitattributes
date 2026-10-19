@@ -1,0 +1,6 @@
+# Normalise line endings to LF so Windows and the Linux VPS see identical files.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.ogg binary
