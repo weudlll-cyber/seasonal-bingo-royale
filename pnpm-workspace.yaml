@@ -12,3 +12,9 @@ packages:
 engineStrict: true
 # "pnpm add" pins exact versions; upgrades arrive as Renovate PRs (docs/spec/08-devops-architecture.md §7).
 saveExact: true
+
+# Dependency install scripts run only when listed here as true.
+allowBuilds:
+  # Its postinstall only downloads a native binding as a fallback; the platform-specific
+  # optional dependency already ships it.
+  unrs-resolver: false
