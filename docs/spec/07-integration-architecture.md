@@ -110,6 +110,21 @@ The game ships its own chat (required to work in both modes). On the Seasonal En
 - With `hostEmbed`, game announcements (Season Complete, cuts, winner) are shown in the game’s own announcement strip, not posted into the website chat.
 - The `bingo` room itself is created by a website admin; nothing in the game creates it.
 
+## 6a. Live call
+
+A match may be linked to a Seasonal Entertainment website call (01 §12a). The
+match stores a call reference in `matches.host_call_ref`; the client renders the
+call next to the match by embedding the website's call view at that reference,
+using the website's own rules unchanged.
+
+- The embeddable call view is a separate website task (BACKLOG, website:
+  embeddable call view). Until the website delivers it, the field is accepted
+  and stored, but the match client renders no call panel.
+- The game never streams or stores audio or video.
+- A standalone "join a call" without a match is not offered by this game.
+- Admin link flow: the match-create and match-edit forms (11 §3.2) carry an
+  optional `hostCallRef` input.
+
 ## 7. Public read API for hosts
 
 Unauthenticated, cacheable (60 s), CORS-enabled for allowlisted origins:

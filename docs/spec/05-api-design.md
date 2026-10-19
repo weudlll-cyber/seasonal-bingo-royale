@@ -51,8 +51,8 @@ Commands (state change) and queries (read) are separate handlers in `application
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/matches?status=&mode=` | List open/running/finished public matches |
-| GET | `/matches/:code` | Match detail: title, mode, status, ruleset summary (public part), stage plan, player count, seed commitment, seed (after finish) |
+| GET | `/matches?status=&mode=&gameType=` | List open/running/finished public matches |
+| GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish) |
 | POST | `/matches/:code/join` | Join lobby (or late join) |
 | POST | `/matches/:code/leave` | Leave (before start: removed; after start: forfeit, stays placed by elimination order) |
 | GET | `/matches/:code/state` | Full state snapshot for the caller (own cards, standings top 50 + own row, current round, last draws, active effects). Used on load and after reconnect. |
@@ -94,7 +94,7 @@ Every route lists its permission. All writes are audited with before/after diff.
 | Dashboard | `GET /dashboard` (active matches, players online, error rate, abuse alerts) | `admin.view` |
 | Rulesets | `GET/POST /rulesets`, `GET /rulesets/:id/versions`, `POST /rulesets/:id/versions` (new draft from latest), `PUT /ruleset-versions/:id` (edit draft), `POST /ruleset-versions/:id/validate`, `POST /ruleset-versions/:id/simulate`, `POST /ruleset-versions/:id/publish`, `POST /ruleset-versions/:id/retire` | `ruleset.view` / `ruleset.edit` / `ruleset.publish` |
 | Patterns | `GET/POST /patterns`, `PUT /patterns/:id`, `POST /patterns/:id/archive` | `ruleset.edit` |
-| Matches | `GET /matches`, `POST /matches` (create from published ruleset), `PATCH /matches/:id` (title, schedule while `scheduled`), `POST /matches/:id/start`, `POST /matches/:id/abort`, `POST /matches/:id/kick` | `match.create` / `match.manage` / `match.abort` |
+| Matches | `GET /matches`, `POST /matches` (create from published ruleset; body carries `gameType`, `prizes[]` (classic types only), `countsForLeaderboard`, optional `hostCallRef` — see 01 §3a and 11 §3.2), `PATCH /matches/:id` (title, schedule, prizes and `countsForLeaderboard` while `scheduled`), `POST /matches/:id/start`, `POST /matches/:id/abort`, `POST /matches/:id/kick` | `match.create` / `match.manage` / `match.abort` |
 | Schedules | `GET/POST /match-series`, `PUT /match-series/:id` (recurring matches, e.g. daily async at 18:00) | `match.create` |
 | Leaderboards | `GET/POST /leaderboard-periods`, `POST /leaderboard-periods/:id/close`, `POST /leaderboard-adjustments` | `leaderboard.manage` / `leaderboard.adjust` |
 | Settings | `GET /settings/:documentId`, `GET /settings/:documentId/versions`, `PUT /settings/:documentId` (new version), `POST /settings/:documentId/rollback/:version` | per document: `settings.<doc>.edit`; `security`, `rate_limits`, `integrations` need `security_admin` |
@@ -137,6 +137,6 @@ Every route lists its permission. All writes are audited with before/after diff.
 
 ## 5. Error code catalogue (excerpt)
 
-`AUTH_INVALID_CREDENTIALS`, `AUTH_2FA_REQUIRED`, `AUTH_2FA_INVALID`, `AUTH_EMAIL_UNVERIFIED`, `AUTH_SESSION_EXPIRED`, `AUTH_STEP_UP_REQUIRED`, `FORBIDDEN`, `CSRF_INVALID`, `RATE_LIMITED`, `VALIDATION_FAILED` (with `errors[]` path list), `MATCH_NOT_FOUND`, `MATCH_FULL`, `MATCH_NOT_JOINABLE`, `MATCH_ALREADY_JOINED`, `MARK_NUMBER_NOT_DRAWN`, `MARK_DUPLICATE`, `RULESET_INVALID`, `RULESET_NOT_DRAFT`, `CONFIG_VERSION_CONFLICT`, `CHAT_MUTED`, `CHAT_BANNED`, `CHAT_FILTERED`, `UPLOAD_TYPE_REJECTED`, `UPLOAD_TOO_LARGE`, `INTEGRATION_UNREACHABLE`.
+`AUTH_INVALID_CREDENTIALS`, `AUTH_2FA_REQUIRED`, `AUTH_2FA_INVALID`, `AUTH_EMAIL_UNVERIFIED`, `AUTH_SESSION_EXPIRED`, `AUTH_STEP_UP_REQUIRED`, `FORBIDDEN`, `CSRF_INVALID`, `RATE_LIMITED`, `VALIDATION_FAILED` (with `errors[]` path list), `MATCH_NOT_FOUND`, `MATCH_FULL`, `MATCH_NOT_JOINABLE`, `MATCH_ALREADY_JOINED`, `MATCH_PRIZES_REQUIRED` (classic type without a prize ticked), `MATCH_PRIZES_FORBIDDEN` (prizes on a royale match), `MARK_NUMBER_NOT_DRAWN`, `MARK_DUPLICATE`, `RULESET_INVALID`, `RULESET_NOT_DRAFT`, `CONFIG_VERSION_CONFLICT`, `CHAT_MUTED`, `CHAT_BANNED`, `CHAT_FILTERED`, `UPLOAD_TYPE_REJECTED`, `UPLOAD_TOO_LARGE`, `INTEGRATION_UNREACHABLE`.
 
 The full list lives in `packages/contracts/errors.ts`; each code has a one-line description and its HTTP status. Clients map codes to UI strings; never parse `title`.
