@@ -1,0 +1,12 @@
+/**
+ * @file   apps/embed-loader/tsconfig.json
+ * @module embed-loader
+ * @brief  TypeScript settings for @sbr/embed-loader.
+ *
+ * Responsibility: extend the shared strict base and limit the program to src/.
+ * Spec:           docs/spec/10-repository-structure.md §2
+ */
+{
+  "extends": "../../tsconfig.bundler.json",
+  "include": ["src"]
+}

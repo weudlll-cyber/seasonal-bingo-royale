@@ -1,0 +1,14 @@
+# @file   pnpm-workspace.yaml
+# @brief  Declares the workspace packages and the pnpm settings of the monorepo.
+#
+# Responsibility: list where pnpm finds the shared packages and the apps; hold pnpm's own
+#                 settings (pnpm 11+ reads them here, not from .npmrc).
+# Spec:           docs/spec/10-repository-structure.md §1, docs/spec/08-devops-architecture.md §8
+packages:
+  - packages/*
+  - apps/*
+
+# Refuse installs on a Node version outside package.json "engines".
+engineStrict: true
+# "pnpm add" pins exact versions; upgrades arrive as Renovate PRs (docs/spec/08-devops-architecture.md §7).
+saveExact: true

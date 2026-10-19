@@ -1,0 +1,18 @@
+/**
+ * @file   tsconfig.bundler.json
+ * @brief  Strict base for code that a bundler (Vite) builds for the browser.
+ *
+ * Responsibility: keep every strict check from the base; switch to bundler resolution
+ *                 and add the DOM library.
+ * Depends on:     tsconfig.base.json
+ * Used by:        apps/web, apps/admin, apps/embed-loader, packages/ui
+ * Spec:           docs/spec/02-software-architecture.md §9
+ */
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  }
+}

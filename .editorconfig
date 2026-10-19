@@ -1,0 +1,18 @@
+# @file   .editorconfig
+# @brief  Editor-independent whitespace rules, matching Prettier and .gitattributes.
+#
+# Responsibility: UTF-8, LF line endings, two-space indent, final newline everywhere.
+# Spec:           docs/spec/10-repository-structure.md §1
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Markdown uses two trailing spaces as a hard line break.
+[*.md]
+trim_trailing_whitespace = false
