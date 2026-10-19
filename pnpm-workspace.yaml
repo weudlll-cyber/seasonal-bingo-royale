@@ -20,6 +20,14 @@ allowBuilds:
   unrs-resolver: false
   # Its postinstall runs "lefthook install" (skipped in CI), wiring the git hooks of lefthook.yml.
   lefthook: true
+  # Pulled by @testcontainers/postgresql through dockerode-ssh-agent/ssh2; the dev deps
+  # Testcontainers uses to talk to Docker. Their postinstalls just build native crypto
+  # helpers; keeping them disabled only degrades to a slower JS fallback, so leave off
+  # unless there is a measurable reason to flip them on.
+  cpu-features: false
+  ssh2: false
+  esbuild: false
+  protobufjs: false
 
 # Forced versions for transitive dependencies. Remove an entry once its parent ships the fix.
 overrides:
