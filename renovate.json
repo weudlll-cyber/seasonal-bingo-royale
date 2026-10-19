@@ -1,0 +1,26 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Dependency updates per docs/spec/08-devops-architecture.md §7 and 03 §18: weekly grouped minor/patch, security immediately, 3 days stability for new versions.",
+  "extends": [
+    "config:recommended",
+    "schedule:weekly",
+    "helpers:pinGitHubActionDigests",
+    "docker:pinDigests"
+  ],
+  "minimumReleaseAge": "3 days",
+  "rangeStrategy": "pin",
+  "packageRules": [
+    {
+      "description": "One weekly PR for all non-major updates.",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "minor and patch updates"
+    }
+  ],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "description": "Security fixes skip the weekly schedule and the stability wait.",
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null,
+    "labels": ["security"]
+  }
+}
