@@ -4,9 +4,14 @@
  * @brief  TypeScript settings for @sbr/domain.
  *
  * Responsibility: extend the shared strict base and limit the program to src/.
+ *                 node types are included so the DRBG can call node:crypto HMAC;
+ *                 the module itself remains pure (same input → same output).
  * Spec:           docs/spec/10-repository-structure.md §2
  */
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
   "include": ["src"]
 }
