@@ -54,6 +54,75 @@ Lobby ─► Stage 1 (qualification) ─► Cut ─► Stage 2 (elimination) ─
 
 Eliminated players stay in the match as **spectators**: they keep watching and chatting, they do not play.
 
+## 3a. Game types and prizes
+
+A match is one of three **game types**, chosen by whoever starts the match (admin
+or organiser). Sections §4–§9 of this document apply to the `royale` type unless
+stated otherwise; the two classic types replace stages, cuts and the jackpot with
+a single classic round.
+
+| Game type | Draw pool | Card cells | Structure |
+|---|---|---|---|
+| `royale` | 75 numbers | 24 numbers + 4 season cells (one per season) + free centre | Multi-stage elimination with cuts, Season Complete and the seasonal jackpot — the specification as given in §4–§9. |
+| `classicSeasons` | 75 numbers plus 4 season symbols (one per season) | 20 numbers + 4 season cells carrying the season symbol instead of a number + free centre | One classic 75-ball round, with season symbols drawn like numbers. Drawing a symbol marks that symbol's cell on every card. No stages, no cuts, no effects, no Season Complete bonus, no jackpot. |
+| `classic` | 75 numbers | 24 numbers + free centre; no season cells | One plain classic 75-ball round, numbers only. |
+
+The four season cells in `classicSeasons` still obey the §4 placement rule: four
+different rows, four different columns, never the centre. Each cell shows the
+season icon in place of a number. The symbol pool is drawn together with the
+numbers from a single shared sequence, so a draw ends up as either a number or
+a symbol, never both.
+
+The classic types run in either `realtime` or `asynchronous` mode. Marking mode
+and draw interval come from the ruleset (§5, §6).
+
+### 3a.1 Classic prize catalogue
+
+Both classic types play for a set of prizes ticked by the starter before start:
+
+| Prize key | Awarded to | Points |
+|---|---|---|
+| `rows-1` | First player whose single card has 1 complete row. | 100 |
+| `rows-2` | First player whose single card has 2 complete rows. | 200 |
+| `rows-3` | First player whose single card has 3 complete rows. | 300 |
+| `rows-4` | First player whose single card has 4 complete rows. | 400 |
+| `rows-5` | First player whose single card has 5 complete rows (i.e. all rows). | 500 |
+| `columns-1` … `columns-5` | Same for columns. | 100 × N |
+| `oneDiagonal` | First player with either diagonal complete. | 150 |
+| `bothDiagonals` | First player with both diagonals complete. | 300 |
+| `fourCorners` | First player with the four corner cells marked. | 100 |
+| `fullCard` | First player to mark every cell. | 500 |
+| Custom library patterns | As defined per pattern. | per pattern |
+
+Ticked by default (changeable before start, stored in the ruleset defaults, also
+editable in admin): `rows-1`, `rows-2`, `fourCorners`, `oneDiagonal`, `fullCard`.
+
+Rules:
+- A prize is awarded to **everyone** who completes it on the draw that first
+  completes it. Simultaneous completions on the same draw all win the prize.
+- Draws continue until every ticked prize is awarded; then the round ends.
+- Catalogue order (lowest to highest value), used for the placement tie-break
+  below: `rows-1`, `columns-1`, `rows-2`, `columns-2`, `rows-3`, `columns-3`,
+  `rows-4`, `columns-4`, `rows-5`, `columns-5`, `fourCorners`, `oneDiagonal`,
+  `bothDiagonals`, custom patterns in library order, `fullCard` highest.
+
+### 3a.2 Placement in classic types
+
+Final placement in a classic round is computed from the awards:
+
+1. Most valuable prize won (catalogue order; `fullCard` highest).
+2. Number of prizes won.
+3. Number of marks on the player's card at the end of the round.
+4. Join timestamp (earlier first) — deterministic last resort.
+
+Royale placement is unchanged (§7.5, §8.4).
+
+### 3a.3 Leaderboard switch
+
+A `countsForLeaderboard` flag is set per match. Default: on for `royale`, off for
+the classic types. The season leaderboard (§10) counts only matches with the
+flag on.
+
 ## 4. The card
 
 - 5×5 grid, columns B-I-N-G-O, numbers from the classic ranges: B 1–15, I 16–30, N 31–45, G 46–60, O 61–75.
@@ -230,6 +299,10 @@ A **points** jackpot (never money):
 
 **League points** per match: `placementPoints[place]` from a configurable table (default: 1st 100, 2nd 70, 3rd 50, 4–10 25, 11–25 10, finalists +10, everyone who finishes the match 2). Rank on the season board = sum of league points; tie-break: wins, then Season Completes.
 
+Only matches with the `countsForLeaderboard` flag on contribute to league
+points (§3a.3). The flag defaults to on for `royale` and off for the classic
+types, and can be flipped per match before start.
+
 Leaderboard integrity rules are in [03-security-architecture.md](03-security-architecture.md) §11.
 
 Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly.
@@ -251,6 +324,16 @@ Everything is the same engine. Only these ruleset values differ by default:
 - One chat room per match (all participants and spectators), plus a global lobby room.
 - Eliminated players keep chat access.
 - Full requirements: [06-realtime-architecture.md](06-realtime-architecture.md) §7 and [03-security-architecture.md](03-security-architecture.md) §12.
+
+## 12a. Live call
+
+A match may be linked to a Seasonal Entertainment website call. The link shows
+an embedded call view of the website next to the match; the website's rules for
+the call are unchanged. The game stores only the call reference
+(`matches.host_call_ref`, 04 §3.3), never audio or video. A linked call is
+offered only in combination with a match; it is not a standalone product of this
+game. The embeddable call view itself is a separate website task (see
+BACKLOG; website: embeddable call view).
 
 ## 13. Visual and audio design
 

@@ -12,6 +12,31 @@
 
 Every environment runs the **same container image**; differences are environment variables only. The image contains no domain or host name — the address is entered at install and read at runtime (owner rule from the race project, 2026-09-07, applied here as the default).
 
+### 1.1 Local dev ports (fixed, bound to `127.0.0.1`)
+
+| Service | Port | Started by |
+|---|---|---|
+| Server (HTTP + WS) | **3900** | `pnpm dev` (apps/server) |
+| Player client (web, Vite) | **5390** | `pnpm dev` (apps/web) |
+| Admin client (admin, Vite) | **5391** | `pnpm dev` (apps/admin) |
+| PostgreSQL | **5490** | `docker compose -f ops/compose.dev.yml up -d` |
+| Mailpit (SMTP) | **1090** | compose |
+| Mailpit (web UI) | **8490** | compose |
+
+Reserved for later use by this project (never used by other projects on the
+same machine): `3900`, `5390`, `5391`.
+
+Ports **off-limits** (used by other owner projects): `3800`, `5380`, `7880`,
+`7881`, `3478`, `5349`, `50000–50499`, `4000`, `5173`, `4173`, `5273`, `8000`.
+Before starting anything on a port, check it is free; if a port of this project
+is held by an earlier run of this project, stop that process first.
+
+Every development page shows a small fixed badge **"Bingo · dev · &lt;port&gt;"**
+in a non-intrusive corner (both clients and the server-rendered placeholder
+page). The badge is compiled out in production builds — it is tied to
+`import.meta.env.DEV` on the client and to `NODE_ENV !== 'production'` on the
+server.
+
 ## 2. Branching and release flow
 
 - `master` is always releasable and protected: PR required, CI green required, merges are merge commits (one topic = one branch = one merge).
@@ -77,6 +102,6 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 ## 8. Developer experience
 
 - VS Code workspace file with recommended extensions (ESLint, Prettier, Vitest, Playwright, Docker, EditorConfig) and launch configs for server debug and Vitest.
-- `pnpm dev` starts everything for local work; `pnpm verify` runs exactly what CI’s blocking jobs run except e2e/image.
+- `pnpm dev` starts everything for local work: the server on **3900** and both clients (player on **5390**, admin on **5391**) in parallel. PostgreSQL and Mailpit are started separately with `docker compose -f ops/compose.dev.yml up -d` so the dev stack keeps running across restarts. `pnpm verify` runs exactly what CI's blocking jobs run except e2e/image.
 - `CLAUDE.md` at the repo root tells Claude Code the rules (see [10-repository-structure.md](10-repository-structure.md)).
 - Pre-commit hook (lefthook): formats staged files only. Fast (< 5 s); gitleaks and every heavier check run in CI, not in the hook.

@@ -32,7 +32,7 @@ Live tiles: players online, running matches (realtime/async), draws/min, error r
 
 ### 3.2 Matches
 - **Live**: list of running matches; per match: stage/round, active/eliminated counts, draw count, jackpot, chat activity. Detail view = spectator view + staff actions: pause (async only), abort (reason required, shown publicly), kick player (reason required).
-- **Create**: pick a published ruleset version, title, mode, visibility, start rule (time/when full/either), lobby window, max players. Shows a summary of the stage plan computed for the chosen max players (“100 → 50 → 25 → 13 → final”).
+- **Create**: pick a published ruleset version, title, **game type** (`royale`, `classicSeasons`, `classic` — 01 §3a), mode, visibility, start rule (time/when full/either), lobby window, max players, **counts for leaderboard** (default on for `royale`, off for the classic types), optional **host call reference** (01 §12a / 07 §6a). For `royale`, shows a summary of the stage plan computed for the chosen max players ("100 → 50 → 25 → 13 → final"). For the classic types, shows the **prize list** (01 §3a.1) as a checkbox group pre-ticked from the ruleset defaults (`rows-1`, `rows-2`, `fourCorners`, `oneDiagonal`, `fullCard`), with custom library patterns listed below the built-in prizes; at least one must stay ticked.
 - **Series**: recurring matches (cron-like UI: days of week + time + time zone), each instance created 24 h ahead.
 
 ### 3.3 Game rules

@@ -12,6 +12,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 - Handoff endpoint that signs a 60-second token for the logged-in website user, plus a published public key (docs/spec/07-integration-architecture.md §4)
 - Chat room `bingo` created by a website admin (§6)
+- Embeddable call view at a predictable URL per call, so the game can render it next to a match when the match carries `host_call_ref` (docs/spec/01-game-design.md §12a, docs/spec/07-integration-architecture.md §6a; consumed by WP-25b)
 
 ### Optional inputs
 
@@ -27,3 +28,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | WP-01 Monorepo and tooling                                                                                           | Branch feat/wp-01-tooling                            | 2026-10-19 |
 | WP-02 CI pipeline and container                                                                                      | Branch feat/wp-02-ci                                 | 2026-10-20 |
 | PERMS-1 permission list                                                                                              | Branch chore/perms-1                                 | 2026-10-20 |
+| SPEC-MODES-1 game types, prizes, live call, local dev ports                                                          | Branch docs/spec-modes-1                             | 2026-10-20 |

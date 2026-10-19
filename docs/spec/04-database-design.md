@@ -31,7 +31,8 @@ matches ─┬─ match_entries (player in match)
          ├─ match_events (append-only log)  ── match_snapshots
          ├─ rounds ─┬─ cards ── card_cells (projection)
          │          ├─ draws
-         │          └─ marks
+         │          ├─ marks
+         │          └─ prize_awards (classic types)
          ├─ standings (projection)
          └─ scheduled_actions
 
@@ -105,6 +106,7 @@ embed_origins
 | id | uuid PK | |
 | code | text UNIQUE | short public code |
 | title | text | |
+| game_type | text | `royale`, `classicSeasons`, `classic` (01 §3a); default `royale` |
 | mode | text | `realtime` / `async` |
 | ruleset_version_id | uuid FK | frozen at lobby open |
 | status | text | `scheduled`, `lobby`, `running`, `finished`, `aborted` |
@@ -114,10 +116,16 @@ embed_origins
 | timezone | text | for quiet hours |
 | seed_commitment | bytea | sha256(seed) |
 | seed_enc | bytea | AES-GCM; readable by API only when `status IN ('finished','aborted')` |
-| current_stage int, current_round int | | |
+| current_stage int, current_round int | | royale only; NULL in classic types |
+| prizes | text[] | classic types: ticked prize keys from 01 §3a.1, in catalogue order; empty for royale |
+| counts_for_leaderboard | bool | 01 §3a.3; default true for royale, false for classic |
+| host_call_ref | text NULL | linked Seasonal Entertainment call reference, 01 §12a |
 | version | bigint | optimistic concurrency |
 | created_by | uuid FK | organizer |
 | aborted_reason | text NULL | |
+
+CHECK: `game_type = 'royale'` ↔ `prizes = '{}'`; a classic type requires at least
+one entry in `prizes`.
 
 **match_entries** — `match_id`, `account_id`, `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
 
@@ -129,9 +137,11 @@ embed_origins
 
 **cards** — `id`, `round_id`, `account_id`, `card_index smallint`, `numbers smallint[25]`, `season_cells smallint[4]` (cell indexes for spring, summer, autumn, winter in that order), `marked bit(25)`, `patterns_done text[]`. Index `(round_id, account_id)`.
 
-**draws** — `round_id`, `draw_index smallint`, `number smallint`, `drawn_at timestamptz`; PK `(round_id, draw_index)`; UNIQUE `(round_id, number)`.
+**draws** — `round_id`, `draw_index smallint`, `item smallint`, `drawn_at timestamptz`; PK `(round_id, draw_index)`; UNIQUE `(round_id, item)`. CHECK: `item BETWEEN 1 AND 75` (a number) OR `item BETWEEN 101 AND 104` (a season symbol: 101 = Spring, 102 = Summer, 103 = Autumn, 104 = Winter — matches the season order used by `cards.season_cells`). The symbol range is reachable only in `classicSeasons` matches.
 
 **marks** — `card_id`, `cell smallint`, `draw_index smallint`, `received_at timestamptz`, `source` (`manual`/`auto`), `speed_bonus smallint`; PK `(card_id, cell)` (idempotent).
+
+**prize_awards** — classic types only (01 §3a.1): `match_id`, `round_id`, `prize_key text` (e.g. `rows-2`, `fullCard`, or a custom pattern key), `draw_index smallint` (the draw that first completed the prize), `account_id`, `card_id`, `points int`, `awarded_at timestamptz`; PK `(round_id, prize_key, account_id)` so a prize is awarded to a given account at most once. Index `(match_id, prize_key)`.
 
 **standings** — projection: `match_id`, `account_id`, `rank int`, `score bigint`, `patterns int`, `seasons smallint`, `updated_seq bigint`; PK `(match_id, account_id)`; index `(match_id, rank)`.
 
@@ -163,8 +173,9 @@ embed_origins
 
 ## 4. Integrity constraints worth naming
 
-- `draws`: `number BETWEEN 1 AND 75`, unique per round → a number can never be drawn twice.
-- `marks`: insert only if `(round, number)` exists in `draws` — enforced in the use case and by a deferred constraint trigger as safety net.
+- `draws`: `item` in `[1..75]` or `[101..104]` (symbols only in `classicSeasons`), unique per round → an item can never be drawn twice. Royale and `classic` reject rows with `item > 75` by CHECK on the join to `matches.game_type` (enforced in the repository and asserted in integration tests, since Postgres does not express cross-table CHECK directly).
+- `marks`: insert only if `(round, item)` exists in `draws` — enforced in the use case and by a deferred constraint trigger as safety net.
+- `prize_awards`: PK makes a prize unawardable to the same account twice; the use case computes the awards on each draw transaction so simultaneous winners of a prize all end up as rows for the same `draw_index`.
 - `match_entries.score` is updated only by the projection inside the event transaction.
 - `league_awards` PK makes awarding a match twice impossible.
 - Published `ruleset_versions` and `match_events` and `audit_log` are immutable by trigger.

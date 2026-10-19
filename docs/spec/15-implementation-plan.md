@@ -26,30 +26,30 @@ Spec: 08 §3–§4, 03 §18. `ci.yml` (lint, unit, integration placeholder, secu
 Accept: CI green on push; image < 250 MB; Trivy clean. Owner sees: —
 
 **WP-03 Server skeleton and database**
-Spec: 02 §3, §7; 04 §1, §6; 05 §1. Fastify server with env validation, Pino, problem-details, helmet headers, `/healthz`, `/readyz`, `/metrics`; Drizzle setup, migration runner, migrations for roles/permissions/settings tables; serves placeholder web and admin bundles.
-Accept: integration test boots against Testcontainers Postgres; header test passes. Owner sees: placeholder lobby page at `localhost`.
+Spec: 02 §3, §7; 04 §1, §6; 05 §1; 08 §1.1. Fastify server bound to **127.0.0.1:3900** with env validation, Pino, problem-details, helmet headers, `/healthz`, `/readyz`, `/metrics`; Drizzle setup, migration runner, migrations for roles/permissions/settings tables; serves a placeholder lobby page that shows the dev badge "Bingo · dev · 3900" (badge compiled out in production).
+Accept: integration test boots against Testcontainers Postgres; header test passes. Owner sees: placeholder lobby page at `http://localhost:3900`.
 
 ### Phase 1 — Game rules
 
 **WP-04 Contracts: ruleset schema and defaults**
-Spec: 01 §4–§9, 11 §4. Zod `RulesetSchema` with all keys, min/max, descriptions; default rulesets `royale-realtime` and `royale-async`; cross-field validation.
+Spec: 01 §3a, §4–§9, 11 §4. Zod `RulesetSchema` with all keys, min/max, descriptions; **game type** enum (`royale`, `classicSeasons`, `classic`), **prize catalogue** schema (01 §3a.1) with the default ticked set, and the `countsForLeaderboard` default; default rulesets `royale-realtime`, `royale-async`, `classic-seasons-realtime`, `classic-realtime`; cross-field validation (classic types forbid stages/cuts/jackpot; prizes mandatory for classic, forbidden for royale).
 Accept: schema tests incl. invalid configs; defaults validate. Owner sees: —
 
 **WP-05 Domain: cards, draws, patterns, determinism**
-Spec: 01 §4–§5, §9. DRBG (HMAC-SHA256 counter), card generation incl. season cells, draw sequence, pattern masks and detection, commitment.
-Accept: property invariants 1–3, 11 (12 §3). Owner sees: —
+Spec: 01 §3a, §4–§5, §9. DRBG (HMAC-SHA256 counter), card generation per game type (royale and classic: 24 numbers + optional season cells; `classicSeasons`: 20 numbers + four season-symbol cells on different rows and columns), draw sequence over the pool for that game type (symbols 101–104 appear only in `classicSeasons`), pattern masks and detection for every prize key in 01 §3a.1 plus the custom library pattern model, commitment.
+Accept: property invariants 1–3, 11, 13–14 (12 §3). Owner sees: —
 
 **WP-06 Domain: scoring and seasons**
 Spec: 01 §6, §8.1–§8.3. Base points, speed bonus, pattern scoring, effect catalog (`addPoints`, `multiplier`, `growth`, `harvest`, `shield`, `revealNext`), Season Complete.
 Accept: invariants 4–6, 9; table tests for each effect. Owner sees: —
 
-**WP-07 Domain: royale structure**
-Spec: 01 §7, §8.4–§8.5. Stage plan, round-end conditions, cuts with shield, score carry, stage multiplier, jackpot, final ranking; `decide`/`evolve` for the whole match lifecycle.
-Accept: invariants 7, 8, 10; full-match simulation tests for 4, 20, 100, 200 players. Owner sees: —
+**WP-07 Domain: royale structure and classic round flow**
+Spec: 01 §3a, §7, §8.4–§8.5. Stage plan, round-end conditions, cuts with shield, score carry, stage multiplier, jackpot, royale final ranking; **classic round flow** that awards every ticked prize (01 §3a.1) to every player who completes it on the deciding draw, continues until all prizes are awarded, then produces the classic placement (01 §3a.2); `decide`/`evolve` for both lifecycles.
+Accept: invariants 7, 8, 10, 12; full-match simulation tests for 4, 20, 100, 200 players in royale and for 4, 20, 100 players in each classic type (seeds that produce an early `fullCard` and seeds that run to the end of the pool). Owner sees: —
 
 **WP-08 Quick Test: play against bots in the browser**
-Spec: 12 §8, 01 §13. In-memory match runner (dev builds only, behind a dev flag) using the domain; web UI: card grid with season cells, draw ticker, score, effects, standings, stage/cut screens, final ranking; seed field.
-Accept: E2E smoke with fixed seed reproduces the same final ranking. Owner sees: a full match vs. bots; the same seed replays identically.
+Spec: 12 §8, 01 §3a, §13. In-memory match runner (dev builds only, behind a dev flag) using the domain; web UI: card grid with season cells (symbol icon for `classicSeasons`), draw ticker, score, effects, standings, stage/cut screens (royale), prize ticker and final placement (classic types); start form that lets the owner pick the **game type** and (for classic types) the **ticked prizes**, plus a seed field; the dev badge "Bingo · dev · 5390" (08 §1.1).
+Accept: E2E smoke with fixed seed reproduces the same final ranking per game type. Owner sees: a full match vs. bots in each game type; the same seed replays identically.
 
 ### Phase 2 — Players and realtime
 
@@ -112,8 +112,8 @@ Spec: 11 §3.3, 05 §3.1. Draft/publish lifecycle, stage editor with field-size 
 Accept: E2E journey 5. Owner sees: change Winter effect → simulate → publish.
 
 **WP-22 Match management and series**
-Spec: 11 §3.2, 05 §3. Create/start/abort/kick, live view, recurring series.
-Accept: aborted match shows public notice; audit entry present. Owner sees: create a match from the admin.
+Spec: 11 §3.2, 05 §3, 01 §3a, §12a. Create/start/abort/kick, live view, recurring series. Match-create form carries `gameType`, prize checklist for the classic types, `countsForLeaderboard` toggle, and the optional `hostCallRef` input.
+Accept: aborted match shows public notice; audit entry present; prize selection round-trips and persists in `matches.prizes`. Owner sees: create a match of each game type from the admin.
 
 **WP-23 Branding, theme, uploads**
 Spec: 11 §3.7, 03 §14, 13 (T20). Upload pipeline, season icon slots, theme tokens with live preview and contrast check, sounds.
@@ -128,6 +128,10 @@ Accept: E2E journey 7 (OIDC part) against a mock provider. Owner sees: “Sign i
 **WP-25 JWT handoff, embed loader, allowlist**
 Spec: 07 §2.2, §3. Handoff endpoint, replay cache, embed token, `embed.js`, postMessage protocol, `frame-ancestors`/CORS/WS origin from allowlist; test host page in `e2e/fixtures`.
 Accept: E2E journey 7 (embed part), foreign origin rejected. Owner sees: game inside a test host page, signed in.
+
+**WP-25b Live call embed**
+Spec: 01 §12a, 07 §6a. Match detail renders the embedded website call view next to the match when `host_call_ref` is set; no audio/video is streamed or stored by the game. Depends on the website delivering the embeddable call view (BACKLOG) — until then this WP ships the render path behind a feature flag with a graceful empty state ("call view not available yet").
+Accept: with the feature flag on and a fake call URL in a test, the iframe is rendered with the right source and sandbox; with the flag off (default) nothing is rendered. Owner sees: match detail with a right-hand call panel once the website side exists.
 
 **WP-26 Public read API and webhooks**
 Spec: 07 §5, §7. Cached public endpoints, signed webhooks with delivery log.
@@ -159,7 +163,7 @@ Accept: load pass criteria met; release artifacts signed. Owner sees: v1.0.0 on 
               └────────── 09 ──┬─── 10 → 11 → 12 → 13 → 14 → 15 → 16
                                │                           └─ 17 → 18
                                └─ 19 → 20 → 21 → 22 → 23
-                                         24 → 25 → 26 (after 09, 19)
+                                         24 → 25 → 25b → 26 (after 09, 19)
                                          27 → 28 → 29 → 30 (after all)
 ```
 
