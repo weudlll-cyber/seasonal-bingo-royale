@@ -3,10 +3,15 @@
  * @module server
  * @brief  TypeScript settings for @sbr/server.
  *
- * Responsibility: extend the shared strict base and limit the program to src/.
+ * Responsibility: extend the shared strict base; include src/ and test/; pull in the
+ *                 @types/node ambient types that the server needs (fs, crypto, http).
  * Spec:           docs/spec/10-repository-structure.md §2
  */
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "compilerOptions": {
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": ["src", "test"]
 }
