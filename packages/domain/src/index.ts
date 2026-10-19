@@ -75,3 +75,20 @@ export {
   type SeasonCompleteCfg,
   type SeasonCompleteResult,
 } from './seasons/seasonComplete.js';
+export { finalRanking, type Placement, type RankedPlayer } from './royale/finalRanking.js';
+export { applyCut, type Candidate, type CutResult, type CutRule } from './royale/cut.js';
+export {
+  canClaim,
+  jackpotValue,
+  type JackpotCfg,
+  type JackpotClaimInput,
+} from './royale/jackpot.js';
+export {
+  simulateClassicRound,
+  type ClassicPlayer,
+  type ClassicRoundInput,
+  type ClassicRoundResult,
+  type PrizeAward,
+} from './classic/classicRound.js';
+export { classicPlacement, type ClassicPlacement } from './classic/classicPlacement.js';
+export { BUILTIN_PRIZE_CATALOGUE_ORDER } from './classic/prizeCatalogue.js';
