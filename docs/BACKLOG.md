@@ -6,7 +6,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 ### Implementation
 
-- WP-04 … WP-30 (docs/spec/15-implementation-plan.md) — not started
+- WP-05 … WP-30 (docs/spec/15-implementation-plan.md) — not started
 
 ### Needed from the website repository (Phase 6 only)
 
@@ -30,3 +30,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | PERMS-1 permission list                                                                                              | Branch chore/perms-1                                 | 2026-10-20 |
 | SPEC-MODES-1 game types, prizes, live call, local dev ports                                                          | Branch docs/spec-modes-1                             | 2026-10-20 |
 | WP-03 Server skeleton and database                                                                                   | Branch feat/wp-03-server                             | 2026-10-20 |
+| WP-04 Contracts: ruleset schema and defaults                                                                         | Branch feat/wp-04-contracts                          | 2026-10-20 |
