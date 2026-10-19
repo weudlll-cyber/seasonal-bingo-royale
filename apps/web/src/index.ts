@@ -1,14 +1,16 @@
 /**
  * @file   apps/web/src/index.ts
  * @module web
- * @brief  Public entry point of @sbr/web.
+ * @brief  Package entry: re-exports the shapes the smoke test asserts on (WP-08).
  *
- * Responsibility: player client, also the embed target. Talks only through contracts.
- *                 Shell only until its work package fills it (docs/spec/15-implementation-plan.md).
- * Depends on:     nothing yet
- * Used by:        src/index.test.ts
+ * Responsibility: the player client is bundled by Vite (./main.tsx is its real entry),
+ *                 but the workspace package still needs an entry point for the smoke
+ *                 test and future consumers. Keep this surface tiny.
+ * Depends on:     ./types
+ * Used by:        ./types.test.ts
  * Spec:           docs/spec/02-software-architecture.md §3
  */
 
-// Package identity, so the shell is importable and the test runner has something to check.
 export const PACKAGE_NAME = '@sbr/web';
+
+export type { Award, Cell, GameType, PlayerResult, QuickTestResult } from './types.js';
