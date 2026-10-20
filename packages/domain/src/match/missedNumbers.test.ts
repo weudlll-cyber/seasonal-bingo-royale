@@ -19,6 +19,7 @@ import {
   evolve,
   simulateMatch,
   type Command,
+  type MarkCell,
   type DomainEvent,
   type MatchState,
   type MissedNumbers,
@@ -78,7 +79,7 @@ function drawUntilHit(start: MatchState, wanted: (cellIndex: number) => boolean)
   }
 }
 
-const tap = (cellIndex: number, inSpeedWindow: boolean): Command => ({
+const tap = (cellIndex: number, inSpeedWindow: boolean): MarkCell => ({
   type: 'markCell',
   accountId: 'h',
   cardIndex: 0,
