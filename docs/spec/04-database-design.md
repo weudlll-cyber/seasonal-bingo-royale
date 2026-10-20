@@ -120,6 +120,8 @@ embed_origins
 | prizes | text[] | classic types: ticked prize keys from 01 §3a.1, in catalogue order; empty for royale |
 | counts_for_leaderboard | bool | 01 §3a.3; default true for royale, false for classic |
 | host_call_ref | text NULL | linked Seasonal Entertainment call reference, 01 §12a |
+| draw_mode | text | `auto` or `host` (01 §5); set at creation, changed by the host during the match; default `auto` |
+| draw_interval_ms | int | interval of `auto` draws; CHECK within the ruleset's allowed range for the match mode (01 §5); default the ruleset interval |
 | version | bigint | optimistic concurrency |
 | created_by | uuid FK | organizer |
 | aborted_reason | text NULL | |

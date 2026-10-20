@@ -51,6 +51,8 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
+| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode; rate limit 2/s |
+| `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
 ### 4.2 Server → client events
 
@@ -60,6 +62,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `match.started` | match | stage plan |
 | `round.started` | match | round meta; own cards are sent on the player room as `round.cards` |
 | `draw` | match | `{ roundId, index, number, at, speedWindowEndsAt? }` |
+| `draw.modeChanged` | match | `{ mode, intervalMs? }` after `draw.setMode`; `auto` resumes with the next draw due one interval after the change |
 | `mark.confirmed` | player | `{ cardId, cell, points, speedBonus }` |
 | `score.update` | player | own score, rank, effects |
 | `season.activated` | player (+ match announcement if configured) | season, effect summary |
@@ -76,6 +79,8 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `resync` | any | server requests the client to reload state |
 
 ## 5. Event flow for one draw
+
+In `auto` draw mode the scheduler issues `DrawNext` at `due_at`; in `host` mode no draw is scheduled and the host's `draw.next` intent issues the same command. Both paths draw the next item of the seeded sequence.
 
 ```
 scheduler due_at ─► DrawNext command ─► domain: decide/evolve

@@ -126,6 +126,8 @@ flag on.
 ## 4. The card
 
 - 5×5 grid, columns B-I-N-G-O, numbers from the classic ranges: B 1–15, I 16–30, N 31–45, G 46–60, O 61–75.
+- **Column order (decided 2026-10-20):** in every column the numbers are in ascending order from top to bottom. Season cells (royale) and season symbol cells (`classicSeasons`) keep their positions; the numbers of that column fill the remaining cells in ascending order.
+- The card shows the letters **B I N G O** above its columns.
 - Center cell (N3) is a **free cell**, marked from the start (`card.freeCenter`, default `true`).
 - **Four season cells** per card, one per season, placed at random non-center positions. A season cell still has its normal number; its season icon is shown on top.
 - Constraint: the four season cells occupy four **different rows and four different columns**. This keeps Season Complete from ever being a single line by construction.
@@ -144,6 +146,12 @@ flag on.
 | Asynchronous | 15 min | 1 min – 24 h |
 
 - Asynchronous matches may define **quiet hours** (no draws, e.g. 00:00–07:00 in the match’s time zone).
+- **Draw control (decided 2026-10-20):** whoever starts a match chooses the draw mode:
+  - `auto` — the next item is drawn after an interval the starter sets in seconds, within the allowed range of the table above;
+  - `host` — the next item is drawn only when the host presses **Draw next**.
+
+  The host can switch between the two modes at any time during the match, and change the `auto` interval. This applies to all three game types, realtime and asynchronous. The speed window (§6) always starts when a draw becomes visible. The draw order never depends on timing or mode: it is fixed by the match seed (§9).
+- Every drawn number is shown with its column letter (e.g. “G 52”); a drawn season symbol is shown as its icon.
 
 ## 6. Marking modes
 
@@ -314,6 +322,7 @@ Everything is the same engine. Only these ruleset values differ by default:
 | Aspect | Realtime | Asynchronous |
 |---|---|---|
 | Draw interval | 5 s | 15 min |
+| Draw control (§5) | `auto` or `host`, switchable during the match | `auto` or `host`, switchable during the match |
 | Marking | manual + speed bonus | auto |
 | Lobby window | 10 min | 24 h |
 | Notifications | in-app only | in-app + optional e-mail digest / web push |
@@ -339,6 +348,7 @@ BACKLOG; website: embeddable call view).
 
 - Brand: the four Seasonal Tokens seasons and their original icons; the season colours shared with the Seasonal Entertainment website (Spring `#afb84e`, Summer `#e06e22`, Autumn `#f9a825`, Winter `#04aaf7`); font Luxora Grotesk. Assets and their origin: [assets/README.md](../../assets/README.md).
 - Dark arena look, consistent with the Seasonal Entertainment website direction.
+- Cards show the letters B I N G O above the columns, with each column's numbers ascending (§4). The draw ticker, banners and announcements show every number with its letter (“G 52”) and every season symbol as its icon (§5).
 - Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You survived” / “Eliminated – keep watching”), final win.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.

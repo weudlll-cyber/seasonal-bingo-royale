@@ -7,6 +7,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 ### Implementation
 
 - WP-08 … WP-30 (docs/spec/15-implementation-plan.md) — not started
+- Realtime classic rounds: rule for players still tapping when a prize is decided on a draw (to be decided with the owner before WP-12)
 
 ### Needed from the website repository (Phase 6 only)
 
