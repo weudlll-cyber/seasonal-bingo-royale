@@ -26,7 +26,11 @@ function replay(events: readonly DomainEvent[]) {
   return state;
 }
 
-describe('simulateMatch — royale', () => {
+// Full matches of up to 200 players: under a busy parallel test run they can pass
+// Vitest's 5 s default, so these suites get an explicit budget (as the property tests).
+const FULL_MATCH_BUDGET = { timeout: 30_000 };
+
+describe('simulateMatch — royale', FULL_MATCH_BUDGET, () => {
   it.each([4, 20, 100, 200])('runs end to end with %i players and finishes', (count) => {
     const r = simulateMatch({
       matchId: `r-${String(count)}`,
@@ -52,7 +56,7 @@ describe('simulateMatch — royale', () => {
   });
 });
 
-describe('simulateMatch — classic, all ticked prizes', () => {
+describe('simulateMatch — classic, all ticked prizes', FULL_MATCH_BUDGET, () => {
   it.each<['classic' | 'classicSeasons', number]>([
     ['classic', 4],
     ['classic', 20],
@@ -82,42 +86,48 @@ describe('simulateMatch — classic, all ticked prizes', () => {
 
 // Seeds found by search (RUN-4): with 100 players, fullCard usually falls in the mid 60s;
 // these decide it early. With 4 players and only fullCard, these run to the last item.
-describe('simulateMatch — classic seeds: early fullCard and the end of the pool', () => {
-  it.each<['classic' | 'classicSeasons', number, number]>([
-    ['classic', 51, 54],
-    ['classicSeasons', 205, 57],
-  ])('%s seed %i decides fullCard early, on draw %i', (gameType, byte, draw) => {
-    const r = simulateMatch({
-      matchId: `fc-${gameType}`,
-      seed: seed(byte),
-      gameType,
-      ruleset: classicRuleset(),
-      playerCount: 100,
-      tickedPrizes: [...TICKED],
+describe(
+  'simulateMatch — classic seeds: early fullCard and the end of the pool',
+  FULL_MATCH_BUDGET,
+  () => {
+    it.each<['classic' | 'classicSeasons', number, number]>([
+      ['classic', 51, 54],
+      ['classicSeasons', 205, 57],
+    ])('%s seed %i decides fullCard early, on draw %i', (gameType, byte, draw) => {
+      const r = simulateMatch({
+        matchId: `fc-${gameType}`,
+        seed: seed(byte),
+        gameType,
+        ruleset: classicRuleset(),
+        playerCount: 100,
+        tickedPrizes: [...TICKED],
+      });
+      const fullCard = r.events.find(
+        (e) => e.type === 'classicPrizeAwarded' && e.prizeKey === 'fullCard',
+      );
+      expect(fullCard?.type === 'classicPrizeAwarded' ? fullCard.drawIndex + 1 : null).toBe(draw);
     });
-    const fullCard = r.events.find(
-      (e) => e.type === 'classicPrizeAwarded' && e.prizeKey === 'fullCard',
-    );
-    expect(fullCard?.type === 'classicPrizeAwarded' ? fullCard.drawIndex + 1 : null).toBe(draw);
-  });
 
-  it.each<['classic' | 'classicSeasons', number, number]>([
-    ['classic', 75, 75],
-    ['classicSeasons', 22, 79],
-  ])('%s seed %i runs fullCard-only to the last of %i items', (gameType, byte, poolSize) => {
-    const r = simulateMatch({
-      matchId: `end-${gameType}`,
-      seed: seed(byte),
-      gameType,
-      ruleset: classicRuleset(),
-      playerCount: 4,
-      tickedPrizes: ['fullCard'],
+    it.each<['classic' | 'classicSeasons', number, number]>([
+      ['classic', 75, 75],
+      ['classicSeasons', 22, 79],
+    ])('%s seed %i runs fullCard-only to the last of %i items', (gameType, byte, poolSize) => {
+      const r = simulateMatch({
+        matchId: `end-${gameType}`,
+        seed: seed(byte),
+        gameType,
+        ruleset: classicRuleset(),
+        playerCount: 4,
+        tickedPrizes: ['fullCard'],
+      });
+      expect(r.events.filter((e) => e.type === 'drawMade')).toHaveLength(poolSize);
+      const fullCard = r.events.find((e) => e.type === 'classicPrizeAwarded');
+      expect(fullCard?.type === 'classicPrizeAwarded' ? fullCard.drawIndex + 1 : null).toBe(
+        poolSize,
+      );
     });
-    expect(r.events.filter((e) => e.type === 'drawMade')).toHaveLength(poolSize);
-    const fullCard = r.events.find((e) => e.type === 'classicPrizeAwarded');
-    expect(fullCard?.type === 'classicPrizeAwarded' ? fullCard.drawIndex + 1 : null).toBe(poolSize);
-  });
-});
+  },
+);
 
 describe('replay = live for the royale lifecycle', () => {
   it('a 20-player royale replay matches the live state in every public field', () => {

@@ -6,7 +6,8 @@
  * Responsibility: wire the start form, play the match back one draw at a time under
  *                 the owner's draw control — `auto` interval or `host` "Draw next",
  *                 switchable during play (./useDrawTicker, D8) — and dispatch to
- *                 Playback. All strings in English (01 §13); animations respect
+ *                 Playback, remounted for every new run so no per-run state carries
+ *                 over. All strings in English (01 §13); animations respect
  *                 prefers-reduced-motion (handled per component).
  * Depends on:     react, ./api, ./types, ./playback, ./drawControl, ./useDrawTicker,
  *                 ./components/*
@@ -29,6 +30,10 @@ export function App(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [control, setControl] = useState<DrawControl>(INITIAL_CONTROL);
+  // Identity of the run on screen. It keys the whole match view, so every component
+  // with per-run state (owner cards, cut screen, …) mounts fresh for each new run,
+  // even with the same seed and settings.
+  const [runId, setRunId] = useState(0);
   const run = (input: StartQuickTestInput, draw: DrawControl): void => {
     setBusy(true);
     setError(null);
@@ -37,6 +42,7 @@ export function App(): ReactElement {
     startQuickTest(input)
       .then((r) => {
         setResult(r);
+        setRunId((n) => n + 1);
       })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : 'Unknown error');
@@ -70,7 +76,7 @@ export function App(): ReactElement {
         {result === null || view === null ? (
           <p style={{ color: '#9aa5b2' }}>Nothing yet. Fill in the form and press run.</p>
         ) : (
-          <Playback result={result} view={view} />
+          <Playback key={runId} result={result} view={view} />
         )}
       </section>
       <DevBadge />
