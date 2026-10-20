@@ -5,15 +5,17 @@
  *
  * Responsibility: collect the Quick Test inputs the owner picks before each run. The
  *                 prize checklist mirrors the catalogue of 01 §3a.1 and is pre-ticked
- *                 with the default selection from the ruleset defaults. New in this
- *                 pass: owner card count (1..4) and marking mode (manual default).
- * Depends on:     react, ../types, ../api
+ *                 with the default selection from the ruleset defaults; also owner card
+ *                 count (1..4), marking mode (manual default) and draw control (D8).
+ * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField
  * Used by:        ../App
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import type { StartQuickTestInput } from '../api.js';
+import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
+import { StartDrawField } from './StartDrawField.js';
 import type { GameType, MarkingMode } from '../types.js';
 
 const CATALOGUE = [
@@ -32,7 +34,8 @@ const CATALOGUE = [
 const DEFAULT_PRIZES = new Set(['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard']);
 
 export interface StartFormProps {
-  readonly onStart: (input: StartQuickTestInput) => void;
+  // The server input, and the draw control the playback starts with (D8).
+  readonly onStart: (input: StartQuickTestInput, draw: DrawControl) => void;
   readonly busy: boolean;
 }
 
@@ -55,9 +58,12 @@ const INITIAL: FormState = {
 export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   const [state, setState] = useState<FormState>(INITIAL);
   const [prizes, setPrizes] = useState<Set<string>>(new Set(DEFAULT_PRIZES));
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]): void => {
-    setState((prev) => ({ ...prev, [key]: value }));
-  };
+  const [draw, setDraw] = useState<DrawControl>(INITIAL_CONTROL);
+  const bind =
+    <K extends keyof FormState>(key: K) =>
+    (value: FormState[K]): void => {
+      setState((prev) => ({ ...prev, [key]: value }));
+    };
   const toggle = (key: string): void => {
     setPrizes((prev) => {
       const next = new Set(prev);
@@ -68,40 +74,16 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   };
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
-    onStart(toInput(state, prizes));
+    onStart(toInput(state, prizes), draw);
   };
   return (
     <form onSubmit={submit} style={{ display: 'grid', gap: '0.6rem', maxWidth: '32rem' }}>
-      <GameTypeField
-        value={state.gameType}
-        onChange={(v) => {
-          set('gameType', v);
-        }}
-      />
-      <SeedField
-        value={state.seedText}
-        onChange={(v) => {
-          set('seedText', v);
-        }}
-      />
-      <BotCountField
-        value={state.playerCount}
-        onChange={(v) => {
-          set('playerCount', v);
-        }}
-      />
-      <OwnerCardsField
-        value={state.ownerCards}
-        onChange={(v) => {
-          set('ownerCards', v);
-        }}
-      />
-      <MarkingField
-        value={state.markingMode}
-        onChange={(v) => {
-          set('markingMode', v);
-        }}
-      />
+      <GameTypeField value={state.gameType} onChange={bind('gameType')} />
+      <SeedField value={state.seedText} onChange={bind('seedText')} />
+      <BotCountField value={state.playerCount} onChange={bind('playerCount')} />
+      <OwnerCardsField value={state.ownerCards} onChange={bind('ownerCards')} />
+      <MarkingField value={state.markingMode} onChange={bind('markingMode')} />
+      <StartDrawField value={draw} onChange={setDraw} />
       <PrizeChecklist checked={prizes} onToggle={toggle} />
       <button type="submit" disabled={busy} style={{ padding: '0.5rem' }} data-testid="start-run">
         {busy ? 'Running…' : 'Run Quick Test'}

@@ -23,7 +23,12 @@ export {
   type BuiltinPrizeKey,
   type PrizeList,
 } from './config/prizes.js';
-export { RulesetSchema, type Effect, type Ruleset } from './config/ruleset.js';
+export {
+  REALTIME_DRAW_INTERVAL_MS,
+  RulesetSchema,
+  type Effect,
+  type Ruleset,
+} from './config/ruleset.js';
 export {
   DEFAULT_RULESETS,
   classicRealtimeDefault,

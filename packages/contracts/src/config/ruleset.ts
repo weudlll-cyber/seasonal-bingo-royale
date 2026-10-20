@@ -25,8 +25,16 @@ const GeneralSchema = z.object({
   freeCenter: z.boolean(),
 });
 
+// Allowed realtime draw interval (01 §5): the ruleset value, and the interval a starter
+// or host may set for `auto` draws, stay inside this range.
+export const REALTIME_DRAW_INTERVAL_MS = Object.freeze({ min: 2_000, max: 60_000 });
+
 const DrawsSchema = z.object({
-  intervalMsRealtime: z.number().int().min(2_000).max(60_000),
+  intervalMsRealtime: z
+    .number()
+    .int()
+    .min(REALTIME_DRAW_INTERVAL_MS.min)
+    .max(REALTIME_DRAW_INTERVAL_MS.max),
   intervalMsAsync: z.number().int().min(60_000).max(86_400_000),
   // Quiet hours as half-open interval in local time. Null disables.
   quietHours: z

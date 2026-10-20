@@ -23,6 +23,7 @@ import {
   classicSeasonsRealtimeDefault,
   royaleRealtimeDefault,
   BUILTIN_PRIZE_POINTS,
+  REALTIME_DRAW_INTERVAL_MS,
   type Ruleset,
 } from '@sbr/contracts';
 import {
@@ -69,6 +70,8 @@ export interface QuickTestResult {
   readonly gameType: GameType;
   readonly markingMode: 'auto' | 'manual';
   readonly drawIntervalMs: number;
+  // Range a starter or host may set for auto draws (01 §5, D8).
+  readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
   readonly speedWindowMs: number;
   readonly pointsPerMark: number;
   readonly maxSpeedBonus: number;
@@ -188,6 +191,7 @@ function buildResult(args: BuildArgs): QuickTestResult {
     gameType: input.gameType,
     markingMode: input.markingMode,
     drawIntervalMs: ruleset.draws.intervalMsRealtime,
+    drawIntervalRangeMs: REALTIME_DRAW_INTERVAL_MS,
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,
     maxSpeedBonus: ruleset.scoring.maxSpeedBonus,

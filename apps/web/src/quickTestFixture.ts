@@ -50,6 +50,7 @@ export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTes
     gameType: 'royale',
     markingMode,
     drawIntervalMs: 1000,
+    drawIntervalRangeMs: { min: 500, max: 60_000 },
     speedWindowMs: 3000,
     pointsPerMark: 10,
     maxSpeedBonus: 10,

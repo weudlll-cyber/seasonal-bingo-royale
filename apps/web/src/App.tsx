@@ -3,21 +3,23 @@
  * @module web
  * @brief  Quick Test page: start form, playback, owner-plays-with-bots (WP-08).
  *
- * Responsibility: wire the start form, play the match back one draw per tick at the
- *                 owner's chosen pace (./useDrawTicker), dispatch to Playback.
- *                 All strings in English (01 §13); animations respect
+ * Responsibility: wire the start form, play the match back one draw at a time under
+ *                 the owner's draw control — `auto` interval or `host` "Draw next",
+ *                 switchable during play (./useDrawTicker, D8) — and dispatch to
+ *                 Playback. All strings in English (01 §13); animations respect
  *                 prefers-reduced-motion (handled per component).
- * Depends on:     react, ./api, ./types, ./playback, ./drawPace, ./useDrawTicker,
+ * Depends on:     react, ./api, ./types, ./playback, ./drawControl, ./useDrawTicker,
  *                 ./components/*
- * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §13
+ * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §5, §13
  */
 import { useMemo, useState, type ReactElement } from 'react';
 
 import { startQuickTest, type StartQuickTestInput } from './api.js';
 import { DevBadge } from './components/DevBadge.js';
+import { DrawControls } from './components/DrawControls.js';
 import { StartForm } from './components/StartForm.js';
 import { Playback } from './components/Playback.js';
-import type { PaceLabel } from './drawPace.js';
+import { autoIntervalMs, INITIAL_CONTROL, type DrawControl } from './drawControl.js';
 import { playbackAt } from './playback.js';
 import type { QuickTestResult } from './types.js';
 import { useDrawTicker } from './useDrawTicker.js';
@@ -26,10 +28,12 @@ export function App(): ReactElement {
   const [result, setResult] = useState<QuickTestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [pace, setPace] = useState<PaceLabel>('realtime');
-  const run = (input: StartQuickTestInput): void => {
+  const [control, setControl] = useState<DrawControl>(INITIAL_CONTROL);
+  const run = (input: StartQuickTestInput, draw: DrawControl): void => {
     setBusy(true);
     setError(null);
+    // A new run starts with the form's draw control and is not skipped.
+    setControl({ ...draw, skipped: false });
     startQuickTest(input)
       .then((r) => {
         setResult(r);
@@ -41,9 +45,10 @@ export function App(): ReactElement {
         setBusy(false);
       });
   };
-  // One draw per tick at the ruleset draw interval (./drawPace).
-  const step = useDrawTicker(result, pace);
+  const { step, drawNext } = useDrawTicker(result, control);
   const view = useMemo(() => (result === null ? null : playbackAt(result, step)), [result, step]);
+  const effectiveSec =
+    result === null ? (control.intervalSec ?? 5) : autoIntervalMs(control, result) / 1000;
   return (
     <main style={layoutStyle}>
       <section>
@@ -53,7 +58,13 @@ export function App(): ReactElement {
         </p>
         <StartForm onStart={run} busy={busy} />
         {error !== null && <p style={{ color: '#ff7a7a' }}>Error: {error}</p>}
-        <PaceControl value={pace} onChange={setPace} />
+        <DrawControls
+          control={control}
+          effectiveSec={effectiveSec}
+          canDraw={view !== null && !view.finished}
+          onChange={setControl}
+          onDrawNext={drawNext}
+        />
       </section>
       <section>
         {result === null || view === null ? (
@@ -74,41 +85,3 @@ const layoutStyle: React.CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(min(22rem, 100%), 1fr))',
   gap: '1.5rem',
 };
-
-function PaceControl({
-  value,
-  onChange,
-}: {
-  value: PaceLabel;
-  onChange: (p: PaceLabel) => void;
-}): ReactElement {
-  return (
-    <div role="group" aria-label="Draw pace" style={{ marginTop: '0.75rem' }}>
-      {(['slower', 'realtime', 'faster', 'skip'] as const).map((label) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => {
-            onChange(label);
-          }}
-          aria-pressed={value === label}
-          style={paceButtonStyle(value === label)}
-        >
-          {label === 'skip' ? 'skip to end' : label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function paceButtonStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: '0.35rem 0.65rem',
-    marginRight: '0.3rem',
-    background: active ? '#2a3a56' : '#1a2130',
-    color: '#e6edf7',
-    border: active ? '1px solid #3b73c8' : '1px solid #223',
-    borderRadius: '0.3rem',
-    cursor: 'pointer',
-  };
-}

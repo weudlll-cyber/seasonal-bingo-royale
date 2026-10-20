@@ -20,6 +20,9 @@ export interface RunSettings {
   readonly marking: 'auto' | 'manual';
   readonly prizes?: readonly string[];
   readonly skipToEnd?: boolean;
+  // Draw control at start (D8); defaults: auto at the ruleset interval.
+  readonly drawMode?: 'auto' | 'host';
+  readonly intervalSec?: number;
 }
 
 const CATALOGUE = [
@@ -47,9 +50,14 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
   for (const key of CATALOGUE) {
     await page.getByLabel(key, { exact: true }).setChecked(prizes.has(key));
   }
-  if (settings.skipToEnd === true) await page.getByRole('button', { name: 'skip to end' }).click();
+  await page.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
+  if (settings.intervalSec !== undefined) {
+    await page.getByTestId('start-draw-interval').fill(String(settings.intervalSec));
+  }
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('stage-banner')).toBeVisible();
+  // A new run resets skip, so skip is pressed once the match is on screen.
+  if (settings.skipToEnd === true) await page.getByRole('button', { name: 'skip to end' }).click();
 }
 
 // Runs a match to the end and returns the final placement as text.

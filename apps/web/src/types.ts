@@ -121,6 +121,8 @@ export interface QuickTestResult {
   readonly gameType: GameType;
   readonly markingMode: MarkingMode;
   readonly drawIntervalMs: number;
+  // Range a starter or host may set for `auto` draws (01 §5, D8).
+  readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
   readonly speedWindowMs: number;
   readonly pointsPerMark: number;
   readonly maxSpeedBonus: number;
