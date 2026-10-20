@@ -14,6 +14,8 @@ playwright-report/
 # Night runs (docs/NIGHT-RUN.md): the run log and the task text stay local
 logs/
 night-task.md
+# One-off scripts of a run, deleted when the step is done
+tmp/
 # Editor and OS noise
 .DS_Store
 Thumbs.db

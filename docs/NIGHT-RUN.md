@@ -37,6 +37,25 @@ Never pass `-r` or `-c`; use `--session-id <uuid>` if a specific id is needed. O
 4. **Heartbeat:** at least every 45 minutes a commit on the current branch with the clock time and one sentence of what the run is doing. A gap of more than 45 minutes means the run is stuck.
 5. **The morning sheet's OPEN section is regenerated** from the piece list every time, never appended to, so it cannot go stale.
 
+## Desktop notifications
+
+A run reports to the owner without being asked, through `ops/notify.ps1` (Windows balloon titled "Bingo", nothing but what ships with Windows):
+
+```sh
+powershell -NoProfile -ExecutionPolicy Bypass -File ops/notify.ps1 "<text>"
+```
+
+- At the start: `<RUN> started: <N> steps, <goal>`.
+- After every finished step: `Step N of M done: <one line>`.
+- When a step is still red after three attempts: `Stuck at step N: <one line>, continuing with step N+1` (or `…, stopping` when later steps depend on it).
+- At the very end: `Finished: <what is running and where>`, or what actually applies.
+
+## Processes and scratch files
+
+- Long-running processes (dev servers, watchers) start only through `powershell -NoProfile -Command Start-Process ... -WindowStyle Hidden`, never with `&`, `nohup` or chained commands. Chained commands match no permission rule and are denied in `dontAsk` mode.
+- Run one command per call; a pipe only when a single tool needs it.
+- One-off scripts live in the git-ignored `tmp/` folder and are deleted when the step that needed them is done.
+
 ## What a night run never does
 
 - Edit `.claude/settings.json` or `.claude/settings.local.json`. That prompt cannot be suppressed by any mode, so trying it stalls the run.
