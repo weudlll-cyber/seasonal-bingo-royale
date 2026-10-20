@@ -11,10 +11,15 @@
  *                 them from bots. Determinism (01 §9, 12 §3 inv. 2): the same input
  *                 always returns the same output, including the owner's cards and
  *                 auto-mark positions. Events carry display ids and come with the
- *                 owner's effect timeline (./quicktestEvents).
+ *                 owner's effect timeline (./quicktestEvents). Marking is per player
+ *                 (01 §6): bots always mark on the draw; the owner's cards are people
+ *                 in manual mode. The match is computed before playback, so the owner's
+ *                 later taps are unknown here: those cards are computed as never tapping
+ *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
+ *                 delay), measured in draws of the chosen interval.
  * Depends on:     @sbr/domain, @sbr/contracts (defaults), ./quicktestEvents
  * Used by:        ../http/routes/quicktest.ts
- * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §13
+ * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §6, §13
  */
 import { createHash } from 'node:crypto';
 
@@ -23,6 +28,7 @@ import {
   classicSeasonsRealtimeDefault,
   royaleRealtimeDefault,
   BUILTIN_PRIZE_POINTS,
+  DEFAULT_AUTO_MARK_DELAY_MS,
   REALTIME_DRAW_INTERVAL_MS,
   type Ruleset,
 } from '@sbr/contracts';
@@ -34,6 +40,7 @@ import {
   type GameType,
   type MatchRuleset,
   type MatchState,
+  type MissedNumbers,
 } from '@sbr/domain';
 
 import {
@@ -53,6 +60,11 @@ export interface QuickTestInput {
   readonly tickedPrizes: readonly string[];
   readonly seedText: string;
   readonly markingMode: 'auto' | 'manual';
+  // The starter's missed-number rule for tapping players (01 §6); default autoMarkAfter
+  // with DEFAULT_AUTO_MARK_DELAY_MS.
+  readonly missedNumbers?: MissedNumbers | undefined;
+  // Seconds between timed draws the client plays back with; default the ruleset value.
+  readonly drawIntervalMs?: number | undefined;
 }
 
 export interface QuickTestPlayer {
@@ -69,6 +81,8 @@ export interface QuickTestPlayer {
 export interface QuickTestResult {
   readonly gameType: GameType;
   readonly markingMode: 'auto' | 'manual';
+  // The starter's rule with the delay raised to at least the speed window.
+  readonly missedNumbers: MissedNumbers;
   readonly drawIntervalMs: number;
   // Range a starter or host may set for auto draws (01 §5, D8).
   readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
@@ -91,8 +105,14 @@ const BOT_PREFIX = 'bot-';
 export function runQuickTest(input: QuickTestInput): QuickTestResult {
   const seed = seedFromText(input.seedText);
   const ruleset = contractsRulesetFor(input.gameType);
-  const matchRuleset = toMatchRuleset(ruleset, input.markingMode);
+  const missedNumbers = chosenMissedNumbers(input.missedNumbers, ruleset.marking.speedWindowMs);
+  const drawIntervalMs = input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime;
+  const matchRuleset = toMatchRuleset(ruleset, input.markingMode, {
+    kind: 'autoMarkAfter',
+    delayMs: delayOf(missedNumbers),
+  });
   const totalPlayers = Math.max(1, input.ownerCards) + input.playerCount;
+  const ownerCount = Math.max(0, Math.min(4, input.ownerCards));
   const matchId = `qt-${input.gameType}-${input.seedText}`;
   const sim = simulateMatch({
     matchId,
@@ -101,9 +121,32 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
     ruleset: matchRuleset,
     playerCount: totalPlayers,
     tickedPrizes: input.tickedPrizes,
+    // Only the owner's cards are people, and only in manual marking mode (01 §6).
+    humans: { count: input.markingMode === 'manual' ? ownerCount : 0, drawIntervalMs },
   });
-  const ownerCount = Math.max(0, Math.min(4, input.ownerCards));
-  return buildResult({ input, ruleset, events: sim.events, state: sim.state, ownerCount });
+  return buildResult({
+    input: { ...input, missedNumbers, drawIntervalMs },
+    ruleset,
+    events: sim.events,
+    state: sim.state,
+    ownerCount,
+  });
+}
+
+// The starter's rule; an autoMarkAfter delay is never shorter than the speed window.
+function chosenMissedNumbers(
+  chosen: MissedNumbers | undefined,
+  speedWindowMs: number,
+): MissedNumbers {
+  const rule = chosen ?? { kind: 'autoMarkAfter', delayMs: DEFAULT_AUTO_MARK_DELAY_MS };
+  if (rule.kind === 'noAutoMark') return rule;
+  return { kind: 'autoMarkAfter', delayMs: Math.max(speedWindowMs, rule.delayMs) };
+}
+
+// Delay the server computes the owner's cards with: the chosen one, or the default
+// under noAutoMark, because the owner's later taps are not known before playback.
+function delayOf(rule: MissedNumbers): number {
+  return rule.kind === 'autoMarkAfter' ? rule.delayMs : DEFAULT_AUTO_MARK_DELAY_MS;
 }
 
 function contractsRulesetFor(gameType: GameType): Ruleset {
@@ -112,7 +155,11 @@ function contractsRulesetFor(gameType: GameType): Ruleset {
   return classicRealtimeDefault;
 }
 
-function toMatchRuleset(ruleset: Ruleset, markingMode: 'auto' | 'manual'): MatchRuleset {
+function toMatchRuleset(
+  ruleset: Ruleset,
+  markingMode: 'auto' | 'manual',
+  missedNumbers: MissedNumbers,
+): MatchRuleset {
   const stages =
     ruleset.stages === undefined
       ? classicPlaceholderStages()
@@ -130,6 +177,7 @@ function toMatchRuleset(ruleset: Ruleset, markingMode: 'auto' | 'manual'): Match
   return {
     mode: ruleset.mode === 'async' ? 'async' : 'realtime',
     markingMode,
+    missedNumbers,
     cardsPerPlayer: ruleset.general.cardsPerPlayer,
     freeCenter: ruleset.general.freeCenter,
     pointsPerMark: ruleset.scoring.pointsPerMark,
@@ -156,7 +204,10 @@ function classicPlaceholderStages(): MatchRuleset['stages'] {
 }
 
 interface BuildArgs {
-  readonly input: QuickTestInput;
+  readonly input: QuickTestInput & {
+    readonly missedNumbers: MissedNumbers;
+    readonly drawIntervalMs: number;
+  };
   readonly ruleset: Ruleset;
   readonly events: readonly DomainEvent[];
   readonly state: MatchState;
@@ -190,7 +241,8 @@ function buildResult(args: BuildArgs): QuickTestResult {
   return {
     gameType: input.gameType,
     markingMode: input.markingMode,
-    drawIntervalMs: ruleset.draws.intervalMsRealtime,
+    missedNumbers: input.missedNumbers,
+    drawIntervalMs: input.drawIntervalMs,
     drawIntervalRangeMs: REALTIME_DRAW_INTERVAL_MS,
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,

@@ -25,6 +25,7 @@ export {
 } from './config/prizes.js';
 export {
   REALTIME_DRAW_INTERVAL_MS,
+  DEFAULT_AUTO_MARK_DELAY_MS,
   RulesetSchema,
   type Effect,
   type Ruleset,

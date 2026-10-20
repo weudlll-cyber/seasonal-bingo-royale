@@ -4,13 +4,17 @@
  * @brief  Full-match simulation driver for tests and the Quick Test (WP-07/WP-08).
  *
  * Responsibility: drive the lifecycle for a given seed, game type, player count and
- *                 ruleset end-to-end with bot players in `auto` marking mode. Returns
+ *                 ruleset end-to-end. Bots mark on the draw; optional human players never
+ *                 tap here (their taps are not known in advance), so in manual marking
+ *                 mode they are marked only by autoMarkMissed once the missed-number
+ *                 delay has passed, measured in draw intervals (01 §6). Returns
  *                 the full event log and the final state so tests can assert both
  *                 "live state = replay" (invariant 4) and the game-wide invariants
  *                 (every ticked prize awarded, final placement 1..N, …). Pure.
  * Depends on:     ./commands, ./decide, ./evolve, ./matchState, ./lifecycleTypes
  * Used by:        tests, apps/server/src/dev/quicktest.ts
- * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 12 §3 inv. 4, 7, 8, 10, 12
+ * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 01 §6;
+ *                 12 §3 inv. 4, 7, 8, 10, 12, 17, 18
  */
 import type { GameType } from '../gameType.js';
 import { decide } from './decide.js';
@@ -27,6 +31,9 @@ export interface SimulateMatchInput {
   readonly ruleset: MatchRuleset;
   readonly playerCount: number;
   readonly tickedPrizes: readonly string[];
+  // The first `count` players join as people; drawIntervalMs is the time between two
+  // draws, which turns the ruleset missed-number delay into a number of draws.
+  readonly humans?: { readonly count: number; readonly drawIntervalMs: number };
 }
 
 export interface SimulateMatchResult {
@@ -69,15 +76,17 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
     tickedPrizes: input.tickedPrizes,
   });
   for (let i = 0; i < input.playerCount; i += 1) {
-    d.apply({ type: 'joinMatch', accountId: `p${String(i).padStart(3, '0')}`, joinedAt: i });
+    const accountId = `p${String(i).padStart(3, '0')}`;
+    const human = i < (input.humans?.count ?? 0);
+    d.apply({ type: 'joinMatch', accountId, joinedAt: i, ...(human ? { human } : {}) });
   }
   d.apply({ type: 'startMatch' });
-  runStages(d);
+  runStages(d, input.humans?.drawIntervalMs ?? 0);
   d.apply({ type: 'finishMatch' });
   return { events: d.events, state: d.state };
 }
 
-function runStages(d: Driver): void {
+function runStages(d: Driver, drawIntervalMs: number): void {
   while (d.state.stageIndex < d.state.stagePlan.length) {
     const stage = d.state.stagePlan[d.state.stageIndex];
     if (stage === undefined) break;
@@ -85,7 +94,7 @@ function runStages(d: Driver): void {
       // Once the active field is at or below the final size, the remaining elimination
       // rounds and stages are skipped (01 §7.4) — checked before every round.
       if (stage.kind === 'elimination' && fieldAtFinalSize(d.state)) break;
-      runOneRound(d);
+      runOneRound(d, drawIntervalMs);
     }
     const nextIndex = d.state.stageIndex + 1;
     if (nextIndex < d.state.stagePlan.length) d.apply({ type: 'startStage' });
@@ -93,11 +102,13 @@ function runStages(d: Driver): void {
   }
 }
 
-function runOneRound(d: Driver): void {
+function runOneRound(d: Driver, drawIntervalMs: number): void {
   d.apply({ type: 'startRound' });
+  let pending = 0; // first draw whose missed-number auto-mark has not been issued
   // Draw until the round ends or the pool is exhausted. decide('endRound') returns
   // non-empty exactly when the condition fires; we poll it after each draw.
   for (let safety = 0; safety < 2_000; safety += 1) {
+    pending = issueDueAutoMarks(d, pending, drawIntervalMs);
     const drew = d.apply({ type: 'drawNext' });
     const ended = d.apply({ type: 'endRound' });
     if (ended.length > 0) break;
@@ -109,6 +120,21 @@ function runOneRound(d: Driver): void {
     d.apply({ type: 'endRound' });
   }
   d.apply({ type: 'applyCut' });
+}
+
+// Before the next draw, issue autoMarkMissed for every earlier draw whose delay has
+// passed by then: draw d is due once (next − d) × interval ≥ delay, so a delay equal to
+// one interval marks just before the next draw. Returns the new first pending draw.
+function issueDueAutoMarks(d: Driver, pending: number, drawIntervalMs: number): number {
+  const rule = d.state.ruleset.missedNumbers;
+  const next = d.state.currentRound?.draws.length ?? 0;
+  if (rule.kind !== 'autoMarkAfter' || drawIntervalMs <= 0) return next;
+  let first = pending;
+  while (first < next && (next - first) * drawIntervalMs >= rule.delayMs) {
+    d.apply({ type: 'autoMarkMissed', drawIndex: first });
+    first += 1;
+  }
+  return first;
 }
 
 function fieldAtFinalSize(state: MatchState): boolean {

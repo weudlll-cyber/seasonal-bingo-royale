@@ -79,6 +79,7 @@ export function royaleRuleset(): MatchRuleset {
   return {
     mode: 'realtime',
     markingMode: 'auto',
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
     cardsPerPlayer: 1,
     freeCenter: true,
     pointsPerMark: 10,
@@ -108,6 +109,7 @@ export function classicRuleset(): MatchRuleset {
   return {
     mode: 'realtime',
     markingMode: 'auto',
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
     cardsPerPlayer: 1,
     freeCenter: true,
     pointsPerMark: 10,

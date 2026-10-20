@@ -39,6 +39,7 @@ import {
 const EMPTY_RULESET: MatchRuleset = Object.freeze({
   mode: 'realtime',
   markingMode: 'auto',
+  missedNumbers: { kind: 'noAutoMark' },
   cardsPerPlayer: 1,
   freeCenter: true,
   pointsPerMark: 0,

@@ -4,7 +4,7 @@
  * @brief  Decide function: command + state (+ ctx) → events (02 §5.1).
  *
  * Responsibility: pure dispatcher. One helper per command tag; the non-trivial ones
- *                 (startRound, drawNext, closeSpeedWindow, applyCut, finishMatch) live
+ *                 (startRound, drawNext, autoMarkMissed, applyCut, finishMatch) live
  *                 in sibling files to stay under the 300-line limit. The dispatch map
  *                 keeps complexity at 1. All randomness comes from state.seed; ctx
  *                 carries only the clock, which the realtime engine uses for speed
@@ -13,7 +13,7 @@
  *                 ./markResolver, ./evolve, ./matchState, ./commands, ./events,
  *                 ./stagePlan, ./roundEnd, ./decideCards, ./decideAutoMark, ./decideRanking
  * Used by:        apps/server (command handlers), ./simulate
- * Spec:           docs/spec/01-game-design.md §3, §7, §8; docs/spec/02-software-architecture.md §5.1
+ * Spec:           docs/spec/01-game-design.md §3, §6, §7, §8; docs/spec/02-software-architecture.md §5.1
  */
 import { drawSequence } from '../draw/drawSequence.js';
 import { applyCut } from '../royale/cut.js';
@@ -23,7 +23,7 @@ import { royaleEndReason, classicEndReason } from './roundEnd.js';
 import { buildMarkEvents } from './markResolver.js';
 import { evolve } from './evolve.js';
 import { buildCards } from './decideCards.js';
-import { autoMarksForItem } from './decideAutoMark.js';
+import { autoMarksForItem, tapsOwnMarks } from './decideAutoMark.js';
 import {
   activeAccountIds,
   candidateOf,
@@ -31,7 +31,14 @@ import {
   rankedPlayerOf,
 } from './decideRanking.js';
 import type { MatchState } from './matchState.js';
-import type { AbortMatch, Command, JoinMatch, MarkCell, OpenLobby } from './commands.js';
+import type {
+  AbortMatch,
+  AutoMarkMissed,
+  Command,
+  JoinMatch,
+  MarkCell,
+  OpenLobby,
+} from './commands.js';
 import type {
   CutApplied,
   DomainEvent,
@@ -66,7 +73,7 @@ const dispatch: Dispatch = {
   startRound: (s, _c) => onStartRound(s),
   drawNext: (s, _c) => onDrawNext(s),
   markCell: (s, c) => onMark(s, c),
-  closeSpeedWindow: (s, _c) => onCloseWindow(s),
+  autoMarkMissed: (s, c) => onAutoMarkMissed(s, c),
   endRound: (s, _c) => onEndRound(s),
   applyCut: (s, _c) => onApplyCut(s),
   finishMatch: (s, _c) => onFinish(s),
@@ -106,6 +113,7 @@ function onJoin(state: MatchState, cmd: JoinMatch): readonly DomainEvent[] {
     type: 'playerJoined',
     accountId: cmd.accountId,
     joinedAt: cmd.joinedAt,
+    ...(cmd.human === true ? { human: true } : {}),
   };
   return [ev];
 }
@@ -156,14 +164,16 @@ function onDrawNext(state: MatchState): readonly DomainEvent[] {
   const item = round.drawSequence[nextIndex];
   if (item === undefined) return [];
   const drawEvent: DomainEvent = { type: 'drawMade', drawIndex: nextIndex, item };
+  // Marking mode is per player (01 §6): bots and auto-mode players are marked on the
+  // draw; tapping players get nothing here and mark through markCell/autoMarkMissed.
   const projected = evolve(state, drawEvent);
-  if (state.ruleset.markingMode !== 'auto') return [drawEvent];
-  const auto = autoMarksForItem(projected, item);
+  const auto = autoMarksForItem(projected, item, (id) => !tapsOwnMarks(state, id));
   return [drawEvent, ...auto.events];
 }
 
 function onMark(state: MatchState, cmd: MarkCell): readonly DomainEvent[] {
-  if (state.ruleset.markingMode === 'auto') return [];
+  if (!tapsOwnMarks(state, cmd.accountId)) return [];
+  // A tap is accepted until the round ends, so the round end closes every open tap.
   const round = state.currentRound;
   if (round === null || round.ended || state.phase !== 'running') return [];
   const marks = round.cards[cmd.accountId]?.[cmd.cardIndex];
@@ -176,17 +186,15 @@ function onMark(state: MatchState, cmd: MarkCell): readonly DomainEvent[] {
   return buildMarkEvents(state, cmd);
 }
 
-function onCloseWindow(state: MatchState): readonly DomainEvent[] {
+// The missed-number delay after draw `drawIndex` has passed: mark the tapping players'
+// still-open cells for that item without bonus. Under noAutoMark they stay open (01 §6).
+function onAutoMarkMissed(state: MatchState, cmd: AutoMarkMissed): readonly DomainEvent[] {
+  if (state.ruleset.missedNumbers.kind !== 'autoMarkAfter') return [];
   const round = state.currentRound;
-  if (round === null || round.ended) return [];
-  const output: DomainEvent[] = [];
-  let working = state;
-  for (const item of round.draws) {
-    const r = autoMarksForItem(working, item);
-    output.push(...r.events);
-    working = r.state;
-  }
-  return output;
+  if (round === null || round.ended || state.phase !== 'running') return [];
+  const item = round.draws[cmd.drawIndex];
+  if (item === undefined) return [];
+  return autoMarksForItem(state, item, (id) => tapsOwnMarks(state, id)).events;
 }
 
 function onEndRound(state: MatchState): readonly DomainEvent[] {

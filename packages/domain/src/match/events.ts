@@ -27,6 +27,7 @@ export interface PlayerJoined {
   readonly type: 'playerJoined';
   readonly accountId: string;
   readonly joinedAt: number;
+  readonly human?: boolean; // absent for bots (01 §6)
 }
 export interface MatchStarted {
   readonly type: 'matchStarted';

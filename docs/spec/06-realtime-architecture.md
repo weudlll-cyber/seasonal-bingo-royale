@@ -47,7 +47,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 |---|---|---|
 | `match.watch` | `{ code }` | Join `match:<id>` room (permission: public match or participant). Returns state snapshot seq. |
 | `match.unwatch` | `{ code }` | |
-| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Rate limit 4/s. |
+| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
@@ -98,8 +98,10 @@ Manual mode marks:
 client `mark` ─► gateway validate schema+rate ─► MarkCell use case
   validate: player active, card owned, round running, number drawn, not marked
   insert marks row (PK idempotent) ─► compute points (speed bonus from server times)
-  ─► ack + `mark.confirmed`; aggregate score folded at next draw / window close
+  ─► ack + `mark.confirmed`; aggregate score folded at next draw
 ```
+
+Missed numbers (01 §6): under `autoMarkAfter` the scheduler issues `AutoMarkMissed` for each draw once its delay has passed and marks the still-open cells without bonus; under `noAutoMark` nothing is scheduled and open cells stay open until tapped or the round ends.
 
 ## 6. Asynchronous mode
 

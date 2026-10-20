@@ -83,8 +83,7 @@ function staged(ctx: Context, points: number): number {
 function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): CellMarked {
   const points = isFree
     ? 0
-    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects) +
-      Math.max(0, Math.round(ctx.input.speedBonus));
+    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects) + windowBonus(ctx);
   return {
     type: 'cellMarked',
     accountId: ctx.input.accountId,
@@ -92,6 +91,12 @@ function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): Ce
     cellIndex: ctx.input.cellIndex,
     markPoints: staged(ctx, points),
   };
+}
+
+// The speed bonus is earned only by a tap inside the speed window (01 §6); a late tap
+// or an auto-mark scores the base points alone, whatever bonus the caller passed.
+function windowBonus(ctx: Context): number {
+  return ctx.input.inSpeedWindow ? Math.max(0, Math.round(ctx.input.speedBonus)) : 0;
 }
 
 function effectsAfterMark(isFree: boolean, effects: EffectState): EffectState {

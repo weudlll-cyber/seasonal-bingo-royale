@@ -5,7 +5,7 @@
  *
  * Responsibility: the typed command union the aggregate dispatches on. One tag per
  *                 lifecycle action listed in 02 §5.1 (openLobby, joinMatch, startMatch,
- *                 startRound, drawNext, markCell, closeSpeedWindow, endRound, applyCut,
+ *                 startRound, drawNext, markCell, autoMarkMissed, endRound, applyCut,
  *                 startStage, finishMatch, abortMatch). Pure data; no behaviour.
  * Depends on:     ./lifecycleTypes, ./matchState (none runtime)
  * Used by:        ./decide, apps/server command handlers
@@ -27,6 +27,9 @@ export interface JoinMatch {
   readonly type: 'joinMatch';
   readonly accountId: string;
   readonly joinedAt: number;
+  // True for a person who taps in manual marking mode; bots leave it out and always
+  // mark on the draw (01 §6).
+  readonly human?: boolean;
 }
 
 export interface StartMatch {
@@ -53,10 +56,12 @@ export interface MarkCell {
   // Speed bonus points pre-computed by the application layer (01 §8.1 linear decay).
   readonly speedBonus: number;
 }
-// Called by the server at the end of each speed window: every drawn-but-unmarked cell
-// becomes an auto-mark without the speed bonus (01 §6).
-export interface CloseSpeedWindow {
-  readonly type: 'closeSpeedWindow';
+// Issued by the scheduler once the missed-number delay after draw `drawIndex`
+// has passed (ruleset missedNumbers autoMarkAfter): every tapping player's still-open cell
+// for that item is marked without the speed bonus (01 §6). Ignored under noAutoMark.
+export interface AutoMarkMissed {
+  readonly type: 'autoMarkMissed';
+  readonly drawIndex: number;
 }
 export interface EndRound {
   readonly type: 'endRound';
@@ -80,7 +85,7 @@ export type Command =
   | StartRound
   | DrawNext
   | MarkCell
-  | CloseSpeedWindow
+  | AutoMarkMissed
   | EndRound
   | ApplyCut
   | FinishMatch

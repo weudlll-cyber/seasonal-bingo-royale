@@ -1,13 +1,15 @@
 /**
  * @file   packages/domain/src/match/decideAutoMark.ts
  * @module domain/match
- * @brief  Auto-mark projection for `drawNext` and `closeSpeedWindow` (01 §6).
+ * @brief  Auto-mark projection for `drawNext` and `autoMarkMissed` (01 §6).
  *
- * Responsibility: after a draw is appended to the round, visit every active player's
- *                 cards and emit the mark events for every cell that matches the drawn
- *                 item. Each produced event is folded through evolve so successive
- *                 marks for the same draw see the growing effect/scored-prizes state.
- *                 Pure.
+ * Responsibility: after a draw is appended to the round, visit the active players the
+ *                 caller selects and emit the mark events for every open cell that
+ *                 matches the item, without speed bonus. `drawNext` selects the players
+ *                 who do not tap (bots, auto marking mode); `autoMarkMissed` selects the
+ *                 tapping players once the missed-number delay has passed. Each produced
+ *                 event is folded through evolve so successive marks for the same draw
+ *                 see the growing effect/scored-prizes state. Pure.
  * Depends on:     ../card/cardTypes, ./evolve, ./markResolver, ./matchState, ./events
  * Used by:        ./decide
  * Spec:           docs/spec/01-game-design.md §6
@@ -24,9 +26,16 @@ interface Scope {
   readonly item: number;
 }
 
+// A player taps their own numbers only when they are a person and the match runs in
+// manual marking mode; everyone else is marked on the draw (01 §6).
+export function tapsOwnMarks(state: MatchState, accountId: string): boolean {
+  return state.ruleset.markingMode === 'manual' && state.players[accountId]?.human === true;
+}
+
 export function autoMarksForItem(
   state: MatchState,
   item: number,
+  selects: (accountId: string) => boolean,
 ): {
   readonly events: readonly DomainEvent[];
   readonly state: MatchState;
@@ -35,6 +44,7 @@ export function autoMarksForItem(
   const output: DomainEvent[] = [];
   let working = state;
   for (const accountId of state.playerOrder) {
+    if (!selects(accountId)) continue;
     working = runPlayerAutoMarks(working, { accountId, cardIndex: -1, item }, output);
   }
   return { events: output, state: working };

@@ -40,6 +40,8 @@
 14. `classicSeasons` draw sequence is a permutation prefix of 79 items (75 numbers + 4 symbols); `classic` of 75 numbers; `royale` of 75 numbers.
 15. Column order (01 §4): in every game type, the numbers of each column are strictly ascending from top to bottom; season cells and symbol cells keep their positions.
 16. Draw control (01 §5): switching between `auto` and `host`, or changing the interval, at any point never changes the draw sequence of the match.
+17. Missed-number rule (01 §6): a speed bonus is earned only by a tap inside the speed window; under `autoMarkAfter` an untapped drawn number is marked without bonus exactly when the delay has passed; under `noAutoMark` it stays open and counts for no pattern, season or Season Complete until tapped; no tap is accepted after the round ends.
+18. Bots and players in `auto` marking mode mark every drawn number on the draw; human players in `manual` mode never get a mark they did not tap except by `autoMarkAfter`.
 
 ## 4. E2E journeys
 

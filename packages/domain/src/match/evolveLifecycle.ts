@@ -48,7 +48,10 @@ export function onPlayerJoined(
   if (state.players[ev.accountId] !== undefined) return state;
   return {
     ...state,
-    players: { ...state.players, [ev.accountId]: initialPlayerState(ev.accountId, ev.joinedAt) },
+    players: {
+      ...state.players,
+      [ev.accountId]: initialPlayerState(ev.accountId, ev.joinedAt, ev.human === true),
+    },
     playerOrder: [...state.playerOrder, ev.accountId],
   };
 }

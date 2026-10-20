@@ -29,6 +29,10 @@ const GeneralSchema = z.object({
 // or host may set for `auto` draws, stay inside this range.
 export const REALTIME_DRAW_INTERVAL_MS = Object.freeze({ min: 2_000, max: 60_000 });
 
+// Missed-number delay a match starter gets by default under autoMarkAfter (01 §6); the
+// chosen delay is never shorter than the ruleset speed window.
+export const DEFAULT_AUTO_MARK_DELAY_MS = 3_000;
+
 const DrawsSchema = z.object({
   intervalMsRealtime: z
     .number()

@@ -75,10 +75,10 @@ Contexts communicate through **domain events** published on an in-process event 
 
 ```
 openLobby, joinMatch, leaveMatch, startMatch, startRound, drawNext,
-markCell(manual), closeSpeedWindow, endRound, applyCut, startStage, finishMatch, abortMatch
+markCell(manual), autoMarkMissed, endRound, applyCut, startStage, finishMatch, abortMatch
 ```
 
-- The domain function signature pattern is `decide(state, command, ctx) -> events[]` and `evolve(state, event) -> state` (functional core). `ctx` contains the injected clock value and the DRBG for that match.
+- The domain function signature pattern is `decide(state, command, ctx) -> events[]` and `evolve(state, event) -> state` (functional core). `autoMarkMissed` is issued by the scheduler when the missed-number delay after a draw has passed (01 §6). `ctx` contains the injected clock value and the DRBG for that match.
 
 ### 5.2 Persistence: event log + snapshot
 

@@ -158,9 +158,16 @@ flag on.
 | Mode | Behaviour | Default for |
 |---|---|---|
 | `auto` | The server marks every drawn number on every card instantly. | Asynchronous |
-| `manual` | The player taps the cell. A tap within `speedWindowMs` (default 3000 ms) after the draw earns a **speed bonus**. When the window closes, the server auto-marks the cell without the bonus. | Realtime |
+| `manual` | The player taps the cell. A tap within `speedWindowMs` (default 3000 ms) after the draw becomes visible earns a **speed bonus**. What happens to a drawn number the player has not tapped is the match's **missed-number rule** below. | Realtime |
 
-Manual mode never lets a player lose a mark — it only rewards attention. This avoids punishing bad connections and removes any incentive to cheat a mark: a tap on an undrawn number is rejected by the server.
+**Missed-number rule (decided 2026-10-20).** Whoever starts a match chooses one rule for all players of that match:
+
+- `autoMarkAfter` with a delay in seconds (default 3, at least the speed window): a drawn number the player has not tapped is marked for them, without bonus, when the delay has passed.
+- `noAutoMark`: a missed number stays open; the player may still tap it until the round ends, without bonus. When the round ends, open numbers stay unmarked.
+
+In both rules the speed bonus is earned only by a tap inside the speed window. Patterns, season activations and Season Complete count only from marked cells: under `noAutoMark` an untapped number does not count until it is tapped. A tap on an undrawn number is always rejected by the server, so there is nothing to gain by cheating a mark.
+
+The rule applies to human players. Bots (only in the Quick Test, 15 WP-08) always mark on the draw.
 
 ## 7. Battle royale structure
 
