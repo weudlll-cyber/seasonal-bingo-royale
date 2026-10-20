@@ -92,3 +92,65 @@ export {
 } from './classic/classicRound.js';
 export { classicPlacement, type ClassicPlacement } from './classic/classicPlacement.js';
 export { BUILTIN_PRIZE_CATALOGUE_ORDER } from './classic/prizeCatalogue.js';
+export type {
+  MatchRuleset,
+  MatchMode,
+  MarkingMode,
+  RoundEnd,
+  CutRule as RulesetCutRule,
+  ScoreCarry,
+  StagePlanEntry,
+  StageKind,
+} from './match/lifecycleTypes.js';
+export type {
+  MatchState,
+  PlayerState,
+  RoundState,
+  CardMarks,
+  ClassicAward,
+  MatchPhase,
+} from './match/matchState.js';
+export type {
+  Command,
+  OpenLobby,
+  JoinMatch,
+  StartMatch,
+  StartStage,
+  StartRound,
+  DrawNext,
+  MarkCell,
+  CloseSpeedWindow,
+  EndRound,
+  ApplyCut,
+  FinishMatch,
+  AbortMatch,
+} from './match/commands.js';
+export type {
+  DomainEvent,
+  LobbyOpened,
+  PlayerJoined,
+  MatchStarted,
+  StageStarted,
+  RoundStarted,
+  DrawMade,
+  CellMarked,
+  SeasonActivated,
+  PatternScored,
+  SeasonCompleteFired,
+  JackpotClaimed,
+  ClassicPrizeAwarded,
+  RoundEnded,
+  CutApplied,
+  MatchFinished,
+  MatchAborted,
+} from './match/events.js';
+export { decide, type DecideCtx } from './match/decide.js';
+export { evolve, createInitialMatchState } from './match/evolve.js';
+export { buildStagePlan } from './match/stagePlan.js';
+export { royaleEndReason, classicEndReason } from './match/roundEnd.js';
+export { buildMarkEvents, type MarkInput } from './match/markResolver.js';
+export {
+  simulateMatch,
+  type SimulateMatchInput,
+  type SimulateMatchResult,
+} from './match/simulate.js';

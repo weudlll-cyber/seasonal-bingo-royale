@@ -76,7 +76,13 @@ export default defineConfig(
       'max-lines-per-function': ['error', { max: 60 }],
       complexity: ['error', 12],
       'max-params': ['error', 4],
-      '@typescript-eslint/no-unused-vars': 'error',
+      // Underscore-prefix is the TS convention for a deliberately unused parameter;
+      // dispatch maps whose handler type requires an argument the specific handler
+      // doesn't consume rely on it (see packages/domain/src/match/decide.ts).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
       'boundaries/dependencies': ['error', { default: 'disallow', policies: LAYER_POLICIES }],
     },
   },
