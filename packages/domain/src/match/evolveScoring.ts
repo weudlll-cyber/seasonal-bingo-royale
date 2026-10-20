@@ -130,6 +130,20 @@ export function onClassicPrize(
     (a) => a.prizeKey === ev.prizeKey && a.accountId === ev.accountId,
   );
   if (already) return state;
+  // Also mark the prize as scored on every card belonging to the account; the resolver
+  // reads scoredPrizes to deduplicate across subsequent marks (invariant 12).
+  const playerCards = round.cards[ev.accountId];
+  const nextCards =
+    playerCards === undefined
+      ? round.cards
+      : {
+          ...round.cards,
+          [ev.accountId]: playerCards.map((card) =>
+            card.scoredPrizes.includes(ev.prizeKey)
+              ? card
+              : { ...card, scoredPrizes: [...card.scoredPrizes, ev.prizeKey] },
+          ),
+        };
   return {
     ...state,
     currentRound: {
@@ -138,6 +152,7 @@ export function onClassicPrize(
         ...round.classicAwards,
         { prizeKey: ev.prizeKey, accountId: ev.accountId, drawIndex: ev.drawIndex },
       ],
+      cards: nextCards,
     },
   };
 }
