@@ -5,7 +5,7 @@
  *
  * Responsibility: given the current state and the cell being marked, return the
  *                 chronological event list: `cellMarked` with points, `seasonActivated`
- *                 when the cell is a season cell, `patternScored` for royale or
+ *                 when the cell is a royale season cell, `patternScored` for royale or
  *                 `classicPrizeAwarded` for classic for every newly completed prize key,
  *                 `seasonCompleteFired` when all four seasons are now active, and
  *                 `jackpotClaimed` when a full house + Season Complete land in the same
@@ -25,7 +25,6 @@ import type { EffectState } from '../seasons/effectState.js';
 import { checkSeasonComplete } from '../seasons/seasonComplete.js';
 import { SEASON_NAMES } from '../draw/pool.js';
 import type { SeasonName } from '../draw/pool.js';
-import type { MatchRuleset } from './lifecycleTypes.js';
 import type { MatchState, RoundState } from './matchState.js';
 import type {
   CellMarked,
@@ -68,12 +67,7 @@ export function buildMarkEvents(state: MatchState, input: MarkInput): readonly D
   const projected = withMarked(marks.marks, input.cellIndex);
   const prizeEvents = prizeEventsFor(ctx, projected, nextEffects, marks.scoredPrizes);
   events.push(...prizeEvents);
-  const sc = seasonCompleteFor(
-    state.ruleset,
-    player.seasonCompleteFired,
-    nextEffects.seasonsActivated,
-    input.accountId,
-  );
+  const sc = seasonCompleteFor(ctx, player.seasonCompleteFired, nextEffects.seasonsActivated);
   if (sc !== null) events.push(sc);
   const jackpot = jackpotFor(ctx, prizeEvents, sc !== null);
   if (jackpot !== null) events.push(jackpot);
@@ -103,6 +97,9 @@ function buildActivation(
   effects: EffectState,
   ctx: Context,
 ): { readonly event: SeasonActivated; readonly nextEffects: EffectState } | null {
+  // Season effects belong to royale only; in classicSeasons a symbol cell is just a cell
+  // to mark (01 §3a).
+  if (ctx.state.gameType !== 'royale') return null;
   const season = seasonForCellIndex(ctx.input.cellIndex, seasonCells);
   if (season === null) return null;
   if ((effects.seasonsActivated & bitFor(season)) !== 0) return null;
@@ -198,17 +195,19 @@ function classicPrize(ctx: Context, key: string): ClassicPrizeAwarded {
   };
 }
 
+// Season Complete is royale only (01 §3a: no Season Complete bonus in classic types).
 function seasonCompleteFor(
-  ruleset: MatchRuleset,
+  ctx: Context,
   alreadyFired: boolean,
   seasonsBitmask: number,
-  accountId: string,
 ): SeasonCompleteFired | null {
+  if (ctx.state.gameType !== 'royale') return null;
   const r = checkSeasonComplete(
     { ...INITIAL_EFFECT_STATE, seasonsActivated: seasonsBitmask },
     alreadyFired,
-    { points: ruleset.seasonComplete.points },
+    { points: ctx.state.ruleset.seasonComplete.points },
   );
+  const accountId = ctx.input.accountId;
   return r.fires ? { type: 'seasonCompleteFired', accountId, points: r.points } : null;
 }
 

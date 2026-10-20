@@ -24,7 +24,12 @@ import { buildMarkEvents } from './markResolver.js';
 import { evolve } from './evolve.js';
 import { buildCards } from './decideCards.js';
 import { autoMarksForItem } from './decideAutoMark.js';
-import { activeAccountIds, candidateOf, rankedPlayerOf } from './decideRanking.js';
+import {
+  activeAccountIds,
+  candidateOf,
+  classicFinalPlacement,
+  rankedPlayerOf,
+} from './decideRanking.js';
 import type { MatchState } from './matchState.js';
 import type { AbortMatch, Command, JoinMatch, MarkCell, OpenLobby } from './commands.js';
 import type {
@@ -219,6 +224,9 @@ function onApplyCut(state: MatchState): readonly DomainEvent[] {
 
 function onFinish(state: MatchState): readonly DomainEvent[] {
   if (state.phase === 'finished') return [];
+  if (state.gameType !== 'royale') {
+    return [{ type: 'matchFinished', placement: classicFinalPlacement(state) }];
+  }
   const ranked = state.playerOrder.map((id) => rankedPlayerOf(state, id));
   const ev: MatchFinished = { type: 'matchFinished', placement: finalRanking(ranked) };
   return [ev];
