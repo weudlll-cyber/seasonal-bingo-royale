@@ -37,12 +37,12 @@ const STATUS: OwnerStatus[] = [
 ];
 
 export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTestResult {
-  const player = (accountId: string, isOwner: boolean, place: number) => ({
+  const player = (accountId: string, isOwner: boolean, place: number, points = 0) => ({
     accountId,
     isOwner,
     card: numberCard(0),
     place,
-    points: 0,
+    points,
     seasonsActivated: 0,
     shieldCharges: 0,
   });
@@ -60,13 +60,18 @@ export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTes
     ],
     ownerAccountIds: ['owner-01'],
     ownerStatus: { 'owner-01': STATUS },
-    // The final stage resets everyone's points (score carry `reset`).
+    // The final stage resets the survivors' points (score carry `reset`); owner-01, out
+    // after the cut, keeps the 10 points it had when eliminated.
     stagePoints: [
       { step: 1, points: { 'owner-01': 0, 'bot-02': 0, 'bot-03': 0 } },
-      { step: 10, points: { 'owner-01': 0, 'bot-02': 0, 'bot-03': 0 } },
+      { step: 10, points: { 'owner-01': 10, 'bot-02': 0, 'bot-03': 0 } },
     ],
     effectSeasons: { growth: 'spring', multiplier: 'summer', harvest: 'autumn', shield: 'winter' },
-    players: [player('owner-01', true, 3), player('bot-02', false, 1), player('bot-03', false, 2)],
+    players: [
+      player('owner-01', true, 3, 10),
+      player('bot-02', false, 1),
+      player('bot-03', false, 2),
+    ],
     events: royaleEvents(),
   };
 }

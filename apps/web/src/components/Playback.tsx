@@ -131,6 +131,14 @@ function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
   );
 }
 
+// During play: the live standings rank. Once the match is finished: the place in the
+// final placement, so the panel and the final list never disagree.
+function ownerRank(result: QuickTestResult, view: PlaybackView, accountId: string): number {
+  const place = result.players.find((p) => p.accountId === accountId)?.place;
+  if (view.finished && place !== undefined) return place;
+  return view.standings.findIndex((p) => p.accountId === accountId) + 1;
+}
+
 function OwnerArea({ result, view }: PlaybackProps): ReactElement {
   if (view.owners.length === 0) return <BotCards view={view} />;
   return (
@@ -140,7 +148,7 @@ function OwnerArea({ result, view }: PlaybackProps): ReactElement {
           <OwnerStatusPanel
             accountId={owner.accountId}
             points={owner.points}
-            rank={view.standings.indexOf(owner) + 1}
+            rank={ownerRank(result, view, owner.accountId)}
             status={view.ownerStatus[owner.accountId] ?? null}
             effectSeasons={result.effectSeasons}
             showSeasons={result.gameType === 'royale'}
@@ -185,7 +193,7 @@ const gridStyle: React.CSSProperties = {
 };
 
 // Top 20 plus the owner's rows; eliminated players are ranked by when they went out
-// (01 §7.5), so they show "out" instead of points.
+// (01 §7.5) and show their score at elimination with "out".
 function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
   const out = new Set(view.standings.filter((p) => p.eliminated).map((p) => p.accountId));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
@@ -216,7 +224,10 @@ function finalNote(
   p: QuickTestResult['players'][number],
   out: ReadonlySet<string>,
 ): string {
-  if (result.gameType === 'royale') return out.has(p.accountId) ? 'out' : `${String(p.points)} pts`;
+  // Eliminated players keep the score they had when they went out (01 §7.5).
+  if (result.gameType === 'royale') {
+    return `${String(p.points)} pts${out.has(p.accountId) ? ' · out' : ''}`;
+  }
   const won = result.tickedPrizes.filter((k) =>
     view.prizeWinners[k]?.accountIds.includes(p.accountId),
   );
