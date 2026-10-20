@@ -3,19 +3,28 @@
  * @module web
  * @brief  The owner's card with manual tap, speed window and auto fallback (WP-08).
  *
- * Responsibility: render one of the owner's cards; in `manual` mode let the owner
- *                 click (or press space) a drawn cell to mark it, awarding the speed
- *                 bonus from the ruleset when inside the speed window and auto-marking
- *                 drawn-but-unmarked cells without the bonus when the window closes
- *                 (01 §6). In `auto` mode cards get the server-computed marks.
- * Depends on:     react, ../types, ../playback, ./CardGrid
- * Used by:        ../App
+ * Responsibility: render one of the owner's cards. In `manual` mode the owner taps (or
+ *                 presses Enter/Space on) a drawn cell to mark it; the rules live in
+ *                 ../manualMarking: speed bonus by time since the draw, refusal of
+ *                 undrawn cells, auto-mark without bonus when a cell's speed window
+ *                 closes (01 §6). In `auto` mode the card shows the server's marks.
+ * Depends on:     react, ../types, ../playback, ../manualMarking
+ * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import { useEffect, useState, type ReactElement, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
-import type { PlayerSummary, QuickTestResult } from '../types.js';
+import {
+  closeExpiredWindows,
+  feedbackText,
+  initialManualState,
+  nextWindowClose,
+  tapCell,
+  type ManualRules,
+  type ManualState,
+} from '../manualMarking.js';
 import type { PlaybackView } from '../playback.js';
+import type { PlayerSummary, QuickTestResult } from '../types.js';
 
 export interface OwnerCardProps {
   readonly player: PlayerSummary;
@@ -23,30 +32,19 @@ export interface OwnerCardProps {
   readonly view: PlaybackView;
 }
 
-interface ManualState {
-  readonly marks: readonly boolean[];
-  readonly points: number;
-  readonly bonusEarned: number;
-  readonly lastFeedback: string;
-}
-
 export function OwnerCard({ player, result, view }: OwnerCardProps): ReactElement {
-  const [manual, setManual] = useState<ManualState>(() => ({
-    marks: player.card.cells.map((c) => c.kind === 'free'),
-    points: 0,
-    bonusEarned: 0,
-    lastFeedback: '',
-  }));
-  // Auto-mark drawn cells left unmarked past the speed window (01 §6).
-  useEffect(() => {
-    if (result.markingMode !== 'manual') return;
-    const drawn = new Set(view.drawsSoFar);
-    setManual((prev) => autoMarkPast(prev, player, drawn));
-  }, [view.drawsSoFar, player, result.markingMode]);
-  const marks = result.markingMode === 'manual' ? manual.marks : player.marks;
+  const manualMode = result.markingMode === 'manual';
+  const rules: ManualRules = result;
+  const cells = player.card.cells;
+  const [manual, setManual] = useState<ManualState>(() => initialManualState(cells));
+  const drawTimes = useDrawTimes(view.drawsSoFar);
+  useWindowCloser({ enabled: manualMode, manual, setManual, cells, drawTimes, rules });
+  const marks = manualMode ? manual.marks : player.marks;
   const handleTap = (index: number): void => {
-    if (result.markingMode !== 'manual') return;
-    setManual((prev) => tapCell({ prev, player, result, index, drawsSoFar: view.drawsSoFar }));
+    if (!manualMode) return;
+    setManual((state) =>
+      tapCell({ state, cells, index, drawTimes: drawTimes.current, now: Date.now(), rules }),
+    );
   };
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -57,28 +55,77 @@ export function OwnerCard({ player, result, view }: OwnerCardProps): ReactElemen
   return (
     <div style={{ background: '#1a2130', padding: '0.5rem', borderRadius: '0.5rem' }}>
       <TapGrid player={player} marks={marks} onTap={handleTap} onKey={onKey} />
-      <ScoreLine player={player} manual={manual} result={result} />
+      <p style={{ margin: '0.4rem 0 0', color: '#dfe6ee' }}>
+        {String(manualMode ? manual.points : player.points)} pts
+        {manualMode && ` · speed bonus earned: ${String(manual.bonusEarned)}`}
+      </p>
       <p
         data-testid="owner-feedback"
         style={{ color: '#9aa5b2', fontSize: '0.9rem', minHeight: '1.2em', margin: 0 }}
       >
-        {result.markingMode === 'manual' ? manual.lastFeedback : 'auto mode: marks happen for you'}
+        {manualMode ? feedbackText(manual.feedback) : 'Auto mode: marks happen for you'}
       </p>
     </div>
   );
 }
 
-function TapGrid({
-  player,
-  marks,
-  onTap,
-  onKey,
-}: {
+// Remember when each draw first became visible; the speed window runs from that moment.
+function useDrawTimes(drawsSoFar: readonly number[]): { readonly current: Map<number, number> } {
+  const times = useRef(new Map<number, number>());
+  const now = Date.now();
+  for (const item of drawsSoFar) if (!times.current.has(item)) times.current.set(item, now);
+  return times;
+}
+
+interface CloserArgs {
+  readonly enabled: boolean;
+  readonly manual: ManualState;
+  readonly setManual: (update: (state: ManualState) => ManualState) => void;
+  readonly cells: PlayerSummary['card']['cells'];
+  readonly drawTimes: { readonly current: Map<number, number> };
+  readonly rules: ManualRules;
+}
+
+// One timer for the earliest pending window close; re-armed after every state change.
+function useWindowCloser({
+  enabled,
+  manual,
+  setManual,
+  cells,
+  drawTimes,
+  rules,
+}: CloserArgs): void {
+  const closesAt = enabled ? nextWindowClose(manual, cells, drawTimes.current, rules) : null;
+  useEffect(() => {
+    if (closesAt === null) return undefined;
+    const id = window.setTimeout(
+      () => {
+        setManual((state) =>
+          closeExpiredWindows({
+            state,
+            cells,
+            drawTimes: drawTimes.current,
+            now: Date.now(),
+            rules,
+          }),
+        );
+      },
+      Math.max(0, closesAt - Date.now()),
+    );
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [closesAt, setManual, cells, drawTimes, rules]);
+}
+
+interface TapGridProps {
   readonly player: PlayerSummary;
   readonly marks: readonly boolean[];
   readonly onTap: (index: number) => void;
   readonly onKey: (e: KeyboardEvent<HTMLButtonElement>, index: number) => void;
-}): ReactElement {
+}
+
+function TapGrid({ player, marks, onTap, onKey }: TapGridProps): ReactElement {
   return (
     <div style={{ display: 'grid', gap: '0.25rem' }}>
       <strong style={{ color: '#afb84e' }}>{player.accountId} (you)</strong>
@@ -124,80 +171,8 @@ function cellStyle(kind: 'number' | 'free' | 'symbol', marked: boolean): React.C
 function cellContent(cell: PlayerSummary['card']['cells'][number]): string {
   if (cell.kind === 'number') return String(cell.value);
   if (cell.kind === 'symbol') {
-    const key = cell.value as 101 | 102 | 103 | 104;
     const map: Record<number, string> = { 101: '🌱', 102: '☀️', 103: '🍂', 104: '❄️' };
-    return map[key] ?? '?';
+    return map[cell.value] ?? '?';
   }
   return '★';
-}
-
-function ScoreLine({
-  player,
-  manual,
-  result,
-}: {
-  player: PlayerSummary;
-  manual: ManualState;
-  result: QuickTestResult;
-}): ReactElement {
-  const points = result.markingMode === 'manual' ? manual.points : player.points;
-  return (
-    <p style={{ margin: '0.4rem 0 0', color: '#dfe6ee' }}>
-      {String(points)} pts
-      {result.markingMode === 'manual' && ` · speed bonus earned: ${String(manual.bonusEarned)}`}
-    </p>
-  );
-}
-
-interface TapArgs {
-  readonly prev: ManualState;
-  readonly player: PlayerSummary;
-  readonly result: QuickTestResult;
-  readonly index: number;
-  readonly drawsSoFar: readonly number[];
-}
-
-function tapCell(args: TapArgs): ManualState {
-  const { prev, player, result, index, drawsSoFar } = args;
-  if (prev.marks[index]) return { ...prev, lastFeedback: 'already marked' };
-  const cell = player.card.cells[index];
-  if (cell === undefined || cell.kind === 'free') return prev;
-  const drawn = drawsSoFar.includes(cell.value);
-  if (!drawn) return { ...prev, lastFeedback: 'that number has not been drawn — refused' };
-  const marks = prev.marks.slice();
-  marks[index] = true;
-  const bonus = result.maxSpeedBonus;
-  return {
-    marks,
-    points: prev.points + result.pointsPerMark + bonus,
-    bonusEarned: prev.bonusEarned + bonus,
-    lastFeedback: `marked · +${String(result.pointsPerMark)} pts (+${String(bonus)} speed bonus)`,
-  };
-}
-
-function autoMarkPast(
-  prev: ManualState,
-  player: PlayerSummary,
-  drawn: ReadonlySet<number>,
-): ManualState {
-  // Only auto-mark once at least 10 draws have passed since the start of the round;
-  // this gives the owner time to tap for the speed bonus (01 §6 window close).
-  if (drawn.size <= 10) return prev;
-  const marks = prev.marks.slice();
-  let added = 0;
-  player.card.cells.forEach((cell, i) => {
-    if (marks[i]) return;
-    const value = cell.kind === 'free' ? null : cell.value;
-    if (value !== null && drawn.has(value)) {
-      marks[i] = true;
-      added += 1;
-    }
-  });
-  if (added === 0) return prev;
-  return {
-    ...prev,
-    marks,
-    points: prev.points + added * 10,
-    lastFeedback: 'auto-marked (window closed)',
-  };
 }
