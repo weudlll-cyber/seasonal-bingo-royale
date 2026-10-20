@@ -35,6 +35,20 @@ const candidateArb: fc.Arbitrary<Candidate> = fc.record({
   shieldRankMargin: fc.integer({ min: 0, max: 5 }),
 });
 
+// The ranking of 01 §8.4: points, patterns, seasons activated, earlier last scoring draw
+// (never scored = last), earlier join. Written from the spec, independent of cut.ts.
+function byTieBreakChain(a: Candidate, b: Candidate): number {
+  const lastA = a.lastScoringDraw ?? Number.POSITIVE_INFINITY;
+  const lastB = b.lastScoringDraw ?? Number.POSITIVE_INFINITY;
+  return (
+    b.points - a.points ||
+    b.patterns - a.patterns ||
+    b.seasonsActivated - a.seasonsActivated ||
+    (lastA === lastB ? 0 : lastA - lastB) ||
+    a.joinedAt - b.joinedAt
+  );
+}
+
 function uniqueCandidates(min = 2, max = 50): fc.Arbitrary<readonly Candidate[]> {
   return fc
     .uniqueArray(candidateArb, { minLength: min, maxLength: max, selector: (c) => c.accountId })
@@ -71,10 +85,7 @@ describe('cut invariant 7', () => {
         (candidates, keepCount) => {
           const rule = { keep: 'count' as const, value: keepCount, minSurvivors: 2 };
           const result = applyCut(candidates, rule);
-          // Build the ranking the comparator uses: by points desc then join asc.
-          const ranked = [...candidates].sort(
-            (a, b) => b.points - a.points || a.joinedAt - b.joinedAt,
-          );
+          const ranked = [...candidates].sort(byTieBreakChain);
           const nonShieldSurvivors = result.survivors.filter(
             (id) => !result.shieldSaves.includes(id),
           );
@@ -89,6 +100,33 @@ describe('cut invariant 7', () => {
       ),
       { numRuns },
     );
+  });
+});
+
+describe('cut invariant 7 — fixed regression', () => {
+  // fast-check counterexample of 2026-10-20: tied points, where only the last-scoring-draw
+  // tie-break separates the players. The test's old points-and-join ranking disagreed
+  // with 01 §8.4; the cut itself was right.
+  it('keeps the tied player who scored (draw 0) above the one who never scored', () => {
+    const base = { patterns: 0, seasonsActivated: 0, joinedAt: 0, shieldCharges: 0 };
+    const player = (accountId: string, points: number, lastScoringDraw: number | null) => ({
+      ...base,
+      accountId,
+      points,
+      lastScoringDraw,
+      shieldRankMargin: 0,
+    });
+    const result = applyCut(
+      [
+        player('0', 99_988, 0),
+        player('1', 99_988, null),
+        player('2', 99_988, 0),
+        player('a', 0, null),
+      ],
+      { keep: 'count', value: 1, minSurvivors: 2 },
+    );
+    expect(result.survivors).toEqual(['0', '2']);
+    expect(result.eliminated).toEqual(['1', 'a']);
   });
 });
 

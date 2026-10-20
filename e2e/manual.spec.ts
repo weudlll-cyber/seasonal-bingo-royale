@@ -3,10 +3,11 @@
  * @module e2e
  * @brief  Manual marking in the browser: drawn marks, undrawn refused, missed auto-marked.
  *
- * Responsibility: play a classic round in `manual` mode and check the three rules of
- *                 01 §6 on the owner's card: a tapped drawn number is marked with a speed
- *                 bonus, a tapped undrawn number is refused, and a drawn number the owner
- *                 leaves alone is auto-marked without bonus when its speed window closes.
+ * Responsibility: play a classic round in `manual` mode and check that one tick shows
+ *                 exactly one new number, then the three rules of 01 §6 on the owner's
+ *                 card: a tapped drawn number is marked with a speed bonus, a tapped
+ *                 undrawn number is refused, and a drawn number the owner leaves alone is
+ *                 auto-marked without bonus when its speed window closes.
  * Depends on:     @playwright/test, ./quickTest
  * Spec:           docs/spec/01-game-design.md §6, docs/spec/15-implementation-plan.md WP-08
  */
@@ -74,10 +75,19 @@ async function tapInsideWindow(page: Page): Promise<Set<string>> {
 test('manual mode: drawn marks, undrawn is refused, a missed number is auto-marked', async ({
   page,
 }) => {
+  // Realtime pace: one draw every 5 s (ruleset drawIntervalMs), so the round takes time.
+  test.setTimeout(180_000);
   await startRun(page, { gameType: 'classic', seed: 'e2e-manual', bots: 3, marking: 'manual' });
   const feedback = page.getByTestId('owner-feedback');
 
   await expect(page.getByTestId('draw-newest')).toBeVisible({ timeout: 30_000 });
+  // Between two consecutive ticks exactly one new number appears in the ticker.
+  const shown = (): Promise<number> =>
+    page.getByTestId('draw-ticker').locator(':scope > *').count();
+  const countBefore = await shown();
+  await expect.poll(shown, { timeout: 15_000, intervals: [100] }).not.toBe(countBefore);
+  expect(await shown()).toBe(countBefore + 1);
+
   const before = await snapshot(page);
   const undrawn = before.cells.find((c) => !before.drawn.includes(c.value));
   if (undrawn === undefined) throw new Error('every owner number already drawn');

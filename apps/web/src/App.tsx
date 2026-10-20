@@ -3,34 +3,33 @@
  * @module web
  * @brief  Quick Test page: start form, playback, owner-plays-with-bots (WP-08).
  *
- * Responsibility: wire the start form, drive the lifecycle playback through a timer at
- *                 the owner's chosen pace, dispatch to Playback for the match-wide view.
+ * Responsibility: wire the start form, play the match back one draw per tick at the
+ *                 owner's chosen pace (./useDrawTicker), dispatch to Playback.
  *                 All strings in English (01 §13); animations respect
  *                 prefers-reduced-motion (handled per component).
- * Depends on:     react, ./api, ./types, ./playback, ./components/*
+ * Depends on:     react, ./api, ./types, ./playback, ./drawPace, ./useDrawTicker,
+ *                 ./components/*
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §13
  */
-import { useEffect, useMemo, useState, type ReactElement } from 'react';
+import { useMemo, useState, type ReactElement } from 'react';
 
 import { startQuickTest, type StartQuickTestInput } from './api.js';
 import { DevBadge } from './components/DevBadge.js';
 import { StartForm } from './components/StartForm.js';
 import { Playback } from './components/Playback.js';
+import type { PaceLabel } from './drawPace.js';
 import { playbackAt } from './playback.js';
 import type { QuickTestResult } from './types.js';
-
-type PaceLabel = 'slower' | 'realtime' | 'faster' | 'skip';
+import { useDrawTicker } from './useDrawTicker.js';
 
 export function App(): ReactElement {
   const [result, setResult] = useState<QuickTestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState(0);
   const [pace, setPace] = useState<PaceLabel>('realtime');
   const run = (input: StartQuickTestInput): void => {
     setBusy(true);
     setError(null);
-    setStep(0);
     startQuickTest(input)
       .then((r) => {
         setResult(r);
@@ -42,8 +41,9 @@ export function App(): ReactElement {
         setBusy(false);
       });
   };
+  // One draw per tick at the ruleset draw interval (./drawPace).
+  const step = useDrawTicker(result, pace);
   const view = useMemo(() => (result === null ? null : playbackAt(result, step)), [result, step]);
-  useEventTicker({ result, step, setStep, pace });
   return (
     <main style={layoutStyle}>
       <section>
@@ -74,44 +74,6 @@ const layoutStyle: React.CSSProperties = {
   gridTemplateColumns: 'repeat(auto-fit, minmax(min(22rem, 100%), 1fr))',
   gap: '1.5rem',
 };
-
-interface TickerArgs {
-  readonly result: QuickTestResult | null;
-  readonly step: number;
-  readonly setStep: (next: number | ((prev: number) => number)) => void;
-  readonly pace: PaceLabel;
-}
-
-function useEventTicker(args: TickerArgs): void {
-  const { result, step, setStep, pace } = args;
-  const paused = pace === 'skip';
-  const intervalMs = paceInterval(pace, result?.drawIntervalMs ?? 1_000);
-  useEffect(() => {
-    if (result === null) return undefined;
-    if (step >= result.events.length) return undefined;
-    const budget = paused ? 50 : perTickBudget(pace);
-    const ms = paused ? 10 : intervalMs;
-    const id = window.setInterval(() => {
-      setStep((n) => Math.min(n + budget, result.events.length));
-    }, ms);
-    return () => {
-      window.clearInterval(id);
-    };
-  }, [result, step, pace, intervalMs, paused, setStep]);
-}
-
-function paceInterval(pace: PaceLabel, baseMs: number): number {
-  if (pace === 'slower') return Math.max(50, baseMs);
-  if (pace === 'faster') return Math.max(10, Math.round(baseMs / 4));
-  if (pace === 'skip') return 1;
-  return Math.max(20, Math.round(baseMs / 2));
-}
-
-function perTickBudget(pace: PaceLabel): number {
-  if (pace === 'faster') return 8;
-  if (pace === 'slower') return 1;
-  return 4;
-}
 
 function PaceControl({
   value,
