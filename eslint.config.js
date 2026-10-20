@@ -101,8 +101,9 @@ export default defineConfig(
     rules: { 'max-lines': ['error', { max: 400 }] },
   },
   {
-    // Tool config files must default-export their configuration (Vite, Vitest, etc.).
-    files: ['*.config.js', '*.config.ts', '**/*.config.js', '**/*.config.ts'],
+    // Tool config files must default-export their configuration (Vite, Vitest, etc.);
+    // so must Playwright's global setup.
+    files: ['*.config.js', '*.config.ts', '**/*.config.js', '**/*.config.ts', 'e2e/globalSetup.ts'],
     rules: { 'no-restricted-syntax': 'off' },
   },
   prettier,

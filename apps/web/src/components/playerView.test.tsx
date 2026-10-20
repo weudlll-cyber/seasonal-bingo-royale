@@ -64,6 +64,7 @@ describe('OwnerStatusPanel', () => {
           seasons: ['spring', 'summer'],
         }}
         effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
+        showSeasons
       />,
     );
     expect(screen.getByTestId('effect-multiplier').textContent).toContain('×1.5 · 6 draws left');
@@ -105,7 +106,8 @@ describe('spectator view', () => {
     rerender(<Playback result={result} view={playbackAt(result, result.events.length)} />);
     expect(screen.getByTestId('final-placement')).toBeTruthy();
     expect(screen.getByTestId('standings').textContent).toContain(
-      'owner-01 — 10 pts · seasons 1 · out',
+      'owner-01 — 0 pts · seasons 1 · out',
     );
+    expect(screen.getByTestId('final-placement').textContent).toContain('owner-01 — out');
   });
 });

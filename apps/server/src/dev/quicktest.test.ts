@@ -14,7 +14,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { runQuickTest } from './quicktest.js';
+import { runQuickTest, type QuickTestResult } from './quicktest.js';
 
 const TICKED = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'];
 
@@ -105,5 +105,38 @@ describe('runQuickTest — payload for the player client', () => {
       markingMode: 'auto',
     });
     expect(Date.now() - started).toBeLessThan(2_000);
+  });
+});
+
+// What the player client shows as each player's score: event points, reset to the
+// server's baseline at every stage start (apps/web/src/playback.ts does the same).
+function clientPoints(result: QuickTestResult): Map<string, number> {
+  const points = new Map<string, number>();
+  const add = (id: string, value: number): void => {
+    points.set(id, (points.get(id) ?? 0) + value);
+  };
+  const baselines = new Map(result.stagePoints.map((s) => [s.step, s.points]));
+  result.events.forEach((e, i) => {
+    if (e.type === 'cellMarked') add(e.accountId, e.markPoints);
+    if (e.type === 'seasonActivated') add(e.accountId, e.instantPoints);
+    if (e.type === 'patternScored' || e.type === 'seasonCompleteFired') add(e.accountId, e.points);
+    if (e.type === 'jackpotClaimed') add(e.accountId, e.value);
+    for (const [id, value] of Object.entries(baselines.get(i + 1) ?? {})) points.set(id, value);
+  });
+  return points;
+}
+
+describe('runQuickTest — scores the client shows', () => {
+  it('reach every final score: stage baselines (score carry) plus event points', () => {
+    const result = runQuickTest({
+      gameType: 'royale',
+      playerCount: 19,
+      ownerCards: 1,
+      seedText: 'showcase-41',
+      tickedPrizes: [],
+      markingMode: 'auto',
+    });
+    const points = clientPoints(result);
+    for (const p of result.players) expect(points.get(p.accountId) ?? 0).toBe(p.points);
   });
 });

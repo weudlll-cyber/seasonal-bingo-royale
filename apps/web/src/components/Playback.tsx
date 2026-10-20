@@ -45,9 +45,25 @@ export function Playback({ result, view }: PlaybackProps): ReactElement {
       <Banners banners={view.banners} />
       <DrawTicker draws={view.drawsSoFar} speedWindowMs={result.speedWindowMs} />
       <OwnerArea result={result} view={view} />
-      <Standings view={view} />
-      {view.finished ? <FinalPlacement result={result} /> : null}
+      <Standings view={view} showSeasons={result.gameType === 'royale'} />
+      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
+      <MatchLog banners={view.banners} />
     </div>
+  );
+}
+
+// Every key moment of the match so far, oldest first; the banner list above shows only
+// the latest six.
+function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement {
+  return (
+    <details open data-testid="match-log">
+      <summary>Match log ({String(banners.length)})</summary>
+      <ol style={{ margin: 0, paddingLeft: '1.25rem', color: '#9aa5b2' }}>
+        {banners.map((b) => (
+          <li key={b.key}>{b.text}</li>
+        ))}
+      </ol>
+    </details>
   );
 }
 
@@ -127,6 +143,7 @@ function OwnerArea({ result, view }: PlaybackProps): ReactElement {
             rank={view.standings.indexOf(owner) + 1}
             status={view.ownerStatus[owner.accountId] ?? null}
             effectSeasons={result.effectSeasons}
+            showSeasons={result.gameType === 'royale'}
           />
           {owner.cards.map((card, cardIndex) => (
             <OwnerCard
@@ -167,22 +184,41 @@ const gridStyle: React.CSSProperties = {
   gap: '1rem',
 };
 
-function FinalPlacement({ result }: { result: QuickTestResult }): ReactElement {
+// Top 20 plus the owner's rows; eliminated players are ranked by when they went out
+// (01 §7.5), so they show "out" instead of points.
+function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
+  const out = new Set(view.standings.filter((p) => p.eliminated).map((p) => p.accountId));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
+  const shown = sorted.filter((p, i) => i < 20 || p.isOwner);
   return (
     <section data-testid="final-placement">
       <h3 style={{ margin: '0 0 .25rem' }}>Final placement</h3>
-      <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
-        {sorted.slice(0, 20).map((p) => (
+      <ol style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'none' }}>
+        {shown.map((p) => (
           <li
             key={p.accountId}
             data-testid={`final-row-${String(p.place)}`}
             style={{ color: p.isOwner ? '#afb84e' : '#dfe6ee' }}
           >
-            #{p.place} {p.accountId} — {String(p.points)} pts
+            #{p.place} {p.accountId} — {finalNote(result, view, p, out)}
           </li>
         ))}
       </ol>
     </section>
   );
+}
+
+// Royale: points, or "out" for eliminated players. Classic types rank by prizes
+// (01 §3a.2), so the row lists the prizes won.
+function finalNote(
+  result: QuickTestResult,
+  view: PlaybackView,
+  p: QuickTestResult['players'][number],
+  out: ReadonlySet<string>,
+): string {
+  if (result.gameType === 'royale') return out.has(p.accountId) ? 'out' : `${String(p.points)} pts`;
+  const won = result.tickedPrizes.filter((k) =>
+    view.prizeWinners[k]?.accountIds.includes(p.accountId),
+  );
+  return won.length === 0 ? 'no prize' : won.join(', ');
 }

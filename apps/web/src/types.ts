@@ -130,6 +130,11 @@ export interface QuickTestResult {
   readonly stagePlan: readonly StagePlanEntry[];
   readonly ownerAccountIds: readonly string[];
   readonly ownerStatus: Readonly<Record<string, readonly OwnerStatus[]>>;
+  // Every player's points right after each stage start (score carry applied by the server).
+  readonly stagePoints: readonly {
+    readonly step: number;
+    readonly points: Readonly<Record<string, number>>;
+  }[];
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
 }
 

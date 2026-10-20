@@ -43,6 +43,12 @@ describe('playbackAt', () => {
     const bot = view.standings.find((p) => p.accountId === 'bot-02');
     expect(bot?.cards[0]).toEqual(numberCard(3));
     expect(bot?.marks[0]?.filter(Boolean)).toHaveLength(1); // only the free centre
-    expect(bot?.points).toBe(30); // points carry over; marks do not
+  });
+
+  it("takes the server's points as the baseline at every stage start (score carry)", () => {
+    const bot = (step: number) =>
+      playbackAt(result, step).standings.find((p) => p.accountId === 'bot-02');
+    expect(bot(9)?.points).toBe(30);
+    expect(bot(10)?.points).toBe(0); // the final stage resets points
   });
 });

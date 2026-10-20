@@ -13,21 +13,34 @@ import type { ReactElement } from 'react';
 
 import type { PlaybackView, PlayerView } from '../playback.js';
 
-export function Standings({ view }: { view: PlaybackView }): ReactElement {
+// showSeasons: season counts exist in royale only (01 §3a).
+export function Standings({
+  view,
+  showSeasons,
+}: {
+  view: PlaybackView;
+  showSeasons: boolean;
+}): ReactElement {
   const top = view.standings.slice(0, 20);
   const extraOwners = view.standings.filter((p, i) => p.isOwner && i >= 20);
   return (
     <section>
       <h3 style={{ margin: '0 0 0.25rem' }}>Standings</h3>
-      <ol style={{ margin: 0, paddingLeft: '1.25rem' }} data-testid="standings">
+      <ol style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'none' }} data-testid="standings">
         {top.map((player, i) => (
-          <PlayerRow key={player.accountId} rank={i + 1} player={player} />
+          <PlayerRow
+            key={player.accountId}
+            rank={i + 1}
+            player={player}
+            showSeasons={showSeasons}
+          />
         ))}
         {extraOwners.map((player) => (
           <PlayerRow
             key={player.accountId}
             rank={view.standings.indexOf(player) + 1}
             player={player}
+            showSeasons={showSeasons}
           />
         ))}
       </ol>
@@ -35,7 +48,15 @@ export function Standings({ view }: { view: PlaybackView }): ReactElement {
   );
 }
 
-function PlayerRow({ rank, player }: { rank: number; player: PlayerView }): ReactElement {
+function PlayerRow({
+  rank,
+  player,
+  showSeasons,
+}: {
+  rank: number;
+  player: PlayerView;
+  showSeasons: boolean;
+}): ReactElement {
   return (
     <li
       style={{
@@ -43,8 +64,8 @@ function PlayerRow({ rank, player }: { rank: number; player: PlayerView }): Reac
         opacity: player.eliminated ? 0.6 : 1,
       }}
     >
-      #{rank} {player.accountId} — {String(player.points)} pts · seasons{' '}
-      {String(player.seasonsActivated)}
+      #{rank} {player.accountId} — {String(player.points)} pts
+      {showSeasons ? ` · seasons ${String(player.seasonsActivated)}` : ''}
       {player.eliminated ? ' · out' : ''}
     </li>
   );

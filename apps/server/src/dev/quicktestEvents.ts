@@ -8,8 +8,9 @@
  *                 event, so the client can match events to players; (2) replay the log
  *                 with the domain's evolve and record the owner's effect status (active
  *                 multiplier/growth with remaining draws, shield charges, seasons
- *                 collected) whenever it changes, so the client renders it and never
- *                 computes it (CLAUDE.md: the server decides, the client renders).
+ *                 collected) whenever it changes, and every player's points after each
+ *                 stage start (score carry), so the client renders them and never
+ *                 computes them (CLAUDE.md: the server decides, the client renders).
  * Depends on:     @sbr/domain
  * Used by:        ./quicktest.ts
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
@@ -72,17 +73,33 @@ function renameEvent(ev: DomainEvent, rename: (id: string) => string): DomainEve
   }
 }
 
-// Replays the original (internal-id) log once and keeps one status list per owner, with
-// an entry only when that owner's status changed. Keyed by display id.
-export function ownerStatusTimeline(
+// Every player's points right after a stage start, when the stage's score carry
+// (keep / reset / scaled) has been applied; the client takes them as the new baseline.
+export interface StagePoints {
+  readonly step: number;
+  readonly points: Readonly<Record<string, number>>;
+}
+
+export interface ClientReplay {
+  readonly ownerStatus: Record<string, OwnerStatus[]>;
+  readonly stagePoints: StagePoints[];
+}
+
+// Replays the original (internal-id) log once with the domain's evolve. Keeps one status
+// list per owner, with an entry only when that owner's status changed, and the points
+// after each stage start. Keyed by display id.
+export function replayForClient(
   events: readonly DomainEvent[],
+  idMap: ReadonlyMap<string, string>,
   owners: ReadonlyMap<string, string>,
-): Record<string, OwnerStatus[]> {
+): ClientReplay {
   const timeline: Record<string, OwnerStatus[]> = {};
   for (const displayId of owners.values()) timeline[displayId] = [];
+  const stagePoints: StagePoints[] = [];
   let state = createInitialMatchState();
   events.forEach((ev, i) => {
     state = evolve(state, ev);
+    if (ev.type === 'stageStarted') stagePoints.push(pointsAfter(state, idMap, i + 1));
     for (const [internalId, displayId] of owners) {
       const status = statusOf(state, internalId, i + 1);
       const list = timeline[displayId];
@@ -91,7 +108,17 @@ export function ownerStatusTimeline(
       if (last === undefined || !sameStatus(last, status)) list.push(status);
     }
   });
-  return timeline;
+  return { ownerStatus: timeline, stagePoints };
+}
+
+function pointsAfter(
+  state: MatchState,
+  idMap: ReadonlyMap<string, string>,
+  step: number,
+): StagePoints {
+  const points: Record<string, number> = {};
+  for (const [id, p] of Object.entries(state.players)) points[idMap.get(id) ?? id] = p.points;
+  return { step, points };
 }
 
 function statusOf(state: MatchState, accountId: string, step: number): OwnerStatus | null {

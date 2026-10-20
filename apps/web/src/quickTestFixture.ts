@@ -60,6 +60,11 @@ export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTes
     ],
     ownerAccountIds: ['owner-01'],
     ownerStatus: { 'owner-01': STATUS },
+    // The final stage resets everyone's points (score carry `reset`).
+    stagePoints: [
+      { step: 1, points: { 'owner-01': 0, 'bot-02': 0, 'bot-03': 0 } },
+      { step: 10, points: { 'owner-01': 0, 'bot-02': 0, 'bot-03': 0 } },
+    ],
     effectSeasons: { growth: 'spring', multiplier: 'summer', harvest: 'autumn', shield: 'winter' },
     players: [player('owner-01', true, 3), player('bot-02', false, 1), player('bot-03', false, 2)],
     events: royaleEvents(),

@@ -29,16 +29,31 @@ export interface OwnerStatusPanelProps {
   readonly rank: number;
   readonly status: OwnerStatus | null;
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
+  // Effects, shield and seasons exist in royale only (01 §3a).
+  readonly showSeasons: boolean;
 }
 
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
-  const { accountId, points, rank, status, effectSeasons } = props;
-  const collected = new Set(status?.seasons ?? []);
+  const { accountId, points, rank } = props;
   return (
     <section data-testid={`owner-status-${accountId}`} aria-label={`${accountId} status`}>
       <p style={{ margin: 0 }}>
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
       </p>
+      {props.showSeasons ? (
+        <SeasonStatus status={props.status} effectSeasons={props.effectSeasons} />
+      ) : null}
+    </section>
+  );
+}
+
+function SeasonStatus({
+  status,
+  effectSeasons,
+}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons'>): ReactElement {
+  const collected = new Set(status?.seasons ?? []);
+  return (
+    <>
       <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', margin: '0.3rem 0' }}>
         {status?.multiplier ? (
           <EffectBadge season={effectSeasons.multiplier} testId="effect-multiplier">
@@ -62,7 +77,7 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
           <SeasonIcon key={s} season={s} size="1.2rem" onColor dimmed={!collected.has(s)} />
         ))}
       </p>
-    </section>
+    </>
   );
 }
 

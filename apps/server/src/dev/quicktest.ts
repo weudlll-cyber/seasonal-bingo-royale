@@ -37,11 +37,12 @@ import {
 
 import {
   effectSeasons,
-  ownerStatusTimeline,
   renameAccounts,
+  replayForClient,
   type EffectKind,
   type OwnerStatus,
   type SeasonName,
+  type StagePoints,
 } from './quicktestEvents.js';
 
 export interface QuickTestInput {
@@ -77,6 +78,7 @@ export interface QuickTestResult {
   readonly stagePlan: MatchState['stagePlan'];
   readonly ownerAccountIds: readonly string[];
   readonly ownerStatus: Record<string, OwnerStatus[]>;
+  readonly stagePoints: readonly StagePoints[];
   readonly effectSeasons: Partial<Record<EffectKind, SeasonName>>;
 }
 
@@ -169,6 +171,7 @@ function buildResult(args: BuildArgs): QuickTestResult {
     }),
   );
   const owners = new Map([...idMap].slice(0, ownerCount));
+  const replay = replayForClient(events, idMap, owners);
   const players: QuickTestPlayer[] = state.playerOrder.map((accountId, i) => {
     const p = state.players[accountId];
     return {
@@ -193,7 +196,8 @@ function buildResult(args: BuildArgs): QuickTestResult {
     players,
     stagePlan: state.stagePlan,
     ownerAccountIds: [...owners.values()],
-    ownerStatus: ownerStatusTimeline(events, owners),
+    ownerStatus: replay.ownerStatus,
+    stagePoints: replay.stagePoints,
     effectSeasons: effectSeasons(ruleset.seasons),
   };
 }

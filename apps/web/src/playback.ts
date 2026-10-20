@@ -7,55 +7,30 @@
  *                 into a view-model: stage and round, draws so far, every player's
  *                 current-round cards and marks, points, eliminations, the owner's
  *                 outcome at the latest cut, banners and the owner's effect status.
- *                 It only adds up points the server already computed. Pure.
- * Depends on:     ./types
+ *                 It only adds up points the server already computed, and takes the
+ *                 server's points as the new baseline at every stage start. Pure.
+ * Depends on:     ./types, ./playbackTypes
  * Used by:        ./App, ./components/*
  * Spec:           docs/spec/01-game-design.md §3, §7, §8, §13; docs/spec/15-implementation-plan.md WP-08
  */
+import type {
+  Banner,
+  CutOutcome,
+  CutView,
+  PlaybackView,
+  PlayerView,
+  PrizeWin,
+} from './playbackTypes.js';
 import type { Card, DomainEventLike, OwnerStatus, QuickTestResult } from './types.js';
 
-export interface Banner {
-  readonly key: string;
-  readonly text: string;
-}
-
-export interface PlayerView {
-  readonly accountId: string;
-  readonly isOwner: boolean;
-  readonly cards: readonly Card[];
-  readonly marks: readonly (readonly boolean[])[];
-  readonly points: number;
-  readonly seasonsActivated: number;
-  readonly eliminated: boolean;
-}
-
-export type CutOutcome = 'survived' | 'saved' | 'eliminated';
-
-export interface CutView {
-  // Counts cuts so far; a new value means a new cut screen.
-  readonly number: number;
-  readonly owners: readonly { readonly accountId: string; readonly outcome: CutOutcome }[];
-}
-
-export interface PlaybackView {
-  readonly currentStage: number;
-  readonly currentRound: number;
-  readonly drawsSoFar: readonly number[];
-  readonly totalDraws: number;
-  readonly standings: readonly PlayerView[];
-  readonly owners: readonly PlayerView[];
-  readonly ownerStatus: Readonly<Record<string, OwnerStatus | null>>;
-  readonly lastCut: CutView | null;
-  // Classic types: winners per prize key, with the draw number that awarded it.
-  readonly prizeWinners: Readonly<Record<string, PrizeWin>>;
-  readonly banners: readonly Banner[];
-  readonly finished: boolean;
-}
-
-export interface PrizeWin {
-  readonly drawNumber: number;
-  readonly accountIds: readonly string[];
-}
+export type {
+  Banner,
+  CutOutcome,
+  CutView,
+  PlaybackView,
+  PlayerView,
+  PrizeWin,
+} from './playbackTypes.js';
 
 export function playbackAt(result: QuickTestResult, step: number): PlaybackView {
   const consumed = Math.min(step, result.events.length);
@@ -128,8 +103,19 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
     prizeWinners: {},
     finished: false,
   };
-  for (const ev of result.events.slice(0, step)) applyEvent(state, ev);
+  // Stage starts reset points to the server's baseline (score carry); keyed by step.
+  const baselines = new Map(result.stagePoints.map((s) => [s.step, s.points]));
+  result.events.slice(0, step).forEach((ev, i) => {
+    applyEvent(state, ev);
+    const baseline = baselines.get(i + 1);
+    if (baseline !== undefined) applyBaseline(state, baseline);
+  });
   return state;
+}
+
+function applyBaseline(state: FoldState, points: Readonly<Record<string, number>>): void {
+  for (const [id, value] of Object.entries(points))
+    update(state, id, (p) => ({ ...p, points: value }));
 }
 
 function freeMarks(card: Card): boolean[] {
@@ -192,12 +178,19 @@ function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApp
     .map((p) => ({ accountId: p.accountId, outcome: cutOutcome(p.accountId, eliminated, saved) }));
   state.lastCut = { number: (state.lastCut?.number ?? 0) + 1, owners };
   const shield = ev.shieldSaves.length > 0 ? ` (${String(ev.shieldSaves.length)} shield save)` : '';
+  const ownerNotes = owners.map((o) => ` · ${o.accountId}: ${OUTCOME_NOTE[o.outcome]}`).join('');
   pushBanner(
     state,
     `cut-${String(ev.stageIndex)}-${String(state.lastCut.number)}`,
-    `Cut: ${String(ev.eliminated.length)} eliminated, ${String(ev.survivors.length)} survive${shield}`,
+    `Cut ${String(state.lastCut.number)}: ${String(ev.eliminated.length)} eliminated, ${String(ev.survivors.length)} survive${shield}${ownerNotes}`,
   );
 }
+
+const OUTCOME_NOTE: Readonly<Record<CutOutcome, string>> = {
+  survived: 'survived',
+  saved: 'saved by the Winter shield',
+  eliminated: 'eliminated',
+};
 
 function cutOutcome(id: string, eliminated: Set<string>, saved: Set<string>): CutOutcome {
   if (eliminated.has(id)) return 'eliminated';
@@ -225,7 +218,11 @@ function applyScoring(state: FoldState, ev: DomainEventLike): void {
       return;
     case 'seasonCompleteFired':
       addPoints(state, ev.accountId, ev.points);
-      pushBanner(state, `sc-${ev.accountId}`, `Season Complete fired for ${ev.accountId}!`);
+      pushBanner(
+        state,
+        `sc-${ev.accountId}`,
+        `Season Complete fired for ${ev.accountId} in round ${String(state.roundIndex + 1)}!`,
+      );
       return;
     case 'jackpotClaimed':
       addPoints(state, ev.accountId, ev.value);

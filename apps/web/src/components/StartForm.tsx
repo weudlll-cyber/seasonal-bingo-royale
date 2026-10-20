@@ -68,8 +68,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   };
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
-    const ticked = prizes.size > 0 ? [...prizes] : ['fullCard'];
-    onStart({ ...state, tickedPrizes: ticked });
+    onStart(toInput(state, prizes));
   };
   return (
     <form onSubmit={submit} style={{ display: 'grid', gap: '0.6rem', maxWidth: '32rem' }}>
@@ -166,9 +165,10 @@ function BotCountField({
 }): ReactElement {
   return (
     <label style={{ display: 'grid', gap: '0.25rem' }}>
-      <span>Bot players: {value}</span>
+      <span>Bot players (3–199)</span>
       <input
-        type="range"
+        type="number"
+        data-testid="bot-count"
         min={3}
         max={199}
         value={value}
@@ -189,9 +189,10 @@ function OwnerCardsField({
 }): ReactElement {
   return (
     <label style={{ display: 'grid', gap: '0.25rem' }}>
-      <span>Your cards: {value}</span>
+      <span>Your cards (1–4)</span>
       <input
-        type="range"
+        type="number"
+        data-testid="owner-cards"
         min={1}
         max={4}
         value={value}
@@ -201,6 +202,20 @@ function OwnerCardsField({
       />
     </label>
   );
+}
+
+// The request body: typed numbers brought into the range the server accepts.
+function toInput(state: FormState, prizes: ReadonlySet<string>): StartQuickTestInput {
+  return {
+    ...state,
+    playerCount: clamp(state.playerCount, 3, 199),
+    ownerCards: clamp(state.ownerCards, 1, 4),
+    tickedPrizes: prizes.size > 0 ? [...prizes] : ['fullCard'],
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : min;
 }
 
 function MarkingField({
