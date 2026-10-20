@@ -6,14 +6,12 @@
  * Responsibility: validate the request body with zod, call the dev-only match runner,
  *                 return the full result as JSON. The route is only mounted when
  *                 NODE_ENV !== 'production' so it is unavailable in a shipped build.
- * Depends on:     fastify, zod, @sbr/contracts, ../../dev/quicktest
+ * Depends on:     fastify, zod, ../../dev/quicktest
  * Used by:        ../app.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §6
  */
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-
-import { REALTIME_DRAW_INTERVAL_MS } from '@sbr/contracts';
 
 import { runQuickTest } from '../../dev/quicktest.js';
 
@@ -35,12 +33,8 @@ const bodySchema = z.object({
       z.object({ kind: z.literal('noAutoMark') }),
     ])
     .optional(),
-  drawIntervalMs: z
-    .number()
-    .int()
-    .min(REALTIME_DRAW_INTERVAL_MS.min)
-    .max(REALTIME_DRAW_INTERVAL_MS.max)
-    .optional(),
+  // Timed-draw gap; the runner keeps it inside the allowed realtime range.
+  drawIntervalMs: z.number().int().min(1).max(3_600_000).optional(),
 });
 
 export function registerQuickTest(app: FastifyInstance): void {

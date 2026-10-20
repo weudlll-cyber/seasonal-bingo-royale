@@ -6,17 +6,26 @@
  * Responsibility: collect the Quick Test inputs the owner picks before each run. The
  *                 prize checklist mirrors the catalogue of 01 §3a.1 and is pre-ticked
  *                 with the default selection from the ruleset defaults; also owner card
- *                 count (1..4), marking mode (manual default) and draw control (D8).
- * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField
+ *                 count (1..4), marking with the missed-number rule (./StartMarkingField,
+ *                 D9) and draw control (./StartDrawField, D8). Timed draws send their
+ *                 gap so the server measures the missed-number delay in the same draws.
+ * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField,
+ *                 ./StartMarkingField
  * Used by:        ../App
- * Spec:           docs/spec/15-implementation-plan.md WP-08
+ * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §5, §6
  */
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import type { StartQuickTestInput } from '../api.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
 import { StartDrawField } from './StartDrawField.js';
-import type { GameType, MarkingMode } from '../types.js';
+import {
+  INITIAL_MARKING,
+  StartMarkingField,
+  toMissedNumbers,
+  type MarkingChoice,
+} from './StartMarkingField.js';
+import type { GameType } from '../types.js';
 
 const CATALOGUE = [
   'rows-1',
@@ -44,7 +53,6 @@ interface FormState {
   readonly seedText: string;
   readonly playerCount: number;
   readonly ownerCards: number;
-  readonly markingMode: MarkingMode;
 }
 
 const INITIAL: FormState = {
@@ -52,12 +60,12 @@ const INITIAL: FormState = {
   seedText: 'spring-garden',
   playerCount: 4,
   ownerCards: 1,
-  markingMode: 'manual',
 };
 
 export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   const [state, setState] = useState<FormState>(INITIAL);
   const [prizes, setPrizes] = useState<Set<string>>(new Set(DEFAULT_PRIZES));
+  const [marking, setMarking] = useState<MarkingChoice>(INITIAL_MARKING);
   const [draw, setDraw] = useState<DrawControl>(INITIAL_CONTROL);
   const bind =
     <K extends keyof FormState>(key: K) =>
@@ -74,7 +82,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   };
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
-    onStart(toInput(state, prizes), draw);
+    onStart(toInput(state, prizes, marking, draw), draw);
   };
   return (
     <form onSubmit={submit} style={{ display: 'grid', gap: '0.6rem', maxWidth: '32rem' }}>
@@ -82,7 +90,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
       <SeedField value={state.seedText} onChange={bind('seedText')} />
       <BotCountField value={state.playerCount} onChange={bind('playerCount')} />
       <OwnerCardsField value={state.ownerCards} onChange={bind('ownerCards')} />
-      <MarkingField value={state.markingMode} onChange={bind('markingMode')} />
+      <StartMarkingField value={marking} onChange={setMarking} />
       <StartDrawField value={draw} onChange={setDraw} />
       <PrizeChecklist checked={prizes} onToggle={toggle} />
       <button type="submit" disabled={busy} style={{ padding: '0.5rem' }} data-testid="start-run">
@@ -186,42 +194,28 @@ function OwnerCardsField({
   );
 }
 
-// The request body: typed numbers brought into the range the server accepts.
-function toInput(state: FormState, prizes: ReadonlySet<string>): StartQuickTestInput {
+// The request body: typed numbers brought into the range the server accepts; the
+// server keeps the draw gap inside the ruleset range.
+function toInput(
+  state: FormState,
+  prizes: ReadonlySet<string>,
+  marking: MarkingChoice,
+  draw: DrawControl,
+): StartQuickTestInput {
+  const timed = draw.mode === 'auto' && draw.intervalSec !== null;
   return {
     ...state,
     playerCount: clamp(state.playerCount, 3, 199),
     ownerCards: clamp(state.ownerCards, 1, 4),
     tickedPrizes: prizes.size > 0 ? [...prizes] : ['fullCard'],
+    markingMode: marking.mode,
+    missedNumbers: toMissedNumbers(marking),
+    ...(timed ? { drawIntervalMs: Math.round(draw.intervalSec * 1000) } : {}),
   };
 }
 
 function clamp(value: number, min: number, max: number): number {
   return Number.isFinite(value) ? Math.min(max, Math.max(min, Math.round(value))) : min;
-}
-
-function MarkingField({
-  value,
-  onChange,
-}: {
-  value: MarkingMode;
-  onChange: (next: MarkingMode) => void;
-}): ReactElement {
-  return (
-    <label style={{ display: 'grid', gap: '0.25rem' }}>
-      <span>Marking mode</span>
-      <select
-        data-testid="marking-mode"
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value as MarkingMode);
-        }}
-      >
-        <option value="manual">manual (you tap)</option>
-        <option value="auto">auto (bot plays for you)</option>
-      </select>
-    </label>
-  );
 }
 
 function PrizeChecklist({

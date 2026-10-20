@@ -1,11 +1,11 @@
 /**
  * @file   e2e/drawControl.spec.ts
  * @module e2e
- * @brief  Host draw control in the browser (D8): Draw next, then switch back to auto.
+ * @brief  Host draw control in the browser (D8): Draw next, then switch to timed draws.
  *
  * Responsibility: in `host` mode no number appears until "Draw next" is pressed, then
- *                 exactly one; after switching to `auto` the next number follows after the
- *                 set interval, not at once.
+ *                 exactly one; after switching to 'Timed draws' the next number follows
+ *                 after the set interval, not at once.
  * Depends on:     @playwright/test, ./quickTest
  * Spec:           docs/spec/01-game-design.md §5; docs/spec/15-implementation-plan.md WP-08
  */
@@ -18,7 +18,9 @@ const INTERVAL_SEC = 2;
 const shown = (page: Page): Promise<number> =>
   page.getByTestId('draw-ticker').locator(':scope > *').count();
 
-test('host mode draws only on Draw next; auto resumes at the set interval', async ({ page }) => {
+test('host draws happen only on Draw next; timed draws resume at the set interval', async ({
+  page,
+}) => {
   await startRun(page, {
     gameType: 'classic',
     seed: 'e2e-host',
@@ -37,7 +39,7 @@ test('host mode draws only on Draw next; auto resumes at the set interval', asyn
   expect(await shown(page)).toBe(1);
 
   const switchedAt = Date.now();
-  await page.getByTestId('draw-mode-auto').click();
+  await page.getByTestId('draw-mode-timed').click();
   await expect.poll(() => shown(page), { timeout: 10_000, intervals: [100] }).toBe(2);
   const waited = Date.now() - switchedAt;
   expect(waited).toBeGreaterThanOrEqual(INTERVAL_SEC * 1000 - 300);

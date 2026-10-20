@@ -8,18 +8,16 @@
  *                 prize list with winners. Always: banners, draw ticker, the owner's
  *                 cards and status, standings, final placement. State lives in App.tsx,
  *                 the view-model in ../playback.ts.
- * Depends on:     react, ./CardGrid, ./CutScreen, ./DrawTicker, ./OwnerCard,
- *                 ./OwnerStatusPanel, ./Standings, ../playback, ../types, ../useReducedMotion
+ * Depends on:     react, ./CutScreen, ./DrawTicker, ./OwnerArea, ./Standings,
+ *                 ../playback, ../types, ../useReducedMotion
  * Used by:        ../App
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
 
-import { CardGrid } from './CardGrid.js';
 import { CutScreen } from './CutScreen.js';
 import { DrawTicker } from './DrawTicker.js';
-import { OwnerCard } from './OwnerCard.js';
-import { OwnerStatusPanel } from './OwnerStatusPanel.js';
+import { OwnerArea } from './OwnerArea.js';
 import { Standings } from './Standings.js';
 import type { Banner, PlaybackView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
@@ -128,67 +126,6 @@ function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
     </ul>
   );
 }
-
-// During play: the live standings rank. Once the match is finished: the place in the
-// final placement, so the panel and the final list never disagree.
-function ownerRank(result: QuickTestResult, view: PlaybackView, accountId: string): number {
-  const place = result.players.find((p) => p.accountId === accountId)?.place;
-  if (view.finished && place !== undefined) return place;
-  return view.standings.findIndex((p) => p.accountId === accountId) + 1;
-}
-
-function OwnerArea({ result, view }: PlaybackProps): ReactElement {
-  if (view.owners.length === 0) return <BotCards view={view} />;
-  return (
-    <div style={gridStyle}>
-      {view.owners.map((owner) => (
-        <div key={owner.accountId} style={{ display: 'grid', gap: '0.4rem' }}>
-          <OwnerStatusPanel
-            accountId={owner.accountId}
-            points={owner.points}
-            rank={ownerRank(result, view, owner.accountId)}
-            status={view.ownerStatus[owner.accountId] ?? null}
-            effectSeasons={result.effectSeasons}
-            showSeasons={result.gameType === 'royale'}
-          />
-          {owner.cards.map((card, cardIndex) => (
-            <OwnerCard
-              // A new round deals a new card: remount so manual marks start fresh.
-              key={`${owner.accountId}-${String(view.currentRound)}-${String(cardIndex)}`}
-              accountId={owner.accountId}
-              card={card}
-              serverMarks={owner.marks[cardIndex] ?? []}
-              result={result}
-              drawsSoFar={view.drawsSoFar}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// No owner card in this run: show a few bot cards read-only.
-function BotCards({ view }: { view: PlaybackView }): ReactElement {
-  return (
-    <div style={gridStyle}>
-      {view.standings.slice(0, 4).map((bot) => (
-        <CardGrid
-          key={bot.accountId}
-          accountId={bot.accountId}
-          card={bot.cards[0] ?? { cells: [], seasonCells: null }}
-          marks={bot.marks[0] ?? []}
-        />
-      ))}
-    </div>
-  );
-}
-
-const gridStyle: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
-  gap: '1rem',
-};
 
 // Top 20 plus the owner's rows; eliminated players are ranked by when they went out
 // (01 §7.5) and show their score at elimination with "out".

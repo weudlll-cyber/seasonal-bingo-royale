@@ -6,7 +6,8 @@
  * Responsibility: show what the server reports for one owner account: points and rank
  *                 in the standings, active effects with remaining draws (badges in the
  *                 colour of the season that grants them), Winter shield charges and
- *                 the four seasons with the collected ones highlighted.
+ *                 the four seasons with the collected ones highlighted (from the
+ *                 owner's own card marks when the owner taps).
  * Depends on:     react, ./SeasonIcon, ../types
  * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
@@ -31,6 +32,9 @@ export interface OwnerStatusPanelProps {
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
   // Effects, shield and seasons exist in royale only (01 §3a).
   readonly showSeasons: boolean;
+  // When the owner taps: the seasons marked on the owner's own cards, which the server
+  // cannot know before playback; otherwise the server's seasons are shown.
+  readonly cardSeasons?: readonly Season[] | undefined;
 }
 
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
@@ -41,7 +45,11 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
       </p>
       {props.showSeasons ? (
-        <SeasonStatus status={props.status} effectSeasons={props.effectSeasons} />
+        <SeasonStatus
+          status={props.status}
+          effectSeasons={props.effectSeasons}
+          cardSeasons={props.cardSeasons}
+        />
       ) : null}
     </section>
   );
@@ -50,8 +58,9 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
 function SeasonStatus({
   status,
   effectSeasons,
-}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons'>): ReactElement {
-  const collected = new Set(status?.seasons ?? []);
+  cardSeasons,
+}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons' | 'cardSeasons'>): ReactElement {
+  const collected = new Set(cardSeasons ?? status?.seasons ?? []);
   return (
     <>
       <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', margin: '0.3rem 0' }}>

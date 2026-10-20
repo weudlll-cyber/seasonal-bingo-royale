@@ -1,11 +1,13 @@
 /**
  * @file   apps/web/src/components/DrawControls.tsx
  * @module web
- * @brief  Live draw controls of the Quick Test (D8): mode switch, interval, Draw next, skip.
+ * @brief  Live draw controls of the Quick Test (D8): Timed draws / Host draws, interval, Draw next.
  *
- * Responsibility: let the host switch between `auto` and `host` at any time, set the
- *                 `auto` interval in seconds, draw the next item in `host` mode and skip
- *                 to the end. Purely controls; the rules live in ../drawControl.
+ * Responsibility: let the host switch between timed draws (`auto`) and host draws at any
+ *                 time, set the seconds between timed draws, draw the next item in host
+ *                 mode and skip to the end. Labels never use the word "auto" alone, so
+ *                 they cannot be confused with marking. Purely controls; the rules live
+ *                 in ../drawControl.
  * Depends on:     react, ../drawControl
  * Used by:        ../App
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
@@ -38,7 +40,7 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
         }}
       />
       <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-        <span>Seconds between auto draws</span>
+        <span>Seconds between timed draws</span>
         <input
           type="number"
           data-testid="draw-interval"
@@ -89,14 +91,14 @@ function ModeSwitch({
         <button
           key={option}
           type="button"
-          data-testid={`draw-mode-${option}`}
+          data-testid={`draw-mode-${option === 'auto' ? 'timed' : 'host'}`}
           aria-pressed={mode === option}
           onClick={() => {
             onMode(option);
           }}
           style={buttonStyle(mode === option)}
         >
-          {option === 'auto' ? 'auto draws' : 'host draws'}
+          {option === 'auto' ? 'Timed draws' : 'Host draws'}
         </button>
       ))}
     </div>

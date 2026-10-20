@@ -17,7 +17,8 @@
  *                 later taps are unknown here: those cards are computed as never tapping
  *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
  *                 delay), measured in draws of the chosen interval.
- * Depends on:     @sbr/domain, @sbr/contracts (defaults), ./quicktestEvents
+ * Depends on:     @sbr/domain, @sbr/contracts (defaults), ./quicktestEvents,
+ *                 ./quicktestTiming
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §6, §13
  */
@@ -28,7 +29,6 @@ import {
   classicSeasonsRealtimeDefault,
   royaleRealtimeDefault,
   BUILTIN_PRIZE_POINTS,
-  DEFAULT_AUTO_MARK_DELAY_MS,
   REALTIME_DRAW_INTERVAL_MS,
   type Ruleset,
 } from '@sbr/contracts';
@@ -52,6 +52,7 @@ import {
   type SeasonName,
   type StagePoints,
 } from './quicktestEvents.js';
+import { chosenMissedNumbers, delayOf, withinDrawRange } from './quicktestTiming.js';
 
 export interface QuickTestInput {
   readonly gameType: GameType;
@@ -83,6 +84,8 @@ export interface QuickTestResult {
   readonly markingMode: 'auto' | 'manual';
   // The starter's rule with the delay raised to at least the speed window.
   readonly missedNumbers: MissedNumbers;
+  // Delay the owner's cards were computed with for points, standings and cuts.
+  readonly ownerAutoMarkDelayMs: number;
   readonly drawIntervalMs: number;
   // Range a starter or host may set for auto draws (01 §5, D8).
   readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
@@ -106,7 +109,7 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
   const seed = seedFromText(input.seedText);
   const ruleset = contractsRulesetFor(input.gameType);
   const missedNumbers = chosenMissedNumbers(input.missedNumbers, ruleset.marking.speedWindowMs);
-  const drawIntervalMs = input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime;
+  const drawIntervalMs = withinDrawRange(input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime);
   const matchRuleset = toMatchRuleset(ruleset, input.markingMode, {
     kind: 'autoMarkAfter',
     delayMs: delayOf(missedNumbers),
@@ -131,22 +134,6 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
     state: sim.state,
     ownerCount,
   });
-}
-
-// The starter's rule; an autoMarkAfter delay is never shorter than the speed window.
-function chosenMissedNumbers(
-  chosen: MissedNumbers | undefined,
-  speedWindowMs: number,
-): MissedNumbers {
-  const rule = chosen ?? { kind: 'autoMarkAfter', delayMs: DEFAULT_AUTO_MARK_DELAY_MS };
-  if (rule.kind === 'noAutoMark') return rule;
-  return { kind: 'autoMarkAfter', delayMs: Math.max(speedWindowMs, rule.delayMs) };
-}
-
-// Delay the server computes the owner's cards with: the chosen one, or the default
-// under noAutoMark, because the owner's later taps are not known before playback.
-function delayOf(rule: MissedNumbers): number {
-  return rule.kind === 'autoMarkAfter' ? rule.delayMs : DEFAULT_AUTO_MARK_DELAY_MS;
 }
 
 function contractsRulesetFor(gameType: GameType): Ruleset {
@@ -242,6 +229,7 @@ function buildResult(args: BuildArgs): QuickTestResult {
     gameType: input.gameType,
     markingMode: input.markingMode,
     missedNumbers: input.missedNumbers,
+    ownerAutoMarkDelayMs: delayOf(input.missedNumbers),
     drawIntervalMs: input.drawIntervalMs,
     drawIntervalRangeMs: REALTIME_DRAW_INTERVAL_MS,
     speedWindowMs: ruleset.marking.speedWindowMs,

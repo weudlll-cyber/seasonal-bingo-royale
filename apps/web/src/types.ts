@@ -14,6 +14,11 @@
 
 export type GameType = 'royale' | 'classicSeasons' | 'classic';
 export type MarkingMode = 'auto' | 'manual';
+
+// What happens to a drawn number the owner has not tapped (01 §6): marked for the owner
+// without bonus after delayMs, or left open until tapped.
+export type MissedNumbers =
+  { readonly kind: 'autoMarkAfter'; readonly delayMs: number } | { readonly kind: 'noAutoMark' };
 export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
 export type EffectKind = 'multiplier' | 'growth' | 'harvest' | 'shield' | 'revealNext';
 
@@ -120,6 +125,10 @@ export interface StagePlanEntry {
 export interface QuickTestResult {
   readonly gameType: GameType;
   readonly markingMode: MarkingMode;
+  // The starter's rule; an autoMarkAfter delay is at least the speed window.
+  readonly missedNumbers: MissedNumbers;
+  // Delay the owner's cards were computed with for points, standings and cuts.
+  readonly ownerAutoMarkDelayMs: number;
   readonly drawIntervalMs: number;
   // Range a starter or host may set for `auto` draws (01 §5, D8).
   readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };

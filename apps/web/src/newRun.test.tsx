@@ -6,7 +6,7 @@
  *
  * Responsibility: render the page, play run A (mark a cell, close a cut screen), press
  *                 Run Quick Test again and check that nothing of run A remains: no mark,
- *                 point, bonus counter or feedback on the owner card, and the cut screen
+ *                 speed bonus or feedback on the owner card, and the cut screen
  *                 shows again at run B's first cut.
  * Depends on:     @testing-library/react, ./App, ./quickTestFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08
@@ -52,7 +52,7 @@ describe('a new run', () => {
     await nextDraw(); // draw 1: number 1, on the owner card at cell 0
     fireEvent.click(screen.getByTestId('owner-cell-0'));
     expect(screen.getByTestId('owner-cell-0').getAttribute('data-marked')).toBe('true');
-    expect(screen.getByTestId('owner-points').textContent).not.toMatch(/^0 pts/);
+    expect(screen.getByTestId('owner-bonus').textContent).not.toMatch(/^\+0 speed bonus/);
 
     await startRun(); // run B, restarted while run A was still in round 1
     expect(screen.getByTestId('owner-cell-0').getAttribute('data-marked')).toBe('false');
@@ -60,8 +60,8 @@ describe('a new run', () => {
       .getAllByTestId(/^owner-cell-/)
       .filter((cell) => cell.getAttribute('data-marked') === 'true');
     expect(marked.map((cell) => cell.getAttribute('data-testid'))).toEqual(['owner-cell-12']);
-    expect(screen.getByTestId('owner-points').textContent).toMatch(
-      /^0 pts this round · speed bonus earned: 0/,
+    expect(screen.getByTestId('owner-bonus').textContent).toBe(
+      '+0 speed bonus (not counted in Quick Test cuts)',
     );
     expect(screen.getByTestId('owner-feedback').textContent).toBe(
       'Tap a drawn number on your card.',

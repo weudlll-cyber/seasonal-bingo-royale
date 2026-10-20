@@ -13,7 +13,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { startRun } from './quickTest.js';
 
-const SPEED_WINDOW_MS = 3_000;
+const MISSED_DELAY_MS = 3_000; // default missed-number delay (01 §6)
 
 // Values of the owner's marked cells (the free centre has no value) and the drawn items.
 async function cardState(page: Page): Promise<{ marked: string[]; drawn: string[] }> {
@@ -62,13 +62,13 @@ test('a new run on the same page starts with a fresh owner card', async ({ page 
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('draw-ticker').locator(':scope > *')).toHaveCount(0);
   expect((await cardState(page)).marked).toEqual(['']); // only the free centre
-  await expect(page.getByTestId('owner-points')).toHaveText(
-    /^0 pts this round · speed bonus earned: 0/,
+  await expect(page.getByTestId('owner-bonus')).toHaveText(
+    '+0 speed bonus (not counted in Quick Test cuts)',
   );
 
   await page.getByTestId('draw-next').click();
   await page.getByTestId('draw-next').click();
-  await page.waitForTimeout(SPEED_WINDOW_MS + 500); // missed numbers get auto-marked
+  await page.waitForTimeout(MISSED_DELAY_MS + 500); // missed numbers are marked for the owner
   const { marked, drawn } = await cardState(page);
   expect(drawn).toHaveLength(2);
   for (const value of marked) expect(['', ...drawn]).toContain(value);

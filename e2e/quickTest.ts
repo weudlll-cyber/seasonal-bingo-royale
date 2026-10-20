@@ -17,10 +17,15 @@ export interface RunSettings {
   readonly gameType: 'royale' | 'classicSeasons' | 'classic';
   readonly seed: string;
   readonly bots: number;
+  // 'manual' = "Marking: I tap the numbers", 'auto' = "Marking: mark for me".
   readonly marking: 'auto' | 'manual';
+  // When tapping (01 §6): missed numbers marked after missedDelaySec (default 3) or left open.
+  readonly missed?: 'autoMarkAfter' | 'noAutoMark';
+  readonly missedDelaySec?: number;
   readonly prizes?: readonly string[];
   readonly skipToEnd?: boolean;
-  // Draw control at start (D8); defaults: auto at the ruleset interval.
+  // Draw control at start (D8): 'auto' = timed draws (default, ruleset interval),
+  // 'host' = host presses Draw next.
   readonly drawMode?: 'auto' | 'host';
   readonly intervalSec?: number;
 }
@@ -46,6 +51,12 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
   await page.getByTestId('bot-count').fill(String(settings.bots));
   await page.getByTestId('owner-cards').fill('1');
   await page.getByTestId('marking-mode').selectOption(settings.marking);
+  if (settings.marking === 'manual') {
+    await page.getByTestId('missed-numbers').selectOption(settings.missed ?? 'autoMarkAfter');
+    if (settings.missedDelaySec !== undefined) {
+      await page.getByTestId('missed-delay').fill(String(settings.missedDelaySec));
+    }
+  }
   const prizes = new Set(settings.prizes ?? DEFAULT_PRIZES);
   for (const key of CATALOGUE) {
     await page.getByLabel(key, { exact: true }).setChecked(prizes.has(key));

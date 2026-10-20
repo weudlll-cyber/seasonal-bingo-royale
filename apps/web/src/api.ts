@@ -10,7 +10,7 @@
  * Used by:        ./App
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
-import type { GameType, MarkingMode, QuickTestResult } from './types.js';
+import type { GameType, MarkingMode, MissedNumbers, QuickTestResult } from './types.js';
 
 const SERVER_URL = 'http://127.0.0.1:3900/dev/quicktest';
 
@@ -21,6 +21,10 @@ export interface StartQuickTestInput {
   readonly tickedPrizes: readonly string[];
   readonly seedText: string;
   readonly markingMode: MarkingMode;
+  readonly missedNumbers: MissedNumbers;
+  // Timed draws: the chosen gap, so the server measures the missed-number delay in the
+  // same draws the client plays back (01 §6). Left out for host draws.
+  readonly drawIntervalMs?: number;
 }
 
 export async function startQuickTest(input: StartQuickTestInput): Promise<QuickTestResult> {

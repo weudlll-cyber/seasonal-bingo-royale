@@ -59,6 +59,9 @@ function PlayerRow({
 }): ReactElement {
   return (
     <li
+      data-testid={`standing-${player.accountId}`}
+      data-points={player.points}
+      data-eliminated={player.eliminated ? 'true' : 'false'}
       style={{
         color: player.isOwner ? '#afb84e' : '#dfe6ee',
         opacity: player.eliminated ? 0.6 : 1,

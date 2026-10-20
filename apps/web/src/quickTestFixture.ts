@@ -10,7 +10,7 @@
  * Used by:        ./playback.test.ts, ./components/*.test.tsx
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
-import type { Card, OwnerStatus, QuickTestResult } from './types.js';
+import type { Card, MissedNumbers, OwnerStatus, QuickTestResult } from './types.js';
 
 // Numbers 1..24 around a free centre; season cells at 0 (spring), 6 (summer),
 // 18 (autumn), 24 (winter): four different rows and columns.
@@ -36,7 +36,10 @@ const STATUS: OwnerStatus[] = [
   },
 ];
 
-export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTestResult {
+export function royaleFixture(
+  markingMode: 'auto' | 'manual' = 'auto',
+  missedNumbers: MissedNumbers = { kind: 'autoMarkAfter', delayMs: 3000 },
+): QuickTestResult {
   const player = (accountId: string, isOwner: boolean, place: number, points = 0) => ({
     accountId,
     isOwner,
@@ -49,6 +52,8 @@ export function royaleFixture(markingMode: 'auto' | 'manual' = 'auto'): QuickTes
   return {
     gameType: 'royale',
     markingMode,
+    missedNumbers,
+    ownerAutoMarkDelayMs: missedNumbers.kind === 'autoMarkAfter' ? missedNumbers.delayMs : 3000,
     drawIntervalMs: 1000,
     drawIntervalRangeMs: { min: 500, max: 60_000 },
     speedWindowMs: 3000,
