@@ -25,10 +25,7 @@ export function classicFinalPlacement(
   const round = state.currentRound;
   const players = state.playerOrder.flatMap((id) => {
     const p = state.players[id];
-    const card = round?.cards[id]?.[0]?.card;
-    return p === undefined || card === undefined
-      ? []
-      : [{ accountId: id, joinedAt: p.joinedAt, card }];
+    return p === undefined ? [] : [{ accountId: id, joinedAt: p.joinedAt }];
   });
   const marks = Object.fromEntries(
     state.playerOrder.map((id) => [id, round?.cards[id]?.[0]?.marks ?? []]),

@@ -6,11 +6,22 @@
  * Responsibility: order players by most valuable prize won (catalogue order), then by
  *                 number of prizes, then by marks on the card, then by join timestamp.
  *                 Returns a total order 1..N.
- * Depends on:     ./classicRound
- * Used by:        apps/server match orchestration, WP-08
+ * Depends on:     nothing
+ * Used by:        ../match/decideRanking (classic final placement)
  * Spec:           docs/spec/01-game-design.md §3a.2
  */
-import type { PrizeAward, ClassicPlayer } from './classicRound.js';
+// The two inputs the placement needs: who played (join time is the last tie-break) and
+// which prizes they won.
+export interface ClassicPlayer {
+  readonly accountId: string;
+  readonly joinedAt: number;
+}
+
+export interface PrizeAward {
+  readonly prizeKey: string;
+  readonly accountId: string;
+  readonly drawIndex: number;
+}
 
 export interface ClassicPlacement {
   readonly accountId: string;

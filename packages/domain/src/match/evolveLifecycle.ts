@@ -63,9 +63,12 @@ export function onStageStarted(state: MatchState, stageIndex: number): MatchStat
 function applyScoreCarry(state: MatchState, stage: StagePlanEntry): MatchState {
   if (stage.scoreCarry.kind === 'keep') return state;
   const factor = stage.scoreCarry.kind === 'scaled' ? stage.scoreCarry.factor : 0;
+  // Only players still in the match carry points into the stage; eliminated players keep
+  // their score at elimination, which places them in the final ranking (01 §7.5).
   const nextPlayers: Record<string, PlayerState> = {};
   for (const [id, p] of Object.entries(state.players)) {
-    nextPlayers[id] = { ...p, points: Math.round(p.points * factor) };
+    nextPlayers[id] =
+      p.eliminatedAtRound === null ? { ...p, points: Math.round(p.points * factor) } : p;
   }
   return { ...state, players: nextPlayers };
 }

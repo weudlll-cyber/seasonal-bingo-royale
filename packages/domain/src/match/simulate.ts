@@ -82,10 +82,10 @@ function runStages(d: Driver): void {
     const stage = d.state.stagePlan[d.state.stageIndex];
     if (stage === undefined) break;
     for (let r = 0; r < stage.rounds; r += 1) {
-      runOneRound(d);
-      // After a cut, if the remaining field is already at or below the final size
-      // and we are still in an elimination stage, skip the rest of its rounds (01 §7.4).
+      // Once the active field is at or below the final size, the remaining elimination
+      // rounds and stages are skipped (01 §7.4) — checked before every round.
       if (stage.kind === 'elimination' && fieldAtFinalSize(d.state)) break;
+      runOneRound(d);
     }
     const nextIndex = d.state.stageIndex + 1;
     if (nextIndex < d.state.stagePlan.length) d.apply({ type: 'startStage' });

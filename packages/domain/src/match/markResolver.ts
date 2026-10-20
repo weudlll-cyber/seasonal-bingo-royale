@@ -9,7 +9,7 @@
  *                 `classicPrizeAwarded` for classic for every newly completed prize key,
  *                 `seasonCompleteFired` when all four seasons are now active, and
  *                 `jackpotClaimed` when a full house + Season Complete land in the same
- *                 royale round. Pure.
+ *                 royale round. Points are multiplied by the stage multiplier. Pure.
  * Depends on:     ../card/patterns, ../scoring/*, ../seasons/*, ../draw/pool,
  *                 ./matchState, ./events
  * Used by:        ./decide
@@ -74,6 +74,12 @@ export function buildMarkEvents(state: MatchState, input: MarkInput): readonly D
   return events;
 }
 
+// Progressive scoring (01 §7.2): every point earned in a stage is multiplied by its
+// stageMultiplier. Events carry the multiplied value, so replay and clients just add.
+function staged(ctx: Context, points: number): number {
+  return Math.round(points * ctx.round.stage.stageMultiplier);
+}
+
 function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): CellMarked {
   const points = isFree
     ? 0
@@ -84,7 +90,7 @@ function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): Ce
     accountId: ctx.input.accountId,
     cardIndex: ctx.input.cardIndex,
     cellIndex: ctx.input.cellIndex,
-    markPoints: points,
+    markPoints: staged(ctx, points),
   };
 }
 
@@ -112,7 +118,7 @@ function buildActivation(
       type: 'seasonActivated',
       accountId: ctx.input.accountId,
       season,
-      instantPoints: applied.instantPoints,
+      instantPoints: staged(ctx, applied.instantPoints),
     },
     nextEffects,
   };
@@ -181,7 +187,7 @@ function royalePattern(ctx: Context, effects: EffectState, key: string): Pattern
     accountId: ctx.input.accountId,
     cardIndex: ctx.input.cardIndex,
     prizeKey: key,
-    points,
+    points: staged(ctx, points),
     firstInRound: first,
   };
 }
@@ -208,7 +214,7 @@ function seasonCompleteFor(
     { points: ctx.state.ruleset.seasonComplete.points },
   );
   const accountId = ctx.input.accountId;
-  return r.fires ? { type: 'seasonCompleteFired', accountId, points: r.points } : null;
+  return r.fires ? { type: 'seasonCompleteFired', accountId, points: staged(ctx, r.points) } : null;
 }
 
 function jackpotFor(

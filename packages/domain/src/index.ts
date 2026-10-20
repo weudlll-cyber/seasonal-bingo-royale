@@ -84,13 +84,11 @@ export {
   type JackpotClaimInput,
 } from './royale/jackpot.js';
 export {
-  simulateClassicRound,
+  classicPlacement,
+  type ClassicPlacement,
   type ClassicPlayer,
-  type ClassicRoundInput,
-  type ClassicRoundResult,
   type PrizeAward,
-} from './classic/classicRound.js';
-export { classicPlacement, type ClassicPlacement } from './classic/classicPlacement.js';
+} from './classic/classicPlacement.js';
 export { BUILTIN_PRIZE_CATALOGUE_ORDER } from './classic/prizeCatalogue.js';
 export type {
   MatchRuleset,
