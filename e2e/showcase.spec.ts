@@ -1,11 +1,13 @@
 /**
  * @file   e2e/showcase.spec.ts
  * @module e2e
- * @brief  The four showcase seeds show what the morning sheet promises (RUN-3 step 4c).
+ * @brief  The four showcase seeds show what the morning sheet promises (RUN-4 step 7).
  *
  * Responsibility: play each showcase seed with its exact settings to the end, assert the
  *                 promised moment on the page and save a full-page screenshot to
- *                 reports/screens/run-3/<seed>.png (Chromium only, one file per seed).
+ *                 reports/screens/run-4/<seed>.png (Chromium only, one file per seed).
+ *                 The seeds were searched again after the sorted cards (D7) and the stage
+ *                 multiplier changed every card and royale score.
  * Depends on:     @playwright/test, ./devStack, ./quickTest
  * Spec:           docs/spec/15-implementation-plan.md WP-08; reports/run-2026-10-20-day.md
  */
@@ -19,41 +21,42 @@ const ROYALE: Omit<RunSettings, 'seed'> = { gameType: 'royale', bots: 20, markin
 async function screenshot(page: Page, testInfo: TestInfo, seed: string): Promise<void> {
   if (testInfo.project.name !== 'chromium') return;
   await page.screenshot({
-    path: `${REPO_ROOT}reports/screens/run-3/${seed}.png`,
+    path: `${REPO_ROOT}reports/screens/run-4/${seed}.png`,
     fullPage: true,
   });
 }
 
-test('showcase-41: Season Complete for owner-01 in round 1 (royale)', async ({ page }, info) => {
-  await finalPlacement(page, { ...ROYALE, seed: 'showcase-41' });
+test('showcase-10: Season Complete for owner-01 in round 1 (royale)', async ({ page }, info) => {
+  await finalPlacement(page, { ...ROYALE, seed: 'showcase-10' });
   await expect(page.getByTestId('match-log')).toContainText(
     'Season Complete fired for owner-01 in round 1!',
   );
-  await screenshot(page, info, 'showcase-41');
+  await screenshot(page, info, 'showcase-10');
 });
 
-test('showcase-18: the Winter shield saves owner-01 at the first cut (royale)', async ({
+test('showcase-4: the Winter shield saves owner-01 at the first cut (royale)', async ({
   page,
 }, info) => {
-  await finalPlacement(page, { ...ROYALE, seed: 'showcase-18' });
+  await finalPlacement(page, { ...ROYALE, seed: 'showcase-4' });
   await expect(
     page.getByTestId('match-log').getByText(/^Cut 1: .*owner-01: saved by the Winter shield/),
   ).toBeVisible();
-  await screenshot(page, info, 'showcase-18');
+  await screenshot(page, info, 'showcase-4');
 });
 
-test('showcase-69: three players share rows-1 on draw 37 (classicSeasons)', async ({
+test('showcase-32: three players share fourCorners on draw 53 (classicSeasons)', async ({
   page,
 }, info) => {
   await finalPlacement(page, {
     gameType: 'classicSeasons',
-    seed: 'showcase-69',
+    seed: 'showcase-32',
     bots: 20,
     marking: 'auto',
   });
-  const rows1 = page.getByTestId('prize-rows-1');
-  await expect(rows1).toHaveText(/^rows-1: won on draw 37 by [\w-]+, [\w-]+, [\w-]+$/);
-  await screenshot(page, info, 'showcase-69');
+  await expect(page.getByTestId('prize-fourCorners')).toHaveText(
+    /^fourCorners: won on draw 53 \([^)]+\) by [\w-]+, [\w-]+, [\w-]+$/,
+  );
+  await screenshot(page, info, 'showcase-32');
 });
 
 test('showcase-273: fullCard only, decided on the last of 75 draws (classic)', async ({

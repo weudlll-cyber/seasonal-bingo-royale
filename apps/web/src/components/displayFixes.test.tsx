@@ -8,12 +8,14 @@
  *                 final placement; the owner's rank above the card equals the final place
  *                 once the match is finished; classic types show no seasons, shield or
  *                 effects panel.
- * Depends on:     @testing-library/react, ./Playback, ../playback, ../quickTestFixture
+ * Depends on:     @testing-library/react, ./DevBadge, ./Playback, ../playback,
+ *                 ../quickTestFixture
  * Spec:           docs/spec/01-game-design.md §3a, §7.5, §13
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { DevBadge } from './DevBadge.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../quickTestFixture.js';
@@ -35,6 +37,13 @@ describe('display fixes', () => {
     render(<Playback result={result} view={playbackAt(result, result.events.length)} />);
     // Live standings would say #1 (10 pts against two bots reset to 0); the final says #3.
     expect(screen.getByTestId('owner-status-owner-01').textContent).toContain('rank #3');
+  });
+
+  it('the dev badge never blocks a control: clicks pass through it', () => {
+    render(<DevBadge />);
+    const badge = screen.getByTestId('dev-badge');
+    expect(badge.textContent).toContain('Bingo · dev · 5390');
+    expect(badge.style.pointerEvents).toBe('none');
   });
 
   it('(c) classic types show no seasons, shield or effects panel', () => {
