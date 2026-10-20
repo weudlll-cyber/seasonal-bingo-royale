@@ -11,14 +11,22 @@
  *                 left open). The speed bonus is shown apart from the points, because the
  *                 Quick Test computes the match before playback and cannot count it. In
  *                 `auto` mode the card shows the server's marks. Reports the seasons of
- *                 its marked season cells to the parent. The parent remounts it per round
+ *                 its marked season cells to the parent with every change of marks. The parent remounts it per round
  *                 (new card, new marks); between the round end and the next round the
  *                 last number stays on screen and every tap is refused.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
- * Used by:        ./Playback
+ * Used by:        ./OwnerArea
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactElement,
+} from 'react';
 
 import { BingoHeader } from './BingoHeader.js';
 import { CellFace, cellBoxStyle } from './CellFace.js';
@@ -50,12 +58,11 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
   const { accountId, card, serverMarks, result, drawsSoFar, roundOver } = props;
   const manualMode = result.markingMode === 'manual';
   const rules = useMemo<ManualRules>(() => ({ ...result, roundOver }), [result, roundOver]);
-  const [manual, setManual] = useState<ManualState>(() => initialManualState(card.cells));
+  const [manual, setManual] = useManual(card, props.onMarkedSeasons);
   const [lastTapped, setLastTapped] = useState<number | null>(null);
   const drawTimes = useDrawTimes(drawsSoFar);
   useAutoMarker({ enabled: manualMode, manual, setManual, card, drawTimes, rules });
   const marks = manualMode ? manual.marks : serverMarks;
-  useMarkedSeasons(card, marks, props.onMarkedSeasons);
   const tap = (index: number): void => {
     if (!manualMode) return;
     setLastTapped(index);
@@ -90,17 +97,29 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
   );
 }
 
-// Season cells come in the order spring, summer, autumn, winter (Card.seasonCells).
-function useMarkedSeasons(
+type Transition = (state: ManualState) => ManualState;
+
+// The owner's marks on this card. Every change goes through `apply`, which also reports
+// the marked seasons to the parent in the same handler, so React renders the card and
+// the seasons counter together and the screen never shows them disagreeing (found by
+// the acceptance play-through: an effect reported one frame late).
+function useManual(
   card: Card,
-  marks: readonly boolean[],
   report: ((seasons: readonly Season[]) => void) | undefined,
-): void {
-  const key = (card.seasonCells ?? []).map((cell) => (marks[cell] === true ? '1' : '0')).join('');
-  useEffect(() => {
-    if (report === undefined) return;
-    report(SEASON_NAMES.filter((_s, i) => key[i] === '1'));
-  }, [key, report]);
+): [ManualState, (update: Transition) => void] {
+  const [manual, setManual] = useState<ManualState>(() => initialManualState(card.cells));
+  const latest = useRef(manual);
+  const apply = useCallback(
+    (update: Transition) => {
+      const next = update(latest.current);
+      latest.current = next;
+      setManual(next);
+      // Season cells come in the order spring, summer, autumn, winter (Card.seasonCells).
+      report?.(SEASON_NAMES.filter((_s, i) => next.marks[card.seasonCells?.[i] ?? -1] === true));
+    },
+    [card, report],
+  );
+  return [manual, apply];
 }
 
 // Remember when each draw first became visible; the speed window and the missed-number

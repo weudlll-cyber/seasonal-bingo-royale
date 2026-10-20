@@ -25,6 +25,8 @@ export interface PlayerView {
   readonly points: number;
   readonly seasonsActivated: number;
   readonly eliminated: boolean;
+  // Match-wide round in which the player was cut, null while still in the match.
+  readonly eliminatedRound: number | null;
 }
 
 export type CutOutcome = 'survived' | 'saved' | 'eliminated';

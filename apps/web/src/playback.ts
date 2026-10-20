@@ -103,6 +103,7 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
           points: 0,
           seasonsActivated: 0,
           eliminated: false,
+          eliminatedRound: null,
         },
       ]),
     ),
@@ -183,7 +184,9 @@ function startRound(
 function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApplied' }>): void {
   const eliminated = new Set(ev.eliminated);
   const saved = new Set(ev.shieldSaves);
-  for (const id of eliminated) update(state, id, (p) => ({ ...p, eliminated: true }));
+  for (const id of eliminated) {
+    update(state, id, (p) => ({ ...p, eliminated: true, eliminatedRound: state.roundIndex }));
+  }
   const owners = [...state.players.values()]
     .filter((p) => p.isOwner && (eliminated.has(p.accountId) || ev.survivors.includes(p.accountId)))
     .map((p) => ({ accountId: p.accountId, outcome: cutOutcome(p.accountId, eliminated, saved) }));

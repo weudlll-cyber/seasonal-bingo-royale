@@ -8,7 +8,8 @@
  *                 shown are those marked on the owner's own cards, collected over the
  *                 rounds, and a note states the Quick Test limitation: the match is
  *                 computed on the server before playback, so points, standings and cuts
- *                 count the owner's cards as marked after the delay (01 §6). Without an
+ *                 count the owner's cards as marked after the delay (01 §6). An
+ *                 eliminated owner's cards disappear after the round of the cut. Without an
  *                 owner card, shows the first bot cards read-only.
  * Depends on:     react, ./CardGrid, ./OwnerCard, ./OwnerStatusPanel, ../playback, ../types
  * Used by:        ./Playback
@@ -54,26 +55,37 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
               showSeasons={result.gameType === 'royale'}
               cardSeasons={tapping ? (cardSeasons[owner.accountId] ?? []) : undefined}
             />
-            {owner.cards.map((card, cardIndex) => (
-              <OwnerCard
-                // A new round deals a new card: remount so manual marks start fresh.
-                key={`${owner.accountId}-${String(view.currentRound)}-${String(cardIndex)}`}
-                accountId={owner.accountId}
-                card={card}
-                serverMarks={owner.marks[cardIndex] ?? []}
-                result={result}
-                drawsSoFar={view.drawsSoFar}
-                roundOver={view.roundOver}
-                onMarkedSeasons={(seasons) => {
-                  addSeasons(owner.accountId, seasons);
-                }}
-              />
-            ))}
+            {/* After the round of the cut an eliminated owner has no card in play. */}
+            {inPlay(owner, view)
+              ? owner.cards.map((card, cardIndex) => (
+                  <OwnerCard
+                    // A new round deals a new card: remount so manual marks start fresh.
+                    key={`${owner.accountId}-${String(view.currentRound)}-${String(cardIndex)}`}
+                    accountId={owner.accountId}
+                    card={card}
+                    serverMarks={owner.marks[cardIndex] ?? []}
+                    result={result}
+                    drawsSoFar={view.drawsSoFar}
+                    roundOver={view.roundOver}
+                    onMarkedSeasons={(seasons) => {
+                      addSeasons(owner.accountId, seasons);
+                    }}
+                  />
+                ))
+              : null}
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+// An owner's cards are shown while the owner is in the match and, after a cut, until
+// the round of the cut is over: later rounds deal no card to an eliminated owner (found
+// by the acceptance play-through: the old card stayed with marks for numbers not drawn
+// in the current round, and in tap mode it could be tapped).
+function inPlay(owner: PlaybackView['owners'][number], view: PlaybackView): boolean {
+  return owner.eliminatedRound === null || owner.eliminatedRound === view.currentRound;
 }
 
 // Seasons marked on each owner's cards so far in this run (seasons are collected per
