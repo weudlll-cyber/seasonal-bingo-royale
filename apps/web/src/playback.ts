@@ -29,6 +29,8 @@ import {
   type QuickTestResult,
 } from './types.js';
 
+import { standingsOrder } from './standingsOrder.js';
+
 export type {
   Banner,
   CutOutcome,
@@ -48,9 +50,7 @@ export function playbackAt(result: QuickTestResult, step: number): PlaybackView 
     currentRound: state.roundIndex,
     drawsSoFar: state.drawsSoFar,
     totalDraws: state.totalDraws,
-    standings: players.sort(
-      (a, b) => b.points - a.points || a.accountId.localeCompare(b.accountId),
-    ),
+    standings: players.sort(standingsOrder),
     owners,
     ownerStatus: Object.fromEntries(
       owners.map((o) => [o.accountId, statusAt(result.ownerStatus[o.accountId], consumed)]),

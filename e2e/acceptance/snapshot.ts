@@ -23,6 +23,7 @@ export interface CellSnap {
 export interface StandingSnap {
   readonly id: string;
   readonly points: number;
+  readonly seasons: number;
   readonly eliminated: boolean;
 }
 
@@ -62,6 +63,7 @@ export async function snapshot(page: Page): Promise<Snap> {
       all('[data-testid^="standing-"]').map((el) => ({
         id: (el.dataset['testid'] ?? '').replace('standing-', ''),
         points: Number(el.dataset['points']),
+        seasons: Number(el.dataset['seasons']),
         eliminated: el.dataset['eliminated'] === 'true',
       }));
     const finalOwnerPlace = () => {
@@ -104,7 +106,7 @@ export async function snapshot(page: Page): Promise<Snap> {
   return { ...raw, at: Date.now() };
 }
 
-// Changes exactly when a draw is shown or the match ends.
+// Changes exactly when a draw is shown (a window close changes the round state only).
 export function tickKey(s: Snap): string {
-  return `${String(s.round)}/${String(s.ticker.length)}/${String(s.finished)}`;
+  return `${String(s.round)}/${String(s.ticker.length)}`;
 }

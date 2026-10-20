@@ -35,13 +35,14 @@
 9. Effects: durations never negative; non-stacking rule respected; multipliers apply after growth.
 10. Jackpot claimed at most once; value = base + growth × unclaimed rounds.
 11. Commitment: `sha256(seed)` equals the published commitment; verification bundle recomputes identical results.
-12. Classic types (`classicSeasons`, `classic`): a prize is awarded exactly once per `(round, prize, account)`; every ticked prize is awarded before the round ends; the round ends on the draw that awards the last outstanding prize (or earlier only when the pool is exhausted); every simultaneous completion on that draw is in the award set.
+12. Classic types (`classicSeasons`, `classic`): a prize is awarded exactly once per `(round, prize, account)`; every ticked prize is awarded before the round ends; a prize goes to every player who completes it before the speed window of the draw that first completed it closes, and to nobody after; the round ends when the window of the draw that decides the last outstanding prize closes (or of the last draw when the pool is exhausted).
 13. `classicSeasons` cards: four season cells carry a season symbol in place of a number; the twenty number cells still obey the B-I-N-G-O column ranges; drawing the symbol marks the symbol cell on every card and never a number cell.
 14. `classicSeasons` draw sequence is a permutation prefix of 79 items (75 numbers + 4 symbols); `classic` of 75 numbers; `royale` of 75 numbers.
 15. Column order (01 §4): in every game type, the numbers of each column are strictly ascending from top to bottom; season cells and symbol cells keep their positions.
 16. Draw control (01 §5): switching between `auto` and `host`, or changing the interval, at any point never changes the draw sequence of the match.
 17. Missed-number rule (01 §6): a speed bonus is earned only by a tap inside the speed window; under `autoMarkAfter` an untapped drawn number is marked without bonus exactly when the delay has passed; under `noAutoMark` it stays open and counts for no pattern, season or Season Complete until tapped; no tap is accepted after the round ends.
 18. Bots and players in `auto` marking mode mark every drawn number on the draw; human players in `manual` mode never get a mark they did not tap except by `autoMarkAfter`.
+19. Round end (D10): no round ends before the speed window of its last draw has closed; a tap on that last number inside its window is accepted.
 
 ## 4. E2E journeys
 

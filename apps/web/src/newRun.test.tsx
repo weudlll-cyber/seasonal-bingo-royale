@@ -45,6 +45,17 @@ async function nextDraw(): Promise<void> {
   });
 }
 
+// The fixture's speed window, then one more flush: React schedules the timer of a step
+// only after the act() that showed it has finished.
+async function closeWindow(): Promise<void> {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(500);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+}
+
 describe('a new run', () => {
   it('starts the owner card from the new run only, even in the same round', async () => {
     render(<App />);
@@ -72,13 +83,15 @@ describe('a new run', () => {
     render(<App />);
     await startRun();
     await nextDraw();
-    await nextDraw(); // draw 2 with the first cut
+    await nextDraw(); // draw 2, the round's last
+    await closeWindow(); // its window closes with the first cut
     fireEvent.click(screen.getByText('Keep watching'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
 
     await startRun(); // run B
     await nextDraw();
-    await nextDraw(); // run B's first cut
+    await nextDraw(); // run B's draw 2
+    await closeWindow(); // the first cut
     expect(screen.getByTestId('cut-screen')).toBeTruthy();
   });
 });

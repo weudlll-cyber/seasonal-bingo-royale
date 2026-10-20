@@ -5,7 +5,8 @@
  *
  * Responsibility: the typed command union the aggregate dispatches on. One tag per
  *                 lifecycle action listed in 02 §5.1 (openLobby, joinMatch, startMatch,
- *                 startRound, drawNext, markCell, autoMarkMissed, endRound, applyCut,
+ *                 startRound, drawNext, markCell, autoMarkMissed, closeSpeedWindow,
+ *                 endRound, applyCut,
  *                 startStage, finishMatch, abortMatch). Pure data; no behaviour.
  * Depends on:     ./lifecycleTypes, ./matchState (none runtime)
  * Used by:        ./decide, apps/server command handlers
@@ -63,6 +64,12 @@ export interface AutoMarkMissed {
   readonly type: 'autoMarkMissed';
   readonly drawIndex: number;
 }
+// Issued by the scheduler when the speed window of the latest draw closes (01 §6, D10).
+// Only after it may the round end; until then the last number can still be tapped.
+export interface CloseSpeedWindow {
+  readonly type: 'closeSpeedWindow';
+  readonly drawIndex: number;
+}
 export interface EndRound {
   readonly type: 'endRound';
 }
@@ -86,6 +93,7 @@ export type Command =
   | DrawNext
   | MarkCell
   | AutoMarkMissed
+  | CloseSpeedWindow
   | EndRound
   | ApplyCut
   | FinishMatch

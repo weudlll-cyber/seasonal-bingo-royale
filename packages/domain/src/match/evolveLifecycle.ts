@@ -99,6 +99,7 @@ export function onRoundStarted(state: MatchState, ev: RoundStarted): MatchState 
     fullHouseBy: [],
     classicAwards: [],
     outstandingPrizes: state.gameType === 'royale' ? [] : [...state.tickedPrizes],
+    windowClosedThrough: -1,
     ended: false,
   };
   return { ...state, currentRound: round, roundIndex: ev.roundIndex };
@@ -120,6 +121,12 @@ export function onDrawMade(state: MatchState): MatchState {
     players: nextPlayers,
     currentRound: { ...round, draws: [...round.draws, item] },
   };
+}
+
+export function onSpeedWindowClosed(state: MatchState, drawIndex: number): MatchState {
+  const round = state.currentRound;
+  if (round === null) return state;
+  return { ...state, currentRound: { ...round, windowClosedThrough: drawIndex } };
 }
 
 export function onRoundEnded(state: MatchState): MatchState {

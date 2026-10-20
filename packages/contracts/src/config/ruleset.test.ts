@@ -56,6 +56,12 @@ describe('RulesetSchema — defaults', () => {
     }
   });
 
+  it('royale defaults multiply no stage: stageMultiplier 1 everywhere (D11)', () => {
+    for (const ruleset of [royaleRealtimeDefault, royaleAsyncDefault]) {
+      expect(ruleset.stages?.map((s) => s.stageMultiplier)).toEqual([1, 1, 1]);
+    }
+  });
+
   it('classic defaults carry defaultPrizes and no stages/jackpot', () => {
     for (const ruleset of [classicSeasonsRealtimeDefault, classicRealtimeDefault]) {
       expect(ruleset.stages).toBeUndefined();

@@ -69,6 +69,7 @@ export type DomainEventLike =
       readonly cardsByPlayer: Readonly<Record<string, readonly Card[]>>;
     }
   | { readonly type: 'drawMade'; readonly drawIndex: number; readonly item: number }
+  | { readonly type: 'speedWindowClosed'; readonly drawIndex: number }
   | {
       readonly type: 'cellMarked';
       readonly accountId: string;

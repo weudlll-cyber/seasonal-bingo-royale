@@ -7,7 +7,8 @@
  *                 the missed-number rule with its delay raised to at least the speed
  *                 window, the delay the owner's cards are computed with (the owner's
  *                 later taps are not known before playback, so noAutoMark uses the
- *                 default delay), and the timed-draw gap kept inside the allowed range.
+ *                 default delay), and the timed-draw gap kept inside the allowed range,
+ *                 which is always longer than the speed window (D10).
  * Depends on:     @sbr/contracts, @sbr/domain (types)
  * Used by:        ./quicktest
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
@@ -25,9 +26,20 @@ export function chosenMissedNumbers(
   return { kind: 'autoMarkAfter', delayMs: Math.max(speedWindowMs, rule.delayMs) };
 }
 
-// The starter's draw gap, kept inside the allowed realtime range (01 §5).
-export function withinDrawRange(ms: number): number {
-  return Math.min(REALTIME_DRAW_INTERVAL_MS.max, Math.max(REALTIME_DRAW_INTERVAL_MS.min, ms));
+// Time left between the close of a speed window and the next draw, so the round end
+// and classic prizes are decided before the next number (01 §5, D10).
+const GAP_AFTER_WINDOW_MS = 1_000;
+
+// Allowed timed-draw gap: the realtime range, but always longer than the speed window.
+export function drawRange(speedWindowMs: number): { readonly min: number; readonly max: number } {
+  const min = Math.max(REALTIME_DRAW_INTERVAL_MS.min, speedWindowMs + GAP_AFTER_WINDOW_MS);
+  return { min, max: REALTIME_DRAW_INTERVAL_MS.max };
+}
+
+// The starter's draw gap, kept inside the allowed range (01 §5).
+export function withinDrawRange(ms: number, speedWindowMs: number): number {
+  const { min, max } = drawRange(speedWindowMs);
+  return Math.min(max, Math.max(min, ms));
 }
 
 // Delay the server computes the owner's cards with: the chosen one, or the default

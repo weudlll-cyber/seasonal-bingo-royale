@@ -103,6 +103,8 @@ client `mark` ─► gateway validate schema+rate ─► MarkCell use case
 
 Missed numbers (01 §6): under `autoMarkAfter` the scheduler issues `AutoMarkMissed` for each draw once its delay has passed and marks the still-open cells without bonus; under `noAutoMark` nothing is scheduled and open cells stay open until tapped or the round ends.
 
+Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed window of each draw closes, then checks `EndRound`; a round never ends at the moment of a draw, so the last number can still be tapped inside its window. Classic prizes are decided at that window close (01 §3a.1).
+
 ## 6. Asynchronous mode
 
 - Same engine; draws are scheduled minutes or hours apart, marking is automatic.

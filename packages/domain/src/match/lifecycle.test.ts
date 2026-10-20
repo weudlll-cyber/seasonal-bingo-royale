@@ -49,6 +49,7 @@ function round(over: Partial<RoundState>): RoundState {
     fullHouseBy: [],
     classicAwards: [],
     outstandingPrizes: [],
+    windowClosedThrough: -1,
     ended: false,
     ...over,
   };

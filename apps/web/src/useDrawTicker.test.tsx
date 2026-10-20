@@ -4,7 +4,9 @@
  * @module web
  * @brief  Draw control of the Quick Test playback (D8): `auto` interval and `host` draws.
  *
- * Responsibility: prove that every step reveals exactly one draw with all its events;
+ * Responsibility: prove that every step reveals exactly one draw with its events, and
+ *                 the close of its speed window (round end, cut) when the window runs
+ *                 out, in both modes (D10);
  *                 `auto` waits the chosen interval (the ruleset's when none is set,
  *                 clamped to the allowed range); `host` shows nothing until drawNext();
  *                 switching mid-match takes effect from the current draw; skip jumps to
@@ -21,10 +23,11 @@ import { playbackAt } from './playback.js';
 import { royaleFixture } from './quickTestFixture.js';
 import { useDrawTicker } from './useDrawTicker.js';
 
-// The fixture: drawIntervalMs 1000 (allowed 500–60000); draws at event indices 2, 5, 11
-// of 14 events.
+// The fixture: drawIntervalMs 1000 (allowed 500–60000), speed window 500; draws at event
+// indices 2, 6, 13 and their window closes at 5, 8, 14, of 17 events.
 const result = royaleFixture();
 const DRAW_MS = result.drawIntervalMs;
+const WINDOW_MS = result.speedWindowMs;
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -56,11 +59,20 @@ describe('useDrawTicker — auto', () => {
     expect(drawsShown(hook.current.step)).toBe(0);
     advance(1);
     expect(hook.current.step).toBe(5); // draw 1 with its mark and season activation
-    advance(DRAW_MS);
-    // Draw 2 is the round's last: shown with its round end and cut, before the next stage.
-    expect(hook.current.step).toBe(9);
-    advance(DRAW_MS);
-    // Next stage and round come with their first draw, then the match ends.
+    advance(WINDOW_MS);
+    expect(hook.current.step).toBe(6); // its speed window closes
+    advance(DRAW_MS - WINDOW_MS);
+    // Draw 2 is the round's last: the round stays open while its window runs (D10).
+    expect(hook.current.step).toBe(8);
+    expect(playbackAt(result, 8).roundOver).toBe(false);
+    advance(WINDOW_MS);
+    // The window closes: round end and cut, before the next stage.
+    expect(hook.current.step).toBe(11);
+    expect(playbackAt(result, 11).roundOver).toBe(true);
+    advance(DRAW_MS - WINDOW_MS);
+    // Next stage and round come with their first draw; its window close ends the match.
+    expect(hook.current.step).toBe(14);
+    advance(WINDOW_MS);
     expect(hook.current.step).toBe(result.events.length);
   });
 
@@ -92,7 +104,11 @@ describe('useDrawTicker — host and switching', () => {
       hook.current.drawNext();
       hook.current.drawNext();
     });
-    expect(hook.current.step).toBe(result.events.length); // draws 2 and 3: two presses
+    // Draws 2 and 3: two presses; each first closes the open window of the draw before.
+    expect(drawsShown(hook.current.step)).toBe(1); // round 2 shows its first number
+    expect(hook.current.step).toBe(14);
+    advance(WINDOW_MS); // the last window closes on its own, also in host mode
+    expect(hook.current.step).toBe(result.events.length);
   });
 
   it('switching host → auto resumes after one interval; auto → host stops', () => {

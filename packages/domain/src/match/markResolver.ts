@@ -170,12 +170,12 @@ function prizeEventsFor(
   return out;
 }
 
-// Classic prizes already awarded on an earlier draw are closed: a prize goes only to
-// those who complete it on the draw that first completes it (01 §3a.1). Completions on
-// the same draw still win, because their award shares the current draw index.
+// A classic prize is decided when the speed window of the draw that first completed it
+// closes; until then everyone who completes it wins it too (01 §3a.1, D10).
 function classicPrizesClosed(round: RoundState): readonly string[] {
-  const currentDraw = round.draws.length - 1;
-  return round.classicAwards.filter((a) => a.drawIndex < currentDraw).map((a) => a.prizeKey);
+  return round.classicAwards
+    .filter((a) => a.drawIndex <= round.windowClosedThrough)
+    .map((a) => a.prizeKey);
 }
 
 function royalePattern(ctx: Context, effects: EffectState, key: string): PatternScored {

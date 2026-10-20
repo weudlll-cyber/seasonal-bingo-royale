@@ -3,10 +3,9 @@
  * @module web
  * @brief  The owner's status panels and cards, or a few bot cards without an owner (WP-08).
  *
- * Responsibility: per owner account, the status panel (server points and rank, effects,
- *                 seasons) above that owner's cards. When the owner taps, the seasons
- *                 shown are those marked on the owner's own cards, collected over the
- *                 rounds, and a note states the Quick Test limitation: the match is
+ * Responsibility: per owner account, the status panel (points, rank, effects and seasons,
+ *                 all from the server) above that owner's cards. When the owner taps, a
+ *                 note states the Quick Test limitation: the match is
  *                 computed on the server before playback, so points, standings and cuts
  *                 count the owner's cards as marked after the delay (01 §6). An
  *                 eliminated owner's cards disappear after the round of the cut. Without an
@@ -15,13 +14,13 @@
  * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import { useCallback, useState, type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import { CardGrid } from './CardGrid.js';
 import { OwnerCard } from './OwnerCard.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import type { PlaybackView } from '../playback.js';
-import { SEASON_NAMES, type QuickTestResult, type Season } from '../types.js';
+import type { QuickTestResult } from '../types.js';
 
 export interface OwnerAreaProps {
   readonly result: QuickTestResult;
@@ -38,7 +37,6 @@ function ownerRank(result: QuickTestResult, view: PlaybackView, accountId: strin
 
 export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
   const tapping = result.markingMode === 'manual';
-  const [cardSeasons, addSeasons] = useCardSeasons();
   if (view.owners.length === 0) return <BotCards view={view} />;
   return (
     <div style={{ display: 'grid', gap: '0.5rem' }}>
@@ -53,7 +51,7 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
               status={view.ownerStatus[owner.accountId] ?? null}
               effectSeasons={result.effectSeasons}
               showSeasons={result.gameType === 'royale'}
-              cardSeasons={tapping ? (cardSeasons[owner.accountId] ?? []) : undefined}
+              eliminated={owner.eliminated}
             />
             {/* After the round of the cut an eliminated owner has no card in play. */}
             {inPlay(owner, view)
@@ -67,9 +65,6 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
                     result={result}
                     drawsSoFar={view.drawsSoFar}
                     roundOver={view.roundOver}
-                    onMarkedSeasons={(seasons) => {
-                      addSeasons(owner.accountId, seasons);
-                    }}
                   />
                 ))
               : null}
@@ -86,24 +81,6 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
 // in the current round, and in tap mode it could be tapped).
 function inPlay(owner: PlaybackView['owners'][number], view: PlaybackView): boolean {
   return owner.eliminatedRound === null || owner.eliminatedRound === view.currentRound;
-}
-
-// Seasons marked on each owner's cards so far in this run (seasons are collected per
-// match, 01 §8.3). Only grows; the state updates only when a season is new.
-function useCardSeasons(): [
-  Readonly<Record<string, readonly Season[]>>,
-  (accountId: string, seasons: readonly Season[]) => void,
-] {
-  const [byOwner, setByOwner] = useState<Readonly<Record<string, readonly Season[]>>>({});
-  const add = useCallback((accountId: string, seasons: readonly Season[]) => {
-    setByOwner((prev) => {
-      const known = prev[accountId] ?? [];
-      if (seasons.every((s) => known.includes(s))) return prev;
-      const merged = SEASON_NAMES.filter((s) => known.includes(s) || seasons.includes(s));
-      return { ...prev, [accountId]: merged };
-    });
-  }, []);
-  return [byOwner, add];
 }
 
 function LimitationNote({ result }: { result: QuickTestResult }): ReactElement {

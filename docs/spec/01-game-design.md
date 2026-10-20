@@ -98,9 +98,12 @@ Ticked by default (changeable before start, stored in the ruleset defaults, also
 editable in admin): `rows-1`, `rows-2`, `fourCorners`, `oneDiagonal`, `fullCard`.
 
 Rules:
-- A prize is awarded to **everyone** who completes it on the draw that first
-  completes it. Simultaneous completions on the same draw all win the prize.
-- Draws continue until every ticked prize is awarded; then the round ends.
+- A prize is decided when the speed window of the draw that first completes it
+  closes (§6), and goes to **everyone** who has it complete by then: players
+  completing it on the same draw, and players who tap the missing number inside
+  that window. After the window has closed the prize is no longer open.
+- Draws continue until every ticked prize is decided; then the round ends when the
+  speed window of that draw closes.
 - Catalogue order (lowest to highest value), used for the placement tie-break
   below: `rows-1`, `columns-1`, `rows-2`, `columns-2`, `rows-3`, `columns-3`,
   `rows-4`, `columns-4`, `rows-5`, `columns-5`, `fourCorners`, `oneDiagonal`,
@@ -138,6 +141,10 @@ flag on.
 
 - The pool holds the 75 numbers. Draws are without replacement.
 - A round ends at the latest when the pool is exhausted.
+- A round never ends at the moment of a draw. When a round-end condition is met on a
+  draw, the round ends once the speed window of that draw has closed, so its number
+  can still be tapped (with bonus inside the window). The same holds for the last
+  draw of the pool.
 - Draw cadence is a ruleset value per mode:
 
 | Mode | Default draw interval | Allowed range |
@@ -160,7 +167,7 @@ flag on.
 | `auto` | The server marks every drawn number on every card instantly. | Asynchronous |
 | `manual` | The player taps the cell. A tap within `speedWindowMs` (default 3000 ms) after the draw becomes visible earns a **speed bonus**. What happens to a drawn number the player has not tapped is the match's **missed-number rule** below. | Realtime |
 
-**Missed-number rule (decided 2026-10-20).** Whoever starts a match chooses one rule for all players of that match:
+**Missed-number rule.** Whoever starts a match chooses one rule for all players of that match:
 
 - `autoMarkAfter` with a delay in seconds (default 3, at least the speed window): a drawn number the player has not tapped is marked for them, without bonus, when the delay has passed.
 - `noAutoMark`: a missed number stays open; the player may still tap it until the round ends, without bonus. When the round ends, open numbers stay unmarked.
@@ -193,7 +200,7 @@ With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) →
 
 ### 7.2 Scoring carry-over
 
-Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**.
+Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**. The royale default rulesets use multiplier 1 in every stage; the multiplier stays configurable per ruleset.
 
 ### 7.3 Round-end conditions (one per round)
 

@@ -8,7 +8,8 @@
  *                 window, tapped late, or missed on purpose. Missed numbers must stay open
  *                 under "leave open" and be marked after exactly the delay under "mark for
  *                 me after N seconds"; a late tap under "leave open" marks without bonus;
- *                 a tap on the number that ended the round is refused.
+ *                 a round's last number is tapped inside its window and must count (D10);
+ *                 a tap after the round end is refused.
  *                 Every new picture of the page goes through ./checks.
  * Depends on:     @playwright/test, ./snapshot, ./checks
  * Used by:        ./acceptance.spec.ts
@@ -88,7 +89,7 @@ async function waitForTick(
   for (;;) {
     const s = await snapshot(page);
     await handlePending(page, s, ctx, pending);
-    if (tickKey(s) !== tickKey(prev)) return s;
+    if (tickKey(s) !== tickKey(prev) || s.finished !== prev.finished) return s;
     if (Date.now() - started > 15_000) throw new Error(`no draw after ${tickKey(prev)}`);
     await page.waitForTimeout(100);
   }
@@ -110,11 +111,11 @@ async function actOnNewDraw(page: Page, s: Snap, ctx: RunContext): Promise<Pendi
   const newest = s.ticker.at(-1);
   const cell = s.cells.find((c) => c.value === newest && !c.marked);
   if (!ctx.tapping || cell === undefined) return [];
-  if (s.roundOver) {
-    // The round end closes every tap (01 §6): the last number is shown but refused.
+  if (ctx.lastDraws.get(s.round) === s.ticker.length) {
+    // A round's last number stays tappable inside its speed window (D10).
     await page.getByTestId(cell.testId).click();
-    await expect(page.getByTestId('owner-feedback')).toHaveText('Round over — no more taps');
-    await expect(page.getByTestId(cell.testId)).toHaveAttribute('data-marked', 'false');
+    await expect(page.getByTestId(cell.testId)).toHaveAttribute('data-marked', 'true');
+    ctx.lastNumberTaps += 1;
     return [];
   }
   const plan = PLANS[ctx.ownerHits % PLANS.length] ?? 'inside';
@@ -138,7 +139,8 @@ async function handlePending(
     const cell = s.cells.find((c) => c.testId === p.testId);
     if (cell === undefined) continue;
     const elapsed = s.at - p.drawnAt;
-    if (p.plan === 'late') await lateTap(page, p, ctx, { marked: cell.marked, elapsed });
+    if (p.plan === 'late')
+      await lateTap(page, p, ctx, { marked: cell.marked, elapsed, over: s.roundOver });
     else checkMiss(p, ctx, { marked: cell.marked, elapsed });
   }
 }
@@ -146,6 +148,7 @@ async function handlePending(
 interface CellTime {
   readonly marked: boolean;
   readonly elapsed: number;
+  readonly over?: boolean; // the round has ended meanwhile
 }
 
 // Late: after the window under "leave open", near the end of the window otherwise.
@@ -155,6 +158,12 @@ async function lateTap(page: Page, p: Pending, ctx: RunContext, t: CellTime): Pr
   p.done = true;
   if (t.marked) return; // marked for the owner meanwhile (mark after N s)
   await page.getByTestId(p.testId).click();
+  if (t.over === true) {
+    // The round ended before the late tap: refused (01 §6).
+    await expect(page.getByTestId('owner-feedback')).toHaveText('Round over — no more taps');
+    await expect(page.getByTestId(p.testId)).toHaveAttribute('data-marked', 'false');
+    return;
+  }
   await expect(page.getByTestId(p.testId)).toHaveAttribute('data-marked', 'true');
   if (open) {
     await expect(page.getByTestId('owner-feedback')).toHaveText('Marked late · no speed bonus');

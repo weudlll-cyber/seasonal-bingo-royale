@@ -4,7 +4,7 @@
  * @brief  Quick Test marking is per player: bots mark on the draw in manual mode (01 §6).
  *
  * Responsibility: with seed `probe-1` and the owner tapping, check that every bot gets
- *                 its cellMarked right after the draw, the standings after round 1 are
+ *                 its cellMarked right after the draw (before the window closes), the standings after round 1 are
  *                 not all zero, and the owner's season activations in round 1 equal
  *                 the season cells drawn on the owner's card early enough for the
  *                 missed-number delay to pass before the round ended.
@@ -24,9 +24,11 @@ const result = runQuickTest({
   seedText: 'probe-1',
   tickedPrizes: [],
   markingMode: 'manual',
-  // 2 s draws make the 3 s missed-number delay two draws long, so a mark on the draw
-  // and a delayed auto-mark land in different gaps between draws.
-  drawIntervalMs: 2_000,
+  // Draws every 4 s, speed window 3 s: a 3.5 s delay marks the owner's missed numbers
+  // after the window has closed, so a mark on the draw (before the window closes) and a
+  // delayed auto-mark are told apart by the speedWindowClosed event between them.
+  drawIntervalMs: 4_000,
+  missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_500 },
 });
 
 // The events of the first round: from its roundStarted up to its roundEnded.
@@ -47,7 +49,7 @@ describe('Quick Test in manual marking mode (01 §6)', () => {
   const cards = started?.type === 'roundStarted' ? started.cardsByPlayer : {};
   const draws = round.flatMap((e) => (e.type === 'drawMade' ? [e.item] : []));
 
-  it('marks every bot on the draw, before the next number is drawn', () => {
+  it('marks every bot on the draw, before its speed window closes', () => {
     let item: number | null = null;
     let markedNow = new Set<string>();
     const check = (): void => {
@@ -60,10 +62,12 @@ describe('Quick Test in manual marking mode (01 §6)', () => {
     };
     for (const e of round) {
       if (e.type === 'drawMade') {
-        check();
         item = e.item;
         markedNow = new Set();
-      } else if (e.type === 'cellMarked') {
+      } else if (e.type === 'speedWindowClosed') {
+        check();
+        item = null;
+      } else if (e.type === 'cellMarked' && item !== null) {
         markedNow.add(e.accountId);
       }
     }
@@ -83,9 +87,9 @@ describe('Quick Test in manual marking mode (01 §6)', () => {
     const card = cards['owner-01']?.[0];
     expect(card).toBeDefined();
     if (card === undefined) return;
-    // The delay is two draws (3 s at 2 s per draw), so the last two draws of the round
-    // can still be open when the round ends.
-    const counted = draws.slice(0, -2);
+    // The 3.5 s delay passes after the round ends (window close at 3 s) only for the
+    // round's last draw, so that one can still be open when the round ends.
+    const counted = draws.slice(0, -1);
     const drawnSeasonCells = (card.seasonCells ?? []).filter((cell) =>
       counted.includes(valueAt(card, cell) ?? -1),
     );

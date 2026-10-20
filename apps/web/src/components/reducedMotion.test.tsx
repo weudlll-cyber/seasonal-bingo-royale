@@ -41,7 +41,7 @@ function preferReducedMotion(reduce: boolean): void {
 
 function renderAnimatedParts(): void {
   const result = royaleFixture('manual');
-  render(<Playback result={result} view={playbackAt(result, 9)} />);
+  render(<Playback result={result} view={playbackAt(result, 11)} />);
   render(<DrawTicker draws={[1, 2]} speedWindowMs={3000} />);
   render(
     <OwnerCard

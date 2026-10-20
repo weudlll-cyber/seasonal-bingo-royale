@@ -5,8 +5,9 @@
  *
  * Responsibility: the screen-wide rules of the acceptance play-through: the owner's
  *                 points above the card equal the standings; standings are not all zero
- *                 after the first round; in royale the seasons counter equals the seasons
- *                 of the owner's marked season cells, in the classic types no seasons or
+ *                 after the first round; in royale the seasons counter equals the server's
+ *                 seasons in the standings (and, when marked for the owner, the marked
+ *                 season cells), in the classic types no seasons or
  *                 shield panel shows; no marked cell on an undrawn number; each tick
  *                 shows exactly one new number; the owner's rank equals the final place
  *                 at the end; after a restart nothing of the previous run remains.
@@ -28,6 +29,9 @@ export interface RunContext {
   // Seasons of the owner's marked season cells seen so far in this run (01 §8.3).
   readonly seasons: Set<string>;
   ownerHits: number; // owner numbers drawn so far, to rotate tap / late / miss
+  // Per round: how many draws it has (from the server result), to find its last number.
+  readonly lastDraws: Map<number, number>;
+  lastNumberTaps: number; // last numbers of a round tapped inside their window (D10)
   readonly missTimings: number[]; // ms from draw to "marked for you", per missed number
 }
 
@@ -43,6 +47,8 @@ export function newContext(
     delayMs: 3_000,
     seasons: new Set(),
     ownerHits: 0,
+    lastDraws: new Map(),
+    lastNumberTaps: 0,
     missTimings: [],
   };
 }
@@ -78,6 +84,11 @@ function checkSeasons(s: Snap, ctx: RunContext): void {
     expect(s.shieldShown, 'no shield in classic types').toBe(false);
     return;
   }
+  // The counter comes from the server: it equals the owner's seasons in the standings.
+  const own = s.standings.find((r) => r.id === 'owner-01');
+  expect(s.seasonsCount, 'seasons counter = server seasons').toBe(own?.seasons);
+  if (ctx.tapping) return;
+  // Marked for the owner, the card shows the server's marks: the counter matches them.
   for (const c of s.cells) if (c.marked && c.season !== '') ctx.seasons.add(c.season);
   expect(
     s.seasonsCount,

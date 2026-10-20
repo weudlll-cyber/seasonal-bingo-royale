@@ -15,8 +15,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   createInitialMatchState,
-  decide,
-  evolve,
   simulateMatch,
   type Command,
   type MarkCell,
@@ -25,15 +23,11 @@ import {
   type MissedNumbers,
 } from '../index.js';
 import { royaleRuleset, seed } from '../../test/builders.js';
+import { drawAndClose, play } from '../../test/drive.js';
 
 const AFTER_3S: MissedNumbers = { kind: 'autoMarkAfter', delayMs: 3_000 };
 const LEAVE_OPEN: MissedNumbers = { kind: 'noAutoMark' };
 const POINTS_PER_MARK = royaleRuleset().pointsPerMark;
-
-function play(state: MatchState, command: Command): { state: MatchState; events: DomainEvent[] } {
-  const events = [...decide(state, command, { now: 0 })];
-  return { state: events.reduce(evolve, state), events };
-}
 
 // A manual royale match with the person `h` and the bot `b`, first round started.
 function setup(missedNumbers: MissedNumbers): MatchState {
@@ -151,10 +145,7 @@ describe('mark resolution for a tapping person (01 §6, inv. 17)', () => {
   it('the round end closes every open tap', () => {
     const hit = drawUntilHit(setup(LEAVE_OPEN), () => true);
     let state = hit.state;
-    while (state.currentRound?.ended === false) {
-      state = play(state, { type: 'drawNext' }).state;
-      state = play(state, { type: 'endRound' }).state;
-    }
+    while (state.currentRound?.ended === false) state = drawAndClose(state);
     expect(play(state, tap(hit.cellIndex, false)).events).toEqual([]);
     expect(play(state, { type: 'autoMarkMissed', drawIndex: hit.drawIndex }).events).toEqual([]);
   });
@@ -174,7 +165,7 @@ describe('simulated people never tap (01 §6)', () => {
       },
       playerCount: 6,
       tickedPrizes: [],
-      humans: { count: 1, drawIntervalMs: 1_000 },
+      humans: { count: 1, drawIntervalMs: 1_000, speedWindowMs: 500 },
     });
 
   // For every mark of the person p000, how many draws after the drawn item it arrived.

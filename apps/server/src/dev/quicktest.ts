@@ -29,7 +29,6 @@ import {
   classicSeasonsRealtimeDefault,
   royaleRealtimeDefault,
   BUILTIN_PRIZE_POINTS,
-  REALTIME_DRAW_INTERVAL_MS,
   type Ruleset,
 } from '@sbr/contracts';
 import {
@@ -52,7 +51,7 @@ import {
   type SeasonName,
   type StagePoints,
 } from './quicktestEvents.js';
-import { chosenMissedNumbers, delayOf, withinDrawRange } from './quicktestTiming.js';
+import { chosenMissedNumbers, delayOf, drawRange, withinDrawRange } from './quicktestTiming.js';
 
 export interface QuickTestInput {
   readonly gameType: GameType;
@@ -109,7 +108,11 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
   const seed = seedFromText(input.seedText);
   const ruleset = contractsRulesetFor(input.gameType);
   const missedNumbers = chosenMissedNumbers(input.missedNumbers, ruleset.marking.speedWindowMs);
-  const drawIntervalMs = withinDrawRange(input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime);
+  const speedWindowMs = ruleset.marking.speedWindowMs;
+  const drawIntervalMs = withinDrawRange(
+    input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime,
+    speedWindowMs,
+  );
   const matchRuleset = toMatchRuleset(ruleset, input.markingMode, {
     kind: 'autoMarkAfter',
     delayMs: delayOf(missedNumbers),
@@ -125,7 +128,11 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
     playerCount: totalPlayers,
     tickedPrizes: input.tickedPrizes,
     // Only the owner's cards are people, and only in manual marking mode (01 §6).
-    humans: { count: input.markingMode === 'manual' ? ownerCount : 0, drawIntervalMs },
+    humans: {
+      count: input.markingMode === 'manual' ? ownerCount : 0,
+      drawIntervalMs,
+      speedWindowMs,
+    },
   });
   return buildResult({
     input: { ...input, missedNumbers, drawIntervalMs },
@@ -231,7 +238,7 @@ function buildResult(args: BuildArgs): QuickTestResult {
     missedNumbers: input.missedNumbers,
     ownerAutoMarkDelayMs: delayOf(input.missedNumbers),
     drawIntervalMs: input.drawIntervalMs,
-    drawIntervalRangeMs: REALTIME_DRAW_INTERVAL_MS,
+    drawIntervalRangeMs: drawRange(ruleset.marking.speedWindowMs),
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,
     maxSpeedBonus: ruleset.scoring.maxSpeedBonus,

@@ -22,6 +22,7 @@ import {
   onRoundStarted,
   onDrawMade,
   onRoundEnded,
+  onSpeedWindowClosed,
   onCutApplied,
   onMatchFinished,
 } from './evolveLifecycle.js';
@@ -91,6 +92,7 @@ const projectors: Projectors = {
   stageStarted: (s, e) => onStageStarted(s, e.stageIndex),
   roundStarted: onRoundStarted,
   drawMade: (s, _e) => onDrawMade(s),
+  speedWindowClosed: (s, e) => onSpeedWindowClosed(s, e.drawIndex),
   cellMarked: onCellMarked,
   seasonActivated: onSeasonActivated,
   patternScored: onPatternScored,

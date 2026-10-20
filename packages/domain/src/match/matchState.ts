@@ -66,6 +66,9 @@ export interface RoundState {
   // Classic round book-keeping (01 §3a.1). Empty for royale.
   readonly classicAwards: readonly ClassicAward[];
   readonly outstandingPrizes: readonly string[];
+  // Highest draw index whose speed window has closed (-1 before the first): the round
+  // ends and classic prizes are decided only after a window closes (01 §6, D10).
+  readonly windowClosedThrough: number;
   readonly ended: boolean;
 }
 

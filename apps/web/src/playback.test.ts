@@ -27,7 +27,7 @@ describe('playbackAt', () => {
   });
 
   it('records the owner as eliminated at the cut and keeps the match going', () => {
-    const view = playbackAt(result, 9);
+    const view = playbackAt(result, 11);
     expect(view.lastCut).toEqual({
       number: 1,
       owners: [{ accountId: 'owner-01', outcome: 'eliminated' }],
@@ -38,8 +38,30 @@ describe('playbackAt', () => {
     expect(end.drawsSoFar).toEqual([4]);
   });
 
+  it('lists players still in the match first, eliminated players after them', () => {
+    // After the cut: owner-01 (10 pts) is out; bot-03 (0 pts) is still in.
+    const order = playbackAt(result, 11).standings.map((p) => p.accountId);
+    expect(order).toEqual(['bot-02', 'bot-03', 'owner-01']);
+  });
+
+  it('ranks the later eliminated above the earlier, whatever their points', () => {
+    // bot-03 (0 pts) goes out in round 2, after owner-01 (10 pts) went out in round 1.
+    const cut = {
+      type: 'cutApplied' as const,
+      stageIndex: 1,
+      survivors: ['bot-02'],
+      eliminated: ['bot-03'],
+      shieldSaves: [],
+    };
+    const events = [...result.events.slice(0, 13), cut];
+    const order = playbackAt({ ...result, events }, events.length).standings.map(
+      (p) => p.accountId,
+    );
+    expect(order).toEqual(['bot-02', 'bot-03', 'owner-01']);
+  });
+
   it("deals each round's cards with fresh marks", () => {
-    const view = playbackAt(result, 12);
+    const view = playbackAt(result, 13);
     const bot = view.standings.find((p) => p.accountId === 'bot-02');
     expect(bot?.cards[0]).toEqual(numberCard(3));
     expect(bot?.marks[0]?.filter(Boolean)).toHaveLength(1); // only the free centre
@@ -48,7 +70,7 @@ describe('playbackAt', () => {
   it("takes the server's points as the baseline at every stage start (score carry)", () => {
     const bot = (step: number) =>
       playbackAt(result, step).standings.find((p) => p.accountId === 'bot-02');
-    expect(bot(9)?.points).toBe(30);
-    expect(bot(10)?.points).toBe(0); // the final stage resets points
+    expect(bot(11)?.points).toBe(30);
+    expect(bot(12)?.points).toBe(0); // the final stage resets points
   });
 });

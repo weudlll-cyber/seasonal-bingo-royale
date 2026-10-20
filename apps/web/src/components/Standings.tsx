@@ -61,6 +61,7 @@ function PlayerRow({
     <li
       data-testid={`standing-${player.accountId}`}
       data-points={player.points}
+      data-seasons={player.seasonsActivated}
       data-eliminated={player.eliminated ? 'true' : 'false'}
       style={{
         color: player.isOwner ? '#afb84e' : '#dfe6ee',

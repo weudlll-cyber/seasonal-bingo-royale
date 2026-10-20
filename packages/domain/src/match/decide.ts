@@ -34,6 +34,7 @@ import type { MatchState } from './matchState.js';
 import type {
   AbortMatch,
   AutoMarkMissed,
+  CloseSpeedWindow,
   Command,
   JoinMatch,
   MarkCell,
@@ -74,6 +75,7 @@ const dispatch: Dispatch = {
   drawNext: (s, _c) => onDrawNext(s),
   markCell: (s, c) => onMark(s, c),
   autoMarkMissed: (s, c) => onAutoMarkMissed(s, c),
+  closeSpeedWindow: (s, c) => onCloseSpeedWindow(s, c),
   endRound: (s, _c) => onEndRound(s),
   applyCut: (s, _c) => onApplyCut(s),
   finishMatch: (s, _c) => onFinish(s),
@@ -197,9 +199,22 @@ function onAutoMarkMissed(state: MatchState, cmd: AutoMarkMissed): readonly Doma
   return autoMarksForItem(state, item, (id) => tapsOwnMarks(state, id)).events;
 }
 
+// The speed window of the latest draw closes (D10); later windows only, never twice.
+function onCloseSpeedWindow(state: MatchState, cmd: CloseSpeedWindow): readonly DomainEvent[] {
+  const round = state.currentRound;
+  if (round === null || round.ended || state.phase !== 'running') return [];
+  if (cmd.drawIndex !== round.draws.length - 1 || cmd.drawIndex <= round.windowClosedThrough) {
+    return [];
+  }
+  return [{ type: 'speedWindowClosed', drawIndex: cmd.drawIndex }];
+}
+
 function onEndRound(state: MatchState): readonly DomainEvent[] {
   const round = state.currentRound;
   if (round === null || round.ended) return [];
+  // A round never ends at the moment of a draw: only once the speed window of its last
+  // draw has closed, so that number can still be tapped (01 §6, D10).
+  if (round.windowClosedThrough < round.draws.length - 1) return [];
   const activeCount = activeAccountIds(state).length;
   const reason =
     state.gameType === 'royale'

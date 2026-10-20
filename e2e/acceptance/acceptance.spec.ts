@@ -34,7 +34,8 @@ interface Combo {
 }
 
 const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
-const TIMED_SEC = 2; // the fastest allowed timed draws keep a royale near seven minutes
+// The fastest timed draws allowed: one second more than the 3 s speed window (D10).
+const TIMED_SEC = 4;
 const SCREENS = path.join(REPO_ROOT, 'reports', 'screens', 'acceptance');
 
 function combos(): Combo[] {
@@ -78,6 +79,19 @@ async function run(page: Page, start: () => Promise<void>): Promise<ServerResult
   return result;
 }
 
+// Per round, the number of draws it has: its last draw is the one before its end.
+function lastDrawsOf(result: ServerResult, into: Map<number, number>): void {
+  let round = -1;
+  let draws = 0;
+  for (const e of result.events) {
+    if (e.type === 'roundStarted') {
+      round += 1;
+      draws = 0;
+    } else if (e.type === 'drawMade') draws += 1;
+    else if (e.type === 'roundEnded') into.set(round, draws);
+  }
+}
+
 for (const combo of combos()) {
   // One royale and one classic run switch draw control mid-match.
   const switches =
@@ -92,6 +106,7 @@ for (const combo of combos()) {
     const seed = `acc-${nameOf(combo)}`;
     const ctx = contextOf(combo);
     const result = await run(page, () => startRun(page, settingsOf(combo, seed)));
+    lastDrawsOf(result, ctx.lastDraws);
     const cuts = checkCuts(result);
     if (combo.gameType === 'royale') expect(cuts.cuts).toBeGreaterThan(0);
     const end = await play(page, ctx, {
@@ -115,7 +130,7 @@ for (const combo of combos()) {
     });
     // Evidence for the sheet: cuts checked, ties on points, ms from draw to auto-mark.
     console.log(
-      `ACCEPTANCE ${nameOf(combo)} ${JSON.stringify({ cuts, misses: ctx.missTimings, hits: ctx.ownerHits })}`,
+      `ACCEPTANCE ${nameOf(combo)} ${JSON.stringify({ cuts, misses: ctx.missTimings, hits: ctx.ownerHits, lastNumberTaps: ctx.lastNumberTaps })}`,
     );
   });
 }

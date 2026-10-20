@@ -65,6 +65,7 @@ describe('OwnerStatusPanel', () => {
         }}
         effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
         showSeasons
+        eliminated={false}
       />,
     );
     expect(screen.getByTestId('effect-multiplier').textContent).toContain('×1.5 · 6 draws left');
@@ -73,6 +74,30 @@ describe('OwnerStatusPanel', () => {
     expect(screen.getByTestId('effect-shield').style.background).toBe(WINTER_RGB);
     expect(screen.getByTestId('seasons-collected').textContent).toContain('2/4');
     expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
+  });
+
+  it('shows nothing active once the owner is eliminated; seasons stay collected', () => {
+    render(
+      <OwnerStatusPanel
+        accountId="owner-01"
+        points={120}
+        rank={9}
+        status={{
+          step: 1,
+          multiplier: { factor: 1.5, remainingDraws: 6 },
+          growth: { pointsPerMark: 2, remainingDraws: 4 },
+          shieldCharges: 1,
+          seasons: ['spring', 'summer'],
+        }}
+        effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
+        showSeasons
+        eliminated
+      />,
+    );
+    expect(screen.queryByTestId('effect-multiplier')).toBeNull();
+    expect(screen.queryByTestId('effect-growth')).toBeNull();
+    expect(screen.getByTestId('effect-shield').textContent).toContain('shield ×0');
+    expect(screen.getByTestId('seasons-collected').textContent).toContain('2/4');
   });
 });
 
@@ -100,7 +125,7 @@ describe('CutScreen', () => {
 describe('spectator view', () => {
   it('keeps playing after the owner is eliminated, to the final placement', () => {
     const result = royaleFixture();
-    const { rerender } = render(<Playback result={result} view={playbackAt(result, 9)} />);
+    const { rerender } = render(<Playback result={result} view={playbackAt(result, 11)} />);
     expect(screen.getByTestId('cut-screen').textContent).toContain('Eliminated – keep watching');
     expect(screen.getByTestId('spectator-note')).toBeTruthy();
     rerender(<Playback result={result} view={playbackAt(result, result.events.length)} />);

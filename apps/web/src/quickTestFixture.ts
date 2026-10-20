@@ -56,7 +56,8 @@ export function royaleFixture(
     ownerAutoMarkDelayMs: missedNumbers.kind === 'autoMarkAfter' ? missedNumbers.delayMs : 3000,
     drawIntervalMs: 1000,
     drawIntervalRangeMs: { min: 500, max: 60_000 },
-    speedWindowMs: 3000,
+    // Shorter than the 1 s draw interval, as every ruleset requires (D10).
+    speedWindowMs: 500,
     pointsPerMark: 10,
     maxSpeedBonus: 10,
     tickedPrizes: [],
@@ -70,7 +71,7 @@ export function royaleFixture(
     // after the cut, keeps the 10 points it had when eliminated.
     stagePoints: [
       { step: 1, points: { 'owner-01': 0, 'bot-02': 0, 'bot-03': 0 } },
-      { step: 10, points: { 'owner-01': 10, 'bot-02': 0, 'bot-03': 0 } },
+      { step: 12, points: { 'owner-01': 10, 'bot-02': 0, 'bot-03': 0 } },
     ],
     effectSeasons: { growth: 'spring', multiplier: 'summer', harvest: 'autumn', shield: 'winter' },
     players: [
@@ -98,8 +99,10 @@ function royaleEvents(): QuickTestResult['events'] {
     { type: 'drawMade', drawIndex: 0, item: 1 },
     { type: 'cellMarked', accountId: 'owner-01', cardIndex: 0, cellIndex: 0, markPoints: 10 },
     { type: 'seasonActivated', accountId: 'owner-01', season: 'spring', instantPoints: 0 },
+    { type: 'speedWindowClosed', drawIndex: 0 },
     { type: 'drawMade', drawIndex: 1, item: 2 },
     { type: 'cellMarked', accountId: 'bot-02', cardIndex: 0, cellIndex: 0, markPoints: 30 },
+    { type: 'speedWindowClosed', drawIndex: 1 },
     { type: 'roundEnded', roundIndex: 0, reason: 'drawCount' },
     {
       type: 'cutApplied',
@@ -118,6 +121,7 @@ function royaleEvents(): QuickTestResult['events'] {
       cardsByPlayer: r2,
     },
     { type: 'drawMade', drawIndex: 0, item: 4 },
+    { type: 'speedWindowClosed', drawIndex: 0 },
     { type: 'roundEnded', roundIndex: 1, reason: 'firstFullHouse' },
     { type: 'matchFinished', placement: [] },
   ];

@@ -9,7 +9,7 @@
  *                 missed-number rule and timed-draw gap; when the owner taps, the card
  *                 shows the speed bonus apart from the points with the Quick Test note,
  *                 the limitation is stated, a missed number follows the chosen rule and
- *                 the seasons counter follows the owner's own card.
+ *                 the seasons counter comes from the server, not from local taps.
  * Depends on:     @testing-library/react, ./StartForm, ./DrawControls, ../App,
  *                 ../quickTestFixture, ../drawControl, ../api
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/11-admin-panel.md §3.2
@@ -150,11 +150,12 @@ describe('the owner taps (Quick Test)', () => {
     await startHostRun({ kind: 'noAutoMark' });
     await wait(30_000);
     expect(cell0()).toBe('false');
-    expect(screen.getByTestId('seasons-collected').textContent).toMatch(/0\/4/);
+    // The seasons counter comes from the server (which counts the owner's cards as marked
+    // after the delay), never from local taps: spring counts although cell 0 is open.
+    expect(screen.getByTestId('seasons-collected').textContent).toMatch(/1\/4/);
     fireEvent.click(screen.getByTestId('owner-cell-0'));
     expect(cell0()).toBe('true');
     expect(screen.getByTestId('owner-feedback').textContent).toBe('Marked late · no speed bonus');
-    // The seasons counter follows the owner's own card: spring is now marked.
     expect(screen.getByTestId('seasons-collected').textContent).toMatch(/1\/4/);
   });
 });
