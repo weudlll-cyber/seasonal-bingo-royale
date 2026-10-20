@@ -3,14 +3,15 @@
  * @module web
  * @brief  Read-only 5×5 card with per-cell mark state (WP-08).
  *
- * Responsibility: lay out a card with season cells and marks as the server reported
- *                 them; used for bot cards when the owner plays without a card.
- * Depends on:     react, ./CellFace, ../types
+ * Responsibility: lay out a card under its B I N G O letters with season cells and
+ *                 marks as the server reported them; used for bot cards when the owner plays without a card.
+ * Depends on:     react, ./BingoHeader, ./CellFace, ../types
  * Used by:        ./Playback
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §4, §3a
  */
 import type { ReactElement } from 'react';
 
+import { BingoHeader } from './BingoHeader.js';
 import { CellFace, cellBoxStyle } from './CellFace.js';
 import type { Card } from '../types.js';
 
@@ -25,6 +26,7 @@ export function CardGrid({ accountId, card, marks }: CardGridProps): ReactElemen
     <div style={{ display: 'grid', gap: '0.25rem' }}>
       <strong>{accountId}</strong>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 2.6rem)', gap: '2px' }}>
+        <BingoHeader />
         {card.cells.map((_cell, i) => (
           <div
             key={i}

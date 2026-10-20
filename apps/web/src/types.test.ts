@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PACKAGE_NAME } from './index.js';
-import { seasonOfSymbol } from './types.js';
+import { ballLabel, seasonOfSymbol } from './types.js';
 
 describe('@sbr/web barrel', () => {
   it('is importable and exposes its package name', () => {
@@ -27,5 +27,21 @@ describe('@sbr/web barrel', () => {
     ]);
     expect(seasonOfSymbol(75)).toBeNull();
     expect(seasonOfSymbol(105)).toBeNull();
+  });
+
+  it('labels each number with its column letter at the range edges (D7)', () => {
+    expect([1, 15, 16, 30, 31, 45, 46, 60, 61, 75].map(ballLabel)).toEqual([
+      'B 1',
+      'B 15',
+      'I 16',
+      'I 30',
+      'N 31',
+      'N 45',
+      'G 46',
+      'G 60',
+      'O 61',
+      'O 75',
+    ]);
+    expect(ballLabel(102)).toBe('summer');
   });
 });

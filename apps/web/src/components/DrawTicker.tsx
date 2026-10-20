@@ -3,8 +3,9 @@
  * @module web
  * @brief  The draws of the current round, newest highlighted (WP-08).
  *
- * Responsibility: render every draw of the round so far; classicSeasons symbols (101–104)
- *                 show the original season icon on its colour. The newest draw fades in
+ * Responsibility: render every draw of the round so far, numbers with their column
+ *                 letter ("G 52", D7); classicSeasons symbols (101–104) show the original
+ *                 season icon on its colour. The newest draw fades in
  *                 unless the viewer prefers reduced motion.
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback
@@ -13,7 +14,7 @@
 import type { ReactElement } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
-import { seasonOfSymbol } from '../types.js';
+import { ballLabel, seasonOfSymbol } from '../types.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 
 export interface DrawTickerProps {
@@ -36,6 +37,7 @@ export function DrawTicker({ draws, speedWindowMs }: DrawTickerProps): ReactElem
             <span
               key={`${String(item)}-${String(i)}`}
               data-testid={i === newest ? 'draw-newest' : undefined}
+              data-item={item}
               className={i === newest && !reduced ? 'sbr-anim-fade' : undefined}
               style={{
                 padding: '0.1rem 0.4rem',
@@ -46,7 +48,7 @@ export function DrawTicker({ draws, speedWindowMs }: DrawTickerProps): ReactElem
                 textAlign: 'center',
               }}
             >
-              {season === null ? String(item) : <SeasonIcon season={season} onColor />}
+              {season === null ? ballLabel(item) : <SeasonIcon season={season} onColor />}
             </span>
           );
         })}

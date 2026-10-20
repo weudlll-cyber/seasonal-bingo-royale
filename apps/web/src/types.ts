@@ -145,6 +145,18 @@ export function seasonOfSymbol(item: number): Season | null {
   return SEASON_NAMES[item - 101] ?? null;
 }
 
+// Column letters in card order; column ranges B 1–15, I 16–30, N 31–45, G 46–60, O 61–75.
+export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
+
+// A drawn number with its column letter, e.g. "G 52" (01 §5, D7). Symbols have no
+// letter; the caller shows their icon instead.
+export function ballLabel(item: number): string {
+  const season = seasonOfSymbol(item);
+  if (season !== null) return season;
+  const letter = BINGO_LETTERS[Math.floor((item - 1) / 15)] ?? '?';
+  return `${letter} ${String(item)}`;
+}
+
 // Spring, Summer, Autumn, Winter — colours shared with the Seasonal Entertainment
 // website (01 §13 and assets/brand/colors.md).
 export const SEASON_COLORS: Readonly<Record<Season, string>> = Object.freeze({

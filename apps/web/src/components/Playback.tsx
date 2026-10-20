@@ -94,9 +94,7 @@ function PrizeList({ result, view }: PlaybackProps): ReactElement {
           return (
             <li key={key} data-testid={`prize-${key}`}>
               {key}:{' '}
-              {win === undefined
-                ? 'open'
-                : `won on draw ${String(win.drawNumber)} by ${win.accountIds.join(', ')}`}
+              {win === undefined ? 'open' : `won on ${win.decided} by ${win.accountIds.join(', ')}`}
             </li>
           );
         })}

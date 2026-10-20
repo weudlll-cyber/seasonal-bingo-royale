@@ -9,12 +9,13 @@
  *                 the draw, refusal of undrawn cells, auto-mark without bonus when a
  *                 cell's speed window closes (01 §6). In `auto` mode the card shows the
  *                 server's marks. The parent remounts it per round (new card, new marks).
- * Depends on:     react, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
+ * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
  * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
+import { BingoHeader } from './BingoHeader.js';
 import { CellFace, cellBoxStyle } from './CellFace.js';
 import {
   closeExpiredWindows,
@@ -26,7 +27,7 @@ import {
   type ManualState,
 } from '../manualMarking.js';
 import { useReducedMotion } from '../useReducedMotion.js';
-import type { Card, QuickTestResult } from '../types.js';
+import { ballLabel, type Card, type QuickTestResult } from '../types.js';
 
 export interface OwnerCardProps {
   readonly accountId: string;
@@ -126,6 +127,11 @@ function useWindowCloser({ enabled, manual, setManual, card, drawTimes, rules }:
   }, [closesAt, setManual, card, drawTimes, rules]);
 }
 
+// Screen-reader name of a cell: "G 52", the season of a symbol cell, or "free".
+function cellName(cell: Card['cells'][number]): string {
+  return cell.kind === 'free' ? 'free' : ballLabel(cell.value);
+}
+
 interface TapGridProps {
   readonly card: Card;
   readonly marks: readonly boolean[];
@@ -142,6 +148,7 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
   };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 2.6rem)', gap: '2px' }}>
+      <BingoHeader />
       {card.cells.map((cell, i) => {
         const marked = marks[i] === true;
         const animate = !reduced && marked && lastTapped === i;
@@ -155,7 +162,7 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
             onKeyDown={(e) => {
               onKey(e, i);
             }}
-            aria-label={`cell ${String(i)}${cell.kind === 'number' ? ` number ${String(cell.value)}` : ''}`}
+            aria-label={cellName(cell)}
             aria-pressed={marked}
             data-testid={`owner-cell-${String(i)}`}
             data-value={cell.kind === 'free' ? '' : String(cell.value)}

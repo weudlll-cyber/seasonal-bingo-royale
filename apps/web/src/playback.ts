@@ -21,7 +21,13 @@ import type {
   PlayerView,
   PrizeWin,
 } from './playbackTypes.js';
-import type { Card, DomainEventLike, OwnerStatus, QuickTestResult } from './types.js';
+import {
+  ballLabel,
+  type Card,
+  type DomainEventLike,
+  type OwnerStatus,
+  type QuickTestResult,
+} from './types.js';
 
 export type {
   Banner,
@@ -232,14 +238,17 @@ function applyScoring(state: FoldState, ev: DomainEventLike): void {
         `Jackpot claimed by ${ev.accountId} (+${String(ev.value)})`,
       );
       return;
-    case 'classicPrizeAwarded':
-      addPrizeWinner(state, ev.prizeKey, ev.accountId, ev.drawIndex + 1);
+    case 'classicPrizeAwarded': {
+      // The deciding ball, e.g. "draw 37 (G 52)" (D7).
+      const decided = `draw ${String(ev.drawIndex + 1)} (${ballLabel(state.drawsSoFar[ev.drawIndex] ?? 0)})`;
+      addPrizeWinner(state, ev.prizeKey, ev.accountId, decided);
       pushBanner(
         state,
         `cp-${ev.prizeKey}-${ev.accountId}`,
-        `${ev.prizeKey} awarded to ${ev.accountId} on draw ${String(ev.drawIndex + 1)}`,
+        `${ev.prizeKey} awarded to ${ev.accountId} on ${decided}`,
       );
       return;
+    }
     default:
       return;
   }
@@ -255,10 +264,10 @@ function markCell(p: PlayerView, cardIndex: number, cellIndex: number, points: n
   return { ...p, marks, points: p.points + points };
 }
 
-function addPrizeWinner(state: FoldState, prizeKey: string, id: string, drawNumber: number): void {
+function addPrizeWinner(state: FoldState, prizeKey: string, id: string, decided: string): void {
   const win = state.prizeWinners[prizeKey];
   state.prizeWinners[prizeKey] = {
-    drawNumber: win?.drawNumber ?? drawNumber,
+    decided: win?.decided ?? decided,
     accountIds: [...(win?.accountIds ?? []), id],
   };
 }

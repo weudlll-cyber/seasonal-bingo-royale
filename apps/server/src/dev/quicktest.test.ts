@@ -94,9 +94,10 @@ describe('runQuickTest — payload for the player client', () => {
     expect(result.effectSeasons).toMatchObject({ growth: 'spring', multiplier: 'summer' });
   });
 
-  // CPU time, not wall clock: a busy parallel test run must not fail it, a slow
-  // algorithm must.
-  it('builds a 200-player royale within two seconds of CPU time', () => {
+  // CPU time, not wall clock, with a wide budget: alone it takes about 0.7 s, under a
+  // full parallel test run up to ~2 s; an algorithmic blow-up (e.g. quadratic replay)
+  // would still pass 5 s.
+  it('builds a 200-player royale within five seconds of CPU time', () => {
     const started = process.cpuUsage();
     runQuickTest({
       gameType: 'royale',
@@ -107,7 +108,7 @@ describe('runQuickTest — payload for the player client', () => {
       markingMode: 'auto',
     });
     const used = process.cpuUsage(started);
-    expect((used.user + used.system) / 1000).toBeLessThan(2_000);
+    expect((used.user + used.system) / 1000).toBeLessThan(5_000);
   });
 });
 

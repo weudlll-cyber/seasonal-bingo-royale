@@ -36,7 +36,8 @@ export interface CutView {
 }
 
 export interface PrizeWin {
-  readonly drawNumber: number;
+  // Draw number and deciding ball, e.g. "draw 37 (G 52)".
+  readonly decided: string;
   readonly accountIds: readonly string[];
 }
 

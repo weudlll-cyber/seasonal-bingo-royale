@@ -34,7 +34,10 @@ async function snapshot(page: Page): Promise<{ cells: CellInfo[]; drawn: number[
         marked: el.dataset['marked'] === 'true',
       }));
     const ticker = document.querySelector('[data-testid="draw-ticker"]');
-    const drawn = [...(ticker?.children ?? [])].map((el) => Number(el.textContent));
+    // The ticker shows "G 52"; data-item holds the bare draw item.
+    const drawn = [...(ticker?.children ?? [])].map((el) =>
+      Number((el as HTMLElement).dataset['item']),
+    );
     return { cells, drawn };
   });
 }
