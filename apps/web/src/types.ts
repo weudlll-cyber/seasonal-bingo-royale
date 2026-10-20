@@ -4,16 +4,18 @@
  * @brief  Local type aliases matching the Quick Test server response (WP-08).
  *
  * Responsibility: declare the shapes the client renders. These mirror the server's
- *                 apps/server/src/dev/quicktest.ts QuickTestResult; the layer rules
- *                 forbid web from importing domain or server, so a local copy lives
- *                 here. Both widen together as WP-08 evolves.
+ *                 apps/server/src/dev/quicktest.ts and quicktestEvents.ts; the layer
+ *                 rules forbid web from importing domain or server, so a local copy
+ *                 lives here. Both widen together as WP-08 evolves.
  * Depends on:     nothing
- * Used by:        ./App, ./components/*
+ * Used by:        ./App, ./playback, ./manualMarking, ./components/*
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/02-software-architecture.md §3
  */
 
 export type GameType = 'royale' | 'classicSeasons' | 'classic';
 export type MarkingMode = 'auto' | 'manual';
+export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+export type EffectKind = 'multiplier' | 'growth' | 'harvest' | 'shield' | 'revealNext';
 
 export type Cell =
   | { readonly kind: 'number'; readonly value: number }
@@ -22,25 +24,32 @@ export type Cell =
 
 export interface Card {
   readonly cells: readonly Cell[];
+  // Cell indices of the four season cells in spring, summer, autumn, winter order;
+  // null for `classic`.
   readonly seasonCells: readonly number[] | null;
 }
 
+// Final per-player summary from the server (after the match).
 export interface PlayerSummary {
   readonly accountId: string;
   readonly isOwner: boolean;
   readonly card: Card;
-  readonly marks: readonly boolean[];
   readonly place: number;
   readonly points: number;
   readonly seasonsActivated: number;
   readonly shieldCharges: number;
 }
 
-// Mirror of the DomainEvent union (only the fields the UI reads). Shape stays loose
-// (readonly unknown-ish) so a server-side event tag addition doesn't break the client
-// before its type is widened.
-export type Season = 'spring' | 'summer' | 'autumn' | 'winter';
+// The owner's effect status, sent by the server whenever it changes.
+export interface OwnerStatus {
+  readonly step: number;
+  readonly multiplier: { readonly factor: number; readonly remainingDraws: number } | null;
+  readonly growth: { readonly pointsPerMark: number; readonly remainingDraws: number } | null;
+  readonly shieldCharges: number;
+  readonly seasons: readonly Season[];
+}
 
+// Mirror of the DomainEvent union (only the fields the UI reads).
 export type DomainEventLike =
   | { readonly type: 'lobbyOpened'; readonly gameType: GameType }
   | { readonly type: 'playerJoined'; readonly accountId: string; readonly joinedAt: number }
@@ -76,11 +85,7 @@ export type DomainEventLike =
       readonly points: number;
       readonly firstInRound: boolean;
     }
-  | {
-      readonly type: 'seasonCompleteFired';
-      readonly accountId: string;
-      readonly points: number;
-    }
+  | { readonly type: 'seasonCompleteFired'; readonly accountId: string; readonly points: number }
   | {
       readonly type: 'jackpotClaimed';
       readonly accountId: string;
@@ -93,11 +98,7 @@ export type DomainEventLike =
       readonly prizeKey: string;
       readonly drawIndex: number;
     }
-  | {
-      readonly type: 'roundEnded';
-      readonly roundIndex: number;
-      readonly reason: string;
-    }
+  | { readonly type: 'roundEnded'; readonly roundIndex: number; readonly reason: string }
   | {
       readonly type: 'cutApplied';
       readonly stageIndex: number;
@@ -128,14 +129,16 @@ export interface QuickTestResult {
   readonly players: readonly PlayerSummary[];
   readonly stagePlan: readonly StagePlanEntry[];
   readonly ownerAccountIds: readonly string[];
+  readonly ownerStatus: Readonly<Record<string, readonly OwnerStatus[]>>;
+  readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
 }
 
-export const SEASON_SYMBOLS: Readonly<Record<number, string>> = Object.freeze({
-  101: '🌱',
-  102: '☀️',
-  103: '🍂',
-  104: '❄️',
-});
+export const SEASON_NAMES = ['spring', 'summer', 'autumn', 'winter'] as const;
+
+// classicSeasons draw items 101–104 are the season symbols (04 §3.4).
+export function seasonOfSymbol(item: number): Season | null {
+  return SEASON_NAMES[item - 101] ?? null;
+}
 
 // Spring, Summer, Autumn, Winter — colours shared with the Seasonal Entertainment
 // website (01 §13 and assets/brand/colors.md).
@@ -146,4 +149,5 @@ export const SEASON_COLORS: Readonly<Record<Season, string>> = Object.freeze({
   winter: '#04aaf7',
 });
 
-export const SEASON_NAMES = ['spring', 'summer', 'autumn', 'winter'] as const;
+// Text and icons on a season colour (assets/brand/colors.md, --color-on-season).
+export const ON_SEASON_COLOR = '#12161c';

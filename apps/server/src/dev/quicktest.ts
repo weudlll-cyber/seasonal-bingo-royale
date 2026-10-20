@@ -10,8 +10,9 @@
  *                 the player order (ids starting with "owner-") so the client can tell
  *                 them from bots. Determinism (01 §9, 12 §3 inv. 2): the same input
  *                 always returns the same output, including the owner's cards and
- *                 auto-mark positions.
- * Depends on:     @sbr/domain, @sbr/contracts (defaults)
+ *                 auto-mark positions. Events carry display ids and come with the
+ *                 owner's effect timeline (./quicktestEvents).
+ * Depends on:     @sbr/domain, @sbr/contracts (defaults), ./quicktestEvents
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §13
  */
@@ -34,6 +35,15 @@ import {
   type MatchState,
 } from '@sbr/domain';
 
+import {
+  effectSeasons,
+  ownerStatusTimeline,
+  renameAccounts,
+  type EffectKind,
+  type OwnerStatus,
+  type SeasonName,
+} from './quicktestEvents.js';
+
 export interface QuickTestInput {
   readonly gameType: GameType;
   readonly playerCount: number;
@@ -46,8 +56,8 @@ export interface QuickTestInput {
 export interface QuickTestPlayer {
   readonly accountId: string;
   readonly isOwner: boolean;
+  // First-round card; the client follows later rounds through roundStarted events.
   readonly card: Card;
-  readonly marks: readonly boolean[];
   readonly place: number;
   readonly points: number;
   readonly seasonsActivated: number;
@@ -66,6 +76,8 @@ export interface QuickTestResult {
   readonly players: readonly QuickTestPlayer[];
   readonly stagePlan: MatchState['stagePlan'];
   readonly ownerAccountIds: readonly string[];
+  readonly ownerStatus: Record<string, OwnerStatus[]>;
+  readonly effectSeasons: Partial<Record<EffectKind, SeasonName>>;
 }
 
 const OWNER_PREFIX = 'owner-';
@@ -149,25 +161,26 @@ interface BuildArgs {
 function buildResult(args: BuildArgs): QuickTestResult {
   const { input, ruleset, events, state, ownerCount } = args;
   const placeByAccount = new Map(state.finalPlacement.map((p) => [p.accountId, p.place]));
-  const players: QuickTestPlayer[] = [];
-  state.playerOrder.forEach((accountId, i) => {
-    const isOwner = i < ownerCount;
-    const displayId = `${isOwner ? OWNER_PREFIX : BOT_PREFIX}${String(i + 1).padStart(2, '0')}`;
+  // Internal simulation id (p000, …) → display id (owner-01, bot-02, …).
+  const idMap = new Map(
+    state.playerOrder.map((accountId, i) => {
+      const prefix = i < ownerCount ? OWNER_PREFIX : BOT_PREFIX;
+      return [accountId, `${prefix}${String(i + 1).padStart(2, '0')}`];
+    }),
+  );
+  const owners = new Map([...idMap].slice(0, ownerCount));
+  const players: QuickTestPlayer[] = state.playerOrder.map((accountId, i) => {
     const p = state.players[accountId];
-    const card = cardFromEventsFor(events, accountId);
-    const marks = marksFromEventsFor(events, accountId, card);
-    players.push({
-      accountId: displayId,
-      isOwner,
-      card,
-      marks,
+    return {
+      accountId: idMap.get(accountId) ?? accountId,
+      isOwner: i < ownerCount,
+      card: cardFromEventsFor(events, accountId),
       place: placeByAccount.get(accountId) ?? 0,
       points: p?.points ?? 0,
       seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
       shieldCharges: p?.effects.shieldCharges ?? 0,
-    });
+    };
   });
-  const ownerAccountIds = players.filter((p) => p.isOwner).map((p) => p.accountId);
   return {
     gameType: input.gameType,
     markingMode: input.markingMode,
@@ -176,10 +189,12 @@ function buildResult(args: BuildArgs): QuickTestResult {
     pointsPerMark: ruleset.scoring.pointsPerMark,
     maxSpeedBonus: ruleset.scoring.maxSpeedBonus,
     tickedPrizes: input.tickedPrizes,
-    events,
+    events: renameAccounts(events, idMap),
     players,
     stagePlan: state.stagePlan,
-    ownerAccountIds,
+    ownerAccountIds: [...owners.values()],
+    ownerStatus: ownerStatusTimeline(events, owners),
+    effectSeasons: effectSeasons(ruleset.seasons),
   };
 }
 
@@ -201,27 +216,6 @@ function cardFromEventsFor(events: readonly DomainEvent[], accountId: string): C
     ),
     seasonCells: null,
   };
-}
-
-// Walk the event log for the first round and reconstruct the final mark bitmask.
-function marksFromEventsFor(
-  events: readonly DomainEvent[],
-  accountId: string,
-  card: Card,
-): readonly boolean[] {
-  const marks = card.cells.map((cell) => cell.kind === 'free');
-  let inFirstRound = false;
-  for (const ev of events) {
-    if (ev.type === 'roundStarted') {
-      if (inFirstRound) break;
-      inFirstRound = true;
-      continue;
-    }
-    if (!inFirstRound) continue;
-    if (ev.type === 'cellMarked' && ev.accountId === accountId) marks[ev.cellIndex] = true;
-    if (ev.type === 'roundEnded') break;
-  }
-  return marks;
 }
 
 function countBits(mask: number): number {

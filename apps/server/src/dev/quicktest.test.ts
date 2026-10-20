@@ -53,3 +53,57 @@ describe('runQuickTest', () => {
     },
   );
 });
+
+describe('runQuickTest — payload for the player client', () => {
+  it('names players in every event by their display id, never by the internal id', () => {
+    const result = runQuickTest({
+      gameType: 'royale',
+      playerCount: 19,
+      ownerCards: 1,
+      seedText: 'showcase-3',
+      tickedPrizes: [],
+      markingMode: 'auto',
+    });
+    const ids = new Set(result.players.map((p) => p.accountId));
+    const named = result.events.flatMap((e) => ('accountId' in e ? [e.accountId] : []));
+    expect(named.length).toBeGreaterThan(0);
+    for (const id of named) expect(ids.has(id)).toBe(true);
+    const round = result.events.find((e) => e.type === 'roundStarted');
+    expect(Object.keys(round?.type === 'roundStarted' ? round.cardsByPlayer : {})).toContain(
+      'owner-01',
+    );
+  });
+
+  it('sends the owner effect timeline: seasons only grow, durations never negative', () => {
+    const result = runQuickTest({
+      gameType: 'royale',
+      playerCount: 19,
+      ownerCards: 1,
+      seedText: 'showcase-3',
+      tickedPrizes: [],
+      markingMode: 'auto',
+    });
+    const timeline = result.ownerStatus['owner-01'] ?? [];
+    expect(timeline.length).toBeGreaterThan(1);
+    let seasons = 0;
+    for (const entry of timeline) {
+      expect(entry.seasons.length).toBeGreaterThanOrEqual(seasons);
+      seasons = entry.seasons.length;
+      expect(entry.multiplier?.remainingDraws ?? 0).toBeGreaterThanOrEqual(0);
+    }
+    expect(result.effectSeasons).toMatchObject({ growth: 'spring', multiplier: 'summer' });
+  });
+
+  it('builds a 200-player royale within two seconds', () => {
+    const started = Date.now();
+    runQuickTest({
+      gameType: 'royale',
+      playerCount: 199,
+      ownerCards: 1,
+      seedText: 'big',
+      tickedPrizes: [],
+      markingMode: 'auto',
+    });
+    expect(Date.now() - started).toBeLessThan(2_000);
+  });
+});

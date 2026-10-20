@@ -1,0 +1,50 @@
+/**
+ * @file   apps/web/src/motion.css
+ * @module web
+ * @brief  The Quick Test animations and their reduced-motion switch (01 §13).
+ *
+ * Responsibility: one place for every animation class. Components add a class only
+ *                 when useReducedMotion() is false; the media query below is the
+ *                 second guard, so no animation runs for a viewer who asked for less.
+ * Used by:        ./main.tsx (imported once)
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+@keyframes sbr-pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes sbr-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* A cell the owner just marked. */
+.sbr-anim-mark {
+  animation: sbr-pop 180ms ease-out;
+}
+
+/* A new banner, the cut screen and the newest draw in the ticker. */
+.sbr-anim-fade {
+  animation: sbr-fade-in 250ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

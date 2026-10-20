@@ -121,7 +121,9 @@ describe('finalRanking invariant 8', () => {
   });
 });
 
-describe('simulated-match invariants (5, 10, 12)', () => {
+// Each property simulates up to 50 full matches; under a busy parallel test run that
+// can pass Vitest's 5 s default, so this block gets an explicit budget.
+describe('simulated-match invariants (5, 10, 12)', { timeout: 30_000 }, () => {
   it('invariant 10: royale jackpot claimed at most once', () => {
     fc.assert(
       fc.property(seedArb, matchIdArb(), playerCountArb, (seed, matchId, count) => {

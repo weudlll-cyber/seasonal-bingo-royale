@@ -1,48 +1,51 @@
 /**
  * @file   apps/web/src/components/Standings.tsx
  * @module web
- * @brief  Live standings: top 20 + the owner's own row if outside top 20 (WP-08).
+ * @brief  Live standings: top 20 plus the owner's own rows outside the top 20 (WP-08).
  *
- * Responsibility: show the current ranking in points-descending order with the owner
- *                 highlighted. Used by the player client's live scoreboard panel.
+ * Responsibility: show the current ranking in points-descending order, owners
+ *                 highlighted, eliminated players marked "out".
  * Depends on:     react, ../playback
- * Used by:        ../App
+ * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §13, docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
 
-import type { PlaybackView } from '../playback.js';
-import type { PlayerSummary } from '../types.js';
+import type { PlaybackView, PlayerView } from '../playback.js';
 
-export interface StandingsProps {
-  readonly view: PlaybackView;
-}
-
-export function Standings({ view }: StandingsProps): ReactElement {
+export function Standings({ view }: { view: PlaybackView }): ReactElement {
   const top = view.standings.slice(0, 20);
-  const owner = view.ownerStanding;
-  const includeOwner: boolean = owner !== null && !top.some((p) => p.accountId === owner.accountId);
+  const extraOwners = view.standings.filter((p, i) => p.isOwner && i >= 20);
   return (
     <section>
       <h3 style={{ margin: '0 0 0.25rem' }}>Standings</h3>
-      <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
+      <ol style={{ margin: 0, paddingLeft: '1.25rem' }} data-testid="standings">
         {top.map((player, i) => (
           <PlayerRow key={player.accountId} rank={i + 1} player={player} />
         ))}
-        {includeOwner && owner !== null ? (
-          <PlayerRow rank={view.standings.indexOf(owner) + 1} player={owner} />
-        ) : null}
+        {extraOwners.map((player) => (
+          <PlayerRow
+            key={player.accountId}
+            rank={view.standings.indexOf(player) + 1}
+            player={player}
+          />
+        ))}
       </ol>
     </section>
   );
 }
 
-function PlayerRow({ rank, player }: { rank: number; player: PlayerSummary }): ReactElement {
+function PlayerRow({ rank, player }: { rank: number; player: PlayerView }): ReactElement {
   return (
-    <li style={{ color: player.isOwner ? '#afb84e' : '#dfe6ee' }}>
+    <li
+      style={{
+        color: player.isOwner ? '#afb84e' : '#dfe6ee',
+        opacity: player.eliminated ? 0.6 : 1,
+      }}
+    >
       #{rank} {player.accountId} — {String(player.points)} pts · seasons{' '}
       {String(player.seasonsActivated)}
-      {player.shieldCharges > 0 && ` · shield x${String(player.shieldCharges)}`}
+      {player.eliminated ? ' · out' : ''}
     </li>
   );
 }
