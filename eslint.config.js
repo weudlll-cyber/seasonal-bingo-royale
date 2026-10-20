@@ -57,7 +57,17 @@ const NO_DEFAULT_EXPORT = [
 ];
 
 export default defineConfig(
-  { ignores: ['**/node_modules/', '**/dist/', '**/coverage/'] },
+  // Build and test output, and the git-ignored scratch folder of runs (docs/NIGHT-RUN.md).
+  {
+    ignores: [
+      '**/node_modules/',
+      '**/dist/',
+      '**/coverage/',
+      'tmp/',
+      'test-results/',
+      'playwright-report/',
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

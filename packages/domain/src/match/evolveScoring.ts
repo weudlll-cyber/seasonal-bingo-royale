@@ -152,6 +152,9 @@ export function onClassicPrize(
         ...round.classicAwards,
         { prizeKey: ev.prizeKey, accountId: ev.accountId, drawIndex: ev.drawIndex },
       ],
+      // Awarded prizes leave the outstanding list at once, so the round ends on the
+      // draw that awards the last ticked prize (01 §3a.1, roundEnd.classicEndReason).
+      outstandingPrizes: round.outstandingPrizes.filter((k) => k !== ev.prizeKey),
       cards: nextCards,
     },
   };

@@ -119,8 +119,6 @@ export function onDrawMade(state: MatchState): MatchState {
 export function onRoundEnded(state: MatchState): MatchState {
   const round = state.currentRound;
   if (round === null) return state;
-  const awardedKeys = new Set(round.classicAwards.map((a) => a.prizeKey));
-  const outstanding = round.outstandingPrizes.filter((k) => !awardedKeys.has(k));
   const jackpotWasClaimed =
     state.jackpot.claimedBy !== null && state.jackpot.claimedAtRound === round.roundIndex;
   const nextUnclaimed = jackpotWasClaimed
@@ -128,7 +126,7 @@ export function onRoundEnded(state: MatchState): MatchState {
     : state.jackpot.unclaimedRounds + 1;
   return {
     ...state,
-    currentRound: { ...round, ended: true, outstandingPrizes: outstanding },
+    currentRound: { ...round, ended: true },
     jackpot: {
       ...state.jackpot,
       unclaimedRounds: nextUnclaimed,

@@ -150,7 +150,7 @@ function prizeEventsFor(
   const relevant =
     ctx.state.gameType === 'royale' ? ctx.round.stage.activePatterns : ctx.state.tickedPrizes;
   const active = new Set(relevant);
-  const already = new Set(alreadyScored);
+  const already = new Set([...alreadyScored, ...classicPrizesClosed(ctx.round)]);
   const out: (PatternScored | ClassicPrizeAwarded)[] = [];
   for (const key of completed) {
     if (!active.has(key) || already.has(key)) continue;
@@ -160,6 +160,14 @@ function prizeEventsFor(
     already.add(key);
   }
   return out;
+}
+
+// Classic prizes already awarded on an earlier draw are closed: a prize goes only to
+// those who complete it on the draw that first completes it (01 §3a.1). Completions on
+// the same draw still win, because their award shares the current draw index.
+function classicPrizesClosed(round: RoundState): readonly string[] {
+  const currentDraw = round.draws.length - 1;
+  return round.classicAwards.filter((a) => a.drawIndex < currentDraw).map((a) => a.prizeKey);
 }
 
 function royalePattern(ctx: Context, effects: EffectState, key: string): PatternScored {
