@@ -5,7 +5,8 @@
  *
  * Responsibility: start PostgreSQL (global setup), the server on 3900 and the player
  *                 client on 5390, then run the specs in Chromium, Firefox and WebKit at a
- *                 phone viewport. Locally an already-running stack is reused.
+ *                 phone viewport. Locally an already-running stack is reused. The
+ *                 acceptance play-through runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ./devStack, ./globalSetup
  * Spec:           docs/spec/12-testing-strategy.md §2, §4; docs/spec/15-implementation-plan.md WP-08
  */
@@ -17,6 +18,9 @@ const CI = process.env['CI'] !== undefined;
 
 export default defineConfig({
   testDir: '.',
+  // The acceptance play-through (./acceptance) takes about half an hour; it runs only
+  // when asked for with SBR_ACCEPTANCE=1, never in CI.
+  testIgnore: process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'],
   outputDir: '../test-results',
   globalSetup: './globalSetup.ts',
   timeout: 90_000,

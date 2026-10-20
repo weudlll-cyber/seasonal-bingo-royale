@@ -4,7 +4,8 @@
  * @brief  Quick Test draw control (D8): one draw per step, `auto` interval or `host` draws.
  *
  * Responsibility: pure rules for how far one draw advances the event stream (exactly one
- *                 draw plus every event that belongs to it, up to the next draw) and for
+ *                 draw plus every event that belongs to it, up to the next draw, stage
+ *                 or round) and for
  *                 the draw control: `auto` draws after an interval the starter or host
  *                 sets, clamped to the ruleset's allowed range; `host` draws only on
  *                 "Draw next". The draw order is fixed by the seed; control only decides
@@ -35,12 +36,17 @@ export function firstStep(events: readonly DomainEventLike[]): number {
   return first < 0 ? events.length : first;
 }
 
-// One draw: reveal the next draw and all events up to the following draw (marks,
-// prizes, effects, round end, cut, next stage and round), or to the end of the stream.
+// Events that open the next step: the next draw, or a new stage or round.
+const STEP_START = new Set(['drawMade', 'stageStarted', 'roundStarted']);
+
+// One draw: reveal the next draw and all events that belong to it (marks, prizes,
+// effects, round end, cut), up to the following draw or the start of the next stage or
+// round, or to the end of the stream. A round's last number thus stays on screen with
+// its card for one tick; the next round's cards come with its first draw.
 export function nextStep(events: readonly DomainEventLike[], step: number): number {
   const draw = events.findIndex((e, i) => i >= step && e.type === 'drawMade');
   if (draw < 0) return events.length;
-  const following = events.findIndex((e, i) => i > draw && e.type === 'drawMade');
+  const following = events.findIndex((e, i) => i > draw && STEP_START.has(e.type));
   return following < 0 ? events.length : following;
 }
 

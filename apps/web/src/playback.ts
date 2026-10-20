@@ -58,6 +58,7 @@ export function playbackAt(result: QuickTestResult, step: number): PlaybackView 
     lastCut: state.lastCut,
     prizeWinners: state.prizeWinners,
     banners: state.banners,
+    roundOver: state.roundOver,
     finished: state.finished,
   };
 }
@@ -81,6 +82,7 @@ interface FoldState {
   banners: Banner[];
   lastCut: CutView | null;
   prizeWinners: Record<string, PrizeWin>;
+  roundOver: boolean;
   finished: boolean;
 }
 
@@ -107,6 +109,7 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
     banners: [],
     lastCut: null,
     prizeWinners: {},
+    roundOver: false,
     finished: false,
   };
   // Stage starts reset points to the server's baseline (score carry); keyed by step.
@@ -148,6 +151,7 @@ function applyLifecycle(state: FoldState, ev: DomainEventLike): boolean {
       applyCut(state, ev);
       return true;
     case 'roundEnded':
+      state.roundOver = true;
       pushBanner(state, `round-end-${String(ev.roundIndex)}`, roundEndText(ev));
       return true;
     case 'matchFinished':
@@ -166,6 +170,7 @@ function startRound(
   ev: Extract<DomainEventLike, { type: 'roundStarted' }>,
 ): void {
   state.roundIndex = ev.roundIndex;
+  state.roundOver = false;
   state.drawsSoFar = [];
   state.totalDraws = ev.drawSequence.length;
   // Every round deals new cards (royale); marks start again from the free centre.

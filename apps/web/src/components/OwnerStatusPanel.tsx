@@ -40,7 +40,12 @@ export interface OwnerStatusPanelProps {
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
   const { accountId, points, rank } = props;
   return (
-    <section data-testid={`owner-status-${accountId}`} aria-label={`${accountId} status`}>
+    <section
+      data-testid={`owner-status-${accountId}`}
+      data-points={points}
+      data-rank={rank}
+      aria-label={`${accountId} status`}
+    >
       <p style={{ margin: 0 }}>
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
       </p>
@@ -80,7 +85,7 @@ function SeasonStatus({
           shield ×{String(status?.shieldCharges ?? 0)}
         </EffectBadge>
       </div>
-      <p style={{ margin: 0 }} data-testid="seasons-collected">
+      <p style={{ margin: 0 }} data-testid="seasons-collected" data-count={collected.size}>
         Seasons collected: {String(collected.size)}/4{' '}
         {SEASON_NAMES.map((s) => (
           <SeasonIcon key={s} season={s} size="1.2rem" onColor dimmed={!collected.has(s)} />

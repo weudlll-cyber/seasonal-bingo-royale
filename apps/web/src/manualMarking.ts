@@ -6,7 +6,8 @@
  * Responsibility: pure state transitions for the owner's taps on one card. A tap on a
  *                 drawn cell marks it; inside the speed window it earns the decaying
  *                 speed bonus, later it marks without bonus. A tap on an undrawn cell is
- *                 refused. A drawn cell left open follows the starter's missed-number
+ *                 refused, and so is every tap once the round has ended. A drawn cell left
+ *                 open follows the starter's missed-number
  *                 rule: under autoMarkAfter it is marked without bonus once the delay has
  *                 passed, under noAutoMark it stays open until tapped. The owner's points
  *                 come from the server; this file only tracks marks and the bonus the
@@ -22,12 +23,15 @@ export interface ManualRules {
   readonly maxSpeedBonus: number;
   readonly speedWindowMs: number;
   readonly missedNumbers: MissedNumbers;
+  // The round has ended: taps are refused and nothing more is marked for the owner.
+  readonly roundOver?: boolean;
 }
 
 export type Feedback =
   | { readonly kind: 'marked'; readonly bonus: number }
   | { readonly kind: 'refused' }
   | { readonly kind: 'alreadyMarked' }
+  | { readonly kind: 'roundOver' }
   | { readonly kind: 'autoMarked'; readonly count: number; readonly delayMs: number };
 
 export interface ManualState {
@@ -62,6 +66,8 @@ export interface TapInput {
 export function tapCell({ state, cells, index, drawTimes, now, rules }: TapInput): ManualState {
   const cell = cells[index];
   if (cell === undefined || cell.kind === 'free') return state;
+  // The round end closes every open tap (01 §6).
+  if (rules.roundOver === true) return { ...state, feedback: { kind: 'roundOver' } };
   if (state.marks[index] === true) return { ...state, feedback: { kind: 'alreadyMarked' } };
   const drawnAt = drawTimes.get(cell.value);
   if (drawnAt === undefined) return { ...state, feedback: { kind: 'refused' } };
@@ -107,7 +113,8 @@ export function autoMarkMissed({
 }
 
 // Earliest moment an open cell is due to be marked for the owner, so the caller can
-// schedule exactly one timer; null under noAutoMark or when nothing is open.
+// schedule exactly one timer; null under noAutoMark, once the round has ended (so no
+// timer marks anything after the round end), or when nothing is open.
 export function nextAutoMark(
   state: ManualState,
   cells: readonly Cell[],
@@ -115,7 +122,7 @@ export function nextAutoMark(
   rules: ManualRules,
 ): number | null {
   const rule = rules.missedNumbers;
-  if (rule.kind !== 'autoMarkAfter') return null;
+  if (rule.kind !== 'autoMarkAfter' || rules.roundOver === true) return null;
   let next: number | null = null;
   cells.forEach((cell, i) => {
     if (cell.kind === 'free' || state.marks[i] === true) return;
@@ -138,6 +145,8 @@ export function feedbackText(feedback: Feedback | null): string {
       return 'Not drawn yet — refused';
     case 'alreadyMarked':
       return 'Already marked';
+    case 'roundOver':
+      return 'Round over — no more taps';
     case 'autoMarked':
       return `Marked ${String(feedback.count)} for you without bonus (after ${seconds(feedback.delayMs)} s)`;
   }

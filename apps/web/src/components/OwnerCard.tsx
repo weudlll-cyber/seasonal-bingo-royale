@@ -12,12 +12,13 @@
  *                 Quick Test computes the match before playback and cannot count it. In
  *                 `auto` mode the card shows the server's marks. Reports the seasons of
  *                 its marked season cells to the parent. The parent remounts it per round
- *                 (new card, new marks), so the round end closes every open tap.
+ *                 (new card, new marks); between the round end and the next round the
+ *                 last number stays on screen and every tap is refused.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
  * Used by:        ./Playback
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
 import { BingoHeader } from './BingoHeader.js';
 import { CellFace, cellBoxStyle } from './CellFace.js';
@@ -39,14 +40,16 @@ export interface OwnerCardProps {
   readonly serverMarks: readonly boolean[];
   readonly result: QuickTestResult;
   readonly drawsSoFar: readonly number[];
+  // The round has ended: its last number is shown, but taps are closed (01 §6).
+  readonly roundOver: boolean;
   // Seasons whose season cell is marked on this card, after every change of marks.
   readonly onMarkedSeasons?: (seasons: readonly Season[]) => void;
 }
 
 export function OwnerCard(props: OwnerCardProps): ReactElement {
-  const { accountId, card, serverMarks, result, drawsSoFar } = props;
+  const { accountId, card, serverMarks, result, drawsSoFar, roundOver } = props;
   const manualMode = result.markingMode === 'manual';
-  const rules: ManualRules = result;
+  const rules = useMemo<ManualRules>(() => ({ ...result, roundOver }), [result, roundOver]);
   const [manual, setManual] = useState<ManualState>(() => initialManualState(card.cells));
   const [lastTapped, setLastTapped] = useState<number | null>(null);
   const drawTimes = useDrawTimes(drawsSoFar);
@@ -144,6 +147,12 @@ function useAutoMarker({ enabled, manual, setManual, card, drawTimes, rules }: M
   }, [dueAt, setManual, card, drawTimes, rules]);
 }
 
+// The season of a season cell (Card.seasonCells is in season order), else empty.
+function seasonOfCell(card: Card, index: number): string {
+  const position = card.seasonCells?.indexOf(index) ?? -1;
+  return SEASON_NAMES[position] ?? '';
+}
+
 // Screen-reader name of a cell: "G 52", the season of a symbol cell, or "free".
 function cellName(cell: Card['cells'][number]): string {
   return cell.kind === 'free' ? 'free' : ballLabel(cell.value);
@@ -184,6 +193,7 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
             data-testid={`owner-cell-${String(i)}`}
             data-value={cell.kind === 'free' ? '' : String(cell.value)}
             data-marked={marked ? 'true' : 'false'}
+            data-season={seasonOfCell(card, i)}
             className={animate ? 'sbr-anim-mark' : undefined}
             style={cellBoxStyle(card, i, marked)}
           >

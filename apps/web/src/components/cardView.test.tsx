@@ -48,6 +48,7 @@ describe('card view (D7)', () => {
         serverMarks={[]}
         result={result}
         drawsSoFar={[1]}
+        roundOver={false}
       />,
     );
     const cell = screen.getByRole('button', { name: 'B 1' });

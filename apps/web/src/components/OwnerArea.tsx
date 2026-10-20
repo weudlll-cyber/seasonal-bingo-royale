@@ -63,6 +63,7 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
                 serverMarks={owner.marks[cardIndex] ?? []}
                 result={result}
                 drawsSoFar={view.drawsSoFar}
+                roundOver={view.roundOver}
                 onMarkedSeasons={(seasons) => {
                   addSeasons(owner.accountId, seasons);
                 }}

@@ -50,6 +50,7 @@ function renderAnimatedParts(): void {
       serverMarks={[]}
       result={result}
       drawsSoFar={[1]}
+      roundOver={false}
     />,
   );
   fireEvent.click(screen.getAllByTestId('owner-cell-0').at(-1) as HTMLElement);

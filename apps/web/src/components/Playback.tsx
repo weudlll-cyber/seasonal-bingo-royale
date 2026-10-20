@@ -69,7 +69,12 @@ function Header({ result, view }: PlaybackProps): ReactElement {
   const stage = result.stagePlan[view.currentStage];
   const showStage = result.gameType === 'royale' && stage !== undefined;
   return (
-    <header data-testid="stage-banner">
+    <header
+      data-testid="stage-banner"
+      data-round={view.currentRound}
+      data-draws={view.drawsSoFar.length}
+      data-round-over={view.roundOver ? 'true' : 'false'}
+    >
       <h2 style={{ margin: '0 0 .25rem' }}>
         {result.gameType}
         {showStage ? ` — stage ${String(view.currentStage + 1)} (${stage.kind})` : ''}

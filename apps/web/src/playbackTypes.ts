@@ -53,5 +53,7 @@ export interface PlaybackView {
   // Classic types: winners per prize key, with the draw number that awarded it.
   readonly prizeWinners: Readonly<Record<string, PrizeWin>>;
   readonly banners: readonly Banner[];
+  // The current round has ended: its last number is still shown, but taps are closed.
+  readonly roundOver: boolean;
   readonly finished: boolean;
 }

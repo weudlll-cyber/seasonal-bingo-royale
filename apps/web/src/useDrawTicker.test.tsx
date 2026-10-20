@@ -57,8 +57,10 @@ describe('useDrawTicker — auto', () => {
     advance(1);
     expect(hook.current.step).toBe(5); // draw 1 with its mark and season activation
     advance(DRAW_MS);
-    expect(hook.current.step).toBe(11); // draw 2, round end, cut, next stage and round
+    // Draw 2 is the round's last: shown with its round end and cut, before the next stage.
+    expect(hook.current.step).toBe(9);
     advance(DRAW_MS);
+    // Next stage and round come with their first draw, then the match ends.
     expect(hook.current.step).toBe(result.events.length);
   });
 
