@@ -6,6 +6,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 ### Implementation
 
+- WP-07 Domain: royale structure AND classic round flow — reopened 2026-10-20: lifecycle, round-end conditions, score carry and full-match tests were missing
 - WP-08 … WP-30 (docs/spec/15-implementation-plan.md) — not started
 
 ### Needed from the website repository (Phase 6 only)
@@ -33,4 +34,3 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | WP-04 Contracts: ruleset schema and defaults                                                                         | Branch feat/wp-04-contracts                          | 2026-10-20 |
 | WP-05 Domain: cards, draws, patterns, commitment                                                                     | Branch feat/wp-05-domain-core                        | 2026-10-20 |
 | WP-06 Domain: scoring and seasons                                                                                    | Branch feat/wp-06-scoring                            | 2026-10-20 |
-| WP-07 Domain: royale structure AND classic round flow                                                                | Branch feat/wp-07-match-flow                         | 2026-10-20 |
