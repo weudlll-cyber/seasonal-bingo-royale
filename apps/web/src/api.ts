@@ -10,15 +10,17 @@
  * Used by:        ./App
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
-import type { GameType, QuickTestResult } from './types.js';
+import type { GameType, MarkingMode, QuickTestResult } from './types.js';
 
 const SERVER_URL = 'http://127.0.0.1:3900/dev/quicktest';
 
 export interface StartQuickTestInput {
   readonly gameType: GameType;
   readonly playerCount: number;
+  readonly ownerCards: number;
   readonly tickedPrizes: readonly string[];
   readonly seedText: string;
+  readonly markingMode: MarkingMode;
 }
 
 export async function startQuickTest(input: StartQuickTestInput): Promise<QuickTestResult> {

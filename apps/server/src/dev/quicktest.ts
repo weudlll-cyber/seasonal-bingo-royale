@@ -1,115 +1,239 @@
 /**
  * @file   apps/server/src/dev/quicktest.ts
  * @module server/dev
- * @brief  In-memory Quick Test match runner for the browser (WP-08).
+ * @brief  In-memory Quick Test match runner driven by the real lifecycle (WP-08).
  *
- * Responsibility: given a seed, game type, player count and the ticked prize keys,
- *                 generate cards for the bot players, simulate one round through the
- *                 domain and return the full result as a JSON-friendly payload the
- *                 player client renders. Available only in non-production builds.
- * Depends on:     @sbr/domain
+ * Responsibility: given a seed, game type, bot count, owner-card count and ticked
+ *                 prize keys, run a complete match through the WP-07 lifecycle and
+ *                 return a JSON-friendly payload the player client renders. All three
+ *                 game types use `simulateMatch`; the owner's cards sit at the top of
+ *                 the player order (ids starting with "owner-") so the client can tell
+ *                 them from bots. Determinism (01 §9, 12 §3 inv. 2): the same input
+ *                 always returns the same output, including the owner's cards and
+ *                 auto-mark positions.
+ * Depends on:     @sbr/domain, @sbr/contracts (defaults)
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §13
  */
 import { createHash } from 'node:crypto';
 
 import {
-  BUILTIN_PRIZE_CATALOGUE_ORDER,
-  classicPlacement,
-  generateCard,
+  classicRealtimeDefault,
+  classicSeasonsRealtimeDefault,
+  royaleRealtimeDefault,
+  BUILTIN_PRIZE_POINTS,
+  type Ruleset,
+} from '@sbr/contracts';
+import {
   SEED_BYTES,
-  simulateClassicRound,
+  simulateMatch,
   type Card,
-  type ClassicPlayer,
+  type DomainEvent,
   type GameType,
+  type MatchRuleset,
+  type MatchState,
 } from '@sbr/domain';
 
 export interface QuickTestInput {
   readonly gameType: GameType;
   readonly playerCount: number;
+  readonly ownerCards: number;
   readonly tickedPrizes: readonly string[];
   readonly seedText: string;
+  readonly markingMode: 'auto' | 'manual';
+}
+
+export interface QuickTestPlayer {
+  readonly accountId: string;
+  readonly isOwner: boolean;
+  readonly card: Card;
+  readonly marks: readonly boolean[];
+  readonly place: number;
+  readonly points: number;
+  readonly seasonsActivated: number;
+  readonly shieldCharges: number;
 }
 
 export interface QuickTestResult {
   readonly gameType: GameType;
-  readonly draws: readonly number[];
-  readonly players: ReadonlyArray<{
-    readonly accountId: string;
-    readonly card: Card;
-    readonly marks: readonly boolean[];
-    readonly place: number;
-    readonly prizesWon: readonly string[];
-  }>;
-  readonly awards: ReadonlyArray<{
-    readonly prizeKey: string;
-    readonly accountId: string;
-    readonly drawIndex: number;
-  }>;
+  readonly markingMode: 'auto' | 'manual';
+  readonly drawIntervalMs: number;
+  readonly speedWindowMs: number;
+  readonly pointsPerMark: number;
+  readonly maxSpeedBonus: number;
+  readonly tickedPrizes: readonly string[];
+  readonly events: readonly DomainEvent[];
+  readonly players: readonly QuickTestPlayer[];
+  readonly stagePlan: MatchState['stagePlan'];
+  readonly ownerAccountIds: readonly string[];
 }
+
+const OWNER_PREFIX = 'owner-';
+const BOT_PREFIX = 'bot-';
 
 export function runQuickTest(input: QuickTestInput): QuickTestResult {
   const seed = seedFromText(input.seedText);
-  const matchId = `quicktest-${input.gameType}-${input.seedText}`;
-  const players = buildPlayers(matchId, input, seed);
-  const result = simulateClassicRound({
-    seed,
+  const ruleset = contractsRulesetFor(input.gameType);
+  const matchRuleset = toMatchRuleset(ruleset, input.markingMode);
+  const totalPlayers = Math.max(1, input.ownerCards) + input.playerCount;
+  const matchId = `qt-${input.gameType}-${input.seedText}`;
+  const sim = simulateMatch({
     matchId,
-    roundIndex: 0,
+    seed,
     gameType: input.gameType,
-    players,
+    ruleset: matchRuleset,
+    playerCount: totalPlayers,
     tickedPrizes: input.tickedPrizes,
   });
-  const places = classicPlacement(
-    players,
-    result.awards,
-    result.marksByAccount,
-    BUILTIN_PRIZE_CATALOGUE_ORDER,
-  );
-  const placeByAccount = new Map(places.map((p) => [p.accountId, p]));
+  const ownerCount = Math.max(0, Math.min(4, input.ownerCards));
+  return buildResult({ input, ruleset, events: sim.events, state: sim.state, ownerCount });
+}
+
+function contractsRulesetFor(gameType: GameType): Ruleset {
+  if (gameType === 'royale') return royaleRealtimeDefault;
+  if (gameType === 'classicSeasons') return classicSeasonsRealtimeDefault;
+  return classicRealtimeDefault;
+}
+
+function toMatchRuleset(ruleset: Ruleset, markingMode: 'auto' | 'manual'): MatchRuleset {
+  const stages =
+    ruleset.stages === undefined
+      ? classicPlaceholderStages()
+      : ruleset.stages.map((s) => {
+          const base = {
+            kind: s.kind,
+            rounds: s.rounds,
+            roundEnd: s.roundEnd,
+            scoreCarry: s.scoreCarry,
+            stageMultiplier: s.stageMultiplier,
+            activePatterns: [...s.activePatterns],
+          };
+          return s.cut === undefined ? base : { ...base, cut: s.cut };
+        });
   return {
-    gameType: input.gameType,
-    draws: result.draws,
-    players: players.map((player) => {
-      const marks = result.marksByAccount[player.accountId] ?? [];
-      const placement = placeByAccount.get(player.accountId);
-      return {
-        accountId: player.accountId,
-        card: player.card,
-        marks,
-        place: placement?.place ?? 0,
-        prizesWon: placement?.prizesWon ?? [],
-      };
-    }),
-    awards: result.awards,
+    mode: ruleset.mode === 'async' ? 'async' : 'realtime',
+    markingMode,
+    cardsPerPlayer: ruleset.general.cardsPerPlayer,
+    freeCenter: ruleset.general.freeCenter,
+    pointsPerMark: ruleset.scoring.pointsPerMark,
+    firstToPatternBonusPercent: ruleset.scoring.firstToPatternBonusPercent,
+    pointsByPrizeKey: BUILTIN_PRIZE_POINTS,
+    seasons: ruleset.seasons,
+    seasonComplete: ruleset.seasonComplete ?? { points: 0, effect: { type: 'none' } },
+    jackpot: ruleset.jackpot ?? { base: 0, growthPerRound: 0 },
+    stages,
   };
 }
 
-function buildPlayers(
-  matchId: string,
-  input: QuickTestInput,
-  seed: Uint8Array,
-): readonly ClassicPlayer[] {
-  return Array.from({ length: input.playerCount }, (_v, i): ClassicPlayer => {
-    const accountId = `bot-${String(i + 1).padStart(2, '0')}`;
-    return {
-      accountId,
-      joinedAt: i,
-      card: generateCard({
-        seed,
-        matchId,
-        roundIndex: 0,
-        accountId,
-        cardIndex: 0,
-        gameType: input.gameType,
-        freeCenter: true,
-      }),
-    };
-  });
+function classicPlaceholderStages(): MatchRuleset['stages'] {
+  return [
+    {
+      kind: 'final',
+      rounds: 1,
+      roundEnd: { kind: 'firstFullHouse' },
+      scoreCarry: { kind: 'reset' },
+      stageMultiplier: 1,
+      activePatterns: [],
+    },
+  ];
 }
 
-// Hash the owner-supplied text (e.g. "spring-10") into a 32-byte seed. Keeps the
-// Quick Test friendly: the owner types a short label, the DRBG gets a full-width seed.
+interface BuildArgs {
+  readonly input: QuickTestInput;
+  readonly ruleset: Ruleset;
+  readonly events: readonly DomainEvent[];
+  readonly state: MatchState;
+  readonly ownerCount: number;
+}
+
+function buildResult(args: BuildArgs): QuickTestResult {
+  const { input, ruleset, events, state, ownerCount } = args;
+  const placeByAccount = new Map(state.finalPlacement.map((p) => [p.accountId, p.place]));
+  const players: QuickTestPlayer[] = [];
+  state.playerOrder.forEach((accountId, i) => {
+    const isOwner = i < ownerCount;
+    const displayId = `${isOwner ? OWNER_PREFIX : BOT_PREFIX}${String(i + 1).padStart(2, '0')}`;
+    const p = state.players[accountId];
+    const card = cardFromEventsFor(events, accountId);
+    const marks = marksFromEventsFor(events, accountId, card);
+    players.push({
+      accountId: displayId,
+      isOwner,
+      card,
+      marks,
+      place: placeByAccount.get(accountId) ?? 0,
+      points: p?.points ?? 0,
+      seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
+      shieldCharges: p?.effects.shieldCharges ?? 0,
+    });
+  });
+  const ownerAccountIds = players.filter((p) => p.isOwner).map((p) => p.accountId);
+  return {
+    gameType: input.gameType,
+    markingMode: input.markingMode,
+    drawIntervalMs: ruleset.draws.intervalMsRealtime,
+    speedWindowMs: ruleset.marking.speedWindowMs,
+    pointsPerMark: ruleset.scoring.pointsPerMark,
+    maxSpeedBonus: ruleset.scoring.maxSpeedBonus,
+    tickedPrizes: input.tickedPrizes,
+    events,
+    players,
+    stagePlan: state.stagePlan,
+    ownerAccountIds,
+  };
+}
+
+// Pull the card for a given account out of the first roundStarted event. Cards are
+// deterministic per (seed, matchId, roundIndex, accountId, cardIndex), so showing the
+// first-round card is enough for the owner's view; later rounds are only interesting
+// in royale and the browser already projects per-round state from the event stream.
+function cardFromEventsFor(events: readonly DomainEvent[], accountId: string): Card {
+  for (const ev of events) {
+    if (ev.type !== 'roundStarted') continue;
+    const cards = ev.cardsByPlayer[accountId];
+    if (cards !== undefined && cards.length > 0 && cards[0] !== undefined) return cards[0];
+  }
+  // No roundStarted recorded a card for this account (should not happen); return an
+  // empty 25-cell placeholder so the client renders a blank grid instead of crashing.
+  return {
+    cells: Array.from({ length: 25 }, (_v, i) =>
+      i === 12 ? { kind: 'free' as const } : { kind: 'number' as const, value: 0 },
+    ),
+    seasonCells: null,
+  };
+}
+
+// Walk the event log for the first round and reconstruct the final mark bitmask.
+function marksFromEventsFor(
+  events: readonly DomainEvent[],
+  accountId: string,
+  card: Card,
+): readonly boolean[] {
+  const marks = card.cells.map((cell) => cell.kind === 'free');
+  let inFirstRound = false;
+  for (const ev of events) {
+    if (ev.type === 'roundStarted') {
+      if (inFirstRound) break;
+      inFirstRound = true;
+      continue;
+    }
+    if (!inFirstRound) continue;
+    if (ev.type === 'cellMarked' && ev.accountId === accountId) marks[ev.cellIndex] = true;
+    if (ev.type === 'roundEnded') break;
+  }
+  return marks;
+}
+
+function countBits(mask: number): number {
+  let count = 0;
+  let m = mask;
+  while (m > 0) {
+    count += m & 1;
+    m >>= 1;
+  }
+  return count;
+}
+
 function seedFromText(text: string): Uint8Array {
   const bytes = new Uint8Array(createHash('sha256').update(text).digest());
   return bytes.slice(0, SEED_BYTES);

@@ -17,12 +17,14 @@ import { runQuickTest } from '../../dev/quicktest.js';
 
 const bodySchema = z.object({
   gameType: z.enum(['royale', 'classicSeasons', 'classic']),
-  playerCount: z.number().int().min(1).max(50),
+  // Up to 199 bots so a 200-player royale with one owner card still fits (01 §7.6).
+  playerCount: z.number().int().min(3).max(199),
+  ownerCards: z.number().int().min(1).max(4),
   seedText: z.string().min(1).max(64),
   tickedPrizes: z
     .array(z.string().min(1))
-    .nonempty()
     .refine((list) => new Set(list).size === list.length, { error: 'duplicate prize key' }),
+  markingMode: z.enum(['auto', 'manual']),
 });
 
 export function registerQuickTest(app: FastifyInstance): void {

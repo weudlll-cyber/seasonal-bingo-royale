@@ -13,4 +13,4 @@
 
 export const PACKAGE_NAME = '@sbr/web';
 
-export type { Award, Cell, GameType, PlayerResult, QuickTestResult } from './types.js';
+export type { Cell, GameType, PlayerSummary, QuickTestResult } from './types.js';

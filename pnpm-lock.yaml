@@ -212,6 +212,9 @@ importers:
       '@fastify/helmet':
         specifier: 13.2.0
         version: 13.2.0
+      '@sbr/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@sbr/domain':
         specifier: workspace:*
         version: link:../../packages/domain

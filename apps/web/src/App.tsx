@@ -1,106 +1,65 @@
 /**
  * @file   apps/web/src/App.tsx
  * @module web
- * @brief  Quick Test page: start form on the left, playback on the right (WP-08).
+ * @brief  Quick Test page: start form, playback, owner-plays-with-bots (WP-08).
  *
- * Responsibility: wire the form to the dev server, step through the returned draws at
- *                 a human-visible cadence, show cards, draws, awards and the final
- *                 placement. All of it respects the dev-only context: the dev badge
- *                 renders in the corner (08 §1.1).
- * Depends on:     react, ./api, ./types, ./components/*
- * Spec:           docs/spec/15-implementation-plan.md WP-08
+ * Responsibility: wire the start form, drive the lifecycle playback through a timer at
+ *                 the owner's chosen pace, dispatch to Playback for the match-wide view.
+ *                 All strings in English (01 §13); animations respect
+ *                 prefers-reduced-motion (handled per component).
+ * Depends on:     react, ./api, ./types, ./playback, ./components/*
+ * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §13
  */
 import { useEffect, useMemo, useState, type ReactElement } from 'react';
 
 import { startQuickTest, type StartQuickTestInput } from './api.js';
-import { CardGrid } from './components/CardGrid.js';
 import { DevBadge } from './components/DevBadge.js';
-import { DrawTicker } from './components/DrawTicker.js';
 import { StartForm } from './components/StartForm.js';
+import { Playback } from './components/Playback.js';
+import { playbackAt } from './playback.js';
 import type { QuickTestResult } from './types.js';
 
-interface AppState {
-  readonly result: QuickTestResult | null;
-  readonly error: string | null;
-  readonly busy: boolean;
-  readonly step: number;
-}
+type PaceLabel = 'slower' | 'realtime' | 'faster' | 'skip';
 
-function useQuickTest(): {
-  readonly state: AppState;
-  readonly run: (input: StartQuickTestInput) => void;
-} {
+export function App(): ReactElement {
   const [result, setResult] = useState<QuickTestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(0);
-  const totalDraws = result?.draws.length ?? 0;
-
-  useEffect(() => {
-    if (result === null) return undefined;
-    if (step >= totalDraws - 1) return undefined;
-    const timer = setTimeout(() => {
-      setStep((n) => n + 1);
-    }, 400);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [result, step, totalDraws]);
-
+  const [pace, setPace] = useState<PaceLabel>('realtime');
   const run = (input: StartQuickTestInput): void => {
     setBusy(true);
     setError(null);
     setStep(0);
     startQuickTest(input)
-      .then((response) => {
-        setResult(response);
+      .then((r) => {
+        setResult(r);
       })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+      .catch((e: unknown) => {
+        setError(e instanceof Error ? e.message : 'Unknown error');
       })
       .finally(() => {
         setBusy(false);
       });
   };
-
-  return { state: { result, error, busy, step }, run };
-}
-
-export function App(): ReactElement {
-  const { state, run } = useQuickTest();
-  const marksAt = useMemo(
-    () => progressiveMarks(state.result, state.step),
-    [state.result, state.step],
-  );
-  const awardsSoFar = useMemo(
-    () => (state.result?.awards ?? []).filter((a) => a.drawIndex <= state.step),
-    [state.result, state.step],
-  );
+  const view = useMemo(() => (result === null ? null : playbackAt(result, step)), [result, step]);
+  useEventTicker({ result, step, setStep, pace });
   return (
-    <main
-      style={{
-        padding: '1.5rem',
-        display: 'grid',
-        gridTemplateColumns: '20rem 1fr',
-        gap: '1.5rem',
-      }}
-    >
+    <main style={layoutStyle}>
       <section>
         <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Seasonal Bingo Royale — Quick Test</h1>
-        <p style={{ color: '#9aa5b2' }}>Pick a seed and press run.</p>
-        <StartForm onStart={run} busy={state.busy} />
-        {state.error !== null && <p style={{ color: '#ff7a7a' }}>Error: {state.error}</p>}
+        <p style={{ color: '#9aa5b2' }}>
+          Pick a seed, who you play with and against, and press run.
+        </p>
+        <StartForm onStart={run} busy={busy} />
+        {error !== null && <p style={{ color: '#ff7a7a' }}>Error: {error}</p>}
+        <PaceControl value={pace} onChange={setPace} />
       </section>
       <section>
-        {state.result === null ? (
+        {result === null || view === null ? (
           <p style={{ color: '#9aa5b2' }}>Nothing yet. Fill in the form and press run.</p>
         ) : (
-          <Playback
-            result={state.result}
-            step={state.step}
-            marksAt={marksAt}
-            awardsSoFar={awardsSoFar}
-          />
+          <Playback result={result} view={view} />
         )}
       </section>
       <DevBadge />
@@ -108,81 +67,85 @@ export function App(): ReactElement {
   );
 }
 
-interface PlaybackProps {
-  readonly result: QuickTestResult;
+const layoutStyle: React.CSSProperties = {
+  padding: '1.5rem',
+  display: 'grid',
+  gridTemplateColumns: '22rem 1fr',
+  gap: '1.5rem',
+};
+
+interface TickerArgs {
+  readonly result: QuickTestResult | null;
   readonly step: number;
-  readonly marksAt: ReadonlyMap<string, readonly boolean[]>;
-  readonly awardsSoFar: readonly QuickTestResult['awards'][number][];
+  readonly setStep: (next: number | ((prev: number) => number)) => void;
+  readonly pace: PaceLabel;
 }
 
-function Playback({ result, step, marksAt, awardsSoFar }: PlaybackProps): ReactElement {
-  const finished = step >= result.draws.length - 1;
+function useEventTicker(args: TickerArgs): void {
+  const { result, step, setStep, pace } = args;
+  const paused = pace === 'skip';
+  const intervalMs = paceInterval(pace, result?.drawIntervalMs ?? 1_000);
+  useEffect(() => {
+    if (result === null) return undefined;
+    if (step >= result.events.length) return undefined;
+    const budget = paused ? 50 : perTickBudget(pace);
+    const ms = paused ? 10 : intervalMs;
+    const id = window.setInterval(() => {
+      setStep((n) => Math.min(n + budget, result.events.length));
+    }, ms);
+    return () => {
+      window.clearInterval(id);
+    };
+  }, [result, step, pace, intervalMs, paused, setStep]);
+}
+
+function paceInterval(pace: PaceLabel, baseMs: number): number {
+  if (pace === 'slower') return Math.max(50, baseMs);
+  if (pace === 'faster') return Math.max(10, Math.round(baseMs / 4));
+  if (pace === 'skip') return 1;
+  return Math.max(20, Math.round(baseMs / 2));
+}
+
+function perTickBudget(pace: PaceLabel): number {
+  if (pace === 'faster') return 8;
+  if (pace === 'slower') return 1;
+  return 4;
+}
+
+function PaceControl({
+  value,
+  onChange,
+}: {
+  value: PaceLabel;
+  onChange: (p: PaceLabel) => void;
+}): ReactElement {
   return (
-    <div style={{ display: 'grid', gap: '1rem' }}>
-      <div>
-        <h2 style={{ margin: '0 0 .5rem' }}>
-          {result.gameType} — draw {step + 1} / {result.draws.length}
-        </h2>
-        <DrawTicker draws={result.draws} stepIndex={step} />
-      </div>
-      <div>
-        <h3 style={{ margin: '0 0 .25rem' }}>Awards so far</h3>
-        {awardsSoFar.length === 0 ? (
-          <p style={{ color: '#9aa5b2', margin: 0 }}>No prizes awarded yet.</p>
-        ) : (
-          <ul style={{ margin: 0 }}>
-            {awardsSoFar.map((award, i) => (
-              <li key={`${award.prizeKey}-${award.accountId}-${String(i)}`}>
-                draw #{award.drawIndex + 1}: <strong>{award.accountId}</strong> wins{' '}
-                <em>{award.prizeKey}</em>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(14rem, 1fr))',
-          gap: '1rem',
-        }}
-      >
-        {result.players.map((player) => (
-          <div
-            key={player.accountId}
-            style={{ background: '#1a2130', padding: '0.5rem', borderRadius: '0.5rem' }}
-          >
-            <CardGrid
-              accountId={player.accountId}
-              cells={player.card.cells}
-              marks={marksAt.get(player.accountId) ?? []}
-            />
-            {finished && (
-              <p style={{ margin: '0.5rem 0 0', color: '#9aa5b2' }}>
-                place #{player.place} · prizes: {player.prizesWon.join(', ') || 'none'}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
+    <div role="group" aria-label="Draw pace" style={{ marginTop: '0.75rem' }}>
+      {(['slower', 'realtime', 'faster', 'skip'] as const).map((label) => (
+        <button
+          key={label}
+          type="button"
+          onClick={() => {
+            onChange(label);
+          }}
+          aria-pressed={value === label}
+          style={paceButtonStyle(value === label)}
+        >
+          {label === 'skip' ? 'skip to end' : label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function progressiveMarks(
-  result: QuickTestResult | null,
-  step: number,
-): ReadonlyMap<string, readonly boolean[]> {
-  const map = new Map<string, readonly boolean[]>();
-  if (result === null) return map;
-  const drawnSet = new Set(result.draws.slice(0, step + 1));
-  for (const player of result.players) {
-    const marks = player.card.cells.map((cell) => {
-      if (cell.kind === 'free') return true;
-      if (cell.kind === 'number') return drawnSet.has(cell.value);
-      return drawnSet.has(cell.value);
-    });
-    map.set(player.accountId, marks);
-  }
-  return map;
+function paceButtonStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '0.35rem 0.65rem',
+    marginRight: '0.3rem',
+    background: active ? '#2a3a56' : '#1a2130',
+    color: '#e6edf7',
+    border: active ? '1px solid #3b73c8' : '1px solid #223',
+    borderRadius: '0.3rem',
+    cursor: 'pointer',
+  };
 }
