@@ -109,7 +109,18 @@ async function afterDraw(t: Table): Promise<boolean> {
   const hostItem = await currentItem(t.host);
   let cut = false;
   for (const p of t.players) {
-    await expect.poll(() => currentItem(p.page), { timeout: 5_000 }).toBe(hostItem);
+    // The host's number is on the screen: as the current ball, or already in the strip
+    // when the next timed draw came while earlier players were being checked. Between
+    // rounds the host shows no number yet; then neither may the player.
+    await expect
+      .poll(
+        async () =>
+          hostItem === null
+            ? (await currentItem(p.page)) === null
+            : (await liveSnap(p.page)).ticker.includes(hostItem),
+        { timeout: 5_000 },
+      )
+      .toBe(true);
     const s = await liveSnap(p.page);
     checkPlayer(s, p.who);
     await handlePending(p, s);

@@ -141,6 +141,17 @@
   .shell-account .sbr-btn {
     flex: none;
     padding: 0 0.7rem;
+    white-space: nowrap;
+  }
+
+  /* The chip names the account and role; "Signed in as" is read out, not shown */
+  .shell-account .chip-prefix {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 

@@ -4,8 +4,8 @@
  * @brief  Screenshots for the reports: the viewport in the light and in the dark theme.
  *
  * Responsibility: save what a person sees in the browser window (the viewport) in both
- *                 themes; the theme is switched on <html> in place, as the toggle does, so
- *                 a running match is not reloaded, and the page's own theme is put back.
+ *                 themes, switched with the top bar's own toggle (no reload, so a running
+ *                 match goes on); the page's theme is put back afterwards.
  *                 `captureLook` adds the desktop (1280×800) and phone (390×844) size.
  * Depends on:     @playwright/test, node:path
  * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts
@@ -13,23 +13,30 @@
  */
 import path from 'node:path';
 
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 export const DESKTOP = { width: 1280, height: 800 };
 export const PHONE = { width: 390, height: 844 };
 
+const themeNow = (page: Page) =>
+  page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+
+// Presses the top bar's toggle until <html> carries the theme (the icon follows).
+async function setTheme(page: Page, theme: string): Promise<void> {
+  if ((await themeNow(page)) !== theme) await page.getByTestId('theme-toggle').click();
+  await expect.poll(() => themeNow(page)).toBe(theme);
+  // Buttons fade their background (160 ms): the picture waits until the fade is done.
+  await page.waitForTimeout(400);
+}
+
 // <name>-light.jpg and <name>-dark.jpg.
 export async function captureThemes(page: Page, dir: string, name: string): Promise<void> {
-  const before = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  const before = (await themeNow(page)) ?? 'light';
   for (const theme of ['light', 'dark'] as const) {
-    await page.evaluate((t) => {
-      document.documentElement.setAttribute('data-theme', t);
-    }, theme);
+    await setTheme(page, theme);
     await page.screenshot({ path: path.join(dir, `${name}-${theme}.jpg`), quality: 75 });
   }
-  await page.evaluate((t) => {
-    document.documentElement.setAttribute('data-theme', t ?? 'light');
-  }, before);
+  await setTheme(page, before);
 }
 
 // Both sizes and both themes: <name>-desktop-light.jpg … <name>-phone-dark.jpg.

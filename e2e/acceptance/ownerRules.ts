@@ -28,6 +28,8 @@ export async function checkShortestIntervalForm(host: Page): Promise<void> {
   await expect(host.getByTestId('create-interval-problem')).toContainText('at least 6 seconds');
   await host.getByTestId('start-draw-interval').fill('6');
   await expect(host.getByTestId('create-interval-problem')).toHaveCount(0);
+  // A fresh form for the match that follows (the form keeps its values while mounted).
+  await host.reload();
 }
 
 // D12 in the console: a too-short interval is not sent; the message says why.

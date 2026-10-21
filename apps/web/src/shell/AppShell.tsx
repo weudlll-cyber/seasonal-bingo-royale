@@ -88,7 +88,8 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
       {session?.account ? (
         <>
           <span className="sbr-chip" data-testid="signed-in-as">
-            Signed in as {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
+            <span className="chip-prefix">Signed in as </span>
+            {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
           </span>
           <button type="button" className="sbr-btn" onClick={() => void signOut()}>
             Sign out
