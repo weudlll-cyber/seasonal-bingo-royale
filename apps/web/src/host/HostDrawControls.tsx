@@ -84,21 +84,24 @@ export function HostDrawControls({
       aria-label="Draw control"
       data-testid="host-draw-controls"
     >
-      <button
-        type="button"
-        className="sbr-btn sbr-btn--primary host-draw"
-        data-testid="host-draw-next"
-        disabled={!canDraw}
-        onClick={drawNext}
-      >
-        Draw next
-      </button>
+      {/* Draw next exists for host draws only; timed draws need nothing pressed. */}
+      {hostMode ? (
+        <button
+          type="button"
+          className="sbr-btn sbr-btn--primary host-draw"
+          data-testid="host-draw-next"
+          disabled={!canDraw}
+          onClick={drawNext}
+        >
+          Draw next
+        </button>
+      ) : null}
       <p className="sbr-muted">
         {hostMode
           ? canDraw
             ? 'Press Draw next or the Space key.'
             : 'Draw next opens when the speed window of the last number has closed.'
-          : `Timed draws every ${String(settings.drawIntervalMs / 1000)} seconds.`}
+          : `Numbers are drawn every ${String(settings.drawIntervalMs / 1000)} seconds. Switch to Host draws to draw them yourself.`}
       </p>
       <ModeSwitch code={code} settings={settings} onAnswer={setNote} />
       {note !== null ? <p className="lobby-error">{note}</p> : null}

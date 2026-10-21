@@ -236,9 +236,13 @@
 
 @media (min-width: 960px) {
   .host-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
     align-items: start;
   }
+}
+
+.host-end {
+  grid-column: 1 / -1;
 }
 
 .host-draw {

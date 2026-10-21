@@ -22,8 +22,9 @@ import { FinalPlacement } from '../components/FinalPlacement.js';
 import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
+import { EndActions } from '../game/EndActions.js';
 import '../game/game.css';
-import { gameTypeName, problemText, rulesLine, statusName } from '../game/labels.js';
+import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
@@ -38,15 +39,21 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
   const view = playbackAt(live.view, live.view.events.length);
   return (
     <div className="sbr-stack" data-testid="host-console">
-      <header>
-        <h1>{live.match.title}</h1>
-        <p className="sbr-muted">
-          Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
-          {gameTypeName(live.match.gameType)} · {rulesLine(live.match)} ·{' '}
-          <span data-testid="host-status" data-status={live.match.status}>
-            {statusName(live.match.status)}
-          </span>
-        </p>
+      <header className="arena-head">
+        <div>
+          <h1>{live.match.title}</h1>
+          <p className="sbr-muted">
+            Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
+            <span data-testid="host-status" data-status={live.match.status}>
+              {statusName(live.match.status)}
+            </span>
+            {live.match.status === 'lobby' ? null : ` · ${progressText(live, view)}`}
+          </p>
+          <p className="sbr-muted">
+            {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}
+          </p>
+        </div>
+        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
       </header>
       {live.match.status === 'lobby' ? (
         <HostLobby live={live} view={view} />
@@ -123,21 +130,35 @@ function HostLive({
   const running = live.match.status === 'running';
   return (
     <div className="host-grid">
-      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
+      {view.finished ? (
+        <div className="sbr-stack host-end">
+          <FinalPlacement result={result} view={view} />
+          <EndActions host />
+        </div>
+      ) : null}
       <section className="sbr-stack">
         <CurrentBall
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
           roundOver={view.roundOver}
+          finished={view.finished}
         />
-        <DrawTicker draws={view.drawsSoFar} speedWindowMs={result.speedWindowMs} />
+        <DrawTicker
+          draws={view.drawsSoFar}
+          speedWindowMs={result.speedWindowMs}
+          showWindow={!view.finished}
+        />
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <Abort code={live.match.code} /> : null}
       </section>
+      {/* The log first, so a cut and its result are in view; at the end the final
+          placement replaces the live standings. */}
       <aside className="sbr-stack">
-        <Standings view={view} showSeasons={result.gameType === 'royale'} />
         <MatchLog banners={view.banners} />
+        {view.finished ? null : (
+          <Standings view={view} showSeasons={result.gameType === 'royale'} />
+        )}
       </aside>
     </div>
   );

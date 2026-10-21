@@ -19,6 +19,8 @@ export interface SeasonIconProps {
   readonly size?: string;
   readonly onColor?: boolean;
   readonly dimmed?: boolean;
+  // A dark silhouette, for an icon placed on its own season colour (badges).
+  readonly ink?: boolean;
 }
 
 export function SeasonIcon({
@@ -26,6 +28,7 @@ export function SeasonIcon({
   size = '1rem',
   onColor = false,
   dimmed = false,
+  ink = false,
 }: SeasonIconProps): ReactElement {
   return (
     <img
@@ -40,6 +43,7 @@ export function SeasonIcon({
         borderRadius: '50%',
         background: onColor ? SEASON_COLORS[season] : 'transparent',
         opacity: dimmed ? 0.25 : 1,
+        filter: ink ? 'brightness(0)' : undefined,
       }}
     />
   );

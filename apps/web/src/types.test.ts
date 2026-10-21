@@ -42,6 +42,6 @@ describe('@sbr/web barrel', () => {
       'O 61',
       'O 75',
     ]);
-    expect(ballLabel(102)).toBe('summer');
+    expect(ballLabel(102)).toBe('Summer');
   });
 });

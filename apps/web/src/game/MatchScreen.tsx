@@ -28,8 +28,9 @@ import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { CurrentBall } from './CurrentBall.js';
+import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
-import { gameTypeName, rulesLine } from './labels.js';
+import { progressText, rulesLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
@@ -57,16 +58,27 @@ function Arena({
   return (
     <div className="arena" data-testid="arena">
       <ArenaHeader live={live} view={view} />
-      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
-      <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
+      {view.finished ? (
+        <>
+          <FinalPlacement result={result} view={view} />
+          <EndActions host={false} />
+        </>
+      ) : (
+        <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
+      )}
       <div className="arena-grid">
         <section className="arena-play">
           <CurrentBall
             draws={view.drawsSoFar}
             speedWindowMs={result.speedWindowMs}
             roundOver={view.roundOver}
+            finished={view.finished}
           />
-          <DrawTicker draws={view.drawsSoFar} speedWindowMs={result.speedWindowMs} />
+          <DrawTicker
+            draws={view.drawsSoFar}
+            speedWindowMs={result.speedWindowMs}
+            showWindow={!view.finished}
+          />
           {owner !== undefined ? <OwnCards live={live} view={view} /> : <Spectating />}
         </section>
         <aside className="arena-side">
@@ -82,7 +94,10 @@ function Arena({
             />
           ) : null}
           {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
-          <Standings view={view} showSeasons={result.gameType === 'royale'} />
+          {/* At the end the final placement above replaces the live standings. */}
+          {view.finished ? null : (
+            <Standings view={view} showSeasons={result.gameType === 'royale'} />
+          )}
           <MatchLog banners={view.banners} />
         </aside>
       </div>
@@ -96,13 +111,14 @@ function OwnCards({
 }: {
   readonly live: LiveState;
   readonly view: PlaybackView;
-}): ReactElement {
+}): ReactElement | null {
   const owner = view.owners[0];
   if (owner === undefined) return <Spectating />;
   if (!inPlay(owner, view)) {
-    return (
-      <p className="sbr-panel" data-testid="spectator-note">
-        You were eliminated – keep watching as a spectator.
+    // Once the match is over there is nothing left to watch.
+    return view.finished ? null : (
+      <p className="sbr-panel sbr-muted" data-testid="spectator-note">
+        You're watching the rest of the match.
       </p>
     );
   }
@@ -141,18 +157,12 @@ function ArenaHeader({
   readonly live: LiveState;
   readonly view: PlaybackView;
 }): ReactElement {
-  const result = live.view;
-  const stage = result.stagePlan[view.currentStage];
   return (
     <header className="arena-head">
       <div>
         <h1>{live.match.title}</h1>
         <p className="sbr-muted" data-testid="arena-progress">
-          {gameTypeName(result.gameType)}
-          {result.gameType === 'royale' && stage !== undefined
-            ? ` · stage ${String(view.currentStage + 1)} (${stage.kind})`
-            : ''}{' '}
-          · round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)}
+          {progressText(live, view)}
         </p>
         <p className="sbr-muted">{rulesLine(live.match)}</p>
       </div>

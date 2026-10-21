@@ -103,7 +103,7 @@ export function PrizeList({ result, view }: PlaybackProps): ReactElement {
             <li key={key} data-testid={`prize-${key}`} className={win ? 'is-won' : undefined}>
               <span className="prize-name">{prizeName(key)}</span>
               {win === undefined ? (
-                <span className="prize-open">open</span>
+                <span className="prize-open">Open</span>
               ) : (
                 <span className="prize-winners">
                   <strong>{win.accountIds.join(', ')}</strong>

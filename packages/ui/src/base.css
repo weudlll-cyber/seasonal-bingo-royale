@@ -169,6 +169,12 @@ a {
   font: inherit;
 }
 
+/* Placeholders (e.g. a default value shown in an empty field) stay readable: 4.5:1 */
+.sbr-input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
 /* Chips and badges */
 .sbr-chip {
   display: inline-flex;

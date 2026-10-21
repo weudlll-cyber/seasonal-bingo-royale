@@ -95,6 +95,16 @@ const COMBOS: readonly Combo[] = [
   },
 ];
 
+// The match title in plain words, as a host would name it.
+function title(combo: Combo): string {
+  const type = {
+    royale: 'Battle royale',
+    classicSeasons: 'Classic with seasons',
+    classic: 'Classic',
+  };
+  return `${type[combo.gameType]} with ${combo.drawMode === 'auto' ? 'timed' : 'host'} draws`;
+}
+
 interface Table {
   readonly host: Page;
   readonly players: readonly LivePlayer[];
@@ -218,7 +228,7 @@ async function checkEnd(t: Table, code: string): Promise<{ cuts: number; ties: n
 
 // One more match right away: nothing of the last one may show.
 async function checkFreshStart(t: Table, combo: Combo): Promise<void> {
-  const code = await startMatch(t, combo, `${combo.name} again`);
+  const code = await startMatch(t, combo, `${title(combo)}, again`);
   for (const p of t.players) {
     const s = await liveSnap(p.page);
     expect(
@@ -241,7 +251,7 @@ for (const combo of COMBOS) {
   }) => {
     test.setTimeout(45 * 60_000);
     const t = await seat(browser, combo);
-    const code = await startMatch(t, combo, `Acceptance ${combo.name}`);
+    const code = await startMatch(t, combo, title(combo));
     const draws = await playToEnd(t, combo);
     const cuts = await checkEnd(t, code);
     await shoot(t, combo, 'end');

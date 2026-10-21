@@ -14,7 +14,8 @@
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
 import { ballLabel, type GameType } from '../types.js';
-import type { MatchSummary } from './useLiveMatch.js';
+import type { PlaybackView } from '../playback.js';
+import type { LiveState, MatchSummary } from './useLiveMatch.js';
 
 export function gameTypeName(type: GameType): string {
   if (type === 'royale') return 'Battle royale';
@@ -100,7 +101,37 @@ export interface CutFacts {
 
 export function cutLine(f: CutFacts): string {
   const saved = f.saved > 0 ? ` (${String(f.saved)} saved by Winter shield)` : '';
-  return `Cut ${String(f.number)}: ${String(f.survivors)} go on, ${String(f.eliminated)} are out${saved}`;
+  const goOn = `${String(f.survivors)} ${f.survivors === 1 ? 'goes' : 'go'} on`;
+  const out = `${String(f.eliminated)} ${f.eliminated === 1 ? 'is' : 'are'} out`;
+  return `Cut ${String(f.number)}: ${goOn}, ${out}${saved}`;
+}
+
+// Where the match stands: "Battle royale · stage 2 (elimination) · round 3 · draw 12".
+interface ProgressFacts {
+  readonly gameType: GameType;
+  readonly stageKind: string | null;
+  readonly stageIndex: number;
+  readonly roundIndex: number;
+  readonly draws: number;
+}
+
+// The progress line of a live match (player screen and host console).
+export function progressText(live: LiveState, view: PlaybackView): string {
+  return progressLine({
+    gameType: live.view.gameType,
+    stageKind: live.view.stagePlan[view.currentStage]?.kind ?? null,
+    stageIndex: view.currentStage,
+    roundIndex: view.currentRound,
+    draws: view.drawsSoFar.length,
+  });
+}
+
+function progressLine(f: ProgressFacts): string {
+  const stage =
+    f.gameType === 'royale' && f.stageKind !== null
+      ? ` · stage ${String(f.stageIndex + 1)} (${f.stageKind})`
+      : '';
+  return `${gameTypeName(f.gameType)}${stage} · round ${String(f.roundIndex + 1)} · draw ${String(f.draws)}`;
 }
 
 export const CUT_NOTE: Readonly<Record<'survived' | 'saved' | 'eliminated', string>> = {
@@ -135,6 +166,7 @@ export function problemText(code: string): string {
     MATCH_NOT_IN_LOBBY: 'The match has already started.',
     NOT_ENOUGH_PLAYERS: 'At least 2 players are needed to start.',
     RATE_LIMITED: 'Too many presses — wait a moment.',
+    MARK_REJECTED: 'the tap was not accepted.',
     SIGN_IN_REQUIRED: 'Please sign in first.',
     INVALID_PRIZES: 'Please tick at least one prize.',
     VALIDATION_FAILED: 'Please check the form.',

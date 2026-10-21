@@ -21,9 +21,12 @@ export interface CurrentBallProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
   readonly roundOver: boolean;
+  // The match is over: the note says so instead of "Round over".
+  readonly finished?: boolean;
 }
 
-export function CurrentBall({ draws, speedWindowMs, roundOver }: CurrentBallProps): ReactElement {
+export function CurrentBall(props: CurrentBallProps): ReactElement {
+  const { draws, speedWindowMs, roundOver, finished = false } = props;
   const reduced = useReducedMotion();
   const item = draws.at(-1);
   const [shownAt, setShownAt] = useState(() => Date.now());
@@ -58,7 +61,7 @@ export function CurrentBall({ draws, speedWindowMs, roundOver }: CurrentBallProp
         )}
       </div>
       {roundOver ? (
-        <p className="sbr-muted ball-note">Round over</p>
+        <p className="sbr-muted ball-note">{finished ? 'Match over' : 'Round over'}</p>
       ) : (
         <WindowBar key={`${String(draws.length)}-${String(shownAt)}`} ms={speedWindowMs} />
       )}

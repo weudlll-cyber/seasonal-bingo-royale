@@ -118,7 +118,7 @@ function EffectBadge({ season, testId, children }: BadgeProps): ReactElement {
         fontSize: '0.85rem',
       }}
     >
-      {season === undefined ? null : <SeasonIcon season={season} size="0.9rem" />}
+      {season === undefined ? null : <SeasonIcon season={season} size="0.9rem" ink />}
       {children}
     </span>
   );

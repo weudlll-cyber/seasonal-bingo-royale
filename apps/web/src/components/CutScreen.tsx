@@ -59,7 +59,7 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
           setClosed(cut.number);
         }}
       >
-        {allOut ? 'Keep watching' : 'Back to the game'}
+        Close
       </button>
     </section>
   );

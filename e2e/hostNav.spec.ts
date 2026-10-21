@@ -49,7 +49,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     await captureBoth(page, SHOTS, 'create-form');
   }
   const code = await hostMatch(page, {
-    title: `Nav ${String(Date.now())}`,
+    title: 'Friday night bingo',
     gameType: 'royale',
     drawMode: 'host',
     missed: 'noAutoMark',

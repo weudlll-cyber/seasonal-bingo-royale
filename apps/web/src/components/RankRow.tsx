@@ -52,7 +52,7 @@ function SeasonSet({ seasons }: { readonly seasons: readonly Season[] }): ReactE
   return (
     <span className="rank-seasons" aria-label={`${String(seasons.length)} of 4 seasons`}>
       {SEASON_NAMES.map((s) => (
-        <SeasonIcon key={s} season={s} size="1rem" onColor dimmed={!seasons.includes(s)} />
+        <SeasonIcon key={s} season={s} size="0.85rem" onColor dimmed={!seasons.includes(s)} />
       ))}
     </span>
   );

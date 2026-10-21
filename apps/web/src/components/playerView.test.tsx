@@ -38,14 +38,16 @@ describe('season cells', () => {
     expect(winter[0]?.getAttribute('src')).toMatch(/assets\/seasons\/winter\.svg/);
   });
 
-  it('show a classicSeasons symbol as the icon on its season colour', () => {
+  it('show a classicSeasons symbol as its icon on the card, framed in its season colour', () => {
     const card = numberCard(0);
     const cells = card.cells.map((c, i) =>
       i === 24 ? { kind: 'symbol' as const, value: 104 } : c,
     );
     render(<CardGrid accountId="bot-02" card={{ ...card, cells }} marks={[]} />);
+    // The icon has its own season colour, so the cell keeps the card colour behind it.
     const box = screen.getByAltText('winter').parentElement;
-    expect(box?.style.background).toBe(WINTER_RGB);
+    expect(box?.style.background).toBe('var(--cell-bg, #1a2130)');
+    expect(box?.style.border).toBe(`2px solid ${WINTER_RGB}`);
   });
 });
 
@@ -115,13 +117,13 @@ describe('CutScreen', () => {
       "You're through — next round in 6 s",
     );
     expect(screen.queryByText('Keep watching')).toBeNull();
-    fireEvent.click(screen.getByText('Back to the game'));
+    fireEvent.click(screen.getByText('Close'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
     rerender(<CutScreen cut={cut(2, 'eliminated')} />);
     expect(screen.getByTestId('cut-screen').textContent).toContain(
       "You're out in cut 2 — you can keep watching",
     );
-    expect(screen.getByText('Keep watching')).toBeTruthy();
+    expect(screen.getByText('Close')).toBeTruthy();
   });
 
   it('brings a new cut into view', () => {

@@ -30,10 +30,16 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
   const seconds = value.intervalSec ?? RULESET_INTERVAL_SEC;
   return (
     <fieldset
-      style={{ border: '1px solid #223', padding: '0.5rem', display: 'grid', gap: '0.4rem' }}
+      style={{
+        border: '1px solid var(--color-border, #223)',
+        padding: '0.5rem',
+        display: 'grid',
+        gap: '0.4rem',
+      }}
     >
       <legend>Draws</legend>
       <select
+        className="sbr-select"
         data-testid="start-draw-mode"
         aria-label="Draws"
         value={value.mode}
@@ -47,6 +53,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
       <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
         <span>Seconds between timed draws</span>
         <input
+          className="sbr-input"
           type="number"
           data-testid="start-draw-interval"
           min={1}

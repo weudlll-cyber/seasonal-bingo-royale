@@ -7,7 +7,8 @@
  *                 colours, then places from 4 as ranked rows (top 20 plus the owner's own
  *                 row): royale shows points and seasons, eliminated players dimmed with
  *                 "out" below a divider, ranked by when they went out (01 §7.5); classic
- *                 types rank by prizes (01 §3a.2), so a row lists the prizes won.
+ *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
+ *                 states how places are decided.
  * Depends on:     react, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
@@ -46,6 +47,9 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
           You finished #{owner.place} of {sorted.length}
         </p>
       )}
+      <p className="sbr-muted final-rule" data-testid="final-rule">
+        {PLACEMENT_RULE[result.gameType === 'royale' ? 'royale' : 'classic']}
+      </p>
       <ol className="podium">
         {podium.map((p) => (
           <li
@@ -87,3 +91,11 @@ function finalNote(result: QuickTestResult, view: PlaybackView, p: Placed): stri
   );
   return won.length === 0 ? 'no prize' : won.map(prizeName).join(', ');
 }
+
+// How places are decided, so a high score below a lower one makes sense (01 §7.5, §3a.2).
+const PLACEMENT_RULE = {
+  royale:
+    'Places go by how far a player got: the final decides the top places, players out in an earlier cut rank lower, then points decide.',
+  classic:
+    'Places go by the most valuable prize won, then the number of prizes, then the marks on the card.',
+} as const;

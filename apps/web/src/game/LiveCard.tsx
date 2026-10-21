@@ -6,7 +6,8 @@
  * Responsibility: render the card with the Quick Test's TapGrid (B I N G O header, sorted
  *                 columns, season cells, "G 52" names, keyboard taps). The marks shown are
  *                 the server's; a tap on a drawn number goes to the gateway as a `mark`
- *                 intent and the answer becomes the feedback line ("Marked", or why not).
+ *                 intent and the answer becomes the feedback line ("Marked G 52", or why not
+ *                 in plain words).
  *                 Taps on undrawn numbers and after the round end are answered here
  *                 without a round trip (the server would refuse them too, 01 §6).
  * Depends on:     react, ../components/OwnerCard (TapGrid), ./socket, ../types
@@ -16,7 +17,8 @@
 import { useState, type ReactElement } from 'react';
 
 import { TapGrid } from '../components/OwnerCard.js';
-import type { Card } from '../types.js';
+import { ballLabel, type Card } from '../types.js';
+import { problemText } from './labels.js';
 import { intent } from './socket.js';
 
 export interface LiveCardProps {
@@ -46,7 +48,11 @@ export function LiveCard(props: LiveCardProps): ReactElement {
     }
     setLastTapped(cell);
     void intent('mark', { code, cardIndex, cell }).then((answer) => {
-      setFeedback(answer.ok ? 'Marked' : `Not marked (${answer.code})`);
+      // Names the number, e.g. "Marked G 52"; a refusal in plain words.
+      const label = ballLabel(c.value);
+      setFeedback(
+        answer.ok ? `Marked ${label}` : `Not marked ${label}: ${problemText(answer.code)}`,
+      );
     });
   };
   return (

@@ -161,10 +161,10 @@ export function seasonOfSymbol(item: number): Season | null {
 export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
 
 // A drawn number with its column letter, e.g. "G 52" (01 §5, D7). Symbols have no
-// letter; the caller shows their icon instead.
+// letter: their label is the season's name ("Winter"), shown next to the icon.
 export function ballLabel(item: number): string {
   const season = seasonOfSymbol(item);
-  if (season !== null) return season;
+  if (season !== null) return season.charAt(0).toUpperCase() + season.slice(1);
   const letter = BINGO_LETTERS[Math.floor((item - 1) / 15)] ?? '?';
   return `${letter} ${String(item)}`;
 }

@@ -169,6 +169,14 @@ describe('plain English on every screen', () => {
       expect(logs[0]?.querySelector('li')?.textContent).toBe(
         'Match stopped by the host: Power cut in the hall',
       );
+      // At the end: what to do next, one ranking, the rule behind it, no in-play wording.
+      expect(document.querySelector('[data-testid="end-actions"]')?.textContent).toContain(
+        'Back to the lobby',
+      );
+      expect(document.querySelector('[data-testid="standings"]')).toBeNull();
+      expect(document.querySelector('[data-testid="final-rule"]')).not.toBeNull();
+      expect(player).toContain('Match over');
+      expect(player).not.toContain('Speed window');
       cleanup();
       serveLive(view, true);
       const host = await show(<HostConsole code="PLAIN1" />);

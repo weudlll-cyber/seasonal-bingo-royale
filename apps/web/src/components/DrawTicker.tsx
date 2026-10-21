@@ -5,7 +5,7 @@
  *
  * Responsibility: render every draw of the round so far, numbers with their column
  *                 letter ("G 52", D7); classicSeasons symbols (101–104) show the original
- *                 season icon on its colour. The newest draw fades in
+ *                 season icon with its name. The newest draw fades in
  *                 unless the viewer prefers reduced motion.
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback
@@ -20,16 +20,24 @@ import { useReducedMotion } from '../useReducedMotion.js';
 export interface DrawTickerProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
+  // The speed-window line; hidden once the match is over.
+  readonly showWindow?: boolean;
 }
 
-export function DrawTicker({ draws, speedWindowMs }: DrawTickerProps): ReactElement {
+export function DrawTicker({
+  draws,
+  speedWindowMs,
+  showWindow = true,
+}: DrawTickerProps): ReactElement {
   const reduced = useReducedMotion();
   const newest = draws.length - 1;
   return (
     <div>
-      <p style={{ margin: '0 0 0.25rem', color: '#9aa5b2' }}>
-        Speed window: {String(speedWindowMs / 1000)} s after each draw
-      </p>
+      {showWindow ? (
+        <p style={{ margin: '0 0 0.25rem', color: '#9aa5b2' }}>
+          Speed window: {String(speedWindowMs / 1000)} s after each draw
+        </p>
+      ) : null}
       <div data-testid="draw-ticker" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
         {draws.map((item, i) => {
           const season = seasonOfSymbol(item);
@@ -48,7 +56,15 @@ export function DrawTicker({ draws, speedWindowMs }: DrawTickerProps): ReactElem
                 textAlign: 'center',
               }}
             >
-              {season === null ? ballLabel(item) : <SeasonIcon season={season} onColor />}
+              {/* A season draw shows its icon and its name, never a bare dot. */}
+              {season === null ? (
+                ballLabel(item)
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <SeasonIcon season={season} size="0.9rem" />
+                  {ballLabel(item)}
+                </span>
+              )}
             </span>
           );
         })}

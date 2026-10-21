@@ -16,6 +16,7 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { DrawTicker } from './DrawTicker.js';
 import { FinalPlacement } from './FinalPlacement.js';
 import { MatchLog } from './Playback.js';
 import { Standings } from './Standings.js';
@@ -56,6 +57,12 @@ describe('ranked rows', () => {
     expect(podium[2]?.className).toContain('is-own');
   });
 
+  it('names a season draw in the ticker next to its icon', () => {
+    render(<DrawTicker draws={[5, 104]} speedWindowMs={3000} />);
+    expect(screen.getByTestId('draw-ticker').textContent).toBe('B 5Winter');
+    expect(screen.getByAltText('winter')).toBeTruthy();
+  });
+
   it('hides the match log while it is empty', () => {
     const { container } = render(<MatchLog banners={[]} />);
     expect(container.innerHTML).toBe('');
@@ -77,15 +84,18 @@ describe("the host's draw-mode switch", () => {
       view: { events: [] },
     }) as unknown as LiveState;
 
-  it('marks the active mode and shows the seconds only for timed draws', () => {
+  it('marks the active mode; seconds for timed draws, Draw next for host draws only', () => {
     const view = playbackAt(royaleFixture(), 0);
     const { rerender } = render(<HostDrawControls live={live('host')} view={view} />);
     expect(screen.getByTestId('host-mode-host').getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByTestId('host-mode-host').textContent).toBe('✓ Host draws');
     expect(screen.getByTestId('host-mode-timed').getAttribute('aria-pressed')).toBe('false');
     expect(screen.queryByTestId('host-seconds')).toBeNull();
+    expect(screen.getByTestId('host-draw-next')).toBeTruthy();
     rerender(<HostDrawControls live={live('auto')} view={view} />);
     expect(screen.getByTestId('host-mode-timed').textContent).toBe('✓ Timed draws');
     expect(screen.getByTestId('host-seconds')).toBeTruthy();
+    // Timed draws need nothing pressed: no Draw next at all.
+    expect(screen.queryByTestId('host-draw-next')).toBeNull();
   });
 });

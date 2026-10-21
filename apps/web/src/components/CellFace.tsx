@@ -51,7 +51,7 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
   // CSS variables with the Quick Test's values as fallbacks: the live card sets them to
   // the design tokens (the card as the hero element, packages/ui).
   const base = isFree ? 'var(--cell-free-bg, #2a3645)' : 'var(--cell-bg, #1a2130)';
-  const background = isSymbol && season !== null ? SEASON_COLORS[season] : base;
+  const background = base;
   return {
     width: 'var(--cell-size, 2.6rem)',
     height: 'var(--cell-size, 2.6rem)',

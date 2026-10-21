@@ -9,6 +9,11 @@
    Spec:        docs/spec/01-game-design.md §13
    ============================================================ */
 
+/* The page column keeps its width whether or not the page needs a scrollbar */
+html {
+  scrollbar-gutter: stable;
+}
+
 .shell-bar {
   position: relative;
   z-index: 10;
@@ -102,8 +107,22 @@
     display: none;
   }
 
+  /* One account row on a phone: the chip shortens before the buttons wrap */
   .shell-account {
     width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .shell-account .sbr-chip {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .shell-account .sbr-btn {
+    flex: none;
+    padding: 0 0.7rem;
   }
 }
 

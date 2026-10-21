@@ -77,7 +77,8 @@ export async function liveSnap(page: Page): Promise<LiveSnap> {
 
 // Every player screen: points above the card = own standings row; marks only on drawn numbers.
 export function checkPlayer(s: LiveSnap, who: string): void {
-  if (s.points !== null) {
+  // At the end the final placement replaces the standings (checked against the server).
+  if (s.points !== null && !s.finished) {
     expect(s.ownRow, `${who}: own row highlighted`).toBe(s.me);
     expect(s.overflowX, `${who}: nothing wider than the window`).toBe(false);
     const row = s.standings.find((r) => r.id === s.me);

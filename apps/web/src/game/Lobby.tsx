@@ -2,6 +2,7 @@
  * @file   apps/web/src/game/Lobby.tsx
  * @module web/game
  * @brief  The lobby: open, running and just-finished matches, to join or watch (WP-12).
+ *                 Stopped (aborted) matches are left out.
  *
  * Responsibility: list GET /matches (refreshed every 3 seconds) as cards with title, game
  *                 type, status, code, players, draw mode and missed-number rule; "Manage"
@@ -50,8 +51,10 @@ export function useMatchList(): {
 }
 
 export function Lobby(): ReactElement {
-  const { session, can } = useSession();
-  const { matches, error } = useMatchList();
+  const { can } = useSession();
+  const { matches: all, error } = useMatchList();
+  // Stopped matches have nothing to join or watch; finished ones show their result.
+  const matches = all?.filter((m) => m.status !== 'aborted') ?? null;
   const [joinError, setJoinError] = useState<string | null>(null);
   const join = (code: string): void => {
     api(`/matches/${code}/join`, { method: 'POST', body: {} })
@@ -66,14 +69,7 @@ export function Lobby(): ReactElement {
   };
   return (
     <div className="sbr-stack">
-      <div className="lobby-head">
-        <h1>Lobby</h1>
-        <p className="sbr-muted">
-          {session?.account
-            ? 'Join an open match, or watch one that is running.'
-            : 'Sign in to join a match. You can watch without signing in.'}
-        </p>
-      </div>
+      <LobbyHead />
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
       {matches === null ? <p className="sbr-muted">Loading…</p> : null}
       {matches?.length === 0 ? (
@@ -86,6 +82,20 @@ export function Lobby(): ReactElement {
           <LobbyItem key={m.code} match={m} canJoin={can('match.join')} onJoin={join} />
         ))}
       </ul>
+    </div>
+  );
+}
+
+function LobbyHead(): ReactElement {
+  const signedIn = (useSession().session?.account ?? null) !== null;
+  return (
+    <div className="lobby-head">
+      <h1>Lobby</h1>
+      <p className="sbr-muted">
+        {signedIn
+          ? 'Join an open match, watch one that is running, or see how a finished one ended.'
+          : 'Sign in to join a match. You can watch without signing in.'}
+      </p>
     </div>
   );
 }
