@@ -34,6 +34,8 @@ export interface NewMatch {
   readonly maxPlayers?: number;
   // Royale: the host starts each next round (D14); otherwise the default wait.
   readonly pause?: 'host';
+  // Development only: the server's fast test profile (a short royale).
+  readonly fast?: boolean;
 }
 
 // Creates the match from the host's form and returns its code (the console shows it).
@@ -51,6 +53,7 @@ export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
   await page.getByTestId('missed-numbers').selectOption(m.missed);
   await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
   if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
+  if (m.fast === true) await page.getByTestId('create-fast').check();
   await page.getByTestId('create-submit').click();
   await expect(page.getByTestId('host-console')).toBeVisible();
   return (await page.getByTestId('host-code').innerText()).trim();

@@ -5,7 +5,8 @@
  *
  * Responsibility: the zod schema of POST /matches (05 §2.3, 11 §3.2: title, game type,
  *                 prizes, draw mode and seconds, missed numbers, leaderboard switch, max
- *                 players, pause between royale rounds), its mapping to the engine's CreateMatchInput, and the status
+ *                 players, pause between royale rounds, and in development the fast test
+ *                 profile), its mapping to the engine's CreateMatchInput, and the status
  *                 code for each MatchError (404 unknown match, 409 wrong phase, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application
  * Used by:        ./matches, ./matchHost
@@ -14,6 +15,8 @@
 import { MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
+
+import { fastRuleset } from '../../dev/fastRulesets.js';
 
 export const createBody = z.object({
   title: z.string().trim().min(1).max(60),
@@ -34,10 +37,14 @@ export const createBody = z.object({
       z.object({ kind: z.literal('host') }),
     ])
     .optional(),
+  // Development only (the route refuses it otherwise): the fast test profile (../../dev).
+  testProfile: z.literal('fast').optional(),
 });
 
 export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
-  return body;
+  const { testProfile, ...input } = body;
+  const fast = testProfile === 'fast' ? fastRuleset(body.gameType) : null;
+  return fast === null ? input : { ...input, ruleset: fast };
 }
 
 const CONFLICT = new Set([

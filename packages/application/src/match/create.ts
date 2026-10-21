@@ -20,7 +20,12 @@ import {
   type MissedNumbers,
 } from '@sbr/domain';
 
-import { DEFAULT_ROUND_PAUSE_MS, DEFAULT_RULESETS, MIN_ROUND_PAUSE_MS } from '@sbr/contracts';
+import {
+  DEFAULT_ROUND_PAUSE_MS,
+  DEFAULT_RULESETS,
+  MIN_ROUND_PAUSE_MS,
+  type Ruleset,
+} from '@sbr/contracts';
 
 import type { DrawMode, NewMatchRecord, RoundPause } from './ports.js';
 import { defaultRulesetFor, toMatchRuleset } from './rulesets.js';
@@ -37,6 +42,9 @@ export interface CreateMatchInput {
   readonly countsForLeaderboard?: boolean | undefined;
   readonly maxPlayers: number;
   readonly roundPause?: RoundPause | undefined;
+  // Instead of the published default of the game type: a named ruleset (the server passes
+  // its development-only fast test profile here; production never does).
+  readonly ruleset?: { readonly name: string; readonly ruleset: Ruleset } | undefined;
 }
 
 // The pause between royale rounds (D14): the chosen one, a wait never shorter than the
@@ -67,7 +75,7 @@ export function toNewMatch(
   prizes: readonly string[],
   ids: NewMatchIds,
 ): { readonly record: NewMatchRecord; readonly openLobby: Command } {
-  const ruleset = defaultRulesetFor(input.gameType);
+  const ruleset = input.ruleset?.ruleset ?? defaultRulesetFor(input.gameType);
   const windowMs = ruleset.marking.speedWindowMs;
   const markingMode = input.markingMode ?? 'manual';
   const missedNumbers = chosenMissedNumbers(input.missedNumbers, windowMs);
@@ -76,7 +84,10 @@ export function toNewMatch(
     code: ids.code,
     title: input.title,
     gameType: input.gameType,
-    rulesetName: DEFAULT_RULESETS.find((r) => r.ruleset === ruleset)?.name ?? input.gameType,
+    rulesetName:
+      input.ruleset?.name ??
+      DEFAULT_RULESETS.find((r) => r.ruleset === ruleset)?.name ??
+      input.gameType,
     ruleset,
     maxPlayers: input.maxPlayers,
     prizes,

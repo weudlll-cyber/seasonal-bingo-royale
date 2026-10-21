@@ -57,7 +57,8 @@ function Arena({
   const result = live.view;
   const owner = view.owners[0];
   return (
-    <div className="arena" data-testid="arena">
+    // data-seq: the server's event number this screen shows (the play-through compares it).
+    <div className="arena" data-testid="arena" data-seq={live.seq}>
       <ArenaHeader live={live} view={view} />
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">

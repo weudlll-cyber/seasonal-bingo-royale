@@ -213,6 +213,28 @@ describe('pause between royale rounds (D14)', () => {
   });
 });
 
+describe('fast test profile (development only)', () => {
+  it('gives royale the short test ruleset and keeps the classic default', async () => {
+    const created = async (gameType: string) => {
+      const r = await host.post('/api/v1/matches', {
+        title: 'fast',
+        gameType,
+        ...(gameType === 'royale' ? {} : { prizes: ['fullCard'] }),
+        drawMode: 'host',
+        missedNumbers: { kind: 'noAutoMark' },
+        maxPlayers: 8,
+        testProfile: 'fast',
+      });
+      const { id } = r.json<{ id: string }>();
+      return (await harness.built.match.store.load(id))?.record;
+    };
+    const royale = await created('royale');
+    expect(royale?.rulesetName).toBe('royale-realtime-fast-test');
+    expect(royale?.ruleset.stages?.map((s) => s.rounds)).toEqual([1, 1, 1]);
+    expect((await created('classic'))?.rulesetName).toBe('classic-realtime');
+  });
+});
+
 describe('intent order (found by the real-game play-through)', () => {
   it('handles unwatch then watch sent back to back in that order: the socket stays in the room', async () => {
     const code = await createMatch('host');

@@ -41,7 +41,7 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
   if (live.match.youHost !== true) return <NotYourMatch code={code} />;
   const view = playbackAt(live.view, live.view.events.length);
   return (
-    <div className="sbr-stack" data-testid="host-console">
+    <div className="sbr-stack" data-testid="host-console" data-seq={live.seq}>
       <header className="arena-head">
         <div>
           <h1>{live.match.title}</h1>

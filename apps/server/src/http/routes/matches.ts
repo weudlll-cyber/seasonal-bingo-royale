@@ -84,6 +84,10 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (accountId === null) return reply;
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
+    // The fast test profile exists in development builds only.
+    if (parsed.data.testProfile !== undefined && !deps.dev) {
+      return reply.status(400).send({ code: 'VALIDATION_FAILED' });
+    }
     try {
       const record = await deps.engine.create(toCreateInput(parsed.data), accountId);
       return await reply.status(201).send({ code: record.code, id: record.id });

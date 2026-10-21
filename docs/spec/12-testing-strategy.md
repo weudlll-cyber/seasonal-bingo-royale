@@ -56,6 +56,8 @@
 8. Reconnect: kill the socket mid-round → client resyncs without duplicate marks.
 9. Accessibility: axe checks on lobby, match, leaderboard, admin forms; keyboard-only manual marking.
 
+**Real-game acceptance play-through (development).** A host and three players (one at 390×844) play six matches — royale, classicSeasons with the default prizes, classic with fullCard; timed and host draws — and every screen is checked on every draw. It uses a **fast test profile** that exists only in development builds: 8 players per match, a short royale (one round per stage, 12 draws per round, a final that ends at the first completed row) and timed draws at the shortest interval D12 allows; the published default rulesets and the game rules are unchanged (a test proves it). The six matches run three at a time. The per-draw check compares each player's screen with the host's by the server's event number, not by timing.
+
 ## 5. Load test (release gate)
 
 Scenario `royale-200`: 200 virtual players in one realtime match (draw interval 3 s, manual marking with realistic tap delays) + 50 spectators + chat at 1 msg/s per 10 users, for one full match (~15 min). Second scenario: 5 parallel matches × 40 players.

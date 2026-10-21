@@ -13,86 +13,26 @@
  *                 Seconds between draws below the shortest interval (D12) show a plain
  *                 message and keep the form from being sent. POST /matches, then the console.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
- *                 ../shell/http, ../shell/router, ../prizes, ../game/labels, ./TimingFields
+ *                 ../shell/http, ../shell/router, ../prizes, ../game/labels, ./createForm
+ *                 (values, defaults, D12 check, request body), ./TimingFields
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6
  */
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
-import {
-  INITIAL_MARKING,
-  MissedField,
-  toMissedNumbers,
-  type MarkingChoice,
-} from '../components/StartMarkingField.js';
-import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
+import { MissedField } from '../components/StartMarkingField.js';
 import { gameTypeName, prizeName, problemText } from '../game/labels.js';
 import '../game/game.css';
-import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
+import { PRIZE_CATALOGUE } from '../prizes.js';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
-import {
-  INITIAL_PAUSE,
-  intervalProblem,
-  RoundPauseField,
-  rulesetIntervalMs,
-  shortestInterval,
-  toRoundPause,
-  type RoundPauseChoice,
-} from './TimingFields.js';
+import { createBody, INITIAL, intervalMessage, type FormValues } from './createForm.js';
+import { RoundPauseField } from './TimingFields.js';
 import { YourMatches } from './YourMatches.js';
 import type { GameType } from '../types.js';
 
 const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
-
-interface FormValues {
-  readonly title: string;
-  readonly gameType: GameType;
-  readonly prizes: ReadonlySet<string>;
-  readonly draw: DrawControl;
-  readonly missed: MarkingChoice;
-  // null until the host touches it: then the game type's default applies.
-  readonly leaderboard: boolean | null;
-  readonly maxPlayers: number;
-  // Royale: wait N seconds between rounds, or the host starts each one (D14).
-  readonly pause: RoundPauseChoice;
-}
-
-const INITIAL: FormValues = {
-  title: 'Bingo night',
-  gameType: 'royale',
-  prizes: new Set(DEFAULT_PRIZES),
-  draw: INITIAL_CONTROL,
-  missed: INITIAL_MARKING,
-  leaderboard: null,
-  maxPlayers: 20,
-  pause: INITIAL_PAUSE,
-};
-
-// The seconds between draws below the match's shortest interval (D12): the message, else null.
-function intervalMessage(v: FormValues): string | null {
-  const chosen =
-    v.draw.intervalSec === null ? rulesetIntervalMs(v.gameType) : v.draw.intervalSec * 1000;
-  return intervalProblem(chosen, shortestInterval(v.gameType, toMissedNumbers(v.missed)));
-}
-
-// The POST /matches body (05 §2.3); the server clamps seconds and delays into range.
-export function createBody(v: FormValues) {
-  return {
-    title: v.title,
-    gameType: v.gameType,
-    ...(v.gameType === 'royale' ? {} : { prizes: PRIZE_CATALOGUE.filter((p) => v.prizes.has(p)) }),
-    drawMode: v.draw.mode,
-    ...(v.draw.intervalSec === null
-      ? {}
-      : { drawIntervalMs: Math.round(v.draw.intervalSec * 1000) }),
-    missedNumbers: toMissedNumbers(v.missed),
-    countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
-    maxPlayers: Math.min(200, Math.max(2, v.maxPlayers)),
-    ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
-  };
-}
 
 export function CreateMatch(): ReactElement {
   const [values, setValues] = useState<FormValues>(INITIAL);
@@ -281,6 +221,19 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
         />
         Counts for the leaderboard
       </label>
+      {import.meta.env.DEV ? (
+        <label className="sbr-row">
+          <input
+            type="checkbox"
+            data-testid="create-fast"
+            checked={values.fast}
+            onChange={(e) => {
+              set('fast', e.target.checked);
+            }}
+          />
+          Fast test rules (development only: short royale rounds)
+        </label>
+      ) : null}
     </>
   );
 }

@@ -21,7 +21,8 @@ import type { LiveState, MatchSummary } from '../game/useLiveMatch.js';
 import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
-import { createBody, CreateMatch } from './CreateMatch.js';
+import { CreateMatch } from './CreateMatch.js';
+import { createBody } from './createForm.js';
 import { HostConsole } from './HostConsole.js';
 import { HostDrawControls } from './HostDrawControls.js';
 
@@ -151,6 +152,7 @@ describe('D14: the pause between royale rounds', () => {
       leaderboard: null,
       maxPlayers: 20,
       pause: { kind: 'host' },
+      fast: false,
     });
     expect(body.roundPause).toEqual({ kind: 'host' });
   });

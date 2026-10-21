@@ -36,7 +36,7 @@ import {
   signIn,
   stopMatch,
 } from '../realGame.js';
-import { COMBOS, title, type Combo } from './combos.js';
+import { COMBOS, FIELD, title, type Combo } from './combos.js';
 import { checkCuts, type ServerResult } from './cuts.js';
 import { handlePending, newPlayer, onNewDraw, type LivePlayer } from './livePlayer.js';
 import { checkPlayer, liveSnap } from './liveSnap.js';
@@ -98,30 +98,32 @@ async function startMatch(
   created.push(code);
   for (const p of t.players) await joinFromLobby(p.page, code);
   await t.host.goto(`/#/host/${code}`);
-  await fillAndStart(t.host, 20);
+  await fillAndStart(t.host, FIELD);
   for (const p of t.players)
     await expect(p.page.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
   return code;
 }
 
-// After a draw: every screen shows the host's number; every player screen is consistent.
+const seqOf = async (page: Page, testId: string): Promise<number> =>
+  Number(await page.getByTestId(testId).getAttribute('data-seq'));
+
+// After a draw: every screen has the host's number; every player screen is consistent.
+// Compared by the server's event number, not by timing: once a player's screen holds at
+// least the events the host's did, the host's number is in its strip — unless a new round
+// has begun since (its strip then starts again, shorter than the host's was).
 async function afterDraw(t: Table): Promise<boolean> {
+  const hostSeq = await seqOf(t.host, 'host-console');
   const hostItem = await currentItem(t.host);
+  const hostDraws = await t.host.getByTestId('draw-ticker').locator(':scope > *').count();
   let cut = false;
   for (const p of t.players) {
-    // The host's number is on the screen: as the current ball, or already in the strip
-    // when the next timed draw came while earlier players were being checked. Between
-    // rounds the host shows no number yet; then neither may the player.
     await expect
-      .poll(
-        async () =>
-          hostItem === null
-            ? (await currentItem(p.page)) === null
-            : (await liveSnap(p.page)).ticker.includes(hostItem),
-        { timeout: 5_000 },
-      )
-      .toBe(true);
+      .poll(() => seqOf(p.page, 'arena'), { timeout: 15_000 })
+      .toBeGreaterThanOrEqual(hostSeq);
     const s = await liveSnap(p.page);
+    if (hostItem !== null && s.ticker.length >= hostDraws) {
+      expect(s.ticker, `${p.who}: has the host's number`).toContain(hostItem);
+    }
     checkPlayer(s, p.who);
     await handlePending(p, s);
     await onNewDraw(p, s);
@@ -168,7 +170,7 @@ async function playToEnd(t: Table, combo: Combo): Promise<number> {
     if (await isOver(t.host)) break;
     draws += 1;
     const cut = await afterDraw(t);
-    if (draws === 30) await shoot(t, combo, 'mid');
+    if (draws === 8) await shoot(t, combo, 'mid');
     if (cut && !cutShot) {
       cutShot = true;
       await shoot(t, combo, 'cut');
@@ -237,6 +239,9 @@ async function checkFreshStart(t: Table, combo: Combo, created: string[]): Promi
   await expect(t.host.getByTestId('host-status')).toHaveAttribute('data-status', 'aborted');
   expect(code).not.toBe('');
 }
+
+// The six matches run side by side (three workers): separate contexts and matches.
+test.describe.configure({ mode: 'parallel' });
 
 for (const combo of COMBOS) {
   test(`real game: ${combo.name}${combo.switches ? ' (switches draws mid-match)' : ''}`, async ({
