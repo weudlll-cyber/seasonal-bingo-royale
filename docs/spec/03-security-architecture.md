@@ -108,7 +108,7 @@ Set by the app (Fastify helmet), checked in CI with a header test:
 ## 8. CSRF
 
 - Session cookies are `SameSite=Lax`.
-- Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time).
+- Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time). The calls that create the first session (register, login, guest, and the development-only quick sign-in) have no token yet; they accept only `application/json` bodies, which a cross-site form cannot send.
 - WebSocket handshakes verify `Origin` against the configured origin plus the embed allowlist.
 - Embedded clients in third-party context use bearer tokens (no cookies) and are therefore not CSRF-exposed.
 

@@ -66,7 +66,7 @@ embed_origins
 | status | text | `active`, `suspended`, `deleted` |
 | created_at, updated_at, last_login_at | timestamptz | |
 
-**sessions** — `id uuid`, `account_id FK`, `token_hash bytea UNIQUE`, `kind` (`player`/`admin`/`guest`), `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `last_2fa_at`, `user_agent text`, `ip_prefix inet`, `revoked_at`. Index on `(account_id) WHERE revoked_at IS NULL`.
+**sessions** — `id uuid`, `account_id FK` (NULL for a guest session), `token_hash bytea UNIQUE`, `csrf_token text` (synchronizer token, 03 §8), `kind` (`player`/`admin`/`guest`), `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `last_2fa_at`, `user_agent text`, `ip_prefix inet`, `revoked_at`. Index on `(account_id) WHERE revoked_at IS NULL`.
 
 **identity_providers** — `id`, `kind` (`oidc`/`jwt_handoff`), `name`, `issuer text UNIQUE`, `client_id`, `client_secret_enc bytea NULL`, `jwks_url NULL`, `pinned_public_key NULL`, `allowed_algs text[]`, `audience text`, `claim_mapping jsonb` (display name, avatar, roles), `role_mapping jsonb`, `enabled bool`, `created_at`, `updated_at`.
 

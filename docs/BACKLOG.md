@@ -8,6 +8,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 - WP-08 … WP-30 (docs/spec/15-implementation-plan.md) — not started
 - Realtime classic rounds: rule for players still tapping when a prize is decided on a draw (to be decided with the owner before WP-12)
+- WP-09 remainder: e-mail verification flow (tokens, Mailpit), TOTP 2FA and recovery codes, password reset, session list and revoke (`/me/sessions`), the bundled top-100k breached-password list, admin session lifetimes; flags `SBR_FEATURE_EMAIL_VERIFICATION` / `SBR_FEATURE_TWO_FACTOR` stay off until then
 - Realtime server: store `missed_numbers` / `auto_mark_delay_ms` per match and schedule `AutoMarkMissed` after the delay (D9, docs/spec/01-game-design.md §6, 06 §5) — with WP-12/WP-15; the domain rule and the Quick Test are done
 
 ### Needed from the website repository (Phase 6 only)

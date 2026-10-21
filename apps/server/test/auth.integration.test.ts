@@ -1,0 +1,192 @@
+/**
+ * @file   apps/server/test/auth.integration.test.ts
+ * @module server/test
+ * @brief  Local accounts, sessions, CSRF, auth rate limits, guests and dev sign-in (WP-09).
+ *
+ * Responsibility: register → session cookie → GET /session; weak passwords and taken
+ *                 names refused; login answers alike for a wrong password and an unknown
+ *                 e-mail; state-changing calls need the session's CSRF token; logout ends
+ *                 the session; login is rate-limited per account+IP; guests get watch-only
+ *                 permissions; the dev quick sign-in gives dev-host `match.create` and reuses
+ *                 accounts; a production build has no dev sign-in; with e-mail verification
+ *                 on, unverified accounts cannot sign in.
+ * Depends on:     vitest, ./harness
+ * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
+ */
+import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+
+let harness: Harness;
+const app = (): FastifyInstance => harness.built.fastify;
+
+beforeAll(async () => {
+  harness = await startHarness();
+}, SUITE_TIMEOUT_MS);
+afterAll(async () => {
+  await stopHarness(harness);
+}, SUITE_TIMEOUT_MS);
+
+const COOKIE = 'sbr_session';
+const cookieOf = (r: LightMyRequestResponse): string =>
+  `${COOKIE}=${r.cookies.find((c) => c.name === COOKIE)?.value ?? ''}`;
+
+async function post(url: string, body: unknown, headers: Record<string, string> = {}) {
+  return app().inject({ method: 'POST', url, payload: body as object, headers });
+}
+
+async function session(cookie: string) {
+  const r = await app().inject({ method: 'GET', url: '/api/v1/session', headers: { cookie } });
+  return r.json<{
+    signedIn: boolean;
+    kind: string | null;
+    permissions: string[];
+    csrfToken: string | null;
+    account: { displayName: string } | null;
+  }>();
+}
+
+const strong = 'correct horse battery staple';
+
+describe('local accounts and sessions', () => {
+  it('registers, sets the session cookie and reports the session with a CSRF token', async () => {
+    const r = await post('/api/v1/auth/register', {
+      email: 'ann@example.com',
+      displayName: 'ann',
+      password: strong,
+    });
+    expect(r.statusCode).toBe(201);
+    const s = await session(cookieOf(r));
+    expect(s.signedIn).toBe(true);
+    expect(s.account?.displayName).toBe('ann');
+    expect(s.permissions).toContain('match.join');
+    expect(s.permissions).not.toContain('match.create');
+    expect(s.csrfToken).toMatch(/^[\w-]{40,}$/);
+  });
+
+  it('refuses weak passwords and a taken e-mail or name with one generic answer', async () => {
+    const weak = await post('/api/v1/auth/register', {
+      email: 'bob@example.com',
+      displayName: 'bob',
+      password: 'short',
+    });
+    expect(weak.json()).toMatchObject({ code: 'PASSWORD_WEAK', reason: 'tooShort' });
+    const common = await post('/api/v1/auth/register', {
+      email: 'bob@example.com',
+      displayName: 'bob',
+      password: 'password1234',
+    });
+    expect(common.json()).toMatchObject({ reason: 'tooCommon' });
+    const sameMail = await post('/api/v1/auth/register', {
+      email: 'ANN@example.com',
+      displayName: 'ann2',
+      password: strong,
+    });
+    const sameName = await post('/api/v1/auth/register', {
+      email: 'ann2@example.com',
+      displayName: 'ANN',
+      password: strong,
+    });
+    expect(sameMail.statusCode).toBe(409);
+    expect(sameName.json()).toEqual(sameMail.json());
+  });
+});
+
+describe('login, CSRF and limits', () => {
+  it('answers a wrong password and an unknown e-mail alike', async () => {
+    const wrong = await post('/api/v1/auth/login', {
+      email: 'ann@example.com',
+      password: 'not the password',
+    });
+    const unknown = await post('/api/v1/auth/login', {
+      email: 'nobody@example.com',
+      password: 'not the password',
+    });
+    expect(wrong.statusCode).toBe(401);
+    expect(unknown.statusCode).toBe(401);
+    expect(unknown.json()).toEqual(wrong.json());
+    const ok = await post('/api/v1/auth/login', { email: 'ann@example.com', password: strong });
+    expect(ok.statusCode).toBe(200);
+  });
+
+  it('requires the CSRF token for logout, then ends the session', async () => {
+    const login = await post('/api/v1/auth/login', { email: 'ann@example.com', password: strong });
+    const cookie = cookieOf(login);
+    expect((await post('/api/v1/auth/logout', {}, { cookie })).statusCode).toBe(403);
+    const { csrfToken } = await session(cookie);
+    const out = await post('/api/v1/auth/logout', {}, { cookie, 'x-csrf-token': csrfToken ?? '' });
+    expect(out.statusCode).toBe(204);
+    expect((await session(cookie)).signedIn).toBe(false);
+  });
+
+  it('accepts session-starting calls only as JSON (no cross-site form posts)', async () => {
+    const r = await app().inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: 'email=ann%40example.com&password=x',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    });
+    expect(r.statusCode).toBe(415);
+  });
+
+  it('slows down repeated logins for one account from one address (soft, 03 §13)', async () => {
+    const codes: number[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      codes.push(
+        (await post('/api/v1/auth/login', { email: 'limit@example.com', password: 'x' }))
+          .statusCode,
+      );
+    }
+    expect(codes.slice(0, 5).every((c) => c === 401)).toBe(true);
+    expect(codes[5]).toBe(429);
+  });
+});
+
+describe('guests and the dev quick sign-in', () => {
+  it('gives a guest a watch-only session', async () => {
+    const r = await post('/api/v1/auth/guest', {});
+    const s = await session(cookieOf(r));
+    expect(s.kind).toBe('guest');
+    expect(s.signedIn).toBe(false);
+    expect(s.permissions).toEqual(['match.watch']);
+  });
+
+  it('signs in as dev-host (organizer) and reuses the same account next time', async () => {
+    const first = await post('/api/v1/dev/sign-in', { as: 'host' });
+    const again = await post('/api/v1/dev/sign-in', { as: 'host' });
+    expect(again.json()).toEqual(first.json());
+    const s = await session(cookieOf(first));
+    expect(s.account?.displayName).toBe('dev-host');
+    expect(s.permissions).toEqual(expect.arrayContaining(['match.create', 'match.manage']));
+    const player = await session(cookieOf(await post('/api/v1/dev/sign-in', { as: 'player-2' })));
+    expect(player.account?.displayName).toBe('dev-player-2');
+    expect(player.permissions).not.toContain('match.create');
+  });
+
+  it('has no dev sign-in in a production build', async () => {
+    const prod = await buildOn(harness.pool, harness.container.getConnectionUri(), {
+      NODE_ENV: 'production',
+    });
+    const r = await prod.fastify.inject({
+      method: 'POST',
+      url: '/api/v1/dev/sign-in',
+      payload: { as: 'host' },
+    });
+    expect(r.statusCode).toBe(404);
+    await prod.fastify.close();
+  });
+
+  it('refuses unverified accounts when e-mail verification is switched on', async () => {
+    const flagged = await buildOn(harness.pool, harness.container.getConnectionUri(), {
+      SBR_FEATURE_EMAIL_VERIFICATION: 'true',
+    });
+    const r = await flagged.fastify.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'ann@example.com', password: strong },
+    });
+    expect(r.json()).toEqual({ code: 'EMAIL_NOT_VERIFIED' });
+    await flagged.fastify.close();
+  });
+});

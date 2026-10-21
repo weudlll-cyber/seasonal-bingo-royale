@@ -12,10 +12,14 @@
  */
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
+import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
+import { featuresFrom } from '../config/features.js';
 import type { DbPool } from '../db/pool.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
+import { registerAuthRoutes } from './routes/auth.js';
+import { registerDevSignIn } from './routes/devSignIn.js';
 import { registerHealth } from './routes/health.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
@@ -58,6 +62,11 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   registerHealth(fastify, deps.pool);
   registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
   if (isDev) registerQuickTest(fastify);
+  const cookie = cookieConfig(deps.env.NODE_ENV === 'production');
+  await registerSessions(fastify, deps.pool, cookie);
+  registerAuthRoutes(fastify, { pool: deps.pool, cookie, features: featuresFrom(deps.env) });
+  // Development only: quick sign-in as host or player (never in a production build).
+  if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie });
   return { fastify, metrics };
 }
 

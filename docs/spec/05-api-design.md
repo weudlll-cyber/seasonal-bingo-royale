@@ -30,6 +30,7 @@ Commands (state change) and queries (read) are separate handlers in `application
 | POST | `/auth/password/forgot` | Request reset mail (always 202) | none |
 | POST | `/auth/password/reset` | Token + new password | none |
 | POST | `/auth/guest` | Guest session (if enabled) | none |
+| POST | `/dev/sign-in` | Development builds only: `{ as }` with `host` or `player-1` … `player-3` signs in as `dev-host` (organizer) or `dev-player-N`, created on first use; absent in production | none |
 | GET | `/auth/oidc/:providerId/start` | Redirect to provider (PKCE, state, nonce) | none |
 | GET | `/auth/oidc/:providerId/callback` | Finish OIDC login | none |
 | POST | `/auth/handoff` | Exchange host-signed JWT for session or embed token | none |

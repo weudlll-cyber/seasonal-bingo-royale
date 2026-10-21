@@ -20,6 +20,10 @@ const envSchema = z.object({
   // One libpq URL; the integration test overrides it with the Testcontainers URL.
   DATABASE_URL: z.url(),
   SBR_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
+  // Feature flags (./features): e-mail verification and 2FA off, guests on.
+  SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),
+  SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
+  SBR_FEATURE_GUESTS: z.stringbool().default(true),
 });
 
 export type Env = z.infer<typeof envSchema>;
