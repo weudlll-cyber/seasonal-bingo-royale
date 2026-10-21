@@ -70,6 +70,7 @@ async function advance(deps: FlowDeps, matchId: string, pause: boolean): Promise
     if (step === 'finish') {
       await deps.runner.apply(matchId, [{ type: 'finishMatch' }]);
       await deps.store.setStatus(matchId, 'finished');
+      deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'finished' } }));
       await deps.scheduler.cancel(matchId);
       return;
     }

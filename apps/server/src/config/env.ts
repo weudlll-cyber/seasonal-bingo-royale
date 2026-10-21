@@ -25,6 +25,19 @@ const envSchema = z.object({
   SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
   SBR_FEATURE_GUESTS: z.stringbool().default(true),
   // AES-256 key (64 hex characters) that seals match seeds at rest (04 §3.3 seed_enc);
+  // Browser origins allowed to open the WebSocket (06 §2), comma-separated; defaults to
+  // the local player and admin clients.
+  SBR_ALLOWED_ORIGINS: z
+    .string()
+    .default(
+      'http://localhost:5390,http://127.0.0.1:5390,http://localhost:5391,http://127.0.0.1:5391',
+    )
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0),
+    ),
   // required in production, a fixed development key otherwise (./seedKey).
   SBR_SEED_KEY: z
     .string()

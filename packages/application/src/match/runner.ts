@@ -58,9 +58,13 @@ export class MatchRunner {
     return loaded;
   }
 
+  // Changes the cached record and tells the bus (status, start time, draw control).
   update(matchId: string, change: (m: LoadedMatch) => LoadedMatch): void {
     const cached = this.cache.get(matchId);
-    if (cached !== undefined) this.cache.set(matchId, change(cached));
+    if (cached === undefined) return;
+    const next = change(cached);
+    this.cache.set(matchId, next);
+    this.bus.changed(next.record);
   }
 
   // Decides the commands in order on the evolving state; persists and publishes the

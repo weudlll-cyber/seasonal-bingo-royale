@@ -26,7 +26,7 @@ function setUp() {
   const engine = new MatchEngine({
     store,
     scheduler,
-    bus: { publish: () => undefined },
+    bus: { publish: () => undefined, changed: () => undefined },
     clock,
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,

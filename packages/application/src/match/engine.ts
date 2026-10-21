@@ -192,6 +192,7 @@ export class MatchEngine {
     return this.runner.serial(matchId, async () => {
       await this.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
       await this.deps.store.setStatus(matchId, 'aborted');
+      this.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'aborted' } }));
       await this.deps.scheduler.cancel(matchId);
     });
   }

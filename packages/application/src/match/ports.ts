@@ -107,6 +107,8 @@ export interface Scheduler {
 
 export interface MatchEventBus {
   publish(matchId: string, events: readonly StoredEvent[]): void;
+  // The match record changed outside the event log: status, start time, draw control.
+  changed(record: MatchRecord): void;
 }
 
 export interface Clock {

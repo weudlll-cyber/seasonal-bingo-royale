@@ -19,6 +19,7 @@ import { featuresFrom } from '../config/features.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
+import { attachGateway } from '../realtime/gateway.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -79,6 +80,16 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     engine: match.engine,
     store: match.store,
     dev: isDev,
+  });
+  const io = attachGateway(fastify.server, {
+    pool: deps.pool,
+    engine: match.engine,
+    bus: match.bus,
+    cookieName: cookie.name,
+    allowedOrigins: deps.env.SBR_ALLOWED_ORIGINS,
+  });
+  fastify.addHook('onClose', async () => {
+    await io.close();
   });
   return { fastify, metrics, match };
 }

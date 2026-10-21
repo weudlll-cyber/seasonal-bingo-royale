@@ -12,9 +12,10 @@
  */
 import { EventEmitter } from 'node:events';
 
-import type { MatchEventBus, StoredEvent } from '@sbr/application';
+import type { MatchEventBus, MatchRecord, StoredEvent } from '@sbr/application';
 
 export type MatchEventListener = (matchId: string, events: readonly StoredEvent[]) => void;
+export type MatchChangeListener = (record: MatchRecord) => void;
 
 export class LocalEventBus implements MatchEventBus {
   private readonly emitter = new EventEmitter();
@@ -26,6 +27,17 @@ export class LocalEventBus implements MatchEventBus {
 
   publish(matchId: string, events: readonly StoredEvent[]): void {
     this.emitter.emit('events', matchId, events);
+  }
+
+  changed(record: MatchRecord): void {
+    this.emitter.emit('changed', record);
+  }
+
+  onChanged(listener: MatchChangeListener): () => void {
+    this.emitter.on('changed', listener);
+    return () => {
+      this.emitter.off('changed', listener);
+    };
   }
 
   subscribe(listener: MatchEventListener): () => void {
