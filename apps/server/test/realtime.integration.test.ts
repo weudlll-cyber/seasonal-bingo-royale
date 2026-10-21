@@ -154,6 +154,22 @@ describe('rooms, events and intents', () => {
   });
 });
 
+describe('intent order (found by the real-game play-through)', () => {
+  it('handles unwatch then watch sent back to back in that order: the socket stays in the room', async () => {
+    const code = await createMatch('host');
+    const s = open(player.cookie);
+    await connected(s);
+    const frames: unknown[] = [];
+    s.on('events', (f: unknown) => frames.push(f));
+    // Not awaited one by one: both are on the wire before the server answers either.
+    const unwatch = send(s, 'match.unwatch', { code });
+    const watch = send(s, 'match.watch', { code });
+    await Promise.all([unwatch, watch]);
+    expect((await player.post(`/api/v1/matches/${code}/join`, {})).statusCode).toBe(204);
+    await expect.poll(() => frames.length).toBeGreaterThan(0);
+  });
+});
+
 describe('draw control and limits', () => {
   it('switches draw mode over the socket and tells the room (D8)', async () => {
     const code = await createMatch('host');

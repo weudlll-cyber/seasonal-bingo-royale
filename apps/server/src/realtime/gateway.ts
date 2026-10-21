@@ -12,7 +12,7 @@
  *                 draw control) go out as `match`. Intents arrive on `intent` and are
  *                 handled by ./intents. Payloads are capped at 16 KiB; a dropped connection
  *                 recovers missed frames for 2 minutes, longer gaps resync over HTTP.
- * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ./intents
+ * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ./intents, ./inOrder
  * Used by:        ../http/app
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */
@@ -26,6 +26,7 @@ import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
+import { inOrder } from './inOrder.js';
 import { handleIntent, type IntentContext } from './intents.js';
 
 export interface GatewayDeps {
@@ -64,10 +65,16 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   });
   play.on('connection', (socket) => {
     const ctx: IntentContext = { socket, data: socket.data as SocketData, deps };
+    // One intent at a time per socket, in arrival order (./inOrder).
+    const handle = inOrder(async (envelope: unknown, ack?: (answer: unknown) => void) => {
+      const answer = await handleIntent(ctx, envelope).catch(() => ({
+        ok: false,
+        code: 'INTERNAL',
+      }));
+      ack?.(answer);
+    });
     socket.on('intent', (envelope: unknown, ack?: (answer: unknown) => void) => {
-      handleIntent(ctx, envelope)
-        .then((answer) => ack?.(answer))
-        .catch(() => ack?.({ ok: false, code: 'INTERNAL' }));
+      void handle(envelope, ack);
     });
   });
   deps.bus.subscribe((matchId, events) => {
