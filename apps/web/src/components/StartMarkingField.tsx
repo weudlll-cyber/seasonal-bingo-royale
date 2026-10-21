@@ -9,7 +9,7 @@
  *                 Labels never use the word "auto" alone, so they cannot be confused
  *                 with the draw control.
  * Depends on:     react, ../types
- * Used by:        ./StartForm
+ * Used by:        ./StartForm; MissedField also by ../host/CreateMatch
  * Spec:           docs/spec/01-game-design.md §6, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -64,7 +64,8 @@ export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): 
   );
 }
 
-function MissedField({ value, onChange }: StartMarkingFieldProps): ReactElement {
+// Also used by the host's create form (../host/CreateMatch).
+export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactElement {
   return (
     <>
       <select

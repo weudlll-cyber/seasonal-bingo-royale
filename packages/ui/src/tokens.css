@@ -1,0 +1,104 @@
+/* ============================================================
+   File:        packages/ui/src/tokens.css
+   Module:      ui
+   Brief:       Design tokens of Seasonal Bingo Royale, shared by the player and admin clients.
+   Responsibility: one source of colours, type, shape, spacing and motion timing. The
+                names and values follow the Seasonal Entertainment website
+                (client/src/styles/tokens.css, docs/DESIGN.md) so both feel like one
+                product; the game adds its arena tokens (card, ball, glow). Dark is the
+                default (01 §13); `data-theme="light"` on <html> switches to the light set.
+                Components use these custom properties and never hard-code colours.
+   Spec:        docs/spec/01-game-design.md §13; assets/brand/colors.md
+   ============================================================ */
+
+:root {
+  /* Season colours: the same in both themes (01 §13) */
+  --color-spring: #afb84e;
+  --color-summer: #e06e22;
+  --color-autumn: #f9a825;
+  --color-winter: #04aaf7;
+  /* Text and icons on a season colour: 9.2:1 on autumn */
+  --color-on-season: #12161c;
+  --color-live: #b42318;
+  --color-on-live: #ffffff;
+
+  /* Arena neutrals, dark (default). Every text colour keeps at least 4.5:1 on every
+     surface of its set (checked by packages/ui/src/contrast.test.ts). */
+  --color-background: #0b0e13;
+  --color-sidebar: #0f131a;
+  --color-surface: #151a22;
+  --color-surface-2: #1c222c;
+  --color-active-bg: #1c2532;
+  --color-text: #eef1f5;
+  --color-text-muted: #a1aab6;
+  --color-border: #252c38;
+  --color-border-strong: #4a5466;
+  --color-danger: #ff8a80;
+  --color-success: #4acb8a;
+  --color-warning-surface: #3a2e10;
+  --color-accent: var(--color-winter);
+  --shadow-raised: 0 8px 28px rgb(0 0 0 / 55%);
+  --color-scrim: rgb(0 0 0 / 55%);
+  color-scheme: dark;
+
+  /* Arena: the card is the hero element */
+  --color-card: #f6f3ea;
+  --color-card-ink: #12161c;
+  --color-card-line: #d9d3c2;
+  --color-card-marked: #12161c;
+  --color-card-marked-ink: #f6f3ea;
+  --color-ball: #eef1f5;
+  --color-ball-ink: #12161c;
+  --glow-accent: 0 0 0 3px rgb(4 170 247 / 45%);
+
+  /* Typography: Heavy for headings, Book for body (faces in ./fonts.css) */
+  --font-family: 'Luxora Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-weight-body: 400;
+  --font-weight-strong: 700;
+  --font-weight-heading: 900;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-lead: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
+  --font-size-title: clamp(1.6rem, 1.2rem + 1.6vw, 2.5rem);
+  --font-size-ball: clamp(3rem, 2rem + 6vw, 5.5rem);
+
+  /* Shape */
+  --radius: 12px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+  --hit-target: 44px;
+
+  /* Spacing */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+
+  /* Layout */
+  --content-width: 72rem;
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+
+  /* Motion (off under prefers-reduced-motion, ./motion.css) */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 160ms;
+  --duration-base: 320ms;
+  --duration-slow: 700ms;
+}
+
+:root[data-theme='light'] {
+  --color-background: #f4f6f9;
+  --color-sidebar: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f3f6;
+  --color-active-bg: #eaf6fe;
+  --color-text: #12161c;
+  --color-text-muted: #56606c;
+  --color-border: #e2e6ec;
+  --color-border-strong: #b8bec7;
+  --color-danger: #b42318;
+  --color-success: #1d7a46;
+  --color-warning-surface: #fff4d6;
+  --shadow-raised: 0 8px 24px rgb(18 22 28 / 14%);
+  --color-scrim: rgb(0 0 0 / 40%);
+  color-scheme: light;
+}

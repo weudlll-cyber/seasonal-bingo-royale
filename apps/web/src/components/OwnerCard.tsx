@@ -14,7 +14,7 @@
  *                 (new card, new marks); between the round end and the next round the
  *                 last number stays on screen and every tap is refused.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
- * Used by:        ./OwnerArea
+ * Used by:        ./OwnerArea; TapGrid also by the live card (../game/LiveCard)
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
@@ -141,14 +141,14 @@ function cellName(cell: Card['cells'][number]): string {
   return cell.kind === 'free' ? 'free' : ballLabel(cell.value);
 }
 
-interface TapGridProps {
+export interface TapGridProps {
   readonly card: Card;
   readonly marks: readonly boolean[];
   readonly lastTapped: number | null;
   readonly onTap: (index: number) => void;
 }
 
-function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement {
+export function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement {
   const reduced = useReducedMotion();
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -156,7 +156,13 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
     onTap(index);
   };
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 2.6rem)', gap: '2px' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, var(--cell-size, 2.6rem))',
+        gap: '2px',
+      }}
+    >
       <BingoHeader />
       {card.cells.map((cell, i) => {
         const marked = marks[i] === true;

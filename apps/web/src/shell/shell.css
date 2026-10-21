@@ -1,0 +1,94 @@
+/* ============================================================
+   File:        apps/web/src/shell/shell.css
+   Module:      web/shell
+   Brief:       Layout of the player client: top bar and main column.
+   Responsibility: a sticky top bar (logo, wordmark, navigation, account and the dev
+                quick sign-in) over a centred main column; from 360 px the bar wraps into
+                two rows and the navigation scrolls sideways. Colours come from @sbr/ui.
+   Spec:        docs/spec/01-game-design.md §13
+   ============================================================ */
+
+.shell-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: 0.6rem var(--gutter);
+  background: color-mix(in srgb, var(--color-sidebar) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.shell-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: auto;
+  text-decoration: none;
+  font-weight: var(--font-weight-heading);
+  letter-spacing: 0.02em;
+}
+
+.shell-brand img {
+  width: 34px;
+  height: 34px;
+}
+
+.shell-brand small {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.shell-nav {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+}
+
+.shell-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit-target);
+  padding: 0 0.85rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: var(--font-weight-strong);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.shell-nav a[aria-current='page'] {
+  background: var(--color-active-bg);
+  color: var(--color-text);
+}
+
+.shell-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shell-main {
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter) var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .shell-brand small {
+    display: none;
+  }
+
+  .shell-account {
+    width: 100%;
+  }
+}

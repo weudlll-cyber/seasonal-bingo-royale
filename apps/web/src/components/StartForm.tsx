@@ -25,22 +25,8 @@ import {
   toMissedNumbers,
   type MarkingChoice,
 } from './StartMarkingField.js';
+import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import type { GameType } from '../types.js';
-
-const CATALOGUE = [
-  'rows-1',
-  'rows-2',
-  'rows-3',
-  'rows-4',
-  'rows-5',
-  'columns-1',
-  'columns-2',
-  'fourCorners',
-  'oneDiagonal',
-  'bothDiagonals',
-  'fullCard',
-];
-const DEFAULT_PRIZES = new Set(['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard']);
 
 export interface StartFormProps {
   // The server input, and the draw control the playback starts with (D8).
@@ -64,7 +50,7 @@ const INITIAL: FormState = {
 
 export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   const [state, setState] = useState<FormState>(INITIAL);
-  const [prizes, setPrizes] = useState<Set<string>>(new Set(DEFAULT_PRIZES));
+  const [prizes, setPrizes] = useState<Set<string>>(new Set<string>(DEFAULT_PRIZES));
   const [marking, setMarking] = useState<MarkingChoice>(INITIAL_MARKING);
   const [draw, setDraw] = useState<DrawControl>(INITIAL_CONTROL);
   const bind =
@@ -229,7 +215,7 @@ function PrizeChecklist({
     <fieldset style={{ border: '1px solid #223', padding: '0.5rem' }}>
       <legend>Prizes ticked (classic only; royale ignores the list)</legend>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '0.25rem' }}>
-        {CATALOGUE.map((key) => (
+        {PRIZE_CATALOGUE.map((key) => (
           <label key={key}>
             <input
               type="checkbox"

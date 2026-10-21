@@ -1,0 +1,32 @@
+/* ============================================================
+   File:        packages/ui/src/fonts.css
+   Module:      ui
+   Brief:       Luxora Grotesk faces, served from assets/fonts (01 §13).
+   Responsibility: Book (400), Bold (700) and Heavy (900) as woff2 with swap, so text
+                shows at once in the fallback font. The files are used as delivered.
+   Spec:        docs/spec/01-game-design.md §13; assets/README.md
+   ============================================================ */
+
+@font-face {
+  font-family: 'Luxora Grotesk';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../assets/fonts/luxora-grotesk-book.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Luxora Grotesk';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../assets/fonts/luxora-grotesk-bold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Luxora Grotesk';
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../assets/fonts/luxora-grotesk-heavy.woff2') format('woff2');
+}

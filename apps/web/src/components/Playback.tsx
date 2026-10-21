@@ -10,7 +10,8 @@
  *                 the view-model in ../playback.ts.
  * Depends on:     react, ./CutScreen, ./DrawTicker, ./OwnerArea, ./Standings,
  *                 ../playback, ../types, ../useReducedMotion
- * Used by:        ../App
+ * Used by:        ../App; MatchLog, PrizeList, Banners and FinalPlacement also by the live
+ *                 match screens (../game, ../host)
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -52,7 +53,7 @@ export function Playback({ result, view }: PlaybackProps): ReactElement {
 
 // Every key moment of the match so far, oldest first; the banner list above shows only
 // the latest six.
-function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement {
+export function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement {
   return (
     <details open data-testid="match-log">
       <summary>Match log ({String(banners.length)})</summary>
@@ -87,7 +88,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
   );
 }
 
-function PrizeList({ result, view }: PlaybackProps): ReactElement {
+export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   return (
     <section>
       <h3 style={{ margin: '0 0 .25rem' }}>Prizes</h3>
@@ -106,7 +107,7 @@ function PrizeList({ result, view }: PlaybackProps): ReactElement {
   );
 }
 
-function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
+export function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
   const reduced = useReducedMotion();
   return (
     <ul
@@ -134,7 +135,7 @@ function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
 
 // Top 20 plus the owner's rows; eliminated players are ranked by when they went out
 // (01 §7.5) and show their score at elimination with "out".
-function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
+export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
   const out = new Set(view.standings.filter((p) => p.eliminated).map((p) => p.accountId));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
   const shown = sorted.filter((p, i) => i < 20 || p.isOwner);

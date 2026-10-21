@@ -1,18 +1,18 @@
 /**
- * @file   apps/server/src/dev/quicktestEvents.ts
- * @module server/dev
- * @brief  Prepares the Quick Test event log for the player client (WP-08).
+ * @file   apps/server/src/view/clientEvents.ts
+ * @module server/view
+ * @brief  Prepares a match event log for the player client (Quick Test and live match).
  *
- * Responsibility: (1) rename the simulation's internal account ids (p000, p001, …) to
- *                 the display ids the client shows (owner-01, bot-02, …) in every
- *                 event, so the client can match events to players; (2) replay the log
+ * Responsibility: (1) rename the internal player ids (simulation p000…, account ids) to
+ *                 the names the client shows (owner-01 / bot-02 in the Quick Test,
+ *                 display names in a live match) in every event, so the client can match events to players; (2) replay the log
  *                 with the domain's evolve and record the owner's effect status (active
  *                 multiplier/growth with remaining draws, shield charges, seasons
  *                 collected) whenever it changes, and every player's points after each
  *                 stage start (score carry), so the client renders them and never
  *                 computes them (CLAUDE.md: the server decides, the client renders).
  * Depends on:     @sbr/domain
- * Used by:        ./quicktest.ts
+ * Used by:        ./clientView, ../dev/quicktest.ts
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { createInitialMatchState, evolve, type DomainEvent, type MatchState } from '@sbr/domain';

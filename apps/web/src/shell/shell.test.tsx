@@ -1,0 +1,89 @@
+// @vitest-environment jsdom
+/**
+ * @file   apps/web/src/shell/shell.test.tsx
+ * @module web/shell
+ * @brief  The app shell: routes, the dev-only quick sign-in, the host link by permission.
+ *
+ * Responsibility: hashes map to the lobby, match, host and Quick Test screens and back;
+ *                 the quick sign-in buttons "Sign in as host" / "Sign in as player 1/2/3"
+ *                 exist only in development (production passes dev=false); "Host a match"
+ *                 shows only with `match.create`; the Quick Test link only in development.
+ * Depends on:     @testing-library/react, ./AppShell, ./router, ./session
+ * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
+ */
+import { act, cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { AppShell } from './AppShell.js';
+import { hrefOf, parseRoute } from './router.js';
+import { SessionProvider } from './session.js';
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  window.location.hash = '';
+});
+
+function serve(permissions: readonly string[]): void {
+  const session = {
+    signedIn: permissions.length > 0,
+    account: permissions.length > 0 ? { id: 'a', displayName: 'dev-host' } : null,
+    permissions,
+    csrfToken: 'x',
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) =>
+      Promise.resolve(
+        new Response(JSON.stringify(url.endsWith('/session') ? session : { matches: [] })),
+      ),
+    ),
+  );
+}
+
+async function renderShell(dev: boolean): Promise<void> {
+  render(
+    <SessionProvider>
+      <AppShell dev={dev} />
+    </SessionProvider>,
+  );
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+describe('routes', () => {
+  it('maps hashes to screens and back', () => {
+    expect(parseRoute('#/')).toEqual({ name: 'lobby' });
+    expect(parseRoute('#/match/ABC123')).toEqual({ name: 'match', code: 'ABC123' });
+    expect(parseRoute('#/host/new')).toEqual({ name: 'hostNew' });
+    expect(parseRoute('#/host/ABC123')).toEqual({ name: 'host', code: 'ABC123' });
+    expect(parseRoute('#/quicktest')).toEqual({ name: 'quicktest' });
+    expect(hrefOf({ name: 'match', code: 'X' })).toBe('#/match/X');
+  });
+});
+
+describe('app shell', () => {
+  it('offers the quick sign-in only in development', async () => {
+    serve([]);
+    await renderShell(true);
+    expect(screen.getByTestId('dev-sign-in-host').textContent).toBe('Sign in as host');
+    expect(screen.getByTestId('dev-sign-in-player-3').textContent).toBe('Sign in as player 3');
+    expect(screen.getByText('Quick Test')).toBeTruthy();
+    cleanup();
+    await renderShell(false);
+    expect(screen.queryByTestId('dev-sign-in-host')).toBeNull();
+    expect(screen.queryByText('Quick Test')).toBeNull();
+  });
+
+  it('shows "Host a match" only with match.create', async () => {
+    serve(['match.watch', 'match.join', 'match.create', 'match.manage']);
+    await renderShell(false);
+    expect(await screen.findByText('Host a match')).toBeTruthy();
+    expect(screen.getByTestId('signed-in-as').textContent).toBe('dev-host');
+    cleanup();
+    serve(['match.watch', 'match.join']);
+    await renderShell(false);
+    expect(screen.queryByText('Host a match')).toBeNull();
+  });
+});

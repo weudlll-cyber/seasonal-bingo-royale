@@ -11,7 +11,7 @@
  *                 eliminated owner's cards disappear after the round of the cut. Without an
  *                 owner card, shows the first bot cards read-only.
  * Depends on:     react, ./CardGrid, ./OwnerCard, ./OwnerStatusPanel, ../playback, ../types
- * Used by:        ./Playback
+ * Used by:        ./Playback; ownerRank and inPlay also by the live match screen
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -29,7 +29,7 @@ export interface OwnerAreaProps {
 
 // During play: the live standings rank. Once the match is finished: the place in the
 // final placement, so the panel and the final list never disagree.
-function ownerRank(result: QuickTestResult, view: PlaybackView, accountId: string): number {
+export function ownerRank(result: QuickTestResult, view: PlaybackView, accountId: string): number {
   const place = result.players.find((p) => p.accountId === accountId)?.place;
   if (view.finished && place !== undefined) return place;
   return view.standings.findIndex((p) => p.accountId === accountId) + 1;
@@ -79,7 +79,7 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
 // the round of the cut is over: later rounds deal no card to an eliminated owner (found
 // by the acceptance play-through: the old card stayed with marks for numbers not drawn
 // in the current round, and in tap mode it could be tapped).
-function inPlay(owner: PlaybackView['owners'][number], view: PlaybackView): boolean {
+export function inPlay(owner: PlaybackView['owners'][number], view: PlaybackView): boolean {
   return owner.eliminatedRound === null || owner.eliminatedRound === view.currentRound;
 }
 

@@ -11,13 +11,13 @@
  *                 them from bots. Determinism (01 §9, 12 §3 inv. 2): the same input
  *                 always returns the same output, including the owner's cards and
  *                 auto-mark positions. Events carry display ids and come with the
- *                 owner's effect timeline (./quicktestEvents). Marking is per player
+ *                 owner's effect timeline (../view/clientView). Marking is per player
  *                 (01 §6): bots always mark on the draw; the owner's cards are people
  *                 in manual mode. The match is computed before playback, so the owner's
  *                 later taps are unknown here: those cards are computed as never tapping
  *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
  *                 delay), measured in draws of the chosen interval.
- * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ./quicktestEvents
+ * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ../view/clientView
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §6, §13
  */
@@ -27,7 +27,6 @@ import {
   chosenMissedNumbers,
   defaultRulesetFor,
   delayOf,
-  drawRange,
   toMatchRuleset,
   withinDrawRange,
 } from '@sbr/application';
@@ -35,22 +34,13 @@ import type { Ruleset } from '@sbr/contracts';
 import {
   SEED_BYTES,
   simulateMatch,
-  type Card,
   type DomainEvent,
   type GameType,
   type MatchState,
   type MissedNumbers,
 } from '@sbr/domain';
 
-import {
-  effectSeasons,
-  renameAccounts,
-  replayForClient,
-  type EffectKind,
-  type OwnerStatus,
-  type SeasonName,
-  type StagePoints,
-} from './quicktestEvents.js';
+import { buildClientView, type ClientPlayer, type ClientView } from '../view/clientView.js';
 
 export interface QuickTestInput {
   readonly gameType: GameType;
@@ -66,39 +56,8 @@ export interface QuickTestInput {
   readonly drawIntervalMs?: number | undefined;
 }
 
-export interface QuickTestPlayer {
-  readonly accountId: string;
-  readonly isOwner: boolean;
-  // First-round card; the client follows later rounds through roundStarted events.
-  readonly card: Card;
-  readonly place: number;
-  readonly points: number;
-  readonly seasonsActivated: number;
-  readonly shieldCharges: number;
-}
-
-export interface QuickTestResult {
-  readonly gameType: GameType;
-  readonly markingMode: 'auto' | 'manual';
-  // The starter's rule with the delay raised to at least the speed window.
-  readonly missedNumbers: MissedNumbers;
-  // Delay the owner's cards were computed with for points, standings and cuts.
-  readonly ownerAutoMarkDelayMs: number;
-  readonly drawIntervalMs: number;
-  // Range a starter or host may set for auto draws (01 §5, D8).
-  readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
-  readonly speedWindowMs: number;
-  readonly pointsPerMark: number;
-  readonly maxSpeedBonus: number;
-  readonly tickedPrizes: readonly string[];
-  readonly events: readonly DomainEvent[];
-  readonly players: readonly QuickTestPlayer[];
-  readonly stagePlan: MatchState['stagePlan'];
-  readonly ownerAccountIds: readonly string[];
-  readonly ownerStatus: Record<string, OwnerStatus[]>;
-  readonly stagePoints: readonly StagePoints[];
-  readonly effectSeasons: Partial<Record<EffectKind, SeasonName>>;
-}
+export type QuickTestPlayer = ClientPlayer;
+export type QuickTestResult = ClientView;
 
 const OWNER_PREFIX = 'owner-';
 const BOT_PREFIX = 'bot-';
@@ -155,7 +114,6 @@ interface BuildArgs {
 
 function buildResult(args: BuildArgs): QuickTestResult {
   const { input, ruleset, events, state, ownerCount } = args;
-  const placeByAccount = new Map(state.finalPlacement.map((p) => [p.accountId, p.place]));
   // Internal simulation id (p000, …) → display id (owner-01, bot-02, …).
   const idMap = new Map(
     state.playerOrder.map((accountId, i) => {
@@ -163,69 +121,21 @@ function buildResult(args: BuildArgs): QuickTestResult {
       return [accountId, `${prefix}${String(i + 1).padStart(2, '0')}`];
     }),
   );
-  const owners = new Map([...idMap].slice(0, ownerCount));
-  const replay = replayForClient(events, idMap, owners);
-  const players: QuickTestPlayer[] = state.playerOrder.map((accountId, i) => {
-    const p = state.players[accountId];
-    return {
-      accountId: idMap.get(accountId) ?? accountId,
-      isOwner: i < ownerCount,
-      card: cardFromEventsFor(events, accountId),
-      place: placeByAccount.get(accountId) ?? 0,
-      points: p?.points ?? 0,
-      seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
-      shieldCharges: p?.effects.shieldCharges ?? 0,
-    };
-  });
-  return {
+  return buildClientView({
     gameType: input.gameType,
-    markingMode: input.markingMode,
-    missedNumbers: input.missedNumbers,
-    ownerAutoMarkDelayMs: delayOf(input.missedNumbers),
-    drawIntervalMs: input.drawIntervalMs,
-    drawIntervalRangeMs: drawRange(ruleset.marking.speedWindowMs),
-    speedWindowMs: ruleset.marking.speedWindowMs,
-    pointsPerMark: ruleset.scoring.pointsPerMark,
-    maxSpeedBonus: ruleset.scoring.maxSpeedBonus,
-    tickedPrizes: input.tickedPrizes,
-    events: renameAccounts(events, idMap),
-    players,
-    stagePlan: state.stagePlan,
-    ownerAccountIds: [...owners.values()],
-    ownerStatus: replay.ownerStatus,
-    stagePoints: replay.stagePoints,
-    effectSeasons: effectSeasons(ruleset.seasons),
-  };
-}
-
-// Pull the card for a given account out of the first roundStarted event. Cards are
-// deterministic per (seed, matchId, roundIndex, accountId, cardIndex), so showing the
-// first-round card is enough for the owner's view; later rounds are only interesting
-// in royale and the browser already projects per-round state from the event stream.
-function cardFromEventsFor(events: readonly DomainEvent[], accountId: string): Card {
-  for (const ev of events) {
-    if (ev.type !== 'roundStarted') continue;
-    const cards = ev.cardsByPlayer[accountId];
-    if (cards !== undefined && cards.length > 0 && cards[0] !== undefined) return cards[0];
-  }
-  // No roundStarted recorded a card for this account (should not happen); return an
-  // empty 25-cell placeholder so the client renders a blank grid instead of crashing.
-  return {
-    cells: Array.from({ length: 25 }, (_v, i) =>
-      i === 12 ? { kind: 'free' as const } : { kind: 'number' as const, value: 0 },
-    ),
-    seasonCells: null,
-  };
-}
-
-function countBits(mask: number): number {
-  let count = 0;
-  let m = mask;
-  while (m > 0) {
-    count += m & 1;
-    m >>= 1;
-  }
-  return count;
+    ruleset,
+    settings: {
+      markingMode: input.markingMode,
+      missedNumbers: input.missedNumbers,
+      ownerAutoMarkDelayMs: delayOf(input.missedNumbers),
+      drawIntervalMs: input.drawIntervalMs,
+      tickedPrizes: input.tickedPrizes,
+    },
+    events,
+    state,
+    idMap,
+    owners: new Map([...idMap].slice(0, ownerCount)),
+  });
 }
 
 function seedFromText(text: string): Uint8Array {

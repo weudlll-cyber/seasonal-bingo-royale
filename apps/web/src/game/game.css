@@ -1,0 +1,274 @@
+/* ============================================================
+   File:        apps/web/src/game/game.css
+   Module:      web/game
+   Brief:       The live match screens: lobby, waiting room, arena, ball, card, host console.
+   Responsibility: the arena layout (play column beside the side column from 960 px,
+                stacked on phones), the current number as a large ball with a draining
+                speed-window bar, the player's card as the hero element in card colours
+                with large, thumb-sized cells (at least 44 px on a 360 px phone), and the
+                host console with its big Draw next. Colours and sizes from @sbr/ui tokens.
+   Spec:        docs/spec/01-game-design.md §13
+   ============================================================ */
+
+.lobby-head h1,
+.arena-head h1,
+.waiting h1 {
+  font-size: var(--font-size-title);
+}
+
+.lobby-error {
+  color: var(--color-danger);
+}
+
+.lobby-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lobby-item {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.lobby-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.lobby-item p {
+  margin: 0;
+}
+
+.waiting-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.waiting-players li {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+}
+
+.waiting-players li.is-me {
+  background: var(--color-active-bg);
+  outline: 1px solid var(--color-accent);
+}
+
+.countdown {
+  margin: 0;
+  font-size: var(--font-size-lead);
+}
+
+.countdown strong {
+  font-size: var(--font-size-title);
+  color: var(--color-autumn);
+}
+
+/* Arena */
+.arena {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.arena-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.arena-head p {
+  margin: 0.25rem 0 0;
+}
+
+.arena-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 960px) {
+  .arena-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
+    align-items: start;
+  }
+}
+
+.arena-play,
+.arena-side {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The current number */
+.ball-wrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+.ball {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: clamp(8rem, 30vw, 11rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-ball) 45%, #c9d1dc);
+  color: var(--color-ball-ink);
+  box-shadow:
+    var(--shadow-raised),
+    inset 0 -8px 18px rgb(0 0 0 / 18%);
+  line-height: 1;
+}
+
+.ball--empty {
+  width: auto;
+  aspect-ratio: auto;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.ball-letter {
+  font-size: calc(var(--font-size-ball) * 0.38);
+  font-weight: var(--font-weight-strong);
+  color: var(--color-text-muted);
+  filter: brightness(0.5);
+}
+
+.ball-number {
+  font-size: var(--font-size-ball);
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.03em;
+}
+
+.ball-note {
+  margin: 0;
+}
+
+.window-bar {
+  width: min(14rem, 70%);
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.window-bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-autumn);
+  transform-origin: left;
+  animation: sbr-window linear forwards;
+}
+
+@keyframes sbr-window {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* The player's card: the hero element */
+.own-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.live-card {
+  --cell-size: clamp(2.9rem, 15vw, 4.1rem);
+  --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
+  --cell-weight: 700;
+  --cell-radius: 10px;
+  --cell-bg: var(--color-card);
+  --cell-free-bg: var(--color-card-line);
+  --cell-ink: var(--color-card-ink);
+  --cell-marked-bg: var(--color-card-marked);
+  --cell-marked-ink: var(--color-card-marked-ink);
+  --cell-marked-ring: var(--color-autumn);
+
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-card);
+  background: linear-gradient(180deg, #fbf9f3, var(--color-card));
+  color: var(--color-card-ink);
+  box-shadow: var(--shadow-raised);
+}
+
+.live-card > div {
+  gap: 6px !important;
+}
+
+.live-card-feedback {
+  margin: 0;
+  min-height: 1.4em;
+  color: #3d4652;
+  font-weight: var(--font-weight-strong);
+}
+
+/* Host console */
+.host-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 960px) {
+  .host-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+    align-items: start;
+  }
+}
+
+.host-draw {
+  width: 100%;
+  min-height: 5.5rem;
+  font-size: var(--font-size-title);
+}
+
+.create-form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 40rem;
+}
+
+.create-form fieldset {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.prize-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.35rem;
+}
+
+.prize-grid label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: var(--hit-target);
+}

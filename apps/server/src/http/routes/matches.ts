@@ -4,8 +4,7 @@
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
  * Responsibility: GET /matches (open, running and recent matches), POST /matches
- *                 (match.create), GET /matches/:code, GET /matches/:code/state (the match,
- *                 its public event log for the client to fold, the caller's own player id),
+ *                 (match.create), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews),
  *                 POST /matches/:code/join (match.join), and for the match's creator with
  *                 match.manage: /start (countdown), /draw-next, PUT /draw-mode, /abort;
  *                 POST /matches/:code/marks is the fallback for clients without a socket.
@@ -22,7 +21,7 @@ import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerHostRoutes } from './matchHost.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
-import { matchSummary, publicState } from './matchViews.js';
+import { liveView, matchSummary } from './matchViews.js';
 
 export interface MatchRouteDeps {
   readonly pool: DbPool;
@@ -91,18 +90,25 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
     return matchSummary(await deps.engine.runner.current(id));
   });
-  app.get<{ Params: { code: string } }>('/api/v1/matches/:code/state', async (request, reply) => {
-    const id = await matchIdByCode(deps.pool, request.params.code);
-    if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-    const m = await deps.engine.runner.current(id);
-    const events = await deps.store.events(id, 0);
-    return publicState(
-      m,
-      events,
-      await playerNames(deps.pool, id),
-      request.session?.accountId ?? null,
-    );
-  });
+  app.get<{ Params: { code: string }; Querystring: { since?: string } }>(
+    '/api/v1/matches/:code/state',
+    async (request, reply) => {
+      const id = await matchIdByCode(deps.pool, request.params.code);
+      if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
+      // Serialized with the match's commands, so the log and the state belong together.
+      return deps.engine.runner.serial(id, async () => {
+        const m = await deps.engine.runner.current(id);
+        const since = Math.max(0, Math.min(m.seq, Number(request.query.since ?? 0) || 0));
+        return liveView({
+          match: m,
+          events: await deps.store.events(id, 0),
+          names: await playerNames(deps.pool, id),
+          me: request.session?.accountId ?? null,
+          since,
+        });
+      });
+    },
+  );
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {
     const accountId = requirePermission(request, reply, 'match.join');
     if (accountId === null) return reply;
