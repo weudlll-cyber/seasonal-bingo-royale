@@ -16,6 +16,10 @@ import type { DomainEvent, GameType, MarkingMode, MatchState, MissedNumbers } fr
 export type DrawMode = 'auto' | 'host';
 export type MatchStatus = 'lobby' | 'running' | 'finished' | 'aborted';
 
+// The pause between royale rounds (D14): wait the given time, or until the host starts
+// the next round.
+export type RoundPause = { readonly kind: 'wait'; readonly ms: number } | { readonly kind: 'host' };
+
 // What the starter chose at creation (05 §2.3, 11 §3.2); draw mode and interval change
 // during play (D8).
 export interface MatchSettings {
@@ -23,6 +27,7 @@ export interface MatchSettings {
   readonly missedNumbers: MissedNumbers;
   readonly drawMode: DrawMode;
   readonly drawIntervalMs: number;
+  readonly roundPause: RoundPause;
 }
 
 export interface MatchRecord {

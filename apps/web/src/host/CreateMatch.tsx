@@ -8,10 +8,12 @@
  *                 ticked), draws (timed every N seconds, or host presses Draw next — the
  *                 Quick Test's field), missed numbers (marked after N seconds, or left open —
  *                 the Quick Test's field), the leaderboard switch (on for royale, off for the
- *                 classic types by default), max players, and the start rule (the host
- *                 starts, with a 10-second countdown). POST /matches, then the host console.
+ *                 classic types by default), max players, the pause between royale rounds
+ *                 (D14) and the start rule (the host starts, with a 10-second countdown).
+ *                 Seconds between draws below the shortest interval (D12) show a plain
+ *                 message and keep the form from being sent. POST /matches, then the console.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
- *                 ../shell/http, ../shell/router, ../prizes, ../game/labels
+ *                 ../shell/http, ../shell/router, ../prizes, ../game/labels, ./TimingFields
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6
  */
@@ -30,6 +32,15 @@ import '../game/game.css';
 import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
+import {
+  INITIAL_PAUSE,
+  intervalProblem,
+  RoundPauseField,
+  rulesetIntervalMs,
+  shortestInterval,
+  toRoundPause,
+  type RoundPauseChoice,
+} from './TimingFields.js';
 import { YourMatches } from './YourMatches.js';
 import type { GameType } from '../types.js';
 
@@ -44,6 +55,8 @@ interface FormValues {
   // null until the host touches it: then the game type's default applies.
   readonly leaderboard: boolean | null;
   readonly maxPlayers: number;
+  // Royale: wait N seconds between rounds, or the host starts each one (D14).
+  readonly pause: RoundPauseChoice;
 }
 
 const INITIAL: FormValues = {
@@ -54,7 +67,15 @@ const INITIAL: FormValues = {
   missed: INITIAL_MARKING,
   leaderboard: null,
   maxPlayers: 20,
+  pause: INITIAL_PAUSE,
 };
+
+// The seconds between draws below the match's shortest interval (D12): the message, else null.
+function intervalMessage(v: FormValues): string | null {
+  const chosen =
+    v.draw.intervalSec === null ? rulesetIntervalMs(v.gameType) : v.draw.intervalSec * 1000;
+  return intervalProblem(chosen, shortestInterval(v.gameType, toMissedNumbers(v.missed)));
+}
 
 // The POST /matches body (05 §2.3); the server clamps seconds and delays into range.
 export function createBody(v: FormValues) {
@@ -69,6 +90,7 @@ export function createBody(v: FormValues) {
     missedNumbers: toMissedNumbers(v.missed),
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
     maxPlayers: Math.min(200, Math.max(2, v.maxPlayers)),
+    ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
   };
 }
 
@@ -80,6 +102,8 @@ export function CreateMatch(): ReactElement {
   };
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
+    // D12: the message under the draws field says why nothing is sent.
+    if (intervalMessage(values) !== null) return;
     api<{ code: string }>('/matches', { method: 'POST', body: createBody(values) })
       .then((r) => {
         navigate({ name: 'host', code: r.code });
@@ -213,8 +237,9 @@ function PrizeField({
   );
 }
 
-// Draws, missed numbers and the leaderboard switch.
+// Draws (with the D12 message), missed numbers, the royale pause (D14), the leaderboard.
 function RulesFields({ values, set }: FieldsProps): ReactElement {
+  const tooShort = intervalMessage(values);
   return (
     <>
       <StartDrawField
@@ -223,6 +248,11 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
           set('draw', d);
         }}
       />
+      {tooShort !== null ? (
+        <p className="lobby-error" role="alert" data-testid="create-interval-problem">
+          {tooShort}
+        </p>
+      ) : null}
       <fieldset>
         <legend>Missed numbers</legend>
         <MissedField
@@ -232,6 +262,14 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
           }}
         />
       </fieldset>
+      {values.gameType === 'royale' ? (
+        <RoundPauseField
+          value={values.pause}
+          onChange={(p) => {
+            set('pause', p);
+          }}
+        />
+      ) : null}
       <label className="sbr-row">
         <input
           type="checkbox"

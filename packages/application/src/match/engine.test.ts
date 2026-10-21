@@ -16,6 +16,7 @@ import type { MissedNumbers } from '@sbr/domain';
 import { describe, expect, it } from 'vitest';
 
 import { MatchEngine, MatchError } from './engine.js';
+import { nextDrawAt, waitingForHost } from './flow.js';
 import { ManualClock, MemoryScheduler, MemoryStore } from './fakes.js';
 import type { MatchRecord } from './ports.js';
 
@@ -36,7 +37,6 @@ function setUp() {
     clock,
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
-    betweenRoundsMs: 2_000,
   });
   return { store, scheduler, clock, engine, changes };
 }
@@ -70,10 +70,13 @@ describe('timed flow', () => {
       });
     },
   );
+});
 
+describe('pause between royale rounds (D14)', () => {
   it('tells the screens when the next round starts after a round and its cut', async () => {
     const { scheduler, clock, engine, changes } = setUp();
-    const m = await engine.create({ ...base, gameType: 'royale' }, null);
+    const roundPause = { kind: 'wait', ms: 4_000 } as const;
+    const m = await engine.create({ ...base, gameType: 'royale', roundPause }, null);
     await engine.fillWithBots(m.id, 20);
     await engine.start(m.id, 1_000);
     await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
@@ -82,7 +85,66 @@ describe('timed flow', () => {
       (c, i) => c.record.nextRoundAt !== changes[i - 1]?.record.nextRoundAt,
     );
     expect(pauses.length).toBeGreaterThan(1);
-    for (const c of pauses) expect(c.record.nextRoundAt).toBe(c.at + 2_000);
+    for (const c of pauses) expect(c.record.nextRoundAt).toBe(c.at + 4_000);
+  });
+
+  it('waits for the host between royale rounds when the host starts them (D14)', async () => {
+    const { store, scheduler, clock, engine } = setUp();
+    const m = await engine.create(
+      { ...base, gameType: 'royale', roundPause: { kind: 'host' } },
+      null,
+    );
+    await engine.fillWithBots(m.id, 20);
+    await engine.start(m.id, 1_000);
+    // Everything that is scheduled runs: the first round plays out, then nothing starts.
+    await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
+    const rounds = () => store.types(m.id).filter((t) => t === 'roundStarted').length;
+    expect(rounds()).toBe(1);
+    expect(store.types(m.id)).toContain('cutApplied');
+    expect(waitingForHost(await engine.runner.current(m.id))).toBe(true);
+    clock.t += 600_000;
+    await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
+    expect(rounds()).toBe(1);
+    await engine.startNextRound(m.id);
+    expect(rounds()).toBe(2);
+    await expect(engine.startNextRound(m.id)).rejects.toEqual(
+      new MatchError('NOT_WAITING_FOR_HOST'),
+    );
+  });
+
+  it('keeps a waiting pause at 3 s or more, 6 s by default (D14)', async () => {
+    const { engine } = setUp();
+    const short = await engine.create(
+      { ...base, gameType: 'royale', roundPause: { kind: 'wait', ms: 1_000 } },
+      null,
+    );
+    const plain = await engine.create({ ...base, gameType: 'royale' }, null);
+    expect(short.settings.roundPause).toEqual({ kind: 'wait', ms: 3_000 });
+    expect(plain.settings.roundPause).toEqual({ kind: 'wait', ms: 6_000 });
+  });
+});
+
+describe('shortest timed-draw interval (D12)', () => {
+  it('is 1 s longer than the longest tap time, at creation and when the host changes it', async () => {
+    const { engine } = setUp();
+    const slow = { kind: 'autoMarkAfter', delayMs: 5_000 } as const;
+    const m = await engine.create(
+      { ...base, gameType: 'classic', missedNumbers: slow, drawIntervalMs: 2_000 },
+      null,
+    );
+    expect(m.settings.drawIntervalMs).toBe(6_000);
+    const open = await engine.create(
+      {
+        ...base,
+        gameType: 'classic',
+        missedNumbers: { kind: 'noAutoMark' },
+        drawIntervalMs: 2_000,
+      },
+      null,
+    );
+    // Speed window 3 s + 1 s.
+    expect(open.settings.drawIntervalMs).toBe(4_000);
+    expect((await engine.setDrawControl(m.id, 'auto', 1_000)).settings.drawIntervalMs).toBe(6_000);
   });
 });
 
@@ -99,14 +161,26 @@ async function runningHostMatch(missedNumbers: MissedNumbers = base.missedNumber
   return { ...ctx, id: m.id };
 }
 
-describe('host draws and draw control (D8)', () => {
+describe('host draws and draw control (D8, D13)', () => {
   it('draws on Draw next only after the previous window closed', async () => {
     const { engine, scheduler, clock, store, id } = await runningHostMatch();
     await engine.drawNext(id);
     await expect(engine.drawNext(id)).rejects.toEqual(new MatchError('DRAW_NOT_ALLOWED'));
-    await scheduler.runUntil(engine, clock, clock.t + 3_000);
+    await scheduler.runUntil(engine, clock, clock.t + 5_000);
     await engine.drawNext(id);
     expect(store.types(id).filter((t) => t === 'drawMade')).toHaveLength(2);
+  });
+
+  it('keeps Draw next locked until the timed interval since the last draw has passed (D13)', async () => {
+    const { engine, scheduler, clock, id } = await runningHostMatch();
+    const first = clock.t;
+    await engine.drawNext(id);
+    // The window (3 s) has closed, but the match's 5 s interval has not passed.
+    await scheduler.runUntil(engine, clock, first + 4_999);
+    expect(nextDrawAt(await engine.runner.current(id))).toBe(first + 5_000);
+    await expect(engine.drawNext(id)).rejects.toEqual(new MatchError('DRAW_TOO_EARLY'));
+    clock.t = first + 5_000;
+    await engine.drawNext(id);
   });
 
   it('refuses Draw next in timed mode, and resumes timed draws one interval after a switch', async () => {
@@ -140,7 +214,8 @@ async function tapAfter(ctx: Awaited<ReturnType<typeof runningHostMatch>>, delay
       const last = store.events.get(id)?.at(-1)?.event;
       return last?.type === 'cellMarked' ? last.markPoints : null;
     }
-    await scheduler.runUntil(engine, clock, clock.t + 3_000);
+    // The next host draw unlocks one timed interval (5 s) after this one (D13).
+    await scheduler.runUntil(engine, clock, clock.t + 5_000);
   }
   return null;
 }

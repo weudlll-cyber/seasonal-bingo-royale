@@ -9,7 +9,8 @@
  *                 numbers, the player's own cards (taps go to the server), status (points,
  *                 rank, effects, seasons, shield), standings with active players first, the
  *                 prize list in classic types, one match log (newest first), the cut screen
- *                 with the countdown to the next round, the spectator note once out; at the
+ *                 with the countdown to the next round or "Waiting for the host to start
+ *                 round N" (D14), the spectator note once out; at the
  *                 end the final placement on top. Remounted per match code, so nothing of a
  *                 previous match survives.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./CurrentBall,
@@ -58,14 +59,7 @@ function Arena({
   return (
     <div className="arena" data-testid="arena">
       <ArenaHeader live={live} view={view} />
-      {view.finished ? (
-        <>
-          <FinalPlacement result={result} view={view} />
-          <EndActions host={false} />
-        </>
-      ) : (
-        <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
-      )}
+      <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
         <section className="arena-play">
           <CurrentBall
@@ -102,6 +96,35 @@ function Arena({
         </aside>
       </div>
     </div>
+  );
+}
+
+// Above the arena: the final placement at the end; otherwise the cut screen and, while
+// the match waits for its host between rounds, the waiting notice (D14).
+function ArenaNotice({
+  live,
+  view,
+}: {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+}): ReactElement {
+  if (view.finished) {
+    return (
+      <>
+        <FinalPlacement result={live.view} view={view} />
+        <EndActions host={false} />
+      </>
+    );
+  }
+  return (
+    <>
+      <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
+      {live.match.waitingForHost ? (
+        <p className="sbr-panel" role="status" data-testid="waiting-for-host">
+          Waiting for the host to start round {view.currentRound + 2}
+        </p>
+      ) : null}
+    </>
   );
 }
 

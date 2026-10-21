@@ -26,6 +26,9 @@ export {
 export {
   REALTIME_DRAW_INTERVAL_MS,
   DEFAULT_AUTO_MARK_DELAY_MS,
+  DEFAULT_ROUND_PAUSE_MS,
+  MIN_ROUND_PAUSE_MS,
+  shortestDrawIntervalMs,
   RulesetSchema,
   type Effect,
   type Ruleset,

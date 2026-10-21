@@ -8,8 +8,10 @@
  *                 with the starter's choices (prizes, draw mode and seconds, missed-number
  *                 rule); players join while the lobby is open; development bots join as
  *                 non-tapping players; start schedules the match after a countdown;
- *                 scheduled actions run through ./flow; the host draws in host mode and
- *                 switches draw mode or seconds at any time (D8); a tap is scored with the
+ *                 scheduled actions run through ./flow; the host draws in host mode (not
+ *                 before the timed interval since the last draw, D13), starts the next
+ *                 round when the match waits for it (D14), and switches draw mode or
+ *                 seconds at any time (D8, never below D12); a tap is scored with the
  *                 speed bonus from the time since its draw (01 §6). Every command for a
  *                 match runs serialized through ./runner.
  * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./rulesets, ./timing
@@ -18,7 +20,7 @@
  */
 import { speedBonus, type Command } from '@sbr/domain';
 
-import { canDraw, draw, runAction, type FlowDeps } from './flow.js';
+import { canDraw, draw, nextDrawAt, runAction, startNextRound, type FlowDeps } from './flow.js';
 import { prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
 import type {
   Clock,
@@ -45,7 +47,6 @@ export interface EngineDeps {
   readonly clock: Clock;
   readonly randomSeed: () => Uint8Array;
   readonly randomCode: () => string;
-  readonly betweenRoundsMs?: number;
 }
 
 export class MatchEngine {
@@ -59,7 +60,6 @@ export class MatchEngine {
       store: deps.store,
       scheduler: deps.scheduler,
       clock: deps.clock,
-      betweenRoundsMs: deps.betweenRoundsMs ?? 6_000,
     };
   }
 
@@ -127,7 +127,19 @@ export class MatchEngine {
       const m = await this.runner.current(matchId);
       if (m.record.settings.drawMode !== 'host') throw new MatchError('DRAW_MODE_AUTO');
       if (!canDraw(m)) throw new MatchError('DRAW_NOT_ALLOWED');
+      // D13: not before the next number would have come under timed draws.
+      const unlocksAt = nextDrawAt(m);
+      if (unlocksAt !== null && this.deps.clock.now() < unlocksAt) {
+        throw new MatchError('DRAW_TOO_EARLY');
+      }
       await draw(this.flow, matchId);
+    });
+  }
+
+  // The host starts the next royale round when the match waits for it (D14).
+  startNextRound(matchId: string): Promise<void> {
+    return this.runner.serial(matchId, async () => {
+      if (!(await startNextRound(this.flow, matchId))) throw new MatchError('NOT_WAITING_FOR_HOST');
     });
   }
 
@@ -140,6 +152,7 @@ export class MatchEngine {
       const drawIntervalMs = withinDrawRange(
         intervalMs ?? m.record.settings.drawIntervalMs,
         windowMs,
+        m.record.settings.missedNumbers,
       );
       await this.deps.store.setDrawControl(matchId, drawMode, drawIntervalMs);
       const settings = { ...m.record.settings, drawMode, drawIntervalMs };

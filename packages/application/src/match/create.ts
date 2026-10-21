@@ -5,8 +5,8 @@
  *
  * Responsibility: check the prize list (classic types: at least one built-in prize, kept
  *                 in catalogue order; royale: none), clamp the timed-draw seconds into the
- *                 allowed range above the speed window, raise a missed-number delay to the
- *                 speed window, and build the match record plus the `openLobby` command that
+ *                 allowed range (D12), raise a missed-number delay to the speed window,
+ *                 keep the pause between royale rounds at its minimum or above (D14), and build the match record plus the `openLobby` command that
  *                 freezes the ruleset and the seed (01 §3a, §5, §6, §9).
  * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./rulesets, ./timing
  * Used by:        ./engine
@@ -20,9 +20,9 @@ import {
   type MissedNumbers,
 } from '@sbr/domain';
 
-import { DEFAULT_RULESETS } from '@sbr/contracts';
+import { DEFAULT_ROUND_PAUSE_MS, DEFAULT_RULESETS, MIN_ROUND_PAUSE_MS } from '@sbr/contracts';
 
-import type { DrawMode, NewMatchRecord } from './ports.js';
+import type { DrawMode, NewMatchRecord, RoundPause } from './ports.js';
 import { defaultRulesetFor, toMatchRuleset } from './rulesets.js';
 import { chosenMissedNumbers, withinDrawRange } from './timing.js';
 
@@ -36,6 +36,14 @@ export interface CreateMatchInput {
   readonly missedNumbers: MissedNumbers;
   readonly countsForLeaderboard?: boolean | undefined;
   readonly maxPlayers: number;
+  readonly roundPause?: RoundPause | undefined;
+}
+
+// The pause between royale rounds (D14): the chosen one, a wait never shorter than the
+// minimum; 6 s by default.
+export function chosenRoundPause(chosen: RoundPause | undefined): RoundPause {
+  if (chosen?.kind === 'host') return chosen;
+  return { kind: 'wait', ms: Math.max(MIN_ROUND_PAUSE_MS, chosen?.ms ?? DEFAULT_ROUND_PAUSE_MS) };
 }
 
 // Royale has no prize list; a classic type needs at least one known prize (01 §3a.1).
@@ -80,7 +88,9 @@ export function toNewMatch(
       drawIntervalMs: withinDrawRange(
         input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime,
         windowMs,
+        missedNumbers,
       ),
+      roundPause: chosenRoundPause(input.roundPause),
     },
     createdBy: ids.createdBy,
     seed: ids.seed,

@@ -70,6 +70,7 @@ export function runQuickTest(input: QuickTestInput): QuickTestResult {
   const drawIntervalMs = withinDrawRange(
     input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime,
     speedWindowMs,
+    missedNumbers,
   );
   const matchRuleset = toMatchRuleset(ruleset, input.markingMode, {
     kind: 'autoMarkAfter',

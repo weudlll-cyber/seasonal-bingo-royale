@@ -9,12 +9,16 @@
  *                 window, the delay the owner's cards are computed with (the owner's
  *                 later taps are not known before playback, so noAutoMark uses the
  *                 default delay), and the timed-draw gap kept inside the allowed range,
- *                 which is always longer than the speed window (D10).
+ *                 which starts 1 s after the longest tap time (D10, D12).
  * Depends on:     @sbr/contracts, @sbr/domain (types)
  * Used by:        ./engine, apps/server/src/dev/quicktest.ts
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
-import { DEFAULT_AUTO_MARK_DELAY_MS, REALTIME_DRAW_INTERVAL_MS } from '@sbr/contracts';
+import {
+  DEFAULT_AUTO_MARK_DELAY_MS,
+  REALTIME_DRAW_INTERVAL_MS,
+  shortestDrawIntervalMs,
+} from '@sbr/contracts';
 import type { MissedNumbers } from '@sbr/domain';
 
 // The starter's rule; an autoMarkAfter delay is never shorter than the speed window.
@@ -27,19 +31,19 @@ export function chosenMissedNumbers(
   return { kind: 'autoMarkAfter', delayMs: Math.max(speedWindowMs, rule.delayMs) };
 }
 
-// Time left between the close of a speed window and the next draw, so the round end
-// and classic prizes are decided before the next number (01 §5, D10).
-const GAP_AFTER_WINDOW_MS = 1_000;
-
-// Allowed timed-draw gap: the realtime range, but always longer than the speed window.
-export function drawRange(speedWindowMs: number): { readonly min: number; readonly max: number } {
-  const min = Math.max(REALTIME_DRAW_INTERVAL_MS.min, speedWindowMs + GAP_AFTER_WINDOW_MS);
-  return { min, max: REALTIME_DRAW_INTERVAL_MS.max };
+// Allowed timed-draw gap: from 1 s after the match's longest tap time (D12; so the round
+// end and classic prizes are decided before the next number, D10) to the realtime max.
+export function drawRange(
+  speedWindowMs: number,
+  missed: MissedNumbers,
+): { readonly min: number; readonly max: number } {
+  const delay = missed.kind === 'autoMarkAfter' ? missed.delayMs : null;
+  return { min: shortestDrawIntervalMs(speedWindowMs, delay), max: REALTIME_DRAW_INTERVAL_MS.max };
 }
 
-// The starter's draw gap, kept inside the allowed range (01 §5).
-export function withinDrawRange(ms: number, speedWindowMs: number): number {
-  const { min, max } = drawRange(speedWindowMs);
+// The starter's or host's draw gap, kept inside the allowed range (01 §5, D12).
+export function withinDrawRange(ms: number, speedWindowMs: number, missed: MissedNumbers): number {
+  const { min, max } = drawRange(speedWindowMs, missed);
   return Math.min(max, Math.max(min, ms));
 }
 

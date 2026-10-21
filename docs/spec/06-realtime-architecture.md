@@ -52,7 +52,8 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
-| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode; rate limit 2/s |
+| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode and with `DRAW_TOO_EARLY` before the timed interval since the last draw has passed (01 §5, D13); rate limit 2/s |
+| `round.next` | `{ code }` | The host starts the next royale round while the match waits for it (01 §7.1, D14); permission `match.manage`; rejected with `NOT_WAITING_FOR_HOST` otherwise |
 | `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
 ### 4.2 Server → client events

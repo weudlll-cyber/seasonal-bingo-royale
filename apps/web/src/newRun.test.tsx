@@ -85,7 +85,7 @@ describe('a new run', () => {
     await nextDraw();
     await nextDraw(); // draw 2, the round's last
     await closeWindow(); // its window closes with the first cut
-    fireEvent.click(screen.getByText('Close'));
+    fireEvent.click(screen.getByText('Watch'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
 
     await startRun(); // run B

@@ -8,7 +8,8 @@
  *                 draw-control changes; the host draws and switches mode over the socket
  *                 (D8), a player may not; a player taps a drawn number; a repeated seq is
  *                 dropped; marks are limited to 4 a second; a socket watches at most 3
- *                 matches.
+ *                 matches; the pause choice between royale rounds is stored and only the
+ *                 host may start the next round, only while the match waits (D14).
  * Depends on:     vitest, socket.io-client, ./harness, ./session
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §8, §13
  */
@@ -169,6 +170,38 @@ describe('who hosts a match (POLISH-1)', () => {
     await connected(s);
     expect(await send(s, 'draw.next', { code })).toEqual({ ok: false, code: 'FORBIDDEN' });
     expect((await player.post(`/api/v1/matches/${code}/start`, {})).statusCode).toBe(403);
+  });
+});
+
+describe('pause between royale rounds (D14)', () => {
+  it('stores the host choice; only the host may start the next round, and only when it waits', async () => {
+    const r = await host.post('/api/v1/matches', {
+      title: 'pause',
+      gameType: 'royale',
+      drawMode: 'host',
+      missedNumbers: { kind: 'noAutoMark' },
+      maxPlayers: 10,
+      roundPause: { kind: 'host' },
+    });
+    const { code } = r.json<{ code: string }>();
+    const id = (await host.get(`/api/v1/matches/${code}`)).json<{ id: string }>().id;
+    // Read back from PostgreSQL (store.load), not from the engine's cache.
+    const loaded = await harness.built.match.store.load(id);
+    expect(loaded?.record.settings.roundPause).toEqual({ kind: 'host' });
+    const summary = (await host.get(`/api/v1/matches/${code}`)).json<{ waitingForHost: boolean }>();
+    expect(summary.waitingForHost).toBe(false);
+    const playerSocket = open(player.cookie);
+    await connected(playerSocket);
+    expect(await send(playerSocket, 'round.next', { code })).toEqual({
+      ok: false,
+      code: 'FORBIDDEN',
+    });
+    const hostSocket = open(host.cookie);
+    await connected(hostSocket);
+    expect(await send(hostSocket, 'round.next', { code })).toEqual({
+      ok: false,
+      code: 'NOT_WAITING_FOR_HOST',
+    });
   });
 });
 

@@ -7,7 +7,8 @@
  *                 owner closes it or the next cut arrives: a survivor reads "You're
  *                 through — next round in N s" (the countdown when the server announced
  *                 the next round's start), an eliminated owner "You're out in cut N — you
- *                 can keep watching". A new cut scrolls into view. It never pauses playback: an eliminated owner keeps
+ *                 can keep watching"; the button reads "Keep playing" or "Watch" (D15). A new cut
+ *                 scrolls into view. It never pauses playback: an eliminated owner keeps
  *                 watching the spectator view to the end.
  * Depends on:     react, ../playback, ../useReducedMotion, ../useSecondsUntil
  * Used by:        ./Playback, ../game/MatchScreen
@@ -59,7 +60,8 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
           setClosed(cut.number);
         }}
       >
-        Close
+        {/* D15: a survivor plays on, an eliminated player watches. */}
+        {allOut ? 'Watch' : 'Keep playing'}
       </button>
     </section>
   );

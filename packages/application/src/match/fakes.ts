@@ -110,7 +110,8 @@ export class MemoryScheduler implements Scheduler {
     return Promise.resolve();
   }
 
-  // Runs due actions in due order (scheduling order on ties), moving the clock to each.
+  // Runs due actions in due order (scheduling order on ties), moving the clock to each,
+  // and leaves the clock at `until` when that is a finite time.
   async runUntil(
     engine: MatchEngine,
     clock: ManualClock,
@@ -119,7 +120,10 @@ export class MemoryScheduler implements Scheduler {
   ): Promise<void> {
     for (let n = 0; n < maxActions; n += 1) {
       const next = [...this.pending].sort((a, b) => a.dueAt - b.dueAt)[0];
-      if (next === undefined || next.dueAt > until) return;
+      if (next === undefined || next.dueAt > until) {
+        if (Number.isFinite(until)) clock.t = Math.max(clock.t, until);
+        return;
+      }
       this.pending.splice(this.pending.indexOf(next), 1);
       clock.t = Math.max(clock.t, next.dueAt);
       await engine.handle(next);

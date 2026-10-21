@@ -120,9 +120,12 @@ function serveLive(view: QuickTestResult, youHost: boolean): void {
       missedNumbers: { kind: 'noAutoMark' },
       drawMode: 'host',
       drawIntervalMs: 5000,
+      roundPause: { kind: 'wait', ms: 6000 },
     },
     startsAt: null,
     nextRoundAt: null,
+    nextDrawAt: null,
+    waitingForHost: false,
     createdBy: 'h',
     youHost,
   };

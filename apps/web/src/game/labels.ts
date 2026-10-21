@@ -167,6 +167,8 @@ export function problemText(code: string): string {
     NOT_ENOUGH_PLAYERS: 'At least 2 players are needed to start.',
     RATE_LIMITED: 'Too many presses — wait a moment.',
     MARK_REJECTED: 'the tap was not accepted.',
+    DRAW_TOO_EARLY: 'Not yet — the next number comes when the timed interval has passed.',
+    NOT_WAITING_FOR_HOST: 'The next round has already started.',
     SIGN_IN_REQUIRED: 'Please sign in first.',
     INVALID_PRIZES: 'Please tick at least one prize.',
     VALIDATION_FAILED: 'Please check the form.',

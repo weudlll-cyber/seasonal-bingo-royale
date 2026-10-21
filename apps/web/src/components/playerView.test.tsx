@@ -116,14 +116,14 @@ describe('CutScreen', () => {
     expect(screen.getByTestId('cut-screen').textContent).toContain(
       "You're through — next round in 6 s",
     );
-    expect(screen.queryByText('Keep watching')).toBeNull();
-    fireEvent.click(screen.getByText('Close'));
+    expect(screen.queryByText('Watch')).toBeNull();
+    fireEvent.click(screen.getByText('Keep playing'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
     rerender(<CutScreen cut={cut(2, 'eliminated')} />);
     expect(screen.getByTestId('cut-screen').textContent).toContain(
       "You're out in cut 2 — you can keep watching",
     );
-    expect(screen.getByText('Close')).toBeTruthy();
+    expect(screen.getByText('Watch')).toBeTruthy();
   });
 
   it('brings a new cut into view', () => {

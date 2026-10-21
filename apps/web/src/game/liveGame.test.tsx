@@ -51,6 +51,7 @@ describe('window state and wording', () => {
       missedNumbers: { kind: 'autoMarkAfter', delayMs: 3000 },
       drawMode: 'auto',
       drawIntervalMs: 5000,
+      roundPause: { kind: 'wait', ms: 6000 },
     };
     expect(drawLine(settings)).toBe('Draws: timed (every 5 seconds)');
     expect(missedLine(settings)).toBe('Missed numbers: marked for you after 3 seconds');

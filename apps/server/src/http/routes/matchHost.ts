@@ -4,7 +4,8 @@
  * @brief  Host routes of a match: start, draw next, draw mode, abort, bots; the mark fallback.
  *
  * Responsibility: only the match's creator with `match.manage` runs it (05 §3, 06 §4.1):
- *                 POST /start (10-second countdown), /draw-next (host mode, D8), PUT
+ *                 POST /start (10-second countdown), /draw-next (host mode, D8, D13),
+ *                 /next-round (when the match waits for the host, D14), PUT
  *                 /draw-mode { mode, intervalMs } at any time, POST /abort { reason }.
  *                 Development builds add POST /bots { upTo } to fill the lobby with bots.
  *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
@@ -71,6 +72,7 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
     startsAt: await deps.engine.start(id, START_COUNTDOWN_MS),
   }));
   host('/api/v1/matches/:code/draw-next', (id) => deps.engine.drawNext(id));
+  host('/api/v1/matches/:code/next-round', (id) => deps.engine.startNextRound(id));
   host('/api/v1/matches/:code/draw-mode', async (id, request) => {
     const body = drawModeBody.parse(request.body);
     const record = await deps.engine.setDrawControl(id, body.mode, body.intervalMs);

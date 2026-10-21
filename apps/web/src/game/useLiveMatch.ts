@@ -35,10 +35,16 @@ export interface MatchSummary {
     readonly missedNumbers: QuickTestResult['missedNumbers'];
     readonly drawMode: 'auto' | 'host';
     readonly drawIntervalMs: number;
+    // The pause between royale rounds (D14).
+    readonly roundPause: { readonly kind: 'wait'; readonly ms: number } | { readonly kind: 'host' };
   };
   readonly startsAt: number | null;
   // When the next round starts after a cut (the cut screen counts down); null if unknown.
   readonly nextRoundAt: number | null;
+  // When Draw next unlocks (D13); null before a round's first draw or outside a round.
+  readonly nextDrawAt: number | null;
+  // The match waits for its host to start the next round (D14).
+  readonly waitingForHost: boolean;
   readonly createdBy: string | null;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.

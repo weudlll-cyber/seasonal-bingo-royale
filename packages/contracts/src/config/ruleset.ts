@@ -33,6 +33,24 @@ export const REALTIME_DRAW_INTERVAL_MS = Object.freeze({ min: 2_000, max: 60_000
 // chosen delay is never shorter than the ruleset speed window.
 export const DEFAULT_AUTO_MARK_DELAY_MS = 3_000;
 
+// Shortest timed-draw interval of a match (D12): 1 s longer than its longest tap time —
+// the speed window, or the missed-number delay when "mark after N s" is chosen — and
+// never below the realtime minimum. Host draws unlock after the same interval (D13).
+const GAP_AFTER_TAP_TIME_MS = 1_000;
+
+export function shortestDrawIntervalMs(
+  speedWindowMs: number,
+  autoMarkDelayMs: number | null,
+): number {
+  const longestTap = Math.max(speedWindowMs, autoMarkDelayMs ?? 0);
+  return Math.max(REALTIME_DRAW_INTERVAL_MS.min, longestTap + GAP_AFTER_TAP_TIME_MS);
+}
+
+// Pause between royale rounds when the match waits on its own (D14): chosen at creation,
+// 6 s by default and at least 3 s; the other choice is "host starts the next round".
+export const DEFAULT_ROUND_PAUSE_MS = 6_000;
+export const MIN_ROUND_PAUSE_MS = 3_000;
+
 const DrawsSchema = z.object({
   intervalMsRealtime: z
     .number()

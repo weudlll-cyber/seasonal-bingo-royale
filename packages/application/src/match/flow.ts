@@ -26,8 +26,6 @@ export interface FlowDeps {
   readonly store: MatchStore;
   readonly scheduler: Scheduler;
   readonly clock: Clock;
-  // Pause between a round's end (cut screen) and the next round.
-  readonly betweenRoundsMs: number;
 }
 
 export async function runAction(deps: FlowDeps, action: ScheduledAction): Promise<void> {
@@ -75,14 +73,39 @@ async function advance(deps: FlowDeps, matchId: string, pause: boolean): Promise
       await deps.scheduler.cancel(matchId);
       return;
     }
-    if (pause) {
-      const dueAt = deps.clock.now() + deps.betweenRoundsMs;
-      await deps.scheduler.schedule({ matchId, kind: 'start_round', dueAt });
-      deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, nextRoundAt: dueAt } }));
-      return;
-    }
+    if (pause) return pauseBeforeRound(deps, m);
     return startRound(deps, matchId);
   }
+}
+
+// The pause after a round and its cut (D14): wait the chosen seconds, or until the host
+// starts the next round (engine.startNextRound). The screens learn of it either way.
+async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
+  const matchId = m.record.id;
+  const pause = m.record.settings.roundPause;
+  if (pause.kind === 'host') {
+    deps.runner.update(matchId, (x) => x);
+    return;
+  }
+  const dueAt = deps.clock.now() + pause.ms;
+  await deps.scheduler.schedule({ matchId, kind: 'start_round', dueAt });
+  deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, nextRoundAt: dueAt } }));
+}
+
+// The match waits for its host to start the next round (D14): derived from the state, so
+// it survives a restart.
+export function waitingForHost(m: LoadedMatch): boolean {
+  if (m.record.settings.roundPause.kind !== 'host' || m.state.phase !== 'running') return false;
+  const round = m.state.currentRound;
+  return (round === null || round.ended) && nextStep(m.state) === 'startRound';
+}
+
+// The host's "Start next round" (D14); false when the match is not waiting for it.
+export async function startNextRound(deps: FlowDeps, matchId: string): Promise<boolean> {
+  if (!waitingForHost(await deps.runner.current(matchId))) return false;
+  await startRound(deps, matchId);
+  deps.runner.update(matchId, (x) => x);
+  return true;
 }
 
 async function startRound(deps: FlowDeps, matchId: string): Promise<void> {
@@ -93,6 +116,16 @@ async function startRound(deps: FlowDeps, matchId: string): Promise<void> {
     const dueAt = deps.clock.now() + m.record.settings.drawIntervalMs;
     await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
   }
+}
+
+// When the next number may be drawn: the match's timed-draw interval after the round's
+// last draw (D13 for host draws; never shorter than D12). Null before the round's first
+// draw (it may come at once) and outside a running round.
+export function nextDrawAt(m: LoadedMatch): number | null {
+  const round = m.state.currentRound;
+  if (round === null || round.ended || round.draws.length === 0) return null;
+  const last = m.drawTimes[round.draws.length - 1];
+  return last === undefined ? null : last + m.record.settings.drawIntervalMs;
 }
 
 // A draw may happen only while the round runs and the previous draw's window has closed.

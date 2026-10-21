@@ -8,8 +8,8 @@
  *                 and out-of-order intents are dropped (`REPLAYED`). Limits per socket: 10
  *                 intents a second overall, marks 4 a second, draw.next 2 a second (03 §13).
  *                 Intents: match.watch / match.unwatch (at most 3 match rooms), mark (players,
- *                 manual marking), draw.next and draw.setMode (the match's creator with
- *                 match.manage, D8).
+ *                 manual marking), draw.next, round.next (D14) and draw.setMode (the
+ *                 match's creator with match.manage, D8).
  * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ./gateway (types)
  * Used by:        ./gateway
  * Spec:           docs/spec/06-realtime-architecture.md §4.1, §8; docs/spec/03-security-architecture.md §13
@@ -97,6 +97,11 @@ async function dispatch(ctx: IntentContext, t: string, data: unknown): Promise<A
     case 'draw.next': {
       const id = await hostedMatch(ctx, codeData.parse(data).code);
       await ctx.deps.engine.drawNext(id);
+      return { ok: true };
+    }
+    case 'round.next': {
+      const id = await hostedMatch(ctx, codeData.parse(data).code);
+      await ctx.deps.engine.startNextRound(id);
       return { ok: true };
     }
     case 'draw.setMode': {

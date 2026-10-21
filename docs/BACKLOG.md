@@ -13,6 +13,8 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 - WP-11 remainder: zod message schemas in `packages/contracts/ws`, the `/admin` namespace and dashboard ticks, per-player rooms (`match:<id>:player:<accountId>`), batched `standings.delta`, socket and IP caps (06 §8), revocation push on logout (06 §2.3), Redis adapter
 - WP-10 remainder (first draft keeps them in the event log or simplified): tables `rounds`, `cards`, `draws`, `prize_awards` as read models; `ruleset_version_id` once rulesets are versioned (WP-20; the draft stores the frozen ruleset document); manual marks off the aggregate path (02 §5.4: recorded in `marks` and folded at the next draw); seed reveal and `/verify` after finish; `last_seen_event_seq` and the away summary
 
+- Interlude between royale rounds — owner idea, content to be described
+
 ### Needed from the website repository (Phase 6 only)
 
 - Handoff endpoint that signs a 60-second token for the logged-in website user, plus a published public key (docs/spec/07-integration-architecture.md §4)
@@ -45,3 +47,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | Quick Test: live standings active first; seasons and effects from the server only; acceptance play-through green                                                                                                                      | Branch feat/wp-08-quicktest                          | 2026-10-21 |
 | Realtime server stores the missed-number rule per match and schedules the auto-mark after the delay (D9)                                                                                                                              | Branch feat/real-game-draft (WP-10 draft)            | 2026-10-21 |
 | POLISH-1 host navigation (Manage, Your matches, host console link, dev sign-in menu) and visible defects (plain-English event lines, cut screen, one match log, ranked rows and podium, Out in cut N, segmented draw switch, top bar) | Branch feat/real-game-draft (not merged)             | 2026-10-21 |
+| D12–D15: shortest draw interval, host draws at the timed pace, pause between royale rounds (wait or host), cut screen buttons                                                                                                         | Branch feat/real-game-draft (LOOK-1, not merged)     | 2026-10-21 |

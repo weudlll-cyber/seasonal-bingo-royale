@@ -7,7 +7,8 @@
  *                 and Start; while running, the current and recent numbers, a big Draw next
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
- *                 timed/host switch and the seconds at any time (D8), standings with active
+ *                 timed/host switch and the seconds at any time (D8), "Start next round"
+ *                 while the match waits for the host between rounds (D14), standings with active
  *                 players first, prizes awarded, the match log (newest first) with cut
  *                 results, and abort with a reason; at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
@@ -23,6 +24,7 @@ import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
 import { EndActions } from '../game/EndActions.js';
+import { intent } from '../game/socket.js';
 import '../game/game.css';
 import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
@@ -148,6 +150,9 @@ function HostLive({
           speedWindowMs={result.speedWindowMs}
           showWindow={!view.finished}
         />
+        {live.match.waitingForHost ? (
+          <StartNextRound code={live.match.code} round={view.currentRound + 2} />
+        ) : null}
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <Abort code={live.match.code} /> : null}
@@ -161,6 +166,35 @@ function HostLive({
         )}
       </aside>
     </div>
+  );
+}
+
+// The pause between royale rounds when the host starts them (D14).
+function StartNextRound({
+  code,
+  round,
+}: {
+  readonly code: string;
+  readonly round: number;
+}): ReactElement {
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <section className="sbr-panel sbr-stack" data-testid="host-next-round-panel">
+      <p>The round is over. Players wait for you to start round {round}.</p>
+      <button
+        type="button"
+        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        data-testid="host-next-round"
+        onClick={() => {
+          void intent('round.next', { code }).then((a) => {
+            setNote(a.ok ? null : problemText(a.code));
+          });
+        }}
+      >
+        Start next round
+      </button>
+      {note !== null ? <p className="lobby-error">{note}</p> : null}
+    </section>
   );
 }
 

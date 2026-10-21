@@ -267,6 +267,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@sbr/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@sbr/ui':
         specifier: workspace:*
         version: link:../../packages/ui

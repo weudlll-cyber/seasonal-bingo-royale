@@ -158,6 +158,8 @@ flag on.
   - `host` — the next item is drawn only when the host presses **Draw next**.
 
   The host can switch between the two modes at any time during the match, and change the `auto` interval. This applies to all three game types, realtime and asynchronous. The speed window (§6) always starts when a draw becomes visible. The draw order never depends on timing or mode: it is fixed by the match seed (§9).
+- **Shortest interval (D12):** the timed-draw interval of a realtime match is at least 1 second longer than the match's longest tap time: max(speed window, the missed-number delay when “mark after N s” is chosen) + 1 s, and never below the 2 s of the table. The create form and the host's live seconds field refuse a shorter value with a plain message; the server keeps the interval in range as well.
+- **Host draws keep the timed pace (D13):** with `host` draws, Draw next stays locked until the moment the next number would have been drawn under timed draws — the match's interval since the round's last draw (so never shorter than D12). The button shows the remaining seconds. The server refuses a draw that comes too early. The round's first draw is not locked.
 - Every drawn number is shown with its column letter (e.g. “G 52”); a drawn season symbol is shown as its icon.
 
 ## 6. Marking modes
@@ -197,6 +199,8 @@ stages:
 ```
 
 With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) → final.
+
+**Pause between rounds (D14):** whoever creates a royale match chooses what happens after a round and its cut: “wait N seconds” (default 6, at least 3), after which the next round starts on its own, or “the host starts the next round”. With the host option the host console shows **Start next round** during the pause, players read “Waiting for the host to start round N”, and the server starts the next round only on the host's command.
 
 ### 7.2 Scoring carry-over
 
@@ -367,7 +371,7 @@ BACKLOG; website: embeddable call view).
 - Every event line (banners, the match log) is plain English, never an internal reason, event or prize key: “Round 1 over — all 40 numbers drawn”, “Round 5 over — bot-14 filled the whole card”, “bot-16 collected all four seasons”, “Cut 1: 12 go on, 8 are out (2 saved by Winter shield)”, “Full card won by bot-02 on draw 37 (G 52)”. Server error codes reach the screen as sentences too.
 - One match log per screen, newest first, hidden while empty.
 - Standings and the final placement are ranked rows: rank, name, the four season icons with the collected ones lit (royale), points; the viewer's own row highlighted; eliminated players dimmed with “out” below a divider. The final screen states the viewer's place big (“You finished #9 of 20”), then a podium for places 1–3 in season colours, then the list. An eliminated player's status panel reads “Out in cut N” instead of effects and shield.
-- The cut screen comes into view when a cut happens and closes with “Close”. At the end of a match the final placement (with one line on how places are decided) replaces the live standings, the in-play wording goes (“Match over”), and the screen offers “Back to the lobby” (the host also “Host another match”).
+- The cut screen comes into view when a cut happens; its button reads “Keep playing” for a survivor and “Watch” for an eliminated player (D15). At the end of a match the final placement (with one line on how places are decided) replaces the live standings, the in-play wording goes (“Match over”), and the screen offers “Back to the lobby” (the host also “Host another match”).
 - The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only, Draw next for host draws only. Draw next keeps 4.5:1 contrast enabled and disabled. The host console shows the same progress line (stage, round, draw) and LIVE badge as the players, with the match log above the standings.
 - A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby leaves stopped matches out.
 - The top bar is sticky from 640 px wide; on phones it scrolls away with the page.

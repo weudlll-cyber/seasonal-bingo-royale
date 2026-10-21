@@ -5,7 +5,7 @@
  *
  * Responsibility: the zod schema of POST /matches (05 §2.3, 11 §3.2: title, game type,
  *                 prizes, draw mode and seconds, missed numbers, leaderboard switch, max
- *                 players), its mapping to the engine's CreateMatchInput, and the status
+ *                 players, pause between royale rounds), its mapping to the engine's CreateMatchInput, and the status
  *                 code for each MatchError (404 unknown match, 409 wrong phase, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application
  * Used by:        ./matches, ./matchHost
@@ -27,6 +27,13 @@ export const createBody = z.object({
   ]),
   countsForLeaderboard: z.boolean().optional(),
   maxPlayers: z.number().int().min(2).max(200),
+  // The pause between royale rounds (D14); the engine keeps a wait at its minimum.
+  roundPause: z
+    .discriminatedUnion('kind', [
+      z.object({ kind: z.literal('wait'), ms: z.number().int().min(0).max(120_000) }),
+      z.object({ kind: z.literal('host') }),
+    ])
+    .optional(),
 });
 
 export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
@@ -38,6 +45,8 @@ const CONFLICT = new Set([
   'MATCH_FULL',
   'DRAW_MODE_AUTO',
   'DRAW_NOT_ALLOWED',
+  'DRAW_TOO_EARLY',
+  'NOT_WAITING_FOR_HOST',
 ]);
 
 export function sendEngineError(reply: FastifyReply, error: unknown): FastifyReply {

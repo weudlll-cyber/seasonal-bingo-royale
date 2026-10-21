@@ -43,8 +43,8 @@ export class PgMatchStore implements MatchStore {
     await this.pool.query(
       `INSERT INTO sbr.matches (id, code, title, game_type, ruleset_name, ruleset, max_players,
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
-         missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+         missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
       [
         r.id,
         r.code,
@@ -63,6 +63,7 @@ export class PgMatchStore implements MatchStore {
         s.missedNumbers.kind === 'autoMarkAfter' ? s.missedNumbers.delayMs : 3000,
         s.drawIntervalMs,
         r.createdBy,
+        s.roundPause.kind === 'wait' ? s.roundPause.ms : null,
       ],
     );
   }

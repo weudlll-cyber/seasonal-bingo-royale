@@ -53,6 +53,15 @@ Complete blueprint for implementation by Claude Code. No code yet.
 | D5 | Chat on the website | Inside the website the game shows one dedicated room of the website chat (room slug `bingo`, through the website’s `/embed/chat`). Standalone installations use the game’s own chat ([07](07-integration-architecture.md) §6). |
 | D6 | Address | The website already decided (2026-10-17) that games live under its main domain at `/games/<name>`. The game therefore runs at `/games/bingo` on the website’s domain; a subdomain remains possible because the build contains no address and the base path is a setting ([09](09-deployment-architecture.md) §1). |
 
+## 4a. Decisions (2026-10-21)
+
+| # | Topic | Decision |
+|---|---|---|
+| D12 | Shortest timed-draw interval | 1 s longer than the match's longest tap time (speed window, or the missed-number delay when “mark after N s” is chosen); enforced in the create form, the host's live seconds field and the server ([01](01-game-design.md) §5). |
+| D13 | Host draws | Draw next stays locked for the match's timed interval since the last draw and shows the remaining seconds; the server refuses an early draw ([01](01-game-design.md) §5). |
+| D14 | Pause between royale rounds | Chosen at creation: wait N seconds (default 6, minimum 3) or the host starts the next round ([01](01-game-design.md) §7.1). |
+| D15 | Cut screen button | “Keep playing” for a survivor, “Watch” for an eliminated player ([01](01-game-design.md) §13). |
+
 ## 5. Open
 
 Nothing blocks the start. The website-side handoff endpoint (D3) and the `bingo` chat room (D5) are needed only for Phase 6.
