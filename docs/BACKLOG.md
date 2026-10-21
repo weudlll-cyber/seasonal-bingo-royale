@@ -38,3 +38,5 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | WP-07 Domain: royale structure AND classic round flow (first pass)                                                   | Branch feat/wp-07-match-flow                         | 2026-10-20 |
 | WP-07 Domain: match lifecycle, round-end conditions, score carry and full-match tests                                | Branch feat/wp-07b-match-lifecycle                   | 2026-10-20 |
 | D9 missed-number rule (spec, domain, Quick Test) and per-player marking: bots score in manual mode                   | Branch feat/wp-08-quicktest                          | 2026-10-20 |
+| D10 last number tappable inside its window, classic prizes decided at window close; D11 royale multiplier 1          | Branch feat/wp-08-quicktest                          | 2026-10-21 |
+| Quick Test: live standings active first; seasons and effects from the server only; acceptance play-through green     | Branch feat/wp-08-quicktest                          | 2026-10-21 |
