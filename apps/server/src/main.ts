@@ -14,6 +14,7 @@ import { loadEnv } from './config/env.js';
 import { migrate } from './db/migrator.js';
 import { createPool } from './db/pool.js';
 import { buildApp } from './http/app.js';
+import { startRetention } from './match/retention.js';
 
 async function main(): Promise<void> {
   const env = loadEnv();
@@ -24,7 +25,12 @@ async function main(): Promise<void> {
   }
   const app = await buildApp({ env, pool });
   await app.fastify.listen({ host: env.SBR_HOST, port: env.SBR_PORT });
+  // Timed match commands (draws, window closes, round starts) and the 90-day marks purge.
+  app.match.startScheduler();
+  const stopRetention = startRetention(pool);
   const shutdown = async (): Promise<void> => {
+    stopRetention();
+    await app.match.scheduler.stop();
     await app.fastify.close();
     await pool.end();
   };

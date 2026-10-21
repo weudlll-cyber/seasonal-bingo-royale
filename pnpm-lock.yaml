@@ -221,6 +221,9 @@ importers:
       '@node-rs/argon2':
         specifier: 2.2.2
         version: 2.2.2
+      '@sbr/application':
+        specifier: workspace:*
+        version: link:../../packages/application
       '@sbr/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -287,7 +290,14 @@ importers:
         specifier: 8.3.4
         version: 8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
 
-  packages/application: {}
+  packages/application:
+    dependencies:
+      '@sbr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@sbr/domain':
+        specifier: workspace:*
+        version: link:../domain
 
   packages/contracts:
     dependencies:

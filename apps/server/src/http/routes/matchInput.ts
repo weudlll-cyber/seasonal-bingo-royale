@@ -1,0 +1,50 @@
+/**
+ * @file   apps/server/src/http/routes/matchInput.ts
+ * @module server/http
+ * @brief  Request bodies of the match routes and the HTTP answer to an engine error.
+ *
+ * Responsibility: the zod schema of POST /matches (05 §2.3, 11 §3.2: title, game type,
+ *                 prizes, draw mode and seconds, missed numbers, leaderboard switch, max
+ *                 players), its mapping to the engine's CreateMatchInput, and the status
+ *                 code for each MatchError (404 unknown match, 409 wrong phase, 422 the rest).
+ * Depends on:     fastify, zod, @sbr/application
+ * Used by:        ./matches, ./matchHost
+ * Spec:           docs/spec/05-api-design.md §2.3, §5; docs/spec/11-admin-panel.md §3.2
+ */
+import { MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
+import type { FastifyReply } from 'fastify';
+import { z } from 'zod';
+
+export const createBody = z.object({
+  title: z.string().trim().min(1).max(60),
+  gameType: z.enum(['royale', 'classicSeasons', 'classic']),
+  prizes: z.array(z.string().min(1)).max(20).optional(),
+  drawMode: z.enum(['auto', 'host']),
+  drawIntervalMs: z.number().int().min(1).max(3_600_000).optional(),
+  missedNumbers: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('autoMarkAfter'), delayMs: z.number().int().min(0).max(60_000) }),
+    z.object({ kind: z.literal('noAutoMark') }),
+  ]),
+  countsForLeaderboard: z.boolean().optional(),
+  maxPlayers: z.number().int().min(2).max(200),
+});
+
+export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
+  return body;
+}
+
+const CONFLICT = new Set([
+  'MATCH_NOT_IN_LOBBY',
+  'MATCH_FULL',
+  'DRAW_MODE_AUTO',
+  'DRAW_NOT_ALLOWED',
+]);
+
+export function sendEngineError(reply: FastifyReply, error: unknown): FastifyReply {
+  if (error instanceof z.ZodError) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
+  if (error instanceof MatchNotFound) return reply.status(404).send({ code: 'NOT_FOUND' });
+  if (error instanceof MatchError) {
+    return reply.status(CONFLICT.has(error.code) ? 409 : 422).send({ code: error.code });
+  }
+  throw error;
+}

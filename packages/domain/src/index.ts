@@ -155,3 +155,4 @@ export {
   type SimulateMatchInput,
   type SimulateMatchResult,
 } from './match/simulate.js';
+export { nextStep, type NextStep } from './match/flow.js';

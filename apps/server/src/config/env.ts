@@ -24,6 +24,12 @@ const envSchema = z.object({
   SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),
   SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
   SBR_FEATURE_GUESTS: z.stringbool().default(true),
+  // AES-256 key (64 hex characters) that seals match seeds at rest (04 §3.3 seed_enc);
+  // required in production, a fixed development key otherwise (./seedKey).
+  SBR_SEED_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i)
+    .optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

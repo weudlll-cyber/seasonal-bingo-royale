@@ -167,6 +167,7 @@ describe('guests and the dev quick sign-in', () => {
   it('has no dev sign-in in a production build', async () => {
     const prod = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       NODE_ENV: 'production',
+      SBR_SEED_KEY: 'ab'.repeat(32),
     });
     const r = await prod.fastify.inject({
       method: 'POST',

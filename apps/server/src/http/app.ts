@@ -3,9 +3,10 @@
  * @module server/http
  * @brief  Builds the Fastify instance of the server with every plugin and route wired.
  *
- * Responsibility: wire logging, security headers, problem-details, health, metrics and
- *                 the placeholder page onto a fresh Fastify instance. The caller owns the
- *                 lifecycle (listen, close, pool disposal).
+ * Responsibility: wire logging, security headers, problem-details, health, metrics, the
+ *                 placeholder page, sessions and auth, the live match engine and its routes
+ *                 onto a fresh Fastify instance. The caller owns the lifecycle (listen,
+ *                 scheduler, close, pool disposal).
  * Depends on:     fastify, pino, prom-client (indirectly), ../db/pool
  * Used by:        ../main.ts, test/*
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
@@ -15,12 +16,15 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
+import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
+import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerDevSignIn } from './routes/devSignIn.js';
 import { registerHealth } from './routes/health.js';
+import { registerMatchRoutes } from './routes/matches.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
 import { registerQuickTest } from './routes/quicktest.js';
@@ -33,6 +37,8 @@ export interface AppDeps {
 export interface App {
   readonly fastify: FastifyInstance;
   readonly metrics: MetricsHandle;
+  // The live match engine; main starts its scheduler (tests start it when they need it).
+  readonly match: MatchRuntime;
 }
 
 export async function buildApp(deps: AppDeps): Promise<App> {
@@ -67,7 +73,14 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   registerAuthRoutes(fastify, { pool: deps.pool, cookie, features: featuresFrom(deps.env) });
   // Development only: quick sign-in as host or player (never in a production build).
   if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie });
-  return { fastify, metrics };
+  const match = createMatchRuntime(deps.pool, seedKeyFrom(deps.env));
+  registerMatchRoutes(fastify, {
+    pool: deps.pool,
+    engine: match.engine,
+    store: match.store,
+    dev: isDev,
+  });
+  return { fastify, metrics, match };
 }
 
 // The player client (Vite on 127.0.0.1:5390) is a different origin from the server

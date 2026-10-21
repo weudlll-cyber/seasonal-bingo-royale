@@ -9,7 +9,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 - WP-08 … WP-30 (docs/spec/15-implementation-plan.md) — not started
 - Realtime classic rounds: rule for players still tapping when a prize is decided on a draw (to be decided with the owner before WP-12)
 - WP-09 remainder: e-mail verification flow (tokens, Mailpit), TOTP 2FA and recovery codes, password reset, session list and revoke (`/me/sessions`), the bundled top-100k breached-password list, admin session lifetimes; flags `SBR_FEATURE_EMAIL_VERIFICATION` / `SBR_FEATURE_TWO_FACTOR` stay off until then
-- Realtime server: store `missed_numbers` / `auto_mark_delay_ms` per match and schedule `AutoMarkMissed` after the delay (D9, docs/spec/01-game-design.md §6, 06 §5) — with WP-12/WP-15; the domain rule and the Quick Test are done
+- WP-10 remainder (first draft keeps them in the event log or simplified): tables `rounds`, `cards`, `draws`, `prize_awards` as read models; `ruleset_version_id` once rulesets are versioned (WP-20; the draft stores the frozen ruleset document); manual marks off the aggregate path (02 §5.4: recorded in `marks` and folded at the next draw); seed reveal and `/verify` after finish; `last_seen_event_seq` and the away summary
 
 ### Needed from the website repository (Phase 6 only)
 
@@ -41,3 +41,4 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | D9 missed-number rule (spec, domain, Quick Test) and per-player marking: bots score in manual mode                   | Branch feat/wp-08-quicktest                          | 2026-10-20 |
 | D10 last number tappable inside its window, classic prizes decided at window close; D11 royale multiplier 1          | Branch feat/wp-08-quicktest                          | 2026-10-21 |
 | Quick Test: live standings active first; seasons and effects from the server only; acceptance play-through green     | Branch feat/wp-08-quicktest                          | 2026-10-21 |
+| Realtime server stores the missed-number rule per match and schedules the auto-mark after the delay (D9)             | Branch feat/real-game-draft (WP-10 draft)            | 2026-10-21 |

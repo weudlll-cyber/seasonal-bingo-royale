@@ -1,16 +1,17 @@
 /**
- * @file   apps/server/src/dev/quicktestTiming.ts
- * @module server/dev
- * @brief  Quick Test timing inputs: missed-number rule, owner delay, draw gap (01 §5, §6).
+ * @file   packages/application/src/match/timing.ts
+ * @module application/match
+ * @brief  Timing inputs of a match: missed-number rule, owner delay, draw gap (01 §5, §6).
  *
- * Responsibility: turn the starter's choices into the values the runner simulates with:
+ * Responsibility: turn the starter's choices into the values a match runs with (live
+ *                 engine and Quick Test):
  *                 the missed-number rule with its delay raised to at least the speed
  *                 window, the delay the owner's cards are computed with (the owner's
  *                 later taps are not known before playback, so noAutoMark uses the
  *                 default delay), and the timed-draw gap kept inside the allowed range,
  *                 which is always longer than the speed window (D10).
  * Depends on:     @sbr/contracts, @sbr/domain (types)
- * Used by:        ./quicktest
+ * Used by:        ./engine, apps/server/src/dev/quicktest.ts
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import { DEFAULT_AUTO_MARK_DELAY_MS, REALTIME_DRAW_INTERVAL_MS } from '@sbr/contracts';
