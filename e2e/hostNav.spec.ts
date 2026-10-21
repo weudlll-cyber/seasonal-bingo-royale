@@ -39,7 +39,8 @@ async function abort(page: Page, code: string): Promise<void> {
 test('the host returns via Manage and Open host console; a player sees no Manage', async ({
   browser,
 }, info) => {
-  test.setTimeout(120_000);
+  // Mobile WebKit waits seconds for every click to settle; the journey has about 25 steps.
+  test.setTimeout(240_000);
   const shots = info.project.name === 'chromium';
   const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
   await signIn(page, 'host');
@@ -94,6 +95,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
 test('the top bar never covers a field jumped to; on a phone it scrolls away', async ({
   browser,
 }) => {
+  test.setTimeout(120_000);
   // A short window, so the create form is longer than the screen.
   const page = await (
     await browser.newContext({ viewport: { width: 1280, height: 600 } })
@@ -115,10 +117,13 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
     (barBox?.y ?? 0) + (barBox?.height ?? 0),
   );
 
-  // A fresh phone-sized window (mobile emulation keeps its first layout width on resize).
+  await page.context().close();
+
+  // A fresh phone-sized window (mobile emulation keeps its first layout width on resize),
+  // on the Quick Test page: long enough to scroll, and no sign-in needed.
   const phonePage = await (await browser.newContext({ viewport: PHONE })).newPage();
-  await signIn(phonePage, 'host');
-  await phonePage.goto('/#/host/new');
+  await phonePage.goto('/#/quicktest');
+  await expect(phonePage.getByTestId('start-run')).toBeVisible();
   const phone = await phonePage.evaluate(async () => {
     window.scrollTo(0, 400);
     await new Promise((resolve) => requestAnimationFrame(resolve));

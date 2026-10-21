@@ -9,11 +9,6 @@
    Spec:        docs/spec/01-game-design.md §13
    ============================================================ */
 
-/* The page column keeps its width whether or not the page needs a scrollbar */
-html {
-  scrollbar-gutter: stable;
-}
-
 .shell-bar {
   position: relative;
   z-index: 10;
