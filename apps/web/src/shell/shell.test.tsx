@@ -39,6 +39,12 @@ function serve(permissions: readonly string[]): void {
       ),
     ),
   );
+  // jsdom has no matchMedia; the bar's theme toggle asks it for the system setting.
+  vi.stubGlobal('matchMedia', () => ({
+    matches: false,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
 }
 
 async function renderShell(dev: boolean): Promise<void> {

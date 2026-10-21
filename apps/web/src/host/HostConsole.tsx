@@ -3,8 +3,9 @@
  * @module web/host
  * @brief  The host's console for one match: lobby, start, live draw control, results (05 §3).
  *
- * Responsibility: in the lobby, the joined players, "Fill with N bots" (development only)
- *                 and Start; while running, the current and recent numbers, a big Draw next
+ * Responsibility: in the lobby, the notice "Your match is open — players can join now from
+ *                 the lobby (code …)", the joined players, "Fill with N bots" (development
+ *                 only) and Start; while running, the current and recent numbers, a big Draw next
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
@@ -85,6 +86,10 @@ function HostLobby({
   };
   return (
     <section className="sbr-panel sbr-stack">
+      {/* Right after Create match and while the lobby is open: where players find it. */}
+      <p className="open-notice" role="status" data-testid="open-match-notice">
+        Your match is open — players can join now from the lobby (code {live.match.code}).
+      </p>
       <h2>
         Players {live.match.players} / {live.match.maxPlayers}
       </h2>

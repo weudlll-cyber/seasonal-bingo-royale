@@ -7,8 +7,9 @@
  * Responsibility: the lobby shows "Manage" (to #/host/<code>) instead of Join for a match
  *                 the server says the viewer hosts, and the match code on every card; "Your
  *                 matches" lists only the viewer's open or running matches and is hidden
- *                 when there are none; "Open host console" shows only for the host; a player
- *                 on #/host/<code> sees no controls.
+ *                 when there are none; "Open host console" shows only for the host; the
+ *                 console in the lobby says the match is open and gives its code (LOOK-1);
+ *                 a player on #/host/<code> sees no controls.
  * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink, ./YourMatches, ./HostConsole
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
@@ -120,6 +121,24 @@ describe('host console and host link', () => {
     expect(screen.getByTestId('open-host-console').getAttribute('href')).toBe('#/host/A');
     rerender(<HostLink match={summary('A', { youHost: false })} />);
     expect(screen.queryByTestId('open-host-console')).toBeNull();
+  });
+
+  it('tells the host the match is open and where players find it', async () => {
+    serve((url) =>
+      url.endsWith('/session')
+        ? session
+        : {
+            match: summary('OPEN01', { youHost: true }),
+            seq: 0,
+            since: 0,
+            me: null,
+            view: royaleFixture(),
+          },
+    );
+    await show(<HostConsole code="OPEN01" />);
+    expect(screen.getByTestId('open-match-notice').textContent).toBe(
+      'Your match is open — players can join now from the lobby (code OPEN01).',
+    );
   });
 
   it('gives a player on #/host/<code> no controls', async () => {

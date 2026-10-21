@@ -113,8 +113,8 @@ function EffectBadge({ season, testId, children }: BadgeProps): ReactElement {
         gap: '0.25rem',
         padding: '0.1rem 0.45rem',
         borderRadius: '999px',
-        background: season === undefined ? '#2a3645' : SEASON_COLORS[season],
-        color: season === undefined ? '#e7ecf3' : ON_SEASON_COLOR,
+        background: season === undefined ? 'var(--color-surface-2)' : SEASON_COLORS[season],
+        color: season === undefined ? 'var(--color-text)' : ON_SEASON_COLOR,
         fontSize: '0.85rem',
       }}
     >

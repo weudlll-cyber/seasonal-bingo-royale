@@ -3,20 +3,22 @@
  * @module web/shell
  * @brief  The player client's frame: top bar, navigation, account, dev quick sign-in, screens.
  *
- * Responsibility: show the logo and wordmark, links to the lobby, hosting (with
+ * Responsibility: show the Seasonal Entertainment emblem with the "Seasonal Bingo Royale"
+ *                 wordmark, the light/dark toggle, links to the lobby, hosting (with
  *                 `match.create`) and the Quick Test (development only), the account with
  *                 sign-out ("Signed in as <name> (host|player)"), and in development a compact
  *                 "Dev sign-in" menu with "Sign in as host" / "Sign in as player 1/2/3" and a
  *                 hint that one window holds one sign-in (05 §2.1). Below the bar, the screen of the
  *                 current route. `dev` decides the development-only parts; production builds
  *                 pass false.
- * Depends on:     react, ./router, ./session, ../game/*, ../host/*, ../App, ./shell.css
+ * Depends on:     react, ./router, ./session, ./ThemeToggle, ../game/*, ../host/*, ../App,
+ *                 ./shell.css, assets/brand/emblem.webp
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.1
  */
 import { useState, type ReactElement } from 'react';
 
-import logo from '../../../../assets/brand/logo.svg';
+import emblem from '../../../../assets/brand/emblem.webp';
 import { App as QuickTest } from '../App.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
@@ -24,6 +26,7 @@ import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { hrefOf, useRoute, type Route } from './router.js';
 import { useSession, type DevIdentity } from './session.js';
+import { ThemeToggle } from './ThemeToggle.js';
 import './shell.css';
 
 const DEV_IDENTITIES: readonly { readonly as: DevIdentity; readonly label: string }[] = [
@@ -39,7 +42,7 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
     <>
       <header className="shell-bar">
         <a className="shell-brand" href={hrefOf({ name: 'lobby' })}>
-          <img src={logo} alt="" />
+          <img src={emblem} alt="" width="42" height="37" />
           <span>
             Seasonal Bingo Royale
             <small>Seasonal Entertainment</small>
@@ -81,6 +84,7 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
   const { session, signOut, can } = useSession();
   return (
     <div className="shell-account" data-testid="account">
+      <ThemeToggle />
       {session?.account ? (
         <>
           <span className="sbr-chip" data-testid="signed-in-as">

@@ -66,6 +66,9 @@ export default defineConfig(
       'tmp/',
       'test-results/',
       'playwright-report/',
+      // Static files served as they are (the plain early theme script, outside the TS
+      // projects); apps/web/src/shell/theme.test.tsx runs it.
+      'apps/web/public/',
     ],
   },
   js.configs.recommended,

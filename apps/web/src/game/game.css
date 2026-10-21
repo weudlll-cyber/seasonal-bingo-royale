@@ -200,11 +200,11 @@
   --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
   --cell-weight: 700;
   --cell-radius: 10px;
-  --cell-bg: var(--color-card);
-  --cell-free-bg: var(--color-card-line);
-  --cell-ink: var(--color-card-ink);
-  --cell-marked-bg: var(--color-card-marked);
-  --cell-marked-ink: var(--color-card-marked-ink);
+  --cell-bg: var(--color-bingo-card);
+  --cell-free-bg: var(--color-bingo-card-line);
+  --cell-ink: var(--color-bingo-card-ink);
+  --cell-marked-bg: var(--color-bingo-card-marked);
+  --cell-marked-ink: var(--color-bingo-card-marked-ink);
   --cell-marked-ring: var(--color-autumn);
 
   display: grid;
@@ -212,8 +212,8 @@
   gap: var(--space-1);
   padding: var(--space-2);
   border-radius: var(--radius-card);
-  background: linear-gradient(180deg, #fbf9f3, var(--color-card));
-  color: var(--color-card-ink);
+  background: var(--color-bingo-card);
+  color: var(--color-bingo-card-ink);
   box-shadow: var(--shadow-raised);
 }
 
@@ -224,7 +224,7 @@
 .live-card-feedback {
   margin: 0;
   min-height: 1.4em;
-  color: #3d4652;
+  color: var(--color-bingo-card-ink);
   font-weight: var(--font-weight-strong);
 }
 
@@ -239,6 +239,15 @@
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
     align-items: start;
   }
+}
+
+.open-notice {
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border-left: 4px solid var(--color-success);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  font-weight: var(--font-weight-strong);
 }
 
 .host-end {

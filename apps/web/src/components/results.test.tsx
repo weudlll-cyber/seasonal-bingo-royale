@@ -81,7 +81,7 @@ describe("the host's draw-mode switch", () => {
           drawIntervalMs: 5000,
         },
       },
-      view: { events: [] },
+      view: { events: [], drawIntervalRangeMs: { min: 4000, max: 60_000 } },
     }) as unknown as LiveState;
 
   it('marks the active mode; seconds for timed draws, Draw next for host draws only', () => {
