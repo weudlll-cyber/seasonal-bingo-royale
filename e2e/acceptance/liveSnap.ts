@@ -25,6 +25,10 @@ export interface LiveSnap {
   readonly ticker: readonly number[];
   readonly cells: readonly LiveCell[];
   readonly me: string | null;
+  // The standings row highlighted as the viewer's own.
+  readonly ownRow: string | null;
+  // The page is wider than the window (sideways scrolling, e.g. on the phone).
+  readonly overflowX: boolean;
   readonly points: number | null;
   readonly rank: number | null;
   readonly standings: readonly { readonly id: string; readonly points: number }[];
@@ -47,7 +51,16 @@ export async function liveSnap(page: Page): Promise<LiveSnap> {
         value: num(el.dataset['value']),
         marked: el.dataset['marked'] === 'true',
       })),
-      me: q('[data-testid="signed-in-as"]')?.textContent ?? null,
+      // The account chip reads "Signed in as <name> (player)".
+      me:
+        /^Signed in as (.+) \((?:host|player)\)$/.exec(
+          q('[data-testid="signed-in-as"]')?.textContent ?? '',
+        )?.[1] ?? null,
+      ownRow:
+        (q('[data-testid^="standing-"].is-own')?.dataset['testid'] ?? '').replace(
+          'standing-',
+          '',
+        ) || null,
       points: num(status?.dataset['points']),
       rank: num(status?.dataset['rank']),
       standings: all('[data-testid^="standing-"]').map((el) => ({
@@ -55,6 +68,7 @@ export async function liveSnap(page: Page): Promise<LiveSnap> {
         points: Number(el.dataset['points']),
       })),
       cutShown: q('[data-testid="cut-screen"]') !== null,
+      overflowX: document.documentElement.scrollWidth > window.innerWidth,
       finished: q('[data-testid="final-placement"]') !== null,
     };
   });
@@ -64,6 +78,8 @@ export async function liveSnap(page: Page): Promise<LiveSnap> {
 // Every player screen: points above the card = own standings row; marks only on drawn numbers.
 export function checkPlayer(s: LiveSnap, who: string): void {
   if (s.points !== null) {
+    expect(s.ownRow, `${who}: own row highlighted`).toBe(s.me);
+    expect(s.overflowX, `${who}: nothing wider than the window`).toBe(false);
     const row = s.standings.find((r) => r.id === s.me);
     expect(row, `${who}: own row in the standings`).toBeDefined();
     expect(s.points, `${who}: points above the card = standings`).toBe(row?.points);

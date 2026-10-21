@@ -3,8 +3,8 @@
  * @module e2e/acceptance
  * @brief  Acceptance play-through of the real game: host and three players, every game type.
  *
- * Responsibility: four browser contexts — the host and players 1–3 (player 3 at phone size
- *                 390×844) signed in with the quick sign-in. Per game type (royale default;
+ * Responsibility: four browser contexts — the host and players 1–2 at 1280×800, player 3
+ *                 at phone size 390×844 — signed in with the quick sign-in. Per game type (royale default;
  *                 classicSeasons with the default prizes; classic with fullCard only) and draw
  *                 mode (timed; host, switching mid-match in the royale timed run): the host
  *                 creates the match, the players join, bots fill it to 20, the host starts and
@@ -12,10 +12,11 @@
  *                 screen shows the host's number, each player's points equal their standings
  *                 row, no mark sits on an undrawn number, the missed-number rule holds; at the
  *                 end every cut matches server points and each rank equals the final place.
- *                 Then one more match right away must start fresh. Screenshots of every
- *                 screen at start, mid-match, the first cut and the end go to
- *                 reports/screens/real-game/. Runs only with SBR_ACCEPTANCE=1.
- * Depends on:     @playwright/test, ../realGame, ../devStack, ./liveSnap, ./livePlayer, ./cuts
+ *                 Then one more match right away must start fresh. Viewport and full-page
+ *                 screenshots (../screens) of every screen at start, mid-match, the first
+ *                 cut and the end go to reports/screens/real-game/. Runs only with
+ *                 SBR_ACCEPTANCE=1.
+ * Depends on:     @playwright/test, ../realGame, ../devStack, ../screens, ./liveSnap, ./livePlayer, ./cuts
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
 import path from 'node:path';
@@ -35,6 +36,7 @@ import {
 import { checkCuts, type ServerResult } from './cuts.js';
 import { handlePending, newPlayer, onNewDraw, type LivePlayer } from './livePlayer.js';
 import { checkPlayer, liveSnap } from './liveSnap.js';
+import { capture, DESKTOP, PHONE } from '../screens.js';
 
 const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'real-game');
 
@@ -100,7 +102,7 @@ interface Table {
 
 async function seat(browser: Browser, combo: Combo): Promise<Table> {
   const open = async (who: 'host' | 'player-1' | 'player-2' | 'player-3', phone = false) => {
-    const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 } } : {});
+    const ctx = await browser.newContext({ viewport: phone ? PHONE : DESKTOP });
     const page = await ctx.newPage();
     await signIn(page, who);
     return page;
@@ -118,13 +120,7 @@ async function shoot(t: Table, combo: Combo, moment: string): Promise<void> {
     ['host', t.host],
     ...t.players.map((p): [string, Page] => [p.who, p.page]),
   ];
-  for (const [who, page] of pages) {
-    await page.screenshot({
-      path: path.join(SHOTS, `${combo.name}-${moment}-${who}.jpg`),
-      quality: 70,
-      fullPage: true,
-    });
-  }
+  for (const [who, page] of pages) await capture(page, SHOTS, `${combo.name}-${moment}-${who}`);
 }
 
 async function startMatch(t: Table, combo: Combo, title: string): Promise<string> {

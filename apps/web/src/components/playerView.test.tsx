@@ -13,7 +13,7 @@
  * Spec:           docs/spec/01-game-design.md §7, §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CardGrid } from './CardGrid.js';
 import { CutScreen } from './CutScreen.js';
@@ -122,6 +122,19 @@ describe('CutScreen', () => {
       "You're out in cut 2 — you can keep watching",
     );
     expect(screen.getByText('Keep watching')).toBeTruthy();
+  });
+
+  it('brings a new cut into view', () => {
+    const scroll = vi.fn();
+    // jsdom has no scrollIntoView: lend one for this test and take it back after.
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      value: scroll,
+      configurable: true,
+    });
+    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} />);
+    rerender(<CutScreen cut={cut(2, 'eliminated')} />);
+    Reflect.deleteProperty(Element.prototype, 'scrollIntoView');
+    expect(scroll).toHaveBeenCalledTimes(2);
   });
 
   it('names a Winter shield save', () => {
