@@ -27,6 +27,7 @@ export interface PlayerJoined {
   readonly type: 'playerJoined';
   readonly accountId: string;
   readonly joinedAt: number;
+  readonly human?: boolean; // absent for bots (01 §6)
 }
 export interface MatchStarted {
   readonly type: 'matchStarted';
@@ -47,6 +48,12 @@ export interface DrawMade {
   readonly type: 'drawMade';
   readonly drawIndex: number;
   readonly item: number;
+}
+// The speed window of draw `drawIndex` has closed (01 §6, D10): the round may end and
+// classic prizes first completed on that draw are decided.
+export interface SpeedWindowClosed {
+  readonly type: 'speedWindowClosed';
+  readonly drawIndex: number;
 }
 export interface CellMarked {
   readonly type: 'cellMarked';
@@ -120,6 +127,7 @@ export type DomainEvent =
   | StageStarted
   | RoundStarted
   | DrawMade
+  | SpeedWindowClosed
   | CellMarked
   | SeasonActivated
   | PatternScored

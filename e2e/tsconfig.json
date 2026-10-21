@@ -1,0 +1,17 @@
+/**
+ * @file   e2e/tsconfig.json
+ * @module e2e
+ * @brief  TypeScript settings for the Playwright specs.
+ *
+ * Responsibility: strict base plus Node types for the specs, the config and the global
+ *                 setup; typechecked by the root "typecheck" script.
+ * Spec:           docs/spec/12-testing-strategy.md §4
+ */
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["."]
+}

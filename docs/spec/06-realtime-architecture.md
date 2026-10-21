@@ -47,10 +47,12 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 |---|---|---|
 | `match.watch` | `{ code }` | Join `match:<id>` room (permission: public match or participant). Returns state snapshot seq. |
 | `match.unwatch` | `{ code }` | |
-| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Rate limit 4/s. |
+| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
+| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode; rate limit 2/s |
+| `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
 ### 4.2 Server → client events
 
@@ -60,6 +62,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `match.started` | match | stage plan |
 | `round.started` | match | round meta; own cards are sent on the player room as `round.cards` |
 | `draw` | match | `{ roundId, index, number, at, speedWindowEndsAt? }` |
+| `draw.modeChanged` | match | `{ mode, intervalMs? }` after `draw.setMode`; `auto` resumes with the next draw due one interval after the change |
 | `mark.confirmed` | player | `{ cardId, cell, points, speedBonus }` |
 | `score.update` | player | own score, rank, effects |
 | `season.activated` | player (+ match announcement if configured) | season, effect summary |
@@ -77,6 +80,8 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 
 ## 5. Event flow for one draw
 
+In `auto` draw mode the scheduler issues `DrawNext` at `due_at`; in `host` mode no draw is scheduled and the host's `draw.next` intent issues the same command. Both paths draw the next item of the seeded sequence.
+
 ```
 scheduler due_at ─► DrawNext command ─► domain: decide/evolve
    └─► transaction: append events, update projections (cards auto-marked, standings), schedule next draw
@@ -93,8 +98,12 @@ Manual mode marks:
 client `mark` ─► gateway validate schema+rate ─► MarkCell use case
   validate: player active, card owned, round running, number drawn, not marked
   insert marks row (PK idempotent) ─► compute points (speed bonus from server times)
-  ─► ack + `mark.confirmed`; aggregate score folded at next draw / window close
+  ─► ack + `mark.confirmed`; aggregate score folded at next draw
 ```
+
+Missed numbers (01 §6): under `autoMarkAfter` the scheduler issues `AutoMarkMissed` for each draw once its delay has passed and marks the still-open cells without bonus; under `noAutoMark` nothing is scheduled and open cells stay open until tapped or the round ends.
+
+Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed window of each draw closes, then checks `EndRound`; a round never ends at the moment of a draw, so the last number can still be tapped inside its window. Classic prizes are decided at that window close (01 §3a.1).
 
 ## 6. Asynchronous mode
 

@@ -8,9 +8,10 @@
  *                 column ranges; season cells on 4 different rows and columns, never
  *                 the centre), invariant 2 (same inputs → same output; different
  *                 round index → independent output) and invariant 13 (classicSeasons
- *                 cards carry the four symbols instead of numbers at the season cells).
+ *                 cards carry the four symbols instead of numbers at the season cells)
+ *                 and invariant 15 (each column ascends top to bottom, D7).
  * Depends on:     fast-check, ../index, ../../test/arbitraries
- * Spec:           docs/spec/12-testing-strategy.md §3 invariants 1, 2, 13
+ * Spec:           docs/spec/12-testing-strategy.md §3 invariants 1, 2, 13, 15
  */
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
@@ -131,6 +132,38 @@ describe('card invariant 2 and 13 (determinism and classicSeasons)', () => {
         expect(kinds.filter((k) => k === 'symbol').length).toBe(4);
         expect(kinds.filter((k) => k === 'free').length).toBe(1);
         expect(card.cells).toHaveLength(CARD_SIZE * CARD_SIZE);
+      }),
+      { numRuns },
+    );
+  });
+});
+
+describe('card invariant 15 (column order, D7)', () => {
+  it('invariant 15: numbers of each column strictly ascend from top to bottom', () => {
+    fc.assert(
+      fc.property(cardInputsArb, fc.boolean(), (input, freeCenter) => {
+        const card = generateCard({ ...input, cardIndex: 0, freeCenter });
+        for (let column = 0; column < CARD_SIZE; column += 1) {
+          const values = card.cells.flatMap((cell, index) =>
+            cell.kind === 'number' && columnOf(index) === column ? [cell.value] : [],
+          );
+          for (let i = 1; i < values.length; i += 1) {
+            expect(values[i]).toBeGreaterThan(values[i - 1] ?? 0);
+          }
+        }
+      }),
+      { numRuns },
+    );
+  });
+
+  it('invariant 15: season and symbol cells keep their drawn positions', () => {
+    fc.assert(
+      fc.property(cardInputsArb, (input) => {
+        const card = makeCard(input);
+        for (const index of card.seasonCells ?? []) {
+          const kind = card.cells[index]?.kind;
+          expect(kind).toBe(input.gameType === 'classicSeasons' ? 'symbol' : 'number');
+        }
       }),
       { numRuns },
     );

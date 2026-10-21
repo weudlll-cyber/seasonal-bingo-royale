@@ -8,7 +8,8 @@
  *                 Bingo rules; season cells sit in four different rows and columns, never
  *                 the centre; for `classicSeasons` each season cell carries its symbol
  *                 instead of a number, reducing the per-card number count from 24 to 20
- *                 (01 §3a). The free centre is on when `freeCenter` is true.
+ *                 (01 §3a). The free centre is on when `freeCenter` is true. Each
+ *                 column's numbers ascend from top to bottom around those cells (D7).
  * Depends on:     ../draw/drbg, ./cardTypes, ../gameType, ../draw/pool
  * Used by:        ../match/* (future), tests
  * Spec:           docs/spec/01-game-design.md §4, §3a, docs/spec/12-testing-strategy.md §3
@@ -21,7 +22,6 @@ import {
   CELL_COUNT,
   CENTRE_INDEX,
   columnOf,
-  rowOf,
   type Card,
   type Cell,
 } from './cardTypes.js';
@@ -44,34 +44,41 @@ export function generateCard(input: GenerateCardInput): Card {
   const drbg = createDrbg(input.seed, label);
   const seasonCells =
     input.gameType === 'classic' ? null : pickSeasonCellPositions(drbg, input.freeCenter);
-  const numbers = pickColumnNumbers(drbg);
-  const cells: Cell[] = [];
-  for (let index = 0; index < CELL_COUNT; index += 1) {
-    cells.push(cellAt(index, numbers, seasonCells, input));
-  }
-  return { cells, seasonCells };
+  const cells: (Cell | null)[] = Array.from({ length: CELL_COUNT }, (_v, index) =>
+    fixedCellAt(index, seasonCells, input),
+  );
+  fillColumnsAscending(cells, pickColumnNumbers(drbg));
+  return { cells: cells.map((cell) => cell ?? { kind: 'free' }), seasonCells };
 }
 
-function cellAt(
+// The cells whose position is fixed before numbers are placed: the free centre and, in
+// classicSeasons, the season symbol cells. Every other cell (null) takes a number.
+function fixedCellAt(
   index: number,
-  numbers: readonly number[][],
   seasonCells: readonly number[] | null,
   input: GenerateCardInput,
-): Cell {
+): Cell | null {
   if (input.freeCenter && index === CENTRE_INDEX) return { kind: 'free' };
   const seasonIndex = seasonCells?.indexOf(index) ?? -1;
-  if (seasonIndex >= 0 && input.gameType === 'classicSeasons') {
-    const symbol = SYMBOL_IDS[seasonIndex];
-    if (symbol === undefined) throw new Error('season index out of range');
-    return { kind: 'symbol', value: symbol };
+  if (seasonIndex < 0 || input.gameType !== 'classicSeasons') return null;
+  const symbol = SYMBOL_IDS[seasonIndex];
+  if (symbol === undefined) throw new Error('season index out of range');
+  return { kind: 'symbol', value: symbol };
+}
+
+// D7 (01 §4): each column's numbers ascend from top to bottom around the fixed cells.
+// A column takes as many of its drawn numbers as it has open cells, sorted ascending.
+function fillColumnsAscending(cells: (Cell | null)[], numbers: readonly number[][]): void {
+  for (let column = 0; column < CARD_SIZE; column += 1) {
+    const open = cells.flatMap((cell, index) =>
+      cell === null && columnOf(index) === column ? [index] : [],
+    );
+    const values = (numbers[column] ?? []).slice(0, open.length).sort((a, b) => a - b);
+    if (values.length !== open.length) throw new Error('missing column numbers');
+    open.forEach((index, i) => {
+      cells[index] = { kind: 'number', value: values[i] ?? 0 };
+    });
   }
-  const column = columnOf(index);
-  const row = rowOf(index);
-  const columnNumbers = numbers[column];
-  if (columnNumbers === undefined) throw new Error('missing column numbers');
-  const value = columnNumbers[row];
-  if (value === undefined) throw new Error('missing cell number');
-  return { kind: 'number', value };
 }
 
 // Each column takes 5 distinct numbers from its 15-wide range; the N column uses only 4

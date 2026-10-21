@@ -98,9 +98,12 @@ Ticked by default (changeable before start, stored in the ruleset defaults, also
 editable in admin): `rows-1`, `rows-2`, `fourCorners`, `oneDiagonal`, `fullCard`.
 
 Rules:
-- A prize is awarded to **everyone** who completes it on the draw that first
-  completes it. Simultaneous completions on the same draw all win the prize.
-- Draws continue until every ticked prize is awarded; then the round ends.
+- A prize is decided when the speed window of the draw that first completes it
+  closes (§6), and goes to **everyone** who has it complete by then: players
+  completing it on the same draw, and players who tap the missing number inside
+  that window. After the window has closed the prize is no longer open.
+- Draws continue until every ticked prize is decided; then the round ends when the
+  speed window of that draw closes.
 - Catalogue order (lowest to highest value), used for the placement tie-break
   below: `rows-1`, `columns-1`, `rows-2`, `columns-2`, `rows-3`, `columns-3`,
   `rows-4`, `columns-4`, `rows-5`, `columns-5`, `fourCorners`, `oneDiagonal`,
@@ -126,6 +129,8 @@ flag on.
 ## 4. The card
 
 - 5×5 grid, columns B-I-N-G-O, numbers from the classic ranges: B 1–15, I 16–30, N 31–45, G 46–60, O 61–75.
+- **Column order (decided 2026-10-20):** in every column the numbers are in ascending order from top to bottom. Season cells (royale) and season symbol cells (`classicSeasons`) keep their positions; the numbers of that column fill the remaining cells in ascending order.
+- The card shows the letters **B I N G O** above its columns.
 - Center cell (N3) is a **free cell**, marked from the start (`card.freeCenter`, default `true`).
 - **Four season cells** per card, one per season, placed at random non-center positions. A season cell still has its normal number; its season icon is shown on top.
 - Constraint: the four season cells occupy four **different rows and four different columns**. This keeps Season Complete from ever being a single line by construction.
@@ -136,6 +141,10 @@ flag on.
 
 - The pool holds the 75 numbers. Draws are without replacement.
 - A round ends at the latest when the pool is exhausted.
+- A round never ends at the moment of a draw. When a round-end condition is met on a
+  draw, the round ends once the speed window of that draw has closed, so its number
+  can still be tapped (with bonus inside the window). The same holds for the last
+  draw of the pool.
 - Draw cadence is a ruleset value per mode:
 
 | Mode | Default draw interval | Allowed range |
@@ -144,15 +153,28 @@ flag on.
 | Asynchronous | 15 min | 1 min – 24 h |
 
 - Asynchronous matches may define **quiet hours** (no draws, e.g. 00:00–07:00 in the match’s time zone).
+- **Draw control (decided 2026-10-20):** whoever starts a match chooses the draw mode:
+  - `auto` — the next item is drawn after an interval the starter sets in seconds, within the allowed range of the table above;
+  - `host` — the next item is drawn only when the host presses **Draw next**.
+
+  The host can switch between the two modes at any time during the match, and change the `auto` interval. This applies to all three game types, realtime and asynchronous. The speed window (§6) always starts when a draw becomes visible. The draw order never depends on timing or mode: it is fixed by the match seed (§9).
+- Every drawn number is shown with its column letter (e.g. “G 52”); a drawn season symbol is shown as its icon.
 
 ## 6. Marking modes
 
 | Mode | Behaviour | Default for |
 |---|---|---|
 | `auto` | The server marks every drawn number on every card instantly. | Asynchronous |
-| `manual` | The player taps the cell. A tap within `speedWindowMs` (default 3000 ms) after the draw earns a **speed bonus**. When the window closes, the server auto-marks the cell without the bonus. | Realtime |
+| `manual` | The player taps the cell. A tap within `speedWindowMs` (default 3000 ms) after the draw becomes visible earns a **speed bonus**. What happens to a drawn number the player has not tapped is the match's **missed-number rule** below. | Realtime |
 
-Manual mode never lets a player lose a mark — it only rewards attention. This avoids punishing bad connections and removes any incentive to cheat a mark: a tap on an undrawn number is rejected by the server.
+**Missed-number rule.** Whoever starts a match chooses one rule for all players of that match:
+
+- `autoMarkAfter` with a delay in seconds (default 3, at least the speed window): a drawn number the player has not tapped is marked for them, without bonus, when the delay has passed.
+- `noAutoMark`: a missed number stays open; the player may still tap it until the round ends, without bonus. When the round ends, open numbers stay unmarked.
+
+In both rules the speed bonus is earned only by a tap inside the speed window. Patterns, season activations and Season Complete count only from marked cells: under `noAutoMark` an untapped number does not count until it is tapped. A tap on an undrawn number is always rejected by the server, so there is nothing to gain by cheating a mark.
+
+The rule applies to human players. Bots (only in the Quick Test, 15 WP-08) always mark on the draw.
 
 ## 7. Battle royale structure
 
@@ -178,7 +200,7 @@ With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) →
 
 ### 7.2 Scoring carry-over
 
-Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**.
+Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**. The royale default rulesets use multiplier 1 in every stage; the multiplier stays configurable per ruleset.
 
 ### 7.3 Round-end conditions (one per round)
 
@@ -314,6 +336,7 @@ Everything is the same engine. Only these ruleset values differ by default:
 | Aspect | Realtime | Asynchronous |
 |---|---|---|
 | Draw interval | 5 s | 15 min |
+| Draw control (§5) | `auto` or `host`, switchable during the match | `auto` or `host`, switchable during the match |
 | Marking | manual + speed bonus | auto |
 | Lobby window | 10 min | 24 h |
 | Notifications | in-app only | in-app + optional e-mail digest / web push |
@@ -339,6 +362,7 @@ BACKLOG; website: embeddable call view).
 
 - Brand: the four Seasonal Tokens seasons and their original icons; the season colours shared with the Seasonal Entertainment website (Spring `#afb84e`, Summer `#e06e22`, Autumn `#f9a825`, Winter `#04aaf7`); font Luxora Grotesk. Assets and their origin: [assets/README.md](../../assets/README.md).
 - Dark arena look, consistent with the Seasonal Entertainment website direction.
+- Cards show the letters B I N G O above the columns, with each column's numbers ascending (§4). The draw ticker, banners and announcements show every number with its letter (“G 52”) and every season symbol as its icon (§5).
 - Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You survived” / “Eliminated – keep watching”), final win.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.

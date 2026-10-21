@@ -26,7 +26,11 @@ function replay(events: readonly DomainEvent[]) {
 
 const TICKED = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'];
 
-describe('match lifecycle invariant 4 (replay = live)', () => {
+// Full-match properties: under a busy parallel test run they can pass Vitest's 5 s
+// default, so both blocks get an explicit budget (as in royale.properties.test.ts).
+const FULL_MATCH_BUDGET = { timeout: 30_000 };
+
+describe('match lifecycle invariant 4 (replay = live)', FULL_MATCH_BUDGET, () => {
   it('replay of a full royale match equals the live final placement', () => {
     fc.assert(
       fc.property(seedArb, matchIdArb(), playerCountArb, (seed, matchId, count) => {
@@ -68,7 +72,7 @@ describe('match lifecycle invariant 4 (replay = live)', () => {
   });
 });
 
-describe('classic invariant 12', () => {
+describe('classic invariant 12', FULL_MATCH_BUDGET, () => {
   it('every ticked prize is awarded (or the pool ran out)', () => {
     fc.assert(
       fc.property(

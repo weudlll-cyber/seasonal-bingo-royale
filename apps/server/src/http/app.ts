@@ -19,6 +19,7 @@ import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerHealth } from './routes/health.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
+import { registerQuickTest } from './routes/quicktest.js';
 
 export interface AppDeps {
   readonly env: Env;
@@ -48,14 +49,30 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     trustProxy: false,
   });
 
+  const isDev = deps.env.NODE_ENV !== 'production';
   await registerSecurityHeaders(fastify);
+  if (isDev) registerDevCors(fastify);
   registerProblemDetails(fastify);
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
-  registerPlaceholder(fastify, {
-    dev: deps.env.NODE_ENV !== 'production',
-    port: deps.env.SBR_PORT,
-  });
+  registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
+  if (isDev) registerQuickTest(fastify);
   return { fastify, metrics };
+}
+
+// The player client (Vite on 127.0.0.1:5390) is a different origin from the server
+// (127.0.0.1:3900); the dev-only Quick Test endpoint accepts cross-origin POSTs so the
+// client can call it directly without a Vite proxy. Not registered in production.
+function registerDevCors(app: FastifyInstance): void {
+  app.addHook('onSend', (request, reply, _payload, done) => {
+    const origin = request.headers.origin;
+    if (typeof origin === 'string' && /^http:\/\/(127\.0\.0\.1|localhost):53\d\d$/.test(origin)) {
+      reply.header('access-control-allow-origin', origin);
+      reply.header('access-control-allow-headers', 'content-type');
+      reply.header('access-control-allow-methods', 'GET, POST, OPTIONS');
+    }
+    done();
+  });
+  app.options('/dev/quicktest', (_request, reply) => reply.status(204).send());
 }

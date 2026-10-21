@@ -10,13 +10,19 @@
  *                 adds a key here and the application maps it from the contract.
  * Depends on:     ../seasons/effectCatalog (Effect union)
  * Used by:        ./matchState, ./decide, ./evolve, apps/server application layer
- * Spec:           docs/spec/01-game-design.md §3a, §4–§9
+ * Spec:           docs/spec/01-game-design.md §3a, §4–§9 (§6 missed numbers)
  */
 import type { Effect } from '../seasons/effectCatalog.js';
 import type { SeasonName } from '../draw/pool.js';
 
 export type MatchMode = 'realtime' | 'async';
 export type MarkingMode = 'auto' | 'manual';
+
+// What happens to a drawn number a tapping player has not marked (01 §6): it is marked
+// for the player without bonus once delayMs has passed, or it stays open until tapped
+// or until the round ends. Bots and players in auto marking mode always mark on the draw.
+export type MissedNumbers =
+  { readonly kind: 'autoMarkAfter'; readonly delayMs: number } | { readonly kind: 'noAutoMark' };
 
 export type RoundEnd =
   | { readonly kind: 'drawCount'; readonly draws: number }
@@ -49,6 +55,7 @@ export interface StagePlanEntry {
 export interface MatchRuleset {
   readonly mode: MatchMode;
   readonly markingMode: MarkingMode;
+  readonly missedNumbers: MissedNumbers;
   readonly cardsPerPlayer: number;
   readonly freeCenter: boolean;
   readonly pointsPerMark: number;

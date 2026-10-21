@@ -62,7 +62,7 @@ const ROYALE_STAGES: readonly StagePlanEntry[] = [
     roundEnd: { kind: 'drawCount', draws: 35 },
     cut: { keep: 'percent', value: 50, minSurvivors: 2 },
     scoreCarry: { kind: 'keep' },
-    stageMultiplier: 1.25,
+    stageMultiplier: 1,
     activePatterns: ['rows-1', 'columns-1', 'oneDiagonal', 'bothDiagonals', 'fourCorners'],
   },
   {
@@ -70,7 +70,7 @@ const ROYALE_STAGES: readonly StagePlanEntry[] = [
     rounds: 1,
     roundEnd: { kind: 'firstFullHouse' },
     scoreCarry: { kind: 'reset' },
-    stageMultiplier: 2,
+    stageMultiplier: 1,
     activePatterns: ['fullCard'],
   },
 ];
@@ -79,6 +79,7 @@ export function royaleRuleset(): MatchRuleset {
   return {
     mode: 'realtime',
     markingMode: 'auto',
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
     cardsPerPlayer: 1,
     freeCenter: true,
     pointsPerMark: 10,
@@ -108,6 +109,7 @@ export function classicRuleset(): MatchRuleset {
   return {
     mode: 'realtime',
     markingMode: 'auto',
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
     cardsPerPlayer: 1,
     freeCenter: true,
     pointsPerMark: 10,

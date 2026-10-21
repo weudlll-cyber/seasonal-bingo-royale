@@ -7,6 +7,8 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 ### Implementation
 
 - WP-08 … WP-30 (docs/spec/15-implementation-plan.md) — not started
+- Realtime classic rounds: rule for players still tapping when a prize is decided on a draw (to be decided with the owner before WP-12)
+- Realtime server: store `missed_numbers` / `auto_mark_delay_ms` per match and schedule `AutoMarkMissed` after the delay (D9, docs/spec/01-game-design.md §6, 06 §5) — with WP-12/WP-15; the domain rule and the Quick Test are done
 
 ### Needed from the website repository (Phase 6 only)
 
@@ -35,3 +37,6 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 | WP-06 Domain: scoring and seasons                                                                                    | Branch feat/wp-06-scoring                            | 2026-10-20 |
 | WP-07 Domain: royale structure AND classic round flow (first pass)                                                   | Branch feat/wp-07-match-flow                         | 2026-10-20 |
 | WP-07 Domain: match lifecycle, round-end conditions, score carry and full-match tests                                | Branch feat/wp-07b-match-lifecycle                   | 2026-10-20 |
+| D9 missed-number rule (spec, domain, Quick Test) and per-player marking: bots score in manual mode                   | Branch feat/wp-08-quicktest                          | 2026-10-20 |
+| D10 last number tappable inside its window, classic prizes decided at window close; D11 royale multiplier 1          | Branch feat/wp-08-quicktest                          | 2026-10-21 |
+| Quick Test: live standings active first; seasons and effects from the server only; acceptance play-through green     | Branch feat/wp-08-quicktest                          | 2026-10-21 |

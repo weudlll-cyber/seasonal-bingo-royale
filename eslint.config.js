@@ -57,7 +57,17 @@ const NO_DEFAULT_EXPORT = [
 ];
 
 export default defineConfig(
-  { ignores: ['**/node_modules/', '**/dist/', '**/coverage/'] },
+  // Build and test output, and the git-ignored scratch folder of runs (docs/NIGHT-RUN.md).
+  {
+    ignores: [
+      '**/node_modules/',
+      '**/dist/',
+      '**/coverage/',
+      'tmp/',
+      'test-results/',
+      'playwright-report/',
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {
@@ -91,8 +101,9 @@ export default defineConfig(
     rules: { 'max-lines': ['error', { max: 400 }] },
   },
   {
-    // Tool config files must default-export their configuration.
-    files: ['*.config.js', '*.config.ts'],
+    // Tool config files must default-export their configuration (Vite, Vitest, etc.);
+    // so must Playwright's global setup.
+    files: ['*.config.js', '*.config.ts', '**/*.config.js', '**/*.config.ts', 'e2e/globalSetup.ts'],
     rules: { 'no-restricted-syntax': 'off' },
   },
   prettier,

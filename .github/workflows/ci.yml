@@ -1,9 +1,10 @@
 # @file   .github/workflows/ci.yml
-# @brief  CI: verify, security scans and the container image on every push and PR.
+# @brief  CI: verify, security scans, browser tests and the container image.
 #
-# Responsibility: run what "pnpm verify" runs, the dependency/secret scans, and on the way
-#                 to master build, scan and size-check the image. Any red job blocks merge.
-# Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml
+# Responsibility: run what "pnpm verify" runs and the dependency/secret scans on every
+#                 push; on the way to master also the Playwright suite in three browsers
+#                 and the image build, scan and size check. Any red job blocks merge.
+# Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/
 # Spec:           docs/spec/08-devops-architecture.md §3–§4, docs/spec/03-security-architecture.md §18
 name: CI
 
@@ -67,6 +68,18 @@ jobs:
           fi
       - name: gitleaks (full history)
         run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
+
+  e2e:
+    # Only on the way to master: PRs to master and pushes to master.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Playwright browsers (Chromium, Firefox, WebKit)
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      # Starts PostgreSQL via ops/compose.dev.yml, the server on 3900, the client on 5390.
+      - run: pnpm e2e
 
   image:
     # Only on the way to master: PRs to master and pushes to master.

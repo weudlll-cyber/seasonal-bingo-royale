@@ -22,6 +22,7 @@ import {
   onRoundStarted,
   onDrawMade,
   onRoundEnded,
+  onSpeedWindowClosed,
   onCutApplied,
   onMatchFinished,
 } from './evolveLifecycle.js';
@@ -39,6 +40,7 @@ import {
 const EMPTY_RULESET: MatchRuleset = Object.freeze({
   mode: 'realtime',
   markingMode: 'auto',
+  missedNumbers: { kind: 'noAutoMark' },
   cardsPerPlayer: 1,
   freeCenter: true,
   pointsPerMark: 0,
@@ -90,6 +92,7 @@ const projectors: Projectors = {
   stageStarted: (s, e) => onStageStarted(s, e.stageIndex),
   roundStarted: onRoundStarted,
   drawMade: (s, _e) => onDrawMade(s),
+  speedWindowClosed: (s, e) => onSpeedWindowClosed(s, e.drawIndex),
   cellMarked: onCellMarked,
   seasonActivated: onSeasonActivated,
   patternScored: onPatternScored,

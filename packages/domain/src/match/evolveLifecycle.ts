@@ -48,7 +48,10 @@ export function onPlayerJoined(
   if (state.players[ev.accountId] !== undefined) return state;
   return {
     ...state,
-    players: { ...state.players, [ev.accountId]: initialPlayerState(ev.accountId, ev.joinedAt) },
+    players: {
+      ...state.players,
+      [ev.accountId]: initialPlayerState(ev.accountId, ev.joinedAt, ev.human === true),
+    },
     playerOrder: [...state.playerOrder, ev.accountId],
   };
 }
@@ -63,9 +66,12 @@ export function onStageStarted(state: MatchState, stageIndex: number): MatchStat
 function applyScoreCarry(state: MatchState, stage: StagePlanEntry): MatchState {
   if (stage.scoreCarry.kind === 'keep') return state;
   const factor = stage.scoreCarry.kind === 'scaled' ? stage.scoreCarry.factor : 0;
+  // Only players still in the match carry points into the stage; eliminated players keep
+  // their score at elimination, which places them in the final ranking (01 §7.5).
   const nextPlayers: Record<string, PlayerState> = {};
   for (const [id, p] of Object.entries(state.players)) {
-    nextPlayers[id] = { ...p, points: Math.round(p.points * factor) };
+    nextPlayers[id] =
+      p.eliminatedAtRound === null ? { ...p, points: Math.round(p.points * factor) } : p;
   }
   return { ...state, players: nextPlayers };
 }
@@ -93,6 +99,7 @@ export function onRoundStarted(state: MatchState, ev: RoundStarted): MatchState 
     fullHouseBy: [],
     classicAwards: [],
     outstandingPrizes: state.gameType === 'royale' ? [] : [...state.tickedPrizes],
+    windowClosedThrough: -1,
     ended: false,
   };
   return { ...state, currentRound: round, roundIndex: ev.roundIndex };
@@ -116,11 +123,15 @@ export function onDrawMade(state: MatchState): MatchState {
   };
 }
 
+export function onSpeedWindowClosed(state: MatchState, drawIndex: number): MatchState {
+  const round = state.currentRound;
+  if (round === null) return state;
+  return { ...state, currentRound: { ...round, windowClosedThrough: drawIndex } };
+}
+
 export function onRoundEnded(state: MatchState): MatchState {
   const round = state.currentRound;
   if (round === null) return state;
-  const awardedKeys = new Set(round.classicAwards.map((a) => a.prizeKey));
-  const outstanding = round.outstandingPrizes.filter((k) => !awardedKeys.has(k));
   const jackpotWasClaimed =
     state.jackpot.claimedBy !== null && state.jackpot.claimedAtRound === round.roundIndex;
   const nextUnclaimed = jackpotWasClaimed
@@ -128,7 +139,7 @@ export function onRoundEnded(state: MatchState): MatchState {
     : state.jackpot.unclaimedRounds + 1;
   return {
     ...state,
-    currentRound: { ...round, ended: true, outstandingPrizes: outstanding },
+    currentRound: { ...round, ended: true },
     jackpot: {
       ...state.jackpot,
       unclaimedRounds: nextUnclaimed,

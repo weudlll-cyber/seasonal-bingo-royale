@@ -5,11 +5,11 @@
  *
  * Responsibility: given the current state and the cell being marked, return the
  *                 chronological event list: `cellMarked` with points, `seasonActivated`
- *                 when the cell is a season cell, `patternScored` for royale or
+ *                 when the cell is a royale season cell, `patternScored` for royale or
  *                 `classicPrizeAwarded` for classic for every newly completed prize key,
  *                 `seasonCompleteFired` when all four seasons are now active, and
  *                 `jackpotClaimed` when a full house + Season Complete land in the same
- *                 royale round. Pure.
+ *                 royale round. Points are multiplied by the stage multiplier. Pure.
  * Depends on:     ../card/patterns, ../scoring/*, ../seasons/*, ../draw/pool,
  *                 ./matchState, ./events
  * Used by:        ./decide
@@ -25,7 +25,6 @@ import type { EffectState } from '../seasons/effectState.js';
 import { checkSeasonComplete } from '../seasons/seasonComplete.js';
 import { SEASON_NAMES } from '../draw/pool.js';
 import type { SeasonName } from '../draw/pool.js';
-import type { MatchRuleset } from './lifecycleTypes.js';
 import type { MatchState, RoundState } from './matchState.js';
 import type {
   CellMarked,
@@ -68,30 +67,36 @@ export function buildMarkEvents(state: MatchState, input: MarkInput): readonly D
   const projected = withMarked(marks.marks, input.cellIndex);
   const prizeEvents = prizeEventsFor(ctx, projected, nextEffects, marks.scoredPrizes);
   events.push(...prizeEvents);
-  const sc = seasonCompleteFor(
-    state.ruleset,
-    player.seasonCompleteFired,
-    nextEffects.seasonsActivated,
-    input.accountId,
-  );
+  const sc = seasonCompleteFor(ctx, player.seasonCompleteFired, nextEffects.seasonsActivated);
   if (sc !== null) events.push(sc);
   const jackpot = jackpotFor(ctx, prizeEvents, sc !== null);
   if (jackpot !== null) events.push(jackpot);
   return events;
 }
 
+// Progressive scoring (01 §7.2): every point earned in a stage is multiplied by its
+// stageMultiplier. Events carry the multiplied value, so replay and clients just add.
+function staged(ctx: Context, points: number): number {
+  return Math.round(points * ctx.round.stage.stageMultiplier);
+}
+
 function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): CellMarked {
   const points = isFree
     ? 0
-    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects) +
-      Math.max(0, Math.round(ctx.input.speedBonus));
+    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects) + windowBonus(ctx);
   return {
     type: 'cellMarked',
     accountId: ctx.input.accountId,
     cardIndex: ctx.input.cardIndex,
     cellIndex: ctx.input.cellIndex,
-    markPoints: points,
+    markPoints: staged(ctx, points),
   };
+}
+
+// The speed bonus is earned only by a tap inside the speed window (01 §6); a late tap
+// or an auto-mark scores the base points alone, whatever bonus the caller passed.
+function windowBonus(ctx: Context): number {
+  return ctx.input.inSpeedWindow ? Math.max(0, Math.round(ctx.input.speedBonus)) : 0;
 }
 
 function effectsAfterMark(isFree: boolean, effects: EffectState): EffectState {
@@ -103,6 +108,9 @@ function buildActivation(
   effects: EffectState,
   ctx: Context,
 ): { readonly event: SeasonActivated; readonly nextEffects: EffectState } | null {
+  // Season effects belong to royale only; in classicSeasons a symbol cell is just a cell
+  // to mark (01 §3a).
+  if (ctx.state.gameType !== 'royale') return null;
   const season = seasonForCellIndex(ctx.input.cellIndex, seasonCells);
   if (season === null) return null;
   if ((effects.seasonsActivated & bitFor(season)) !== 0) return null;
@@ -115,7 +123,7 @@ function buildActivation(
       type: 'seasonActivated',
       accountId: ctx.input.accountId,
       season,
-      instantPoints: applied.instantPoints,
+      instantPoints: staged(ctx, applied.instantPoints),
     },
     nextEffects,
   };
@@ -150,7 +158,7 @@ function prizeEventsFor(
   const relevant =
     ctx.state.gameType === 'royale' ? ctx.round.stage.activePatterns : ctx.state.tickedPrizes;
   const active = new Set(relevant);
-  const already = new Set(alreadyScored);
+  const already = new Set([...alreadyScored, ...classicPrizesClosed(ctx.round)]);
   const out: (PatternScored | ClassicPrizeAwarded)[] = [];
   for (const key of completed) {
     if (!active.has(key) || already.has(key)) continue;
@@ -160,6 +168,14 @@ function prizeEventsFor(
     already.add(key);
   }
   return out;
+}
+
+// A classic prize is decided when the speed window of the draw that first completed it
+// closes; until then everyone who completes it wins it too (01 §3a.1, D10).
+function classicPrizesClosed(round: RoundState): readonly string[] {
+  return round.classicAwards
+    .filter((a) => a.drawIndex <= round.windowClosedThrough)
+    .map((a) => a.prizeKey);
 }
 
 function royalePattern(ctx: Context, effects: EffectState, key: string): PatternScored {
@@ -176,7 +192,7 @@ function royalePattern(ctx: Context, effects: EffectState, key: string): Pattern
     accountId: ctx.input.accountId,
     cardIndex: ctx.input.cardIndex,
     prizeKey: key,
-    points,
+    points: staged(ctx, points),
     firstInRound: first,
   };
 }
@@ -190,18 +206,20 @@ function classicPrize(ctx: Context, key: string): ClassicPrizeAwarded {
   };
 }
 
+// Season Complete is royale only (01 §3a: no Season Complete bonus in classic types).
 function seasonCompleteFor(
-  ruleset: MatchRuleset,
+  ctx: Context,
   alreadyFired: boolean,
   seasonsBitmask: number,
-  accountId: string,
 ): SeasonCompleteFired | null {
+  if (ctx.state.gameType !== 'royale') return null;
   const r = checkSeasonComplete(
     { ...INITIAL_EFFECT_STATE, seasonsActivated: seasonsBitmask },
     alreadyFired,
-    { points: ruleset.seasonComplete.points },
+    { points: ctx.state.ruleset.seasonComplete.points },
   );
-  return r.fires ? { type: 'seasonCompleteFired', accountId, points: r.points } : null;
+  const accountId = ctx.input.accountId;
+  return r.fires ? { type: 'seasonCompleteFired', accountId, points: staged(ctx, r.points) } : null;
 }
 
 function jackpotFor(

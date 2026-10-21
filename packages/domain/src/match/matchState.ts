@@ -21,6 +21,8 @@ export type MatchPhase = 'lobby' | 'running' | 'finished' | 'aborted';
 export interface PlayerState {
   readonly accountId: string;
   readonly joinedAt: number;
+  // A person who may tap in manual marking mode; bots always mark on the draw (01 §6).
+  readonly human: boolean;
   readonly points: number;
   readonly patternsCount: number;
   readonly lastScoringDraw: number | null;
@@ -64,6 +66,9 @@ export interface RoundState {
   // Classic round book-keeping (01 §3a.1). Empty for royale.
   readonly classicAwards: readonly ClassicAward[];
   readonly outstandingPrizes: readonly string[];
+  // Highest draw index whose speed window has closed (-1 before the first): the round
+  // ends and classic prizes are decided only after a window closes (01 §6, D10).
+  readonly windowClosedThrough: number;
   readonly ended: boolean;
 }
 
@@ -98,10 +103,15 @@ export interface MatchState {
   readonly finalPlacement: readonly { readonly accountId: string; readonly place: number }[];
 }
 
-export function initialPlayerState(accountId: string, joinedAt: number): PlayerState {
+export function initialPlayerState(
+  accountId: string,
+  joinedAt: number,
+  human: boolean,
+): PlayerState {
   return {
     accountId,
     joinedAt,
+    human,
     points: 0,
     patternsCount: 0,
     lastScoringDraw: null,

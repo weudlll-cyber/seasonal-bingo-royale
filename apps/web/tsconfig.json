@@ -3,10 +3,16 @@
  * @module web
  * @brief  TypeScript settings for @sbr/web.
  *
- * Responsibility: extend the shared strict base and limit the program to src/.
+ * Responsibility: extend the bundler base; include src/; opt into the React JSX
+ *                 runtime so `.tsx` files type-check against the installed React.
  * Spec:           docs/spec/10-repository-structure.md §2
  */
 {
   "extends": "../../tsconfig.bundler.json",
-  "include": ["src"]
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "types": ["vite/client"]
+  },
+  "include": ["src", "vite.config.ts"]
 }

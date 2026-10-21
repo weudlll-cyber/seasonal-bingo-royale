@@ -4,13 +4,17 @@
  * @brief  Full-match simulation driver for tests and the Quick Test (WP-07/WP-08).
  *
  * Responsibility: drive the lifecycle for a given seed, game type, player count and
- *                 ruleset end-to-end with bot players in `auto` marking mode. Returns
+ *                 ruleset end-to-end. Bots mark on the draw; optional human players never
+ *                 tap here (their taps are not known in advance), so in manual marking
+ *                 mode they are marked only by autoMarkMissed once the missed-number
+ *                 delay has passed, measured in draw intervals (01 §6). Returns
  *                 the full event log and the final state so tests can assert both
  *                 "live state = replay" (invariant 4) and the game-wide invariants
  *                 (every ticked prize awarded, final placement 1..N, …). Pure.
  * Depends on:     ./commands, ./decide, ./evolve, ./matchState, ./lifecycleTypes
  * Used by:        tests, apps/server/src/dev/quicktest.ts
- * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 12 §3 inv. 4, 7, 8, 10, 12
+ * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 01 §6;
+ *                 12 §3 inv. 4, 7, 8, 10, 12, 17, 18
  */
 import type { GameType } from '../gameType.js';
 import { decide } from './decide.js';
@@ -27,6 +31,13 @@ export interface SimulateMatchInput {
   readonly ruleset: MatchRuleset;
   readonly playerCount: number;
   readonly tickedPrizes: readonly string[];
+  // The first `count` players join as people. drawIntervalMs (time between two draws)
+  // and speedWindowMs place the missed-number auto-marks and window closes in time.
+  readonly humans?: {
+    readonly count: number;
+    readonly drawIntervalMs: number;
+    readonly speedWindowMs: number;
+  };
 }
 
 export interface SimulateMatchResult {
@@ -69,23 +80,35 @@ export function simulateMatch(input: SimulateMatchInput): SimulateMatchResult {
     tickedPrizes: input.tickedPrizes,
   });
   for (let i = 0; i < input.playerCount; i += 1) {
-    d.apply({ type: 'joinMatch', accountId: `p${String(i).padStart(3, '0')}`, joinedAt: i });
+    const accountId = `p${String(i).padStart(3, '0')}`;
+    const human = i < (input.humans?.count ?? 0);
+    d.apply({ type: 'joinMatch', accountId, joinedAt: i, ...(human ? { human } : {}) });
   }
   d.apply({ type: 'startMatch' });
-  runStages(d);
+  runStages(d, {
+    intervalMs: input.humans?.drawIntervalMs ?? 0,
+    windowMs: input.humans?.speedWindowMs ?? 0,
+  });
   d.apply({ type: 'finishMatch' });
   return { events: d.events, state: d.state };
 }
 
-function runStages(d: Driver): void {
+// Clock of a simulated round: draw n happens at n × intervalMs and its speed window
+// closes windowMs later (01 §6, D10). Zero for a match without people: nothing is timed.
+interface Clock {
+  readonly intervalMs: number;
+  readonly windowMs: number;
+}
+
+function runStages(d: Driver, clock: Clock): void {
   while (d.state.stageIndex < d.state.stagePlan.length) {
     const stage = d.state.stagePlan[d.state.stageIndex];
     if (stage === undefined) break;
     for (let r = 0; r < stage.rounds; r += 1) {
-      runOneRound(d);
-      // After a cut, if the remaining field is already at or below the final size
-      // and we are still in an elimination stage, skip the rest of its rounds (01 §7.4).
+      // Once the active field is at or below the final size, the remaining elimination
+      // rounds and stages are skipped (01 §7.4) — checked before every round.
       if (stage.kind === 'elimination' && fieldAtFinalSize(d.state)) break;
+      runOneRound(d, clock);
     }
     const nextIndex = d.state.stageIndex + 1;
     if (nextIndex < d.state.stagePlan.length) d.apply({ type: 'startStage' });
@@ -93,22 +116,39 @@ function runStages(d: Driver): void {
   }
 }
 
-function runOneRound(d: Driver): void {
+// In time order per draw: the draw; the missed-number auto-marks due by the close of its
+// speed window; the window close and the round-end check (a round never ends at the
+// moment of a draw, D10); the auto-marks due before the next draw.
+function runOneRound(d: Driver, clock: Clock): void {
   d.apply({ type: 'startRound' });
-  // Draw until the round ends or the pool is exhausted. decide('endRound') returns
-  // non-empty exactly when the condition fires; we poll it after each draw.
+  let pending = 0; // first draw whose missed-number auto-mark has not been issued
   for (let safety = 0; safety < 2_000; safety += 1) {
-    const drew = d.apply({ type: 'drawNext' });
-    const ended = d.apply({ type: 'endRound' });
-    if (ended.length > 0) break;
-    if (drew.length === 0) break;
+    const n = d.state.currentRound?.draws.length ?? 0;
+    pending = issueDueAutoMarks(d, pending, n * clock.intervalMs, clock);
+    if (d.apply({ type: 'drawNext' }).length === 0) break;
+    pending = issueDueAutoMarks(d, pending, n * clock.intervalMs + clock.windowMs, clock);
+    d.apply({ type: 'closeSpeedWindow', drawIndex: n });
+    if (d.apply({ type: 'endRound' }).length > 0) break;
   }
-  // Belt-and-braces: force the round to end if it hasn't (pool exhausted with no
-  // other condition met).
+  // Belt-and-braces: the pool is exhausted and the last window has closed.
   if (d.state.currentRound !== null && !d.state.currentRound.ended) {
     d.apply({ type: 'endRound' });
   }
   d.apply({ type: 'applyCut' });
+}
+
+// Issue autoMarkMissed for every draw whose delay has passed by now: draw k is due at
+// k × interval + delay (inclusive). Returns the new first pending draw.
+function issueDueAutoMarks(d: Driver, pending: number, now: number, clock: Clock): number {
+  const rule = d.state.ruleset.missedNumbers;
+  const drawn = d.state.currentRound?.draws.length ?? 0;
+  if (rule.kind !== 'autoMarkAfter' || clock.intervalMs <= 0) return drawn;
+  let first = pending;
+  while (first < drawn && first * clock.intervalMs + rule.delayMs <= now) {
+    d.apply({ type: 'autoMarkMissed', drawIndex: first });
+    first += 1;
+  }
+  return first;
 }
 
 function fieldAtFinalSize(state: MatchState): boolean {
