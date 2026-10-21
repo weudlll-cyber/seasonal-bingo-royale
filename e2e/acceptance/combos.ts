@@ -1,0 +1,80 @@
+/**
+ * @file   e2e/acceptance/combos.ts
+ * @module e2e/acceptance
+ * @brief  The matches the real-game play-through plays, and their titles in plain words.
+ *
+ * Responsibility: per game type (royale default; classicSeasons with the default prizes;
+ *                 classic with fullCard only) one match with timed and one with host draws;
+ *                 the royale timed match switches draw mode mid-match, the royale host match
+ *                 lets the host start every next round (D14).
+ * Depends on:     ../realGame (types)
+ * Used by:        ./realGame.spec.ts
+ * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/01-game-design.md §5, §7.1
+ */
+import type { NewMatch } from '../realGame.js';
+
+export interface Combo extends Omit<NewMatch, 'title'> {
+  readonly name: string;
+  readonly switches: boolean;
+}
+
+export const COMBOS: readonly Combo[] = [
+  {
+    name: 'royale-timed',
+    gameType: 'royale',
+    drawMode: 'auto',
+    intervalSec: 4,
+    missed: 'autoMarkAfter',
+    switches: true,
+  },
+  {
+    name: 'royale-host',
+    gameType: 'royale',
+    drawMode: 'host',
+    missed: 'noAutoMark',
+    pause: 'host',
+    switches: false,
+  },
+  {
+    name: 'classicSeasons-timed',
+    gameType: 'classicSeasons',
+    drawMode: 'auto',
+    intervalSec: 4,
+    missed: 'noAutoMark',
+    switches: false,
+  },
+  {
+    name: 'classicSeasons-host',
+    gameType: 'classicSeasons',
+    drawMode: 'host',
+    missed: 'autoMarkAfter',
+    switches: false,
+  },
+  {
+    name: 'classic-timed',
+    gameType: 'classic',
+    drawMode: 'auto',
+    intervalSec: 4,
+    missed: 'autoMarkAfter',
+    prizes: ['fullCard'],
+    switches: false,
+  },
+  {
+    name: 'classic-host',
+    gameType: 'classic',
+    drawMode: 'host',
+    missed: 'noAutoMark',
+    prizes: ['fullCard'],
+    switches: false,
+  },
+];
+
+// The match title in plain words, as a host would name it.
+export function title(combo: Combo): string {
+  const type = {
+    royale: 'Battle royale',
+    classicSeasons: 'Classic with seasons',
+    classic: 'Classic',
+  };
+  return `${type[combo.gameType]} with ${combo.drawMode === 'auto' ? 'timed' : 'host'} draws`;
+}

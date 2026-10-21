@@ -5,8 +5,8 @@
  *
  * Responsibility: one way for every real-game spec to sign in with the development quick
  *                 sign-in, create a match from the host's form, join from the lobby, start
- *                 it with bots, press Draw next once its window allows, and read the current
- *                 number and the standings from a screen.
+ *                 it with bots, press Draw next once its window allows, read the current
+ *                 number and the standings from a screen, and stop a match in teardown.
  * Depends on:     @playwright/test
  * Used by:        ./realGame.spec.ts, ./acceptance/realGame.spec.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
@@ -32,6 +32,8 @@ export interface NewMatch {
   readonly intervalSec?: number;
   readonly missed: 'autoMarkAfter' | 'noAutoMark';
   readonly maxPlayers?: number;
+  // Royale: the host starts each next round (D14); otherwise the default wait.
+  readonly pause?: 'host';
 }
 
 // Creates the match from the host's form and returns its code (the console shows it).
@@ -48,6 +50,7 @@ export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
     await page.getByTestId('start-draw-interval').fill(String(m.intervalSec));
   await page.getByTestId('missed-numbers').selectOption(m.missed);
   await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
+  if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
   await page.getByTestId('create-submit').click();
   await expect(page.getByTestId('host-console')).toBeVisible();
   return (await page.getByTestId('host-code').innerText()).trim();
@@ -69,6 +72,22 @@ export async function fillAndStart(host: Page, upTo: number): Promise<void> {
   await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'running', {
     timeout: 20_000,
   });
+}
+
+// Teardown: aborts the match ("test cleanup") when it is still open or running; a finished
+// or aborted match is left as it is. `page` must be signed in as the match's host.
+export async function stopMatch(page: Page, code: string): Promise<void> {
+  const match = await page.request.get(`/api/v1/matches/${code}`);
+  const { status } = (await match.json()) as { status: string };
+  if (status !== 'lobby' && status !== 'running') return;
+  const session = (await (await page.request.get('/api/v1/session')).json()) as {
+    csrfToken: string;
+  };
+  const r = await page.request.post(`/api/v1/matches/${code}/abort`, {
+    headers: { 'x-csrf-token': session.csrfToken },
+    data: { reason: 'test cleanup' },
+  });
+  expect(r.status(), `abort ${code}`).toBeLessThan(300);
 }
 
 // The current number on a screen (data-item of the ball), or null before the first draw.

@@ -1,15 +1,15 @@
 /**
  * @file   e2e/screens.ts
  * @module e2e
- * @brief  Screenshots for the reports: a viewport shot and a full-page shot of a screen.
+ * @brief  Screenshots for the reports: the viewport in the light and in the dark theme.
  *
- * Responsibility: save what a person sees in the browser window (the viewport) and the
- *                 whole page. For the full-page shot the top bar is made non-sticky during
- *                 the capture only, so it does not appear in the middle of a stitched
- *                 page; the page itself is left as it was.
+ * Responsibility: save what a person sees in the browser window (the viewport) in both
+ *                 themes; the theme is switched on <html> in place, as the toggle does, so
+ *                 a running match is not reloaded, and the page's own theme is put back.
+ *                 `captureLook` adds the desktop (1280×800) and phone (390×844) size.
  * Depends on:     @playwright/test, node:path
  * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts
- * Spec:           docs/spec/12-testing-strategy.md §4
+ * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';
 
@@ -18,27 +18,26 @@ import type { Page } from '@playwright/test';
 export const DESKTOP = { width: 1280, height: 800 };
 export const PHONE = { width: 390, height: 844 };
 
-// Saves <name>-view.jpg and <name>-full.jpg into dir.
-export async function capture(page: Page, dir: string, name: string): Promise<void> {
-  await page.screenshot({ path: path.join(dir, `${name}-view.jpg`), quality: 70 });
-  await page.evaluate(() => {
-    const style = document.createElement('style');
-    style.id = 'sbr-capture';
-    style.textContent = '.shell-bar { position: static !important; }';
-    document.head.append(style);
-  });
-  await page.screenshot({ path: path.join(dir, `${name}-full.jpg`), quality: 70, fullPage: true });
-  await page.evaluate(() => {
-    document.getElementById('sbr-capture')?.remove();
-  });
+// <name>-light.jpg and <name>-dark.jpg.
+export async function captureThemes(page: Page, dir: string, name: string): Promise<void> {
+  const before = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+  for (const theme of ['light', 'dark'] as const) {
+    await page.evaluate((t) => {
+      document.documentElement.setAttribute('data-theme', t);
+    }, theme);
+    await page.screenshot({ path: path.join(dir, `${name}-${theme}.jpg`), quality: 75 });
+  }
+  await page.evaluate((t) => {
+    document.documentElement.setAttribute('data-theme', t ?? 'light');
+  }, before);
 }
 
-// The same screen at desktop and at phone size: <name>-desktop-… and <name>-phone-….
-export async function captureBoth(page: Page, dir: string, name: string): Promise<void> {
+// Both sizes and both themes: <name>-desktop-light.jpg … <name>-phone-dark.jpg.
+export async function captureLook(page: Page, dir: string, name: string): Promise<void> {
   const before = page.viewportSize() ?? DESKTOP;
   await page.setViewportSize(DESKTOP);
-  await capture(page, dir, `${name}-desktop`);
+  await captureThemes(page, dir, `${name}-desktop`);
   await page.setViewportSize(PHONE);
-  await capture(page, dir, `${name}-phone`);
+  await captureThemes(page, dir, `${name}-phone`);
   await page.setViewportSize(before);
 }

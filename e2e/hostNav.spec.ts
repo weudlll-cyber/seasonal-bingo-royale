@@ -7,34 +7,22 @@
  *                 it with bots and starts it; opens the match screen and returns via "Open
  *                 host console"; the same window signed in as a player shows no "Manage"
  *                 and no host link. The top bar never covers a field brought to the top edge
- *                 on a wide screen and scrolls away on a phone. In Chromium it also saves the create
- *                 form, the lobby and the waiting room at desktop and phone size to
- *                 reports/screens/real-game/.
+ *                 on a wide screen and scrolls away on a phone. The console in the lobby
+ *                 shows the open-match notice with the code. In Chromium it also saves the
+ *                 create form, the console in the lobby, the lobby and the waiting room at
+ *                 desktop and phone size, light and dark, to reports/screens/look/.
  * Depends on:     @playwright/test, node:path, ./devStack, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 import { REPO_ROOT } from './devStack.js';
-import { fillAndStart, hostMatch, joinFromLobby, signIn } from './realGame.js';
-import { captureBoth, DESKTOP, PHONE } from './screens.js';
+import { fillAndStart, hostMatch, joinFromLobby, signIn, stopMatch } from './realGame.js';
+import { captureLook, DESKTOP, PHONE } from './screens.js';
 
-const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'real-game');
-
-// Stops the match through the host's abort route, in any status (the console offers Abort
-// only while a match runs).
-async function abort(page: Page, code: string): Promise<void> {
-  const session = (await (await page.request.get('/api/v1/session')).json()) as {
-    csrfToken: string;
-  };
-  const r = await page.request.post(`/api/v1/matches/${code}/abort`, {
-    headers: { 'x-csrf-token': session.csrfToken },
-    data: { reason: 'navigation check done' },
-  });
-  expect(r.status()).toBeLessThan(300);
-}
+const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'look');
 
 test('the host returns via Manage and Open host console; a player sees no Manage', async ({
   browser,
@@ -47,7 +35,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
   if (shots) {
     await page.goto('/#/host/new');
     await page.getByTestId('create-title').fill('Friday night bingo');
-    await captureBoth(page, SHOTS, 'create-form');
+    await captureLook(page, SHOTS, 'create-form');
   }
   const code = await hostMatch(page, {
     title: 'Friday night bingo',
@@ -56,17 +44,20 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     missed: 'noAutoMark',
     maxPlayers: 6,
   });
+  // The console in the lobby, with the open-match notice.
+  await expect(page.getByTestId('open-match-notice')).toContainText(`(code ${code})`);
+  if (shots) await captureLook(page, SHOTS, 'console-lobby');
   try {
     // A player waits in the waiting room.
     const player = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await signIn(player, 'player-2');
     await joinFromLobby(player, code);
-    if (shots) await captureBoth(player, SHOTS, 'waiting-room');
+    if (shots) await captureLook(player, SHOTS, 'waiting-room');
 
     // To the lobby, and back to the console via Manage.
     await page.getByRole('link', { name: 'Play', exact: true }).click();
     await expect(page.getByTestId(`manage-${code}`)).toBeVisible();
-    if (shots) await captureBoth(page, SHOTS, 'lobby');
+    if (shots) await captureLook(page, SHOTS, 'lobby');
     await page.getByTestId(`manage-${code}`).click();
     await expect(page.getByTestId('host-console')).toBeVisible();
     await fillAndStart(page, 6);
@@ -88,7 +79,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
   } finally {
     // The match this test created is stopped, also when a step above failed.
     await signIn(page, 'host');
-    await abort(page, code);
+    await stopMatch(page, code);
   }
 });
 

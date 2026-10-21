@@ -6,7 +6,8 @@
  * Responsibility: start one database per test file, migrate it and build the app with
  *                 test settings (overridable, e.g. NODE_ENV=production or feature flags);
  *                 `buildOn` builds a second app on the same database. Every test file
- *                 stops its own container (12 §7: data created by a test is removed).
+ *                 aborts the matches it left open and stops its own container (12 §7:
+ *                 data created by a test is removed), also when a test failed.
  * Depends on:     @testcontainers/postgresql, ../src/index
  * Used by:        ./*.integration.test.ts
  * Spec:           docs/spec/12-testing-strategy.md §2, §7
@@ -51,7 +52,24 @@ export async function startHarness(overrides: Record<string, string> = {}): Prom
   return { container, pool, built, applied };
 }
 
+// Every match the suite left in the lobby or running is aborted ("test cleanup") before
+// the app closes; stopHarness runs in each suite's afterAll, so also after a failed test.
+export async function stopOpenMatches(h: Harness): Promise<string[]> {
+  const open = await h.pool.query<{ id: string }>(
+    `SELECT id FROM sbr.matches WHERE status IN ('lobby', 'running')`,
+  );
+  for (const { id } of open.rows) {
+    // A second app on the same database (buildOn) may have moved the match on: the first
+    // try then meets a version conflict, drops the stale cache, and the retry reloads.
+    await h.built.match.engine
+      .abort(id, 'test cleanup')
+      .catch(() => h.built.match.engine.abort(id, 'test cleanup'));
+  }
+  return open.rows.map((r) => r.id);
+}
+
 export async function stopHarness(h: Harness): Promise<void> {
+  await stopOpenMatches(h);
   await h.built.fastify.close();
   await h.pool.end();
   await h.container.stop();

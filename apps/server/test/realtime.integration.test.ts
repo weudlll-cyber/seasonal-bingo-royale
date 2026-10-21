@@ -9,14 +9,21 @@
  *                 (D8), a player may not; a player taps a drawn number; a repeated seq is
  *                 dropped; marks are limited to 4 a second; a socket watches at most 3
  *                 matches; the pause choice between royale rounds is stored and only the
- *                 host may start the next round, only while the match waits (D14).
+ *                 host may start the next round, only while the match waits (D14); the
+ *                 teardown aborts every match the suite left open.
  * Depends on:     vitest, socket.io-client, ./harness, ./session
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §8, §13
  */
 import { io as connect, type Socket } from 'socket.io-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import {
+  startHarness,
+  stopHarness,
+  stopOpenMatches,
+  SUITE_TIMEOUT_MS,
+  type Harness,
+} from './harness.js';
 import { signIn, type Client } from './session.js';
 
 let harness: Harness;
@@ -115,8 +122,9 @@ async function tapOwnNumber(playerSocket: Socket, code: string, id: string): Pro
         drawIndex,
       });
     }
-    // Straight through the engine: draw.next over the socket is limited to 2 a second.
-    await engine.drawNext(id);
+    // The scheduler's timed draw, straight through the engine: draw.next over the socket
+    // is limited to 2 a second and waits the timed interval (D13).
+    await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
   }
   return false;
 }
@@ -262,5 +270,20 @@ describe('draw control and limits', () => {
     for (let i = 0; i < 5; i += 1)
       answers.push(await send(s, 'mark', { code: codes[0], cardIndex: 0, cell: 0 }));
     expect(answers.at(-1)).toEqual({ ok: false, code: 'RATE_LIMITED' });
+  });
+});
+
+describe('teardown (LOOK-1)', () => {
+  it('aborts every match the suite left in the lobby or running', async () => {
+    const stopped = await stopOpenMatches(harness);
+    expect(stopped.length).toBeGreaterThan(0);
+    const open = await harness.pool.query(
+      `SELECT 1 FROM sbr.matches WHERE status IN ('lobby', 'running')`,
+    );
+    expect(open.rowCount).toBe(0);
+    for (const id of stopped) {
+      const last = (await harness.built.match.store.events(id, 0)).at(-1)?.event;
+      expect(last).toEqual({ type: 'matchAborted', reason: 'test cleanup' });
+    }
   });
 });
