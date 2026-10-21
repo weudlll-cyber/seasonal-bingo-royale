@@ -5,16 +5,19 @@
  *
  * Responsibility: a big "Draw next" for host draws, also on the Space key while no field
  *                 has focus; it is usable only while the round runs and the previous
- *                 number's speed window has closed (D10: windows never overlap). "Timed
- *                 draws" / "Host draws" and the seconds between timed draws change at any
- *                 time over the socket (draw.setMode); the server keeps the seconds in the
- *                 allowed range.
- * Depends on:     react, ../game/socket, ../game/useLiveMatch (types), ../playback (types), ../types
+ *                 number's speed window has closed (D10: windows never overlap). A
+ *                 segmented switch "Host draws" / "Timed draws" (the active one filled and
+ *                 checked) and the seconds between timed draws (shown for timed draws only)
+ *                 change at any time over the socket (draw.setMode); the server keeps the
+ *                 seconds in the allowed range.
+ * Depends on:     react, ../game/labels, ../game/socket, ../game/useLiveMatch (types),
+ *                 ../playback (types), ../types
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §5; docs/spec/06-realtime-architecture.md §4.1
  */
 import { useEffect, useState, type ReactElement } from 'react';
 
+import { problemText } from '../game/labels.js';
 import { intent } from '../game/socket.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
@@ -70,7 +73,7 @@ export function HostDrawControls({
     if (!canDraw) return;
     setPressedAt(live.view.events.length);
     void intent('draw.next', { code }).then((a) => {
-      setNote(a.ok ? null : a.code);
+      setNote(a.ok ? null : problemText(a.code));
       if (!a.ok) setPressedAt(null);
     });
   };
@@ -115,51 +118,57 @@ function ModeSwitch({ code, settings, onAnswer }: ModeSwitchProps): ReactElement
   const setMode = (mode: 'auto' | 'host', intervalMs?: number): void => {
     const data = { code, mode, ...(intervalMs === undefined ? {} : { intervalMs }) };
     void intent('draw.setMode', data).then((a) => {
-      onAnswer(a.ok ? null : a.code);
+      onAnswer(a.ok ? null : problemText(a.code));
     });
   };
+  // A segmented switch: the active mode is filled and marked with a check; the seconds
+  // field belongs to timed draws and shows only for them.
   return (
-    <div className="sbr-row" role="group" aria-label="Draw mode">
-      <button
-        type="button"
-        className="sbr-btn"
-        aria-pressed={!hostMode}
-        data-testid="host-mode-timed"
-        onClick={() => {
-          setMode('auto', Math.round(seconds * 1000));
-        }}
-      >
-        Timed draws
-      </button>
-      <button
-        type="button"
-        className="sbr-btn"
-        aria-pressed={hostMode}
-        data-testid="host-mode-host"
-        onClick={() => {
-          setMode('host');
-        }}
-      >
-        Host draws
-      </button>
-      <label className="sbr-row">
-        Seconds between timed draws
-        <input
-          className="sbr-input"
-          style={{ width: '6rem' }}
-          type="number"
-          min={1}
-          step={0.5}
-          value={seconds}
-          data-testid="host-seconds"
-          onChange={(e) => {
-            setSeconds(Number(e.target.value));
+    <div className="sbr-stack">
+      <div className="segmented" role="group" aria-label="Draw mode">
+        <button
+          type="button"
+          className="segmented-option"
+          aria-pressed={hostMode}
+          data-testid="host-mode-host"
+          onClick={() => {
+            setMode('host');
           }}
-          onBlur={() => {
-            if (!hostMode) setMode('auto', Math.round(seconds * 1000));
+        >
+          {hostMode ? '✓ ' : ''}Host draws
+        </button>
+        <button
+          type="button"
+          className="segmented-option"
+          aria-pressed={!hostMode}
+          data-testid="host-mode-timed"
+          onClick={() => {
+            setMode('auto', Math.round(seconds * 1000));
           }}
-        />
-      </label>
+        >
+          {hostMode ? '' : '✓ '}Timed draws
+        </button>
+      </div>
+      {hostMode ? null : (
+        <label className="sbr-row">
+          Seconds between timed draws
+          <input
+            className="sbr-input"
+            style={{ width: '6rem' }}
+            type="number"
+            min={1}
+            step={0.5}
+            value={seconds}
+            data-testid="host-seconds"
+            onChange={(e) => {
+              setSeconds(Number(e.target.value));
+            }}
+            onBlur={() => {
+              setMode('auto', Math.round(seconds * 1000));
+            }}
+          />
+        </label>
+      )}
     </div>
   );
 }

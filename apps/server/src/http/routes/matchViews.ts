@@ -4,7 +4,7 @@
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
  * Responsibility: the summary (code, title, game type, status, settings, player count,
- *                 prizes, start time, creator, whether the viewer hosts it) and the live
+ *                 prizes, start time, next round's start, creator, whether the viewer hosts it) and the live
  *                 view the player and host screens fold with the Quick Test's playback logic: the same payload as
  *                 the Quick Test (../../view/clientView) built from the public event log
  *                 (seed removed, 01 §9), with every player named by display name and the
@@ -35,6 +35,7 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     countsForLeaderboard: r.countsForLeaderboard,
     settings: r.settings,
     startsAt: r.startsAt,
+    nextRoundAt: r.nextRoundAt ?? null,
     createdBy: r.createdBy,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };

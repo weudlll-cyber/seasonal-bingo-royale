@@ -39,6 +39,9 @@ export interface MatchRecord {
   readonly settings: MatchSettings;
   readonly createdBy: string | null;
   readonly startsAt: number | null;
+  // When the next round starts after a round and its cut; kept in memory only, so it is
+  // absent after a restart (the screens then show no countdown).
+  readonly nextRoundAt?: number;
 }
 
 export interface NewMatchRecord extends Omit<MatchRecord, 'status' | 'startsAt'> {

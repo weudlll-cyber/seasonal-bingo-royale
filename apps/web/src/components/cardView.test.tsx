@@ -68,6 +68,6 @@ describe('card view (D7)', () => {
     const events = [...base.events.slice(0, 7), award, ...base.events.slice(7)];
     const view = playbackAt({ ...base, events }, 8);
     expect(view.prizeWinners['rows-1']?.decided).toBe('draw 2 (B 2)');
-    expect(view.banners.at(-1)?.text).toBe('rows-1 awarded to bot-02 on draw 2 (B 2)');
+    expect(view.banners.at(-1)?.text).toBe('1 row won by bot-02 on draw 2 (B 2)');
   });
 });

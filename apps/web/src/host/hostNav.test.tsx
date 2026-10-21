@@ -52,6 +52,7 @@ function summary(code: string, over: Partial<MatchSummary> = {}): MatchSummary {
       drawIntervalMs: 5000,
     },
     startsAt: null,
+    nextRoundAt: null,
     createdBy: 'h',
     youHost: false,
     ...over,

@@ -17,22 +17,28 @@ import { describe, expect, it } from 'vitest';
 
 import { MatchEngine, MatchError } from './engine.js';
 import { ManualClock, MemoryScheduler, MemoryStore } from './fakes.js';
+import type { MatchRecord } from './ports.js';
 
 function setUp() {
   const store = new MemoryStore();
   const scheduler = new MemoryScheduler();
   const clock = new ManualClock();
+  // Every record change the bus is told about, with the time it happened.
+  const changes: { at: number; record: MatchRecord }[] = [];
   let n = 0;
   const engine = new MatchEngine({
     store,
     scheduler,
-    bus: { publish: () => undefined, changed: () => undefined },
+    bus: {
+      publish: () => undefined,
+      changed: (record) => changes.push({ at: clock.t, record }),
+    },
     clock,
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
     betweenRoundsMs: 2_000,
   });
-  return { store, scheduler, clock, engine };
+  return { store, scheduler, clock, engine, changes };
 }
 
 const base = {
@@ -64,6 +70,20 @@ describe('timed flow', () => {
       });
     },
   );
+
+  it('tells the screens when the next round starts after a round and its cut', async () => {
+    const { scheduler, clock, engine, changes } = setUp();
+    const m = await engine.create({ ...base, gameType: 'royale' }, null);
+    await engine.fillWithBots(m.id, 20);
+    await engine.start(m.id, 1_000);
+    await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
+    // The changes that set a new next-round time: one per pause between rounds.
+    const pauses = changes.filter(
+      (c, i) => c.record.nextRoundAt !== changes[i - 1]?.record.nextRoundAt,
+    );
+    expect(pauses.length).toBeGreaterThan(1);
+    for (const c of pauses) expect(c.record.nextRoundAt).toBe(c.at + 2_000);
+  });
 });
 
 async function runningHostMatch(missedNumbers: MissedNumbers = base.missedNumbers) {

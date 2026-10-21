@@ -51,7 +51,7 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
               status={view.ownerStatus[owner.accountId] ?? null}
               effectSeasons={result.effectSeasons}
               showSeasons={result.gameType === 'royale'}
-              eliminated={owner.eliminated}
+              outInCut={owner.eliminatedCut}
             />
             {/* After the round of the cut an eliminated owner has no card in play. */}
             {inPlay(owner, view)

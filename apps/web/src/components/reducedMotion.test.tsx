@@ -86,6 +86,6 @@ describe('prefers-reduced-motion', () => {
     render(
       <CutScreen cut={{ number: 1, owners: [{ accountId: 'owner-01', outcome: 'survived' }] }} />,
     );
-    expect(screen.getByTestId('cut-screen').className).toBe('');
+    expect(screen.getByTestId('cut-screen').className).toBe('cut-screen');
   });
 });

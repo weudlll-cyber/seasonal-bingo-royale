@@ -18,7 +18,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
-import { gameTypeName, rulesLine, statusName } from './labels.js';
+import { gameTypeName, problemText, rulesLine, statusName } from './labels.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
 
@@ -59,7 +59,9 @@ export function Lobby(): ReactElement {
         navigate({ name: 'match', code });
       })
       .catch((e: unknown) => {
-        setJoinError(e instanceof ApiError ? `Could not join (${e.code}).` : 'Could not join.');
+        setJoinError(
+          e instanceof ApiError ? `Could not join: ${problemText(e.code)}` : 'Could not join.',
+        );
       });
   };
   return (

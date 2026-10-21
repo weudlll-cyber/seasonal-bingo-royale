@@ -7,9 +7,10 @@
  *                 in the standings, active effects with remaining draws (badges in the
  *                 colour of the season that grants them), Winter shield charges and
  *                 the four seasons with the collected ones highlighted — all from the
- *                 server, never from local taps. Once eliminated, nothing is active.
+ *                 server, never from local taps. Once eliminated, the panel says "Out in
+ *                 cut N" instead of effects and shield.
  * Depends on:     react, ./SeasonIcon, ../types
- * Used by:        ./Playback
+ * Used by:        ./OwnerArea, ../game/MatchScreen
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -32,8 +33,9 @@ export interface OwnerStatusPanelProps {
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
   // Effects, shield and seasons exist in royale only (01 §3a).
   readonly showSeasons: boolean;
-  // An eliminated owner has no active effect and no shield left to use.
-  readonly eliminated: boolean;
+  // The cut that eliminated the owner, null while in: an eliminated owner has no effect
+  // or shield left, so the panel says "Out in cut N" instead.
+  readonly outInCut: number | null;
 }
 
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
@@ -48,12 +50,13 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
       <p style={{ margin: 0 }}>
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
       </p>
-      {props.showSeasons ? (
-        <SeasonStatus
-          status={props.status}
-          effectSeasons={props.effectSeasons}
-          eliminated={props.eliminated}
-        />
+      {props.outInCut !== null ? (
+        <p className="status-out" data-testid="owner-out">
+          Out in cut {String(props.outInCut)}
+        </p>
+      ) : null}
+      {props.showSeasons && props.outInCut === null ? (
+        <SeasonStatus status={props.status} effectSeasons={props.effectSeasons} />
       ) : null}
     </section>
   );
@@ -62,27 +65,26 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
 function SeasonStatus({
   status,
   effectSeasons,
-  eliminated,
-}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons' | 'eliminated'>): ReactElement {
+}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons'>): ReactElement {
   const collected = new Set(status?.seasons ?? []);
-  const active = eliminated ? null : status;
+
   return (
     <>
       <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', margin: '0.3rem 0' }}>
-        {active?.multiplier ? (
+        {status?.multiplier ? (
           <EffectBadge season={effectSeasons.multiplier} testId="effect-multiplier">
-            ×{String(active.multiplier.factor)} · {String(active.multiplier.remainingDraws)} draws
+            ×{String(status.multiplier.factor)} · {String(status.multiplier.remainingDraws)} draws
             left
           </EffectBadge>
         ) : null}
-        {active?.growth ? (
+        {status?.growth ? (
           <EffectBadge season={effectSeasons.growth} testId="effect-growth">
-            growth +{String(active.growth.pointsPerMark)}/mark ·{' '}
-            {String(active.growth.remainingDraws)} draws left
+            growth +{String(status.growth.pointsPerMark)}/mark ·{' '}
+            {String(status.growth.remainingDraws)} draws left
           </EffectBadge>
         ) : null}
         <EffectBadge season={effectSeasons.shield} testId="effect-shield">
-          shield ×{String(active?.shieldCharges ?? 0)}
+          shield ×{String(status?.shieldCharges ?? 0)}
         </EffectBadge>
       </div>
       <p style={{ margin: 0 }} data-testid="seasons-collected" data-count={collected.size}>

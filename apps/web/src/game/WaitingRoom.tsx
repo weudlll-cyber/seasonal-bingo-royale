@@ -7,17 +7,19 @@
  *                 plain words, every player who joined, and — once the host pressed Start —
  *                 a countdown to the first round. A signed-in player who has not joined yet
  *                 gets a Join button.
- * Depends on:     react, ../shell/http, ../shell/session, ../playback (types), ./useLiveMatch, ./labels
+ * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil, ../playback (types),
+ *                 ./useLiveMatch, ./labels
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
-import { useEffect, useState, type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
+import { useSecondsUntil } from '../useSecondsUntil.js';
 import { HostLink } from './HostLink.js';
-import { gameTypeName, rulesLine } from './labels.js';
+import { gameTypeName, prizeName, rulesLine } from './labels.js';
 import type { LiveState } from './useLiveMatch.js';
 
 export function WaitingRoom({
@@ -41,7 +43,7 @@ export function WaitingRoom({
           <p className="sbr-row">
             {live.match.prizes.map((p) => (
               <span key={p} className="sbr-chip">
-                {p}
+                {prizeName(p)}
               </span>
             ))}
           </p>
@@ -77,18 +79,8 @@ export function WaitingRoom({
 }
 
 function Countdown({ startsAt }: { readonly startsAt: number | null }): ReactElement | null {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (startsAt === null) return undefined;
-    const timer = window.setInterval(() => {
-      setNow(Date.now());
-    }, 250);
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [startsAt]);
-  if (startsAt === null) return null;
-  const left = Math.max(0, Math.ceil((startsAt - now) / 1000));
+  const left = useSecondsUntil(startsAt);
+  if (left === null) return null;
   return (
     <p className="countdown" data-testid="countdown" aria-live="polite">
       Starting in <strong>{left}</strong> s

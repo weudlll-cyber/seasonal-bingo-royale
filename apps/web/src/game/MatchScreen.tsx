@@ -8,10 +8,12 @@
  *                 countdown; while running, the arena — the current number large, recent
  *                 numbers, the player's own cards (taps go to the server), status (points,
  *                 rank, effects, seasons, shield), standings with active players first, the
- *                 prize list in classic types, the cut screen, the spectator note once out;
- *                 at the end the final ranking. Remounted per match code, so nothing of a
+ *                 prize list in classic types, one match log (newest first), the cut screen
+ *                 with the countdown to the next round, the spectator note once out; at the
+ *                 end the final placement on top. Remounted per match code, so nothing of a
  *                 previous match survives.
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./CurrentBall
+ * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./CurrentBall,
+ *                 ./HostLink, ./WaitingRoom, ./labels
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -21,7 +23,8 @@ import { CutScreen } from '../components/CutScreen.js';
 import { DrawTicker } from '../components/DrawTicker.js';
 import { inPlay, ownerRank } from '../components/OwnerArea.js';
 import { OwnerStatusPanel } from '../components/OwnerStatusPanel.js';
-import { Banners, FinalPlacement, MatchLog, PrizeList } from '../components/Playback.js';
+import { FinalPlacement } from '../components/FinalPlacement.js';
+import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { CurrentBall } from './CurrentBall.js';
@@ -54,7 +57,8 @@ function Arena({
   return (
     <div className="arena" data-testid="arena">
       <ArenaHeader live={live} view={view} />
-      <CutScreen cut={view.lastCut} />
+      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
+      <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
       <div className="arena-grid">
         <section className="arena-play">
           <CurrentBall
@@ -74,16 +78,14 @@ function Arena({
               status={view.ownerStatus[owner.accountId] ?? null}
               effectSeasons={result.effectSeasons}
               showSeasons={result.gameType === 'royale'}
-              eliminated={owner.eliminated}
+              outInCut={owner.eliminatedCut}
             />
           ) : null}
           {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
           <Standings view={view} showSeasons={result.gameType === 'royale'} />
-          <Banners banners={view.banners} />
+          <MatchLog banners={view.banners} />
         </aside>
       </div>
-      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
-      <MatchLog banners={view.banners} />
     </div>
   );
 }

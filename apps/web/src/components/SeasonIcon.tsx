@@ -6,7 +6,7 @@
  * Responsibility: render the delivered SVG for a season with an accessible name, so
  *                 colour is never the only carrier of meaning (WCAG, 01 §13).
  * Depends on:     react, ../seasonIcons, ../types
- * Used by:        ./CellFace, ./OwnerStatusPanel, ./DrawTicker
+ * Used by:        ./CellFace, ./OwnerStatusPanel, ./DrawTicker, ./RankRow
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';

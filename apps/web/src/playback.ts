@@ -5,31 +5,21 @@
  *
  * Responsibility: fold the server's event stream up to the step the owner is watching
  *                 into a view-model: stage and round, draws so far, every player's
- *                 current-round cards and marks, points, eliminations, the owner's
- *                 outcome at the latest cut, banners and the owner's effect status.
+ *                 current-round cards and marks, points, seasons, eliminations (and the
+ *                 cut each player went out in), the owner's outcome at the latest cut,
+ *                 banners in plain English and the owner's effect status.
  *                 It only adds up points the server already computed, and takes the
  *                 server's points as the new baseline at every stage start. Pure.
- * Depends on:     ./types, ./playbackTypes
- * Used by:        ./App, ./components/*
+ * Depends on:     ./types, ./playbackTypes, ./playbackScoring (scoring events), ./standingsOrder,
+ *                 ./game/labels (event lines in plain English)
+ * Used by:        ./App, ./components/*, ./game/*, ./host/*
  * Spec:           docs/spec/01-game-design.md §3, §7, §8, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import type {
-  Banner,
-  CutOutcome,
-  CutView,
-  PlaybackView,
-  PlayerView,
-  PrizeWin,
-} from './playbackTypes.js';
-import {
-  ballLabel,
-  type Card,
-  type DomainEventLike,
-  type OwnerStatus,
-  type QuickTestResult,
-} from './types.js';
-
+import { abortLine, CUT_NOTE, cutLine, roundEndLine } from './game/labels.js';
+import type { CutOutcome, PlaybackView } from './playbackTypes.js';
+import { applyScoring, pushBanner, update, type FoldState } from './playbackScoring.js';
 import { standingsOrder } from './standingsOrder.js';
+import type { Card, DomainEventLike, OwnerStatus, QuickTestResult } from './types.js';
 
 export type {
   Banner,
@@ -73,19 +63,6 @@ function statusAt(list: readonly OwnerStatus[] | undefined, step: number): Owner
   return current;
 }
 
-interface FoldState {
-  stageIndex: number;
-  roundIndex: number;
-  drawsSoFar: number[];
-  totalDraws: number;
-  players: Map<string, PlayerView>;
-  banners: Banner[];
-  lastCut: CutView | null;
-  prizeWinners: Record<string, PrizeWin>;
-  roundOver: boolean;
-  finished: boolean;
-}
-
 function foldEvents(result: QuickTestResult, step: number): FoldState {
   const state: FoldState = {
     stageIndex: 0,
@@ -102,8 +79,10 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
           marks: [freeMarks(p.card)],
           points: 0,
           seasonsActivated: 0,
+          seasons: [],
           eliminated: false,
           eliminatedRound: null,
+          eliminatedCut: null,
         },
       ]),
     ),
@@ -112,6 +91,7 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
     prizeWinners: {},
     roundOver: false,
     finished: false,
+    lastScorer: null,
   };
   // Stage starts reset points to the server's baseline (score carry); keyed by step.
   const baselines = new Map(result.stagePoints.map((s) => [s.step, s.points]));
@@ -153,13 +133,17 @@ function applyLifecycle(state: FoldState, ev: DomainEventLike): boolean {
       return true;
     case 'roundEnded':
       state.roundOver = true;
-      pushBanner(state, `round-end-${String(ev.roundIndex)}`, roundEndText(ev));
+      pushBanner(
+        state,
+        `round-end-${String(ev.roundIndex)}`,
+        roundEndLine({ ...ev, draws: state.drawsSoFar.length, lastScorer: state.lastScorer }),
+      );
       return true;
     case 'matchFinished':
       state.finished = true;
       return true;
     case 'matchAborted':
-      pushBanner(state, 'aborted', `Match aborted: ${ev.reason}`);
+      pushBanner(state, 'aborted', abortLine(ev.reason));
       return true;
     default:
       return false;
@@ -172,6 +156,7 @@ function startRound(
 ): void {
   state.roundIndex = ev.roundIndex;
   state.roundOver = false;
+  state.lastScorer = null;
   state.drawsSoFar = [];
   state.totalDraws = ev.drawSequence.length;
   // Every round deals new cards (royale); marks start again from the free centre.
@@ -184,111 +169,34 @@ function startRound(
 function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApplied' }>): void {
   const eliminated = new Set(ev.eliminated);
   const saved = new Set(ev.shieldSaves);
+  const cutNumber = (state.lastCut?.number ?? 0) + 1;
   for (const id of eliminated) {
-    update(state, id, (p) => ({ ...p, eliminated: true, eliminatedRound: state.roundIndex }));
+    update(state, id, (p) => ({
+      ...p,
+      eliminated: true,
+      eliminatedRound: state.roundIndex,
+      eliminatedCut: cutNumber,
+    }));
   }
   const owners = [...state.players.values()]
     .filter((p) => p.isOwner && (eliminated.has(p.accountId) || ev.survivors.includes(p.accountId)))
     .map((p) => ({ accountId: p.accountId, outcome: cutOutcome(p.accountId, eliminated, saved) }));
-  state.lastCut = { number: (state.lastCut?.number ?? 0) + 1, owners };
-  const shield = ev.shieldSaves.length > 0 ? ` (${String(ev.shieldSaves.length)} shield save)` : '';
-  const ownerNotes = owners.map((o) => ` · ${o.accountId}: ${OUTCOME_NOTE[o.outcome]}`).join('');
+  state.lastCut = { number: cutNumber, owners };
+  const line = cutLine({
+    number: state.lastCut.number,
+    survivors: ev.survivors.length,
+    eliminated: ev.eliminated.length,
+    saved: ev.shieldSaves.length,
+  });
+  const ownerNotes = owners.map((o) => ` · ${o.accountId} ${CUT_NOTE[o.outcome]}`).join('');
   pushBanner(
     state,
     `cut-${String(ev.stageIndex)}-${String(state.lastCut.number)}`,
-    `Cut ${String(state.lastCut.number)}: ${String(ev.eliminated.length)} eliminated, ${String(ev.survivors.length)} survive${shield}${ownerNotes}`,
+    line + ownerNotes,
   );
 }
-
-const OUTCOME_NOTE: Readonly<Record<CutOutcome, string>> = {
-  survived: 'survived',
-  saved: 'saved by the Winter shield',
-  eliminated: 'eliminated',
-};
 
 function cutOutcome(id: string, eliminated: Set<string>, saved: Set<string>): CutOutcome {
   if (eliminated.has(id)) return 'eliminated';
   return saved.has(id) ? 'saved' : 'survived';
-}
-
-function roundEndText(ev: Extract<DomainEventLike, { type: 'roundEnded' }>): string {
-  return `Round ${String(ev.roundIndex + 1)} ended (${ev.reason})`;
-}
-
-function applyScoring(state: FoldState, ev: DomainEventLike): void {
-  switch (ev.type) {
-    case 'cellMarked':
-      update(state, ev.accountId, (p) => markCell(p, ev.cardIndex, ev.cellIndex, ev.markPoints));
-      return;
-    case 'seasonActivated':
-      update(state, ev.accountId, (p) => ({
-        ...p,
-        points: p.points + ev.instantPoints,
-        seasonsActivated: p.seasonsActivated + 1,
-      }));
-      return;
-    case 'patternScored':
-      addPoints(state, ev.accountId, ev.points);
-      return;
-    case 'seasonCompleteFired':
-      addPoints(state, ev.accountId, ev.points);
-      pushBanner(
-        state,
-        `sc-${ev.accountId}`,
-        `Season Complete fired for ${ev.accountId} in round ${String(state.roundIndex + 1)}!`,
-      );
-      return;
-    case 'jackpotClaimed':
-      addPoints(state, ev.accountId, ev.value);
-      pushBanner(
-        state,
-        `jp-${ev.accountId}`,
-        `Jackpot claimed by ${ev.accountId} (+${String(ev.value)})`,
-      );
-      return;
-    case 'classicPrizeAwarded': {
-      // The deciding ball, e.g. "draw 37 (G 52)" (D7).
-      const decided = `draw ${String(ev.drawIndex + 1)} (${ballLabel(state.drawsSoFar[ev.drawIndex] ?? 0)})`;
-      addPrizeWinner(state, ev.prizeKey, ev.accountId, decided);
-      pushBanner(
-        state,
-        `cp-${ev.prizeKey}-${ev.accountId}`,
-        `${ev.prizeKey} awarded to ${ev.accountId} on ${decided}`,
-      );
-      return;
-    }
-    default:
-      return;
-  }
-}
-
-function markCell(p: PlayerView, cardIndex: number, cellIndex: number, points: number): PlayerView {
-  const marks = p.marks.map((m, i) => {
-    if (i !== cardIndex) return m;
-    const next = m.slice();
-    next[cellIndex] = true;
-    return next;
-  });
-  return { ...p, marks, points: p.points + points };
-}
-
-function addPrizeWinner(state: FoldState, prizeKey: string, id: string, decided: string): void {
-  const win = state.prizeWinners[prizeKey];
-  state.prizeWinners[prizeKey] = {
-    decided: win?.decided ?? decided,
-    accountIds: [...(win?.accountIds ?? []), id],
-  };
-}
-
-function addPoints(state: FoldState, id: string, points: number): void {
-  update(state, id, (p) => ({ ...p, points: p.points + points }));
-}
-
-function update(state: FoldState, id: string, change: (p: PlayerView) => PlayerView): void {
-  const p = state.players.get(id);
-  if (p !== undefined) state.players.set(id, change(p));
-}
-
-function pushBanner(state: FoldState, key: string, text: string): void {
-  state.banners.push({ key, text });
 }

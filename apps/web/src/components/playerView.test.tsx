@@ -65,7 +65,7 @@ describe('OwnerStatusPanel', () => {
         }}
         effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
         showSeasons
-        eliminated={false}
+        outInCut={null}
       />,
     );
     expect(screen.getByTestId('effect-multiplier').textContent).toContain('×1.5 · 6 draws left');
@@ -76,7 +76,7 @@ describe('OwnerStatusPanel', () => {
     expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
   });
 
-  it('shows nothing active once the owner is eliminated; seasons stay collected', () => {
+  it('says "Out in cut N" instead of effects, shield and seasons once the owner is out', () => {
     render(
       <OwnerStatusPanel
         accountId="owner-01"
@@ -91,13 +91,14 @@ describe('OwnerStatusPanel', () => {
         }}
         effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
         showSeasons
-        eliminated
+        outInCut={2}
       />,
     );
+    expect(screen.getByTestId('owner-out').textContent).toBe('Out in cut 2');
     expect(screen.queryByTestId('effect-multiplier')).toBeNull();
     expect(screen.queryByTestId('effect-growth')).toBeNull();
-    expect(screen.getByTestId('effect-shield').textContent).toContain('shield ×0');
-    expect(screen.getByTestId('seasons-collected').textContent).toContain('2/4');
+    expect(screen.queryByTestId('effect-shield')).toBeNull();
+    expect(screen.queryByTestId('seasons-collected')).toBeNull();
   });
 });
 
@@ -107,13 +108,20 @@ describe('CutScreen', () => {
     owners: [{ accountId: 'owner-01', outcome }],
   });
 
-  it('reads "You survived" or "Eliminated – keep watching" and closes on request', () => {
-    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain('You survived');
-    fireEvent.click(screen.getByText('Keep watching'));
+  it('tells a survivor when the next round starts, an eliminated owner the cut they went out in', () => {
+    const nextRoundAt = Date.now() + 6_000;
+    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} nextRoundAt={nextRoundAt} />);
+    expect(screen.getByTestId('cut-screen').textContent).toContain(
+      "You're through — next round in 6 s",
+    );
+    expect(screen.queryByText('Keep watching')).toBeNull();
+    fireEvent.click(screen.getByText('Back to the game'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
     rerender(<CutScreen cut={cut(2, 'eliminated')} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain('Eliminated – keep watching');
+    expect(screen.getByTestId('cut-screen').textContent).toContain(
+      "You're out in cut 2 — you can keep watching",
+    );
+    expect(screen.getByText('Keep watching')).toBeTruthy();
   });
 
   it('names a Winter shield save', () => {
@@ -126,13 +134,25 @@ describe('spectator view', () => {
   it('keeps playing after the owner is eliminated, to the final placement', () => {
     const result = royaleFixture();
     const { rerender } = render(<Playback result={result} view={playbackAt(result, 11)} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain('Eliminated – keep watching');
+    expect(screen.getByTestId('cut-screen').textContent).toContain("You're out in cut 1");
     expect(screen.getByTestId('spectator-note')).toBeTruthy();
     rerender(<Playback result={result} view={playbackAt(result, result.events.length)} />);
     expect(screen.getByTestId('final-placement')).toBeTruthy();
-    expect(screen.getByTestId('standings').textContent).toContain(
-      'owner-01 — 10 pts · seasons 1 · out',
-    );
-    expect(screen.getByTestId('final-placement').textContent).toContain('owner-01 — 10 pts · out');
+    // Ranked rows: name, points, the collected season lit, "out", own row highlighted.
+    const row = screen.getByTestId('standing-owner-01');
+    expect(row.className).toBe('rank-row is-own is-out');
+    expect(row.textContent).toContain('10 pts');
+    expect(row.textContent).toContain('out');
+    expect(
+      within(row)
+        .getAllByRole('img')
+        .filter((i) => i.style.opacity === '1'),
+    ).toHaveLength(1);
+    const own = screen.getByTestId('final-own').textContent;
+    const ownRow = screen
+      .getAllByTestId(/^final-row-/)
+      .find((r) => r.getAttribute('data-account') === 'owner-01');
+    expect(own).toBe(`You finished #${String(ownRow?.getAttribute('data-place'))} of 3`);
+    expect(ownRow?.textContent).toContain('10 pts');
   });
 });

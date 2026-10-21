@@ -6,7 +6,8 @@
                 stacked on phones), the current number as a large ball with a draining
                 speed-window bar, the player's card as the hero element in card colours
                 with large, thumb-sized cells (at least 44 px on a 360 px phone), and the
-                host console with its big Draw next. Colours and sizes from @sbr/ui tokens.
+                host console with its big Draw next (readable when disabled) and the
+                segmented draw-mode switch. Colours and sizes from @sbr/ui tokens.
    Spec:        docs/spec/01-game-design.md §13
    ============================================================ */
 
@@ -243,6 +244,41 @@
   width: 100%;
   min-height: 5.5rem;
   font-size: var(--font-size-title);
+}
+
+/* Disabled Draw next stays readable (muted text on surface-2, 4.5:1 in both themes,
+   checked by ../designTokens.test.ts) instead of fading out. */
+.host-draw:disabled {
+  opacity: 1;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+/* Segmented switch: the active option is filled in the accent colour */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.segmented-option {
+  min-height: var(--hit-target);
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: calc(var(--radius) - 3px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: var(--font-weight-strong);
+  cursor: pointer;
+}
+
+.segmented-option[aria-pressed='true'] {
+  background: var(--color-winter);
+  color: var(--color-on-season);
 }
 
 .create-form {

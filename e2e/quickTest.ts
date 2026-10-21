@@ -60,7 +60,7 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
   }
   const prizes = new Set(settings.prizes ?? DEFAULT_PRIZES);
   for (const key of CATALOGUE) {
-    await page.getByLabel(key, { exact: true }).setChecked(prizes.has(key));
+    await page.getByTestId(`start-prize-${key}`).setChecked(prizes.has(key));
   }
   await page.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
   if (settings.intervalSec !== undefined) {

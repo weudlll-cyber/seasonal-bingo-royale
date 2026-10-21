@@ -26,10 +26,10 @@ describe('display fixes', () => {
   it('(a) an eliminated player keeps the score at elimination in standings and final', () => {
     const result = royaleFixture();
     render(<Playback result={result} view={playbackAt(result, result.events.length)} />);
-    expect(screen.getByTestId('standings').textContent).toContain('owner-01 — 10 pts');
-    expect(screen.getByTestId('final-placement').textContent).toContain(
-      '#3 owner-01 — 10 pts · out',
-    );
+    expect(screen.getByTestId('standing-owner-01').getAttribute('data-points')).toBe('10');
+    const final = screen.getByTestId('final-row-3');
+    expect(final.getAttribute('data-account')).toBe('owner-01');
+    expect(final.textContent).toContain('10 pts');
   });
 
   it("(b) once finished, the owner's rank equals the place in the final placement", () => {

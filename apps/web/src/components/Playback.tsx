@@ -8,21 +8,24 @@
  *                 prize list with winners. Always: banners, draw ticker, the owner's
  *                 cards and status, standings, final placement. State lives in App.tsx,
  *                 the view-model in ../playback.ts.
- * Depends on:     react, ./CutScreen, ./DrawTicker, ./OwnerArea, ./Standings,
- *                 ../playback, ../types, ../useReducedMotion
- * Used by:        ../App; MatchLog, PrizeList, Banners and FinalPlacement also by the live
- *                 match screens (../game, ../host)
+ * Depends on:     react, ./CutScreen, ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
+ *                 ../game/labels, ../playback, ../types, ../useReducedMotion, ./results.css
+ * Used by:        ../App; MatchLog and PrizeList also by the live match screens (../game,
+ *                 ../host)
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
 
 import { CutScreen } from './CutScreen.js';
 import { DrawTicker } from './DrawTicker.js';
+import { FinalPlacement } from './FinalPlacement.js';
 import { OwnerArea } from './OwnerArea.js';
 import { Standings } from './Standings.js';
+import { gameTypeName, prizeName } from '../game/labels.js';
 import type { Banner, PlaybackView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 import { useReducedMotion } from '../useReducedMotion.js';
+import './results.css';
 
 export interface PlaybackProps {
   readonly result: QuickTestResult;
@@ -51,18 +54,18 @@ export function Playback({ result, view }: PlaybackProps): ReactElement {
   );
 }
 
-// Every key moment of the match so far, oldest first; the banner list above shows only
-// the latest six.
-export function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement {
+// Every key moment of the match so far, newest first; hidden while there is none yet.
+export function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement | null {
+  if (banners.length === 0) return null;
   return (
-    <details open data-testid="match-log">
-      <summary>Match log ({String(banners.length)})</summary>
-      <ol style={{ margin: 0, paddingLeft: '1.25rem', color: '#9aa5b2' }}>
-        {banners.map((b) => (
+    <section className="sbr-panel match-log" data-testid="match-log">
+      <h3>Match log</h3>
+      <ol aria-live="polite">
+        {[...banners].reverse().map((b) => (
           <li key={b.key}>{b.text}</li>
         ))}
       </ol>
-    </details>
+    </section>
   );
 }
 
@@ -77,7 +80,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
       data-round-over={view.roundOver ? 'true' : 'false'}
     >
       <h2 style={{ margin: '0 0 .25rem' }}>
-        {result.gameType}
+        {gameTypeName(result.gameType)}
         {showStage ? ` — stage ${String(view.currentStage + 1)} (${stage.kind})` : ''}
       </h2>
       <p style={{ margin: 0, color: '#9aa5b2' }}>
@@ -88,17 +91,25 @@ function Header({ result, view }: PlaybackProps): ReactElement {
   );
 }
 
+// One row per ticked prize: its name, then "open" or the winners and the deciding draw.
 export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   return (
-    <section>
-      <h3 style={{ margin: '0 0 .25rem' }}>Prizes</h3>
-      <ul data-testid="prize-list" style={{ margin: 0, paddingLeft: '1.25rem' }}>
+    <section className="sbr-panel">
+      <h3>Prizes</h3>
+      <ul className="prize-rows" data-testid="prize-list">
         {result.tickedPrizes.map((key) => {
           const win = view.prizeWinners[key];
           return (
-            <li key={key} data-testid={`prize-${key}`}>
-              {key}:{' '}
-              {win === undefined ? 'open' : `won on ${win.decided} by ${win.accountIds.join(', ')}`}
+            <li key={key} data-testid={`prize-${key}`} className={win ? 'is-won' : undefined}>
+              <span className="prize-name">{prizeName(key)}</span>
+              {win === undefined ? (
+                <span className="prize-open">open</span>
+              ) : (
+                <span className="prize-winners">
+                  <strong>{win.accountIds.join(', ')}</strong>
+                  <span className="sbr-muted"> · {win.decided}</span>
+                </span>
+              )}
             </li>
           );
         })}
@@ -131,46 +142,4 @@ export function Banners({ banners }: { banners: readonly Banner[] }): ReactEleme
       ))}
     </ul>
   );
-}
-
-// Top 20 plus the owner's rows; eliminated players are ranked by when they went out
-// (01 §7.5) and show their score at elimination with "out".
-export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
-  const out = new Set(view.standings.filter((p) => p.eliminated).map((p) => p.accountId));
-  const sorted = [...result.players].sort((a, b) => a.place - b.place);
-  const shown = sorted.filter((p, i) => i < 20 || p.isOwner);
-  return (
-    <section data-testid="final-placement">
-      <h3 style={{ margin: '0 0 .25rem' }}>Final placement</h3>
-      <ol style={{ margin: 0, paddingLeft: '1.25rem', listStyle: 'none' }}>
-        {shown.map((p) => (
-          <li
-            key={p.accountId}
-            data-testid={`final-row-${String(p.place)}`}
-            style={{ color: p.isOwner ? '#afb84e' : '#dfe6ee' }}
-          >
-            #{p.place} {p.accountId} — {finalNote(result, view, p, out)}
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-// Royale: points, or "out" for eliminated players. Classic types rank by prizes
-// (01 §3a.2), so the row lists the prizes won.
-function finalNote(
-  result: QuickTestResult,
-  view: PlaybackView,
-  p: QuickTestResult['players'][number],
-  out: ReadonlySet<string>,
-): string {
-  // Eliminated players keep the score they had when they went out (01 §7.5).
-  if (result.gameType === 'royale') {
-    return `${String(p.points)} pts${out.has(p.accountId) ? ' · out' : ''}`;
-  }
-  const won = result.tickedPrizes.filter((k) =>
-    view.prizeWinners[k]?.accountIds.includes(p.accountId),
-  );
-  return won.length === 0 ? 'no prize' : won.join(', ');
 }

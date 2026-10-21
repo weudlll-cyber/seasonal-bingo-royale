@@ -37,6 +37,8 @@ export interface MatchSummary {
     readonly drawIntervalMs: number;
   };
   readonly startsAt: number | null;
+  // When the next round starts after a cut (the cut screen counts down); null if unknown.
+  readonly nextRoundAt: number | null;
   readonly createdBy: string | null;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.

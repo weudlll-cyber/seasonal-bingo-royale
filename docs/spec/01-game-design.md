@@ -363,7 +363,12 @@ BACKLOG; website: embeddable call view).
 - Brand: the four Seasonal Tokens seasons and their original icons; the season colours shared with the Seasonal Entertainment website (Spring `#afb84e`, Summer `#e06e22`, Autumn `#f9a825`, Winter `#04aaf7`); font Luxora Grotesk. Assets and their origin: [assets/README.md](../../assets/README.md).
 - Dark arena look, consistent with the Seasonal Entertainment website direction.
 - Cards show the letters B I N G O above the columns, with each column's numbers ascending (§4). The draw ticker, banners and announcements show every number with its letter (“G 52”) and every season symbol as its icon (§5).
-- Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You survived” / “Eliminated – keep watching”), final win.
+- Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You're through — next round in N s” / “You're out in cut N — you can keep watching”), final win.
+- Every event line (banners, the match log) is plain English, never an internal reason, event or prize key: “Round 1 over — all 40 numbers drawn”, “Round 5 over — bot-14 filled the whole card”, “bot-16 collected all four seasons”, “Cut 1: 12 go on, 8 are out (2 saved by Winter shield)”, “Full card won by bot-02 on draw 37 (G 52)”. Server error codes reach the screen as sentences too.
+- One match log per screen, newest first, hidden while empty.
+- Standings and the final placement are ranked rows: rank, name, the four season icons with the collected ones lit (royale), points; the viewer's own row highlighted; eliminated players dimmed with “out” below a divider. The final screen states the viewer's place big (“You finished #9 of 20”), then a podium for places 1–3 in season colours, then the list. An eliminated player's status panel reads “Out in cut N” instead of effects and shield.
+- The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only. Draw next keeps 4.5:1 contrast enabled and disabled.
+- The top bar is sticky from 640 px wide; on phones it scrolls away with the page.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.
 

@@ -25,7 +25,7 @@ import {
   type MarkingChoice,
 } from '../components/StartMarkingField.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
-import { gameTypeName } from '../game/labels.js';
+import { gameTypeName, prizeName, problemText } from '../game/labels.js';
 import '../game/game.css';
 import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import { api, ApiError } from '../shell/http.js';
@@ -87,7 +87,7 @@ export function CreateMatch(): ReactElement {
       .catch((e: unknown) => {
         setError(
           e instanceof ApiError
-            ? `Could not create the match (${e.code}).`
+            ? `Could not create the match: ${problemText(e.code)}`
             : 'Could not create the match.',
         );
       });
@@ -205,7 +205,7 @@ function PrizeField({
                 toggle(key);
               }}
             />{' '}
-            {key}
+            {prizeName(key)}
           </label>
         ))}
       </div>

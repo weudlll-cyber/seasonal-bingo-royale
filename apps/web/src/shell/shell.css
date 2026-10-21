@@ -2,15 +2,15 @@
    File:        apps/web/src/shell/shell.css
    Module:      web/shell
    Brief:       Layout of the player client: top bar and main column.
-   Responsibility: a sticky top bar (logo, wordmark, navigation, account and the dev
-                quick sign-in) over a centred main column; from 360 px the bar wraps into
-                two rows and the navigation scrolls sideways. Colours come from @sbr/ui.
+   Responsibility: a top bar (logo, wordmark, navigation, account and the dev sign-in
+                menu) over a centred main column, sticky from 640 px with focus kept below
+                it; on phones the bar wraps into two rows, scrolls away with the page and
+                the navigation scrolls sideways. Colours come from @sbr/ui.
    Spec:        docs/spec/01-game-design.md §13
    ============================================================ */
 
 .shell-bar {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 10;
   display: flex;
   flex-wrap: wrap;
@@ -20,6 +20,20 @@
   background: color-mix(in srgb, var(--color-sidebar) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Sticky from 640 px only: on a phone the bar wraps into two rows and would take a large
+   part of the screen, so it scrolls away there. Keyboard focus and in-page jumps stop
+   below the sticky bar (WCAG 2.4.11), never under it. */
+@media (min-width: 640px) {
+  html {
+    scroll-padding-top: 5.5rem;
+  }
+
+  .shell-bar {
+    position: sticky;
+    top: 0;
+  }
 }
 
 .shell-brand {

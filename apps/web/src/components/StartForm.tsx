@@ -10,7 +10,7 @@
  *                 D9) and draw control (./StartDrawField, D8). Timed draws send their
  *                 gap so the server measures the missed-number delay in the same draws.
  * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField,
- *                 ./StartMarkingField
+ *                 ./StartMarkingField, ../prizes, ../game/labels (prize names)
  * Used by:        ../App
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §5, §6
  */
@@ -25,6 +25,7 @@ import {
   toMissedNumbers,
   type MarkingChoice,
 } from './StartMarkingField.js';
+import { prizeName } from '../game/labels.js';
 import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import type { GameType } from '../types.js';
 
@@ -219,12 +220,13 @@ function PrizeChecklist({
           <label key={key}>
             <input
               type="checkbox"
+              data-testid={`start-prize-${key}`}
               checked={checked.has(key)}
               onChange={() => {
                 onToggle(key);
               }}
             />{' '}
-            {key}
+            {prizeName(key)}
           </label>
         ))}
       </div>

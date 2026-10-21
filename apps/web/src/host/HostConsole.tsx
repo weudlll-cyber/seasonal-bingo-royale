@@ -8,8 +8,8 @@
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), standings with active
- *                 players first, prizes awarded, cut results in the match log, and abort with
- *                 a reason; at the end the final ranking. Pause applies to asynchronous
+ *                 players first, prizes awarded, the match log (newest first) with cut
+ *                 results, and abort with a reason; at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
  * Depends on:     react, ../playback, ../components/*, ../game/*, ../shell/http, ./HostDrawControls
  * Used by:        ../shell/AppShell
@@ -18,11 +18,12 @@
 import { useState, type ReactElement } from 'react';
 
 import { DrawTicker } from '../components/DrawTicker.js';
-import { Banners, FinalPlacement, MatchLog, PrizeList } from '../components/Playback.js';
+import { FinalPlacement } from '../components/FinalPlacement.js';
+import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
 import '../game/game.css';
-import { gameTypeName, rulesLine, statusName } from '../game/labels.js';
+import { gameTypeName, problemText, rulesLine, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
@@ -70,7 +71,7 @@ function HostLobby({
         setMessage(null);
       })
       .catch((e: unknown) => {
-        setMessage(e instanceof ApiError ? e.code : 'Error');
+        setMessage(problemText(e instanceof ApiError ? e.code : ''));
       });
   };
   return (
@@ -122,6 +123,7 @@ function HostLive({
   const running = live.match.status === 'running';
   return (
     <div className="host-grid">
+      {view.finished ? <FinalPlacement result={result} view={view} /> : null}
       <section className="sbr-stack">
         <CurrentBall
           draws={view.drawsSoFar}
@@ -131,8 +133,6 @@ function HostLive({
         <DrawTicker draws={view.drawsSoFar} speedWindowMs={result.speedWindowMs} />
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
-        <Banners banners={view.banners} />
-        {view.finished ? <FinalPlacement result={result} view={view} /> : null}
         {running ? <Abort code={live.match.code} /> : null}
       </section>
       <aside className="sbr-stack">

@@ -38,6 +38,8 @@ export interface Snap {
   readonly ownerRank: number | null;
   readonly seasonsCount: number | null; // null when no seasons panel is shown
   readonly shieldShown: boolean;
+  // "Out in cut N" in the status panel once the owner is eliminated, else null.
+  readonly ownerOut: string | null;
   readonly bonus: string | null;
   readonly feedback: string;
   readonly standings: readonly StandingSnap[];
@@ -67,10 +69,8 @@ export async function snapshot(page: Page): Promise<Snap> {
         eliminated: el.dataset['eliminated'] === 'true',
       }));
     const finalOwnerPlace = () => {
-      const row = all('[data-testid^="final-row-"]').find((li) =>
-        li.textContent.includes('owner-01'),
-      );
-      return num(/^#(\d+)/.exec(row?.textContent ?? '')?.[1]);
+      const row = q('[data-testid^="final-row-"][data-account="owner-01"]');
+      return num(row?.dataset['place']);
     };
     const header = () => {
       const banner = q('[data-testid="stage-banner"]');
@@ -87,6 +87,7 @@ export async function snapshot(page: Page): Promise<Snap> {
         ownerRank: num(status?.dataset['rank']),
         seasonsCount: num(q('[data-testid="seasons-collected"]')?.dataset['count']),
         shieldShown: q('[data-testid="effect-shield"]') !== null,
+        ownerOut: q('[data-testid="owner-out"]')?.textContent ?? null,
         bonus: q('[data-testid="owner-bonus"]')?.textContent ?? null,
         feedback: q('[data-testid="owner-feedback"]')?.textContent ?? '',
       };
