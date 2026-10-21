@@ -4,8 +4,9 @@
  * @brief  The lobby: open, running and just-finished matches, to join or watch (WP-12).
  *
  * Responsibility: list GET /matches (refreshed every 3 seconds) as cards with title, game
- *                 type, status, players, draw mode and missed-number rule; "Join" for an
- *                 open lobby (signed-in players), "Watch" or "View" otherwise. Joining calls
+ *                 type, status, code, players, draw mode and missed-number rule; "Manage"
+ *                 for the match's host (the server says who that is) while it is open or
+ *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
  *                 POST /matches/:code/join and opens the match. Without a session it points
  *                 to the sign-in buttons.
  * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./useLiveMatch (types), ./labels
@@ -15,13 +16,13 @@
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { api, ApiError } from '../shell/http.js';
-import { navigate } from '../shell/router.js';
+import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
-import { gameTypeName, rulesLine } from './labels.js';
+import { gameTypeName, rulesLine, statusName } from './labels.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
 
-function useMatchList(): {
+export function useMatchList(): {
   readonly matches: readonly MatchSummary[] | null;
   readonly error: string | null;
 } {
@@ -93,6 +94,11 @@ interface LobbyItemProps {
   readonly onJoin: (code: string) => void;
 }
 
+// The signed-in account hosts this match and it can still be run (server says so).
+export function manageable(m: MatchSummary): boolean {
+  return m.youHost === true && (m.status === 'lobby' || m.status === 'running');
+}
+
 function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement {
   const done = m.status === 'finished' || m.status === 'aborted';
   return (
@@ -106,11 +112,22 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
         <span className="sbr-chip">
           {m.players} / {m.maxPlayers} players
         </span>
-        <span className="sbr-chip">{m.status}</span>
+        <span className="sbr-chip">{statusName(m.status)}</span>
+        <span className="sbr-chip" data-testid={`code-${m.code}`}>
+          Code {m.code}
+        </span>
       </p>
       <p className="sbr-muted">{rulesLine(m)}</p>
       <div className="sbr-row">
-        {m.status === 'lobby' && canJoin ? (
+        {manageable(m) ? (
+          <a
+            className="sbr-btn sbr-btn--primary"
+            href={hrefOf({ name: 'host', code: m.code })}
+            data-testid={`manage-${m.code}`}
+          >
+            Manage
+          </a>
+        ) : m.status === 'lobby' && canJoin ? (
           <button
             type="button"
             className="sbr-btn sbr-btn--primary"

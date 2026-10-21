@@ -154,6 +154,24 @@ describe('rooms, events and intents', () => {
   });
 });
 
+describe('who hosts a match (POLISH-1)', () => {
+  it('tells the host, and only the host, that they host the match; a player cannot draw', async () => {
+    const code = await createMatch('host');
+    const asHost = (await host.get(`/api/v1/matches/${code}`)).json<{ youHost: boolean }>();
+    const asPlayer = (await player.get(`/api/v1/matches/${code}`)).json<{ youHost: boolean }>();
+    expect(asHost.youHost).toBe(true);
+    expect(asPlayer.youHost).toBe(false);
+    const listed = (await host.get('/api/v1/matches')).json<{
+      matches: { code: string; youHost: boolean }[];
+    }>();
+    expect(listed.matches.find((m) => m.code === code)?.youHost).toBe(true);
+    const s = open(player.cookie);
+    await connected(s);
+    expect(await send(s, 'draw.next', { code })).toEqual({ ok: false, code: 'FORBIDDEN' });
+    expect((await player.post(`/api/v1/matches/${code}/start`, {})).statusCode).toBe(403);
+  });
+});
+
 describe('intent order (found by the real-game play-through)', () => {
   it('handles unwatch then watch sent back to back in that order: the socket stays in the room', async () => {
     const code = await createMatch('host');

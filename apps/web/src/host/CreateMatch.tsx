@@ -3,7 +3,8 @@
  * @module web/host
  * @brief  The host creates a match from a published default ruleset (11 §3.2, draft depth).
  *
- * Responsibility: title, game type, prizes for the classic types (the five defaults
+ * Responsibility: above the form, the host's open and running matches (./YourMatches); then
+ *                 title, game type, prizes for the classic types (the five defaults
  *                 ticked), draws (timed every N seconds, or host presses Draw next — the
  *                 Quick Test's field), missed numbers (marked after N seconds, or left open —
  *                 the Quick Test's field), the leaderboard switch (on for royale, off for the
@@ -29,6 +30,7 @@ import '../game/game.css';
 import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
+import { YourMatches } from './YourMatches.js';
 import type { GameType } from '../types.js';
 
 const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
@@ -91,30 +93,33 @@ export function CreateMatch(): ReactElement {
       });
   };
   return (
-    <form className="create-form" onSubmit={submit} data-testid="create-match">
-      <h1>Host a match</h1>
-      <BasicsFields values={values} set={set} />
-      {values.gameType === 'royale' ? null : (
-        <PrizeField
-          prizes={values.prizes}
-          onChange={(p) => {
-            set('prizes', p);
-          }}
-        />
-      )}
-      <RulesFields values={values} set={set} />
-      <p className="sbr-muted">
-        Start: you start the match from the console; players see a 10-second countdown.
-      </p>
-      {error !== null ? <p className="lobby-error">{error}</p> : null}
-      <button
-        type="submit"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
-        data-testid="create-submit"
-      >
-        Create match
-      </button>
-    </form>
+    <div className="create-page">
+      <YourMatches />
+      <form className="create-form" onSubmit={submit} data-testid="create-match">
+        <h1>Host a match</h1>
+        <BasicsFields values={values} set={set} />
+        {values.gameType === 'royale' ? null : (
+          <PrizeField
+            prizes={values.prizes}
+            onChange={(p) => {
+              set('prizes', p);
+            }}
+          />
+        )}
+        <RulesFields values={values} set={set} />
+        <p className="sbr-muted">
+          Start: you start the match from the console; players see a 10-second countdown.
+        </p>
+        {error !== null ? <p className="lobby-error">{error}</p> : null}
+        <button
+          type="submit"
+          className="sbr-btn sbr-btn--primary sbr-btn--big"
+          data-testid="create-submit"
+        >
+          Create match
+        </button>
+      </form>
+    </div>
   );
 }
 

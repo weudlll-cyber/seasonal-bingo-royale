@@ -92,3 +92,25 @@
     width: 100%;
   }
 }
+
+/* Development: one compact sign-in menu instead of four buttons in the bar */
+.dev-menu {
+  position: relative;
+}
+
+.dev-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 20;
+  display: grid;
+  gap: var(--space-1);
+  width: min(18rem, calc(100vw - 2 * var(--gutter)));
+  padding: var(--space-2);
+  box-shadow: var(--shadow-raised);
+}
+
+.dev-menu-hint {
+  margin: 0;
+  font-size: var(--font-size-small);
+}

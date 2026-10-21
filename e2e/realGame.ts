@@ -17,9 +17,10 @@ export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
 
 export async function signIn(page: Page, who: Who): Promise<void> {
   await page.goto('/#/');
+  await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
-  await expect(page.getByTestId('signed-in-as')).toHaveText(
-    who === 'host' ? 'dev-host' : `dev-${who}`,
+  await expect(page.getByTestId('signed-in-as')).toContainText(
+    who === 'host' ? 'dev-host (host)' : `dev-${who} (player)`,
   );
 }
 
@@ -65,7 +66,9 @@ export async function fillAndStart(host: Page, upTo: number): Promise<void> {
   await host.getByTestId('fill-bots').click();
   await expect(host.getByTestId('host-players').locator('li')).toHaveCount(upTo);
   await host.getByTestId('start-match').click();
-  await expect(host.getByTestId('host-status')).toHaveText('running', { timeout: 20_000 });
+  await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'running', {
+    timeout: 20_000,
+  });
 }
 
 // The current number on a screen (data-item of the ball), or null before the first draw.

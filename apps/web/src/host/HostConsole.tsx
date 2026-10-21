@@ -22,7 +22,8 @@ import { Banners, FinalPlacement, MatchLog, PrizeList } from '../components/Play
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
 import '../game/game.css';
-import { gameTypeName, rulesLine } from '../game/labels.js';
+import { gameTypeName, rulesLine, statusName } from '../game/labels.js';
+import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
@@ -31,6 +32,8 @@ import { HostDrawControls } from './HostDrawControls.js';
 export function HostConsole({ code }: { readonly code: string }): ReactElement {
   const { live, error } = useLiveMatch(code);
   if (live === null) return <p className="sbr-muted">{error ?? 'Loading the match…'}</p>;
+  // Only the match's host gets controls (the server refuses everyone else as well).
+  if (live.match.youHost !== true) return <NotYourMatch code={code} />;
   const view = playbackAt(live.view, live.view.events.length);
   return (
     <div className="sbr-stack" data-testid="host-console">
@@ -39,7 +42,9 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
         <p className="sbr-muted">
           Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
           {gameTypeName(live.match.gameType)} · {rulesLine(live.match)} ·{' '}
-          <span data-testid="host-status">{live.match.status}</span>
+          <span data-testid="host-status" data-status={live.match.status}>
+            {statusName(live.match.status)}
+          </span>
         </p>
       </header>
       {live.match.status === 'lobby' ? (
@@ -199,5 +204,17 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
         Fill with bots
       </button>
     </div>
+  );
+}
+
+function NotYourMatch({ code }: { readonly code: string }): ReactElement {
+  return (
+    <section className="sbr-panel sbr-stack" data-testid="not-your-match">
+      <h1>Only the host can run this match</h1>
+      <p className="sbr-muted">You are signed in with another account. You can watch the match.</p>
+      <a className="sbr-btn sbr-btn--primary" href={hrefOf({ name: 'match', code })}>
+        Watch the match
+      </a>
+    </section>
   );
 }

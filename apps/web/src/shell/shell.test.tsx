@@ -11,7 +11,7 @@
  * Depends on:     @testing-library/react, ./AppShell, ./router, ./session
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from './AppShell.js';
@@ -67,23 +67,28 @@ describe('app shell', () => {
   it('offers the quick sign-in only in development', async () => {
     serve([]);
     await renderShell(true);
+    // One compact menu in the bar; its items appear when it opens.
+    expect(screen.queryByTestId('dev-sign-in-host')).toBeNull();
+    fireEvent.click(screen.getByTestId('dev-menu'));
     expect(screen.getByTestId('dev-sign-in-host').textContent).toBe('Sign in as host');
+    expect(screen.getByText(/One window holds one sign-in/)).toBeTruthy();
     expect(screen.getByTestId('dev-sign-in-player-3').textContent).toBe('Sign in as player 3');
     expect(screen.getByText('Quick Test')).toBeTruthy();
     cleanup();
     await renderShell(false);
-    expect(screen.queryByTestId('dev-sign-in-host')).toBeNull();
+    expect(screen.queryByTestId('dev-menu')).toBeNull();
     expect(screen.queryByText('Quick Test')).toBeNull();
   });
 
-  it('shows "Host a match" only with match.create', async () => {
+  it('shows "Host a match" and the host role only with match.create', async () => {
     serve(['match.watch', 'match.join', 'match.create', 'match.manage']);
     await renderShell(false);
     expect(await screen.findByText('Host a match')).toBeTruthy();
-    expect(screen.getByTestId('signed-in-as').textContent).toBe('dev-host');
+    expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (host)');
     cleanup();
     serve(['match.watch', 'match.join']);
     await renderShell(false);
     expect(screen.queryByText('Host a match')).toBeNull();
+    expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (player)');
   });
 });

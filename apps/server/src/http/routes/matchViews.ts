@@ -4,8 +4,8 @@
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
  * Responsibility: the summary (code, title, game type, status, settings, player count,
- *                 prizes, start time, creator) and the live view the player and host
- *                 screens fold with the Quick Test's playback logic: the same payload as
+ *                 prizes, start time, creator, whether the viewer hosts it) and the live
+ *                 view the player and host screens fold with the Quick Test's playback logic: the same payload as
  *                 the Quick Test (../../view/clientView) built from the public event log
  *                 (seed removed, 01 §9), with every player named by display name and the
  *                 caller as the owner. `since` limits the events to those after a seq, so a
@@ -19,7 +19,9 @@ import type { LoadedMatch, StoredEvent } from '@sbr/application';
 import { publicEvent } from '../../match/codec.js';
 import { buildClientView } from '../../view/clientView.js';
 
-export function matchSummary(m: LoadedMatch) {
+// `youHost` tells the viewer whether they created (and so may run) this match; null when
+// the summary goes to a whole room (the client keeps what it knew).
+export function matchSummary(m: LoadedMatch, viewer: string | null) {
   const r = m.record;
   return {
     id: r.id,
@@ -34,6 +36,7 @@ export function matchSummary(m: LoadedMatch) {
     settings: r.settings,
     startsAt: r.startsAt,
     createdBy: r.createdBy,
+    youHost: viewer === null ? null : r.createdBy === viewer,
   };
 }
 
@@ -66,7 +69,7 @@ export function liveView({ match: m, events, names, me, since }: LiveViewInput) 
     owners,
   });
   return {
-    match: matchSummary(m),
+    match: matchSummary(m, me),
     seq: m.seq,
     since,
     me: owner === null ? null : (idMap.get(owner) ?? owner),

@@ -53,7 +53,7 @@ Commands (state change) and queries (read) are separate handlers in `application
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/matches?status=&mode=&gameType=` | List open/running/finished public matches |
-| GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish) |
+| GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish), `youHost` (the signed-in account created the match and may run it; the same field in every match summary, e.g. the lobby list) |
 | POST | `/matches/:code/join` | Join lobby (or late join) |
 | POST | `/matches/:code/leave` | Leave (before start: removed; after start: forfeit, stays placed by elimination order) |
 | GET | `/matches/:code/state` | Full state snapshot for the caller (own cards, standings top 50 + own row, current round, last draws, active effects). Used on load and after reconnect. |

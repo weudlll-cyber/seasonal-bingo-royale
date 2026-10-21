@@ -38,6 +38,9 @@ export interface MatchSummary {
   };
   readonly startsAt: number | null;
   readonly createdBy: string | null;
+  // From the server: the signed-in account created this match and may run it. Null in
+  // room-wide updates; then the value already known is kept.
+  readonly youHost: boolean | null;
 }
 
 export interface LiveState {
@@ -117,7 +120,10 @@ function watchRoom({ code, held, load, setLive }: RoomArgs): () => void {
   };
   const onMatch = (summary: MatchSummary): void => {
     if (summary.code !== code || held.current === null) return;
-    held.current = { ...held.current, match: summary };
+    held.current = {
+      ...held.current,
+      match: { ...summary, youHost: summary.youHost ?? held.current.match.youHost },
+    };
     setLive(held.current);
   };
   socket.on('connect', watch);

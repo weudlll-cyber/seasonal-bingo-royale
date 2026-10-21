@@ -20,6 +20,17 @@ export function gameTypeName(type: GameType): string {
   return 'Classic';
 }
 
+// A match status in plain words.
+export function statusName(status: MatchSummary['status']): string {
+  const names: Record<MatchSummary['status'], string> = {
+    lobby: 'Open to join',
+    running: 'Running',
+    finished: 'Finished',
+    aborted: 'Stopped',
+  };
+  return names[status];
+}
+
 const seconds = (ms: number): string => String(Math.round(ms / 100) / 10);
 
 export function drawLine(settings: MatchSummary['settings']): string {

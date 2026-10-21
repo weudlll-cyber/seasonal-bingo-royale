@@ -5,15 +5,16 @@
  *
  * Responsibility: show the logo and wordmark, links to the lobby, hosting (with
  *                 `match.create`) and the Quick Test (development only), the account with
- *                 sign-out, and in development the quick sign-in buttons "Sign in as host"
- *                 and "Sign in as player 1/2/3" (05 §2.1). Below the bar, the screen of the
+ *                 sign-out ("Signed in as <name> (host|player)"), and in development a compact
+ *                 "Dev sign-in" menu with "Sign in as host" / "Sign in as player 1/2/3" and a
+ *                 hint that one window holds one sign-in (05 §2.1). Below the bar, the screen of the
  *                 current route. `dev` decides the development-only parts; production builds
  *                 pass false.
  * Depends on:     react, ./router, ./session, ../game/*, ../host/*, ../App, ./shell.css
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.1
  */
-import type { ReactElement } from 'react';
+import { useState, type ReactElement } from 'react';
 
 import logo from '../../../../assets/brand/logo.svg';
 import { App as QuickTest } from '../App.js';
@@ -77,32 +78,64 @@ function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): 
 }
 
 function Account({ dev }: { readonly dev: boolean }): ReactElement {
-  const { session, devSignIn, signOut } = useSession();
+  const { session, signOut, can } = useSession();
   return (
     <div className="shell-account" data-testid="account">
       {session?.account ? (
         <>
           <span className="sbr-chip" data-testid="signed-in-as">
-            {session.account.displayName}
+            Signed in as {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
           </span>
           <button type="button" className="sbr-btn" onClick={() => void signOut()}>
             Sign out
           </button>
         </>
       ) : null}
-      {dev
-        ? DEV_IDENTITIES.map((d) => (
+      {dev ? <DevSignIn /> : null}
+    </div>
+  );
+}
+
+// Development only: one compact menu instead of four buttons in the bar.
+function DevSignIn(): ReactElement {
+  const { devSignIn } = useSession();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="dev-menu">
+      <button
+        type="button"
+        className="sbr-btn"
+        aria-expanded={open}
+        data-testid="dev-menu"
+        onClick={() => {
+          setOpen(!open);
+        }}
+      >
+        Dev sign-in
+      </button>
+      {open ? (
+        <div className="dev-menu-panel sbr-panel" role="menu">
+          {DEV_IDENTITIES.map((d) => (
             <button
               key={d.as}
               type="button"
+              role="menuitem"
               className="sbr-btn"
               data-testid={`dev-sign-in-${d.as}`}
-              onClick={() => void devSignIn(d.as)}
+              onClick={() => {
+                setOpen(false);
+                void devSignIn(d.as);
+              }}
             >
               {d.label}
             </button>
-          ))
-        : null}
+          ))}
+          <p className="sbr-muted dev-menu-hint">
+            One window holds one sign-in — use a private window or another browser for a second
+            person.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }

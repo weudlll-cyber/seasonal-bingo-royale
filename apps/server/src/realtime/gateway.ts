@@ -88,7 +88,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   });
   deps.bus.onChanged((record) => {
     void deps.engine.runner.current(record.id).then((m) => {
-      play.to(`match:${record.id}`).emit('match', matchSummary(m));
+      play.to(`match:${record.id}`).emit('match', matchSummary(m, null));
     });
   });
   return io;

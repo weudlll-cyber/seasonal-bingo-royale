@@ -16,6 +16,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
+import { HostLink } from './HostLink.js';
 import { gameTypeName, rulesLine } from './labels.js';
 import type { LiveState } from './useLiveMatch.js';
 
@@ -30,7 +31,8 @@ export function WaitingRoom({
   const joined = live.me !== null;
   return (
     <div className="sbr-stack waiting" data-testid="waiting-room">
-      <header>
+      <header className="sbr-stack">
+        <HostLink match={live.match} />
         <h1>{live.match.title}</h1>
         <p className="sbr-muted">
           {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}

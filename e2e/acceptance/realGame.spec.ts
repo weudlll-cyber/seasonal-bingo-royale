@@ -160,7 +160,7 @@ async function waitTimedDraw(host: Page, before: number): Promise<void> {
 }
 
 const isOver = async (host: Page) =>
-  (await host.getByTestId('host-status').innerText()) !== 'running';
+  (await host.getByTestId('host-status').getAttribute('data-status')) !== 'running';
 
 async function playToEnd(t: Table, combo: Combo): Promise<number> {
   let draws = 0;
@@ -235,7 +235,7 @@ async function checkFreshStart(t: Table, combo: Combo): Promise<void> {
   }
   await t.host.getByTestId('abort-reason').fill('fresh-state check done');
   await t.host.getByTestId('abort-match').click();
-  await expect(t.host.getByTestId('host-status')).toHaveText('aborted');
+  await expect(t.host.getByTestId('host-status')).toHaveAttribute('data-status', 'aborted');
   expect(code).not.toBe('');
 }
 

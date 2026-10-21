@@ -63,16 +63,22 @@ export async function playerNames(pool: DbPool, matchId: string): Promise<Record
   return Object.fromEntries(r.rows.map((row) => [row.player_id, row.name]));
 }
 
-export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
-  app.get('/api/v1/matches', async () => {
+// Open and running matches, and those finished in the last day, newest first.
+function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
+  app.get('/api/v1/matches', async (request) => {
     const rows = await deps.pool.query<{ id: string }>(
       `SELECT id FROM sbr.matches WHERE status IN ('lobby', 'running')
           OR (status IN ('finished', 'aborted') AND finished_at > now() - interval '1 day')
        ORDER BY created_at DESC LIMIT 50`,
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
-    return { matches: matches.map((m) => matchSummary(m)) };
+    const viewer = request.session?.accountId ?? null;
+    return { matches: matches.map((m) => matchSummary(m, viewer)) };
   });
+}
+
+export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
+  registerMatchList(app, deps);
   app.post('/api/v1/matches', async (request, reply) => {
     const accountId = requirePermission(request, reply, 'match.create');
     if (accountId === null) return reply;
@@ -88,7 +94,7 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
   app.get<{ Params: { code: string } }>('/api/v1/matches/:code', async (request, reply) => {
     const id = await matchIdByCode(deps.pool, request.params.code);
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-    return matchSummary(await deps.engine.runner.current(id));
+    return matchSummary(await deps.engine.runner.current(id), request.session?.accountId ?? null);
   });
   app.get<{ Params: { code: string }; Querystring: { since?: string } }>(
     '/api/v1/matches/:code/state',

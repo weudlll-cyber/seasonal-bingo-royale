@@ -272,3 +272,28 @@
   gap: 0.45rem;
   min-height: var(--hit-target);
 }
+
+/* The host's matches above the create form */
+.create-page {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+
+.your-matches {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.your-match {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-border);
+}

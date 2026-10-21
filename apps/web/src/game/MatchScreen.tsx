@@ -25,6 +25,7 @@ import { Banners, FinalPlacement, MatchLog, PrizeList } from '../components/Play
 import { Standings } from '../components/Standings.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { CurrentBall } from './CurrentBall.js';
+import { HostLink } from './HostLink.js';
 import { gameTypeName, rulesLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
@@ -50,23 +51,9 @@ function Arena({
 }): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
-  const stage = result.stagePlan[view.currentStage];
   return (
     <div className="arena" data-testid="arena">
-      <header className="arena-head">
-        <div>
-          <h1>{live.match.title}</h1>
-          <p className="sbr-muted" data-testid="arena-progress">
-            {gameTypeName(result.gameType)}
-            {result.gameType === 'royale' && stage !== undefined
-              ? ` · stage ${String(view.currentStage + 1)} (${stage.kind})`
-              : ''}{' '}
-            · round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)}
-          </p>
-          <p className="sbr-muted">{rulesLine(live.match)}</p>
-        </div>
-        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
-      </header>
+      <ArenaHeader live={live} view={view} />
       <CutScreen cut={view.lastCut} />
       <div className="arena-grid">
         <section className="arena-play">
@@ -141,5 +128,36 @@ function Spectating(): ReactElement {
     <p className="sbr-panel sbr-muted" data-testid="spectating">
       You are watching this match.
     </p>
+  );
+}
+
+// Title, progress (stage, round, draw), the rules in plain words, host link and LIVE.
+function ArenaHeader({
+  live,
+  view,
+}: {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+}): ReactElement {
+  const result = live.view;
+  const stage = result.stagePlan[view.currentStage];
+  return (
+    <header className="arena-head">
+      <div>
+        <h1>{live.match.title}</h1>
+        <p className="sbr-muted" data-testid="arena-progress">
+          {gameTypeName(result.gameType)}
+          {result.gameType === 'royale' && stage !== undefined
+            ? ` · stage ${String(view.currentStage + 1)} (${stage.kind})`
+            : ''}{' '}
+          · round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)}
+        </p>
+        <p className="sbr-muted">{rulesLine(live.match)}</p>
+      </div>
+      <div className="sbr-row">
+        <HostLink match={live.match} />
+        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
+      </div>
+    </header>
   );
 }
