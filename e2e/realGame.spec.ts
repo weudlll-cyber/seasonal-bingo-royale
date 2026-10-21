@@ -8,7 +8,8 @@
  *                 draws; player 1 joins from the lobby and waits in the waiting room; the
  *                 host fills the match with bots and starts it; after the countdown both
  *                 screens show the same current number for every Draw next, and the player
- *                 sees the arena with standings.
+ *                 sees the arena with standings; offline for two draws, the player's screen
+ *                 catches up after reconnecting and keeps its marks.
  * Depends on:     @playwright/test, ./realGame
  * Spec:           docs/spec/12-testing-strategy.md §4 (journey 1, draft); docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -53,4 +54,25 @@ test('host and player share one live match', async ({ browser }) => {
     seen.push((await currentItem(player)) ?? -1);
   }
   await expect(player.getByTestId('standings').locator('li')).toHaveCount(6);
+
+  // Reconnect and resync (06 §1, §4): the player drops off while the host draws on; back
+  // online, the screen catches up with the same numbers and keeps the marks it had.
+  const markedBefore = await player
+    .locator('[data-testid^="owner-cell-"][data-marked="true"]')
+    .count();
+  await player.context().setOffline(true);
+  await drawNext(host);
+  await drawNext(host);
+  await player.context().setOffline(false);
+  const hostTicker = () => host.getByTestId('draw-ticker').locator(':scope > *').count();
+  await expect
+    .poll(async () => player.getByTestId('draw-ticker').locator(':scope > *').count(), {
+      timeout: 30_000,
+    })
+    .toBe(await hostTicker());
+  expect(await currentItem(player)).toBe(await currentItem(host));
+  const markedAfter = await player
+    .locator('[data-testid^="owner-cell-"][data-marked="true"]')
+    .count();
+  expect(markedAfter).toBeGreaterThanOrEqual(markedBefore);
 });

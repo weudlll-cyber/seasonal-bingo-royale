@@ -45,7 +45,8 @@ const CATALOGUE = [
 ];
 
 export async function startRun(page: Page, settings: RunSettings): Promise<void> {
-  await page.goto('/');
+  // The Quick Test lives at #/quicktest in the app shell (development builds).
+  await page.goto('/#/quicktest');
   await page.getByTestId('game-type').selectOption(settings.gameType);
   await page.getByTestId('seed').fill(settings.seed);
   await page.getByTestId('bot-count').fill(String(settings.bots));
