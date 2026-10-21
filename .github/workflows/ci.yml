@@ -78,7 +78,11 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Playwright browsers (Chromium, Firefox, WebKit)
         run: pnpm exec playwright install --with-deps chromium firefox webkit
-      # Starts PostgreSQL via ops/compose.dev.yml, the server on 3900, the client on 5390.
+      # Playwright starts its web servers before its global setup, so PostgreSQL must be up
+      # first: the server migrates on start and exits when the database is unreachable.
+      - name: PostgreSQL (ops/compose.dev.yml)
+        run: docker compose --env-file ops/.env.dev.example -f ops/compose.dev.yml up -d --wait postgres
+      # The server on 3900 and the client on 5390 (e2e/playwright.config.ts).
       - run: pnpm e2e
 
   image:
