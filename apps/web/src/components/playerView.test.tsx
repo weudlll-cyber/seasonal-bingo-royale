@@ -46,7 +46,7 @@ describe('season cells', () => {
     render(<CardGrid accountId="bot-02" card={{ ...card, cells }} marks={[]} />);
     // The icon has its own season colour, so the cell keeps the card colour behind it.
     const box = screen.getByAltText('winter').parentElement;
-    expect(box?.style.background).toBe('var(--cell-bg, #1a2130)');
+    expect(box?.style.background).toBe('var(--cell-bg, var(--color-surface-2))');
     expect(box?.style.border).toBe(`2px solid ${WINTER_RGB}`);
   });
 });

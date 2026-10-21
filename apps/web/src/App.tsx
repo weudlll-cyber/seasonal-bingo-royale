@@ -59,11 +59,11 @@ export function App(): ReactElement {
     <main style={layoutStyle}>
       <section>
         <h1 style={{ margin: 0, fontSize: '1.1rem' }}>Seasonal Bingo Royale — Quick Test</h1>
-        <p style={{ color: '#9aa5b2' }}>
+        <p style={{ color: 'var(--color-text-muted)' }}>
           Pick a seed, who you play with and against, and press run.
         </p>
         <StartForm onStart={run} busy={busy} />
-        {error !== null && <p style={{ color: '#ff7a7a' }}>Error: {error}</p>}
+        {error !== null && <p style={{ color: 'var(--color-danger)' }}>Error: {error}</p>}
         <DrawControls
           control={control}
           effectiveSec={effectiveSec}
@@ -74,7 +74,9 @@ export function App(): ReactElement {
       </section>
       <section>
         {result === null || view === null ? (
-          <p style={{ color: '#9aa5b2' }}>Nothing yet. Fill in the form and press run.</p>
+          <p style={{ color: 'var(--color-text-muted)' }}>
+            Nothing yet. Fill in the form and press run.
+          </p>
         ) : (
           <Playback key={runId} result={result} view={view} />
         )}

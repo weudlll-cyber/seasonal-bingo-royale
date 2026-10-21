@@ -8,8 +8,8 @@
  *                 later; a draw schedules the missed-number auto-mark (when people tap
  *                 under autoMarkAfter) and the close of its speed window; the window close
  *                 checks the round end — a round ended this way is cut and the next round
- *                 starts after a pause (its start time goes to the screens as
- *                 nextRoundAt), the next stage begins or the match finishes — or,
+ *                 starts after a pause (its start time is recorded in the event log and goes
+ *                 to the screens as nextRoundAt), the next stage begins or the match finishes — or,
  *                 with timed draws, schedules the next draw one interval after this one.
  *                 Host draws follow the same path from the host's Draw next (D8, D10).
  * Depends on:     @sbr/domain, ./ports, ./runner
@@ -89,7 +89,8 @@ async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
   }
   const dueAt = deps.clock.now() + pause.ms;
   await deps.scheduler.schedule({ matchId, kind: 'start_round', dueAt });
-  deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, nextRoundAt: dueAt } }));
+  // In the event log, so the countdown on the cut screen survives a restart.
+  await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: dueAt }]);
 }
 
 // The match waits for its host to start the next round (D14): derived from the state, so

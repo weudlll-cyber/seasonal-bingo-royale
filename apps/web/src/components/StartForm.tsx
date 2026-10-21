@@ -213,7 +213,7 @@ function PrizeChecklist({
   onToggle: (key: string) => void;
 }): ReactElement {
   return (
-    <fieldset style={{ border: '1px solid #223', padding: '0.5rem' }}>
+    <fieldset style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>
       <legend>Prizes ticked (classic only; royale ignores the list)</legend>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '0.25rem' }}>
         {PRIZE_CATALOGUE.map((key) => (

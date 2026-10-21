@@ -5,8 +5,9 @@
  *
  * Responsibility: shared by the owner's tappable card and the read-only cards. A
  *                 royale season cell shows its number with the season icon and a
- *                 season-coloured frame; a classicSeasons symbol cell shows the icon on
- *                 its season colour; the free centre shows a star.
+ *                 season-coloured frame; a classicSeasons symbol cell shows its icon on the
+ *                 card colour, framed in its season colour; the free centre shows a star.
+ *                 Colours come from the live card's --cell-* values, else the theme tokens.
  * Depends on:     react, ./SeasonIcon, ../types
  * Used by:        ./OwnerCard, ./CardGrid
  * Spec:           docs/spec/01-game-design.md §3a, §4, §13
@@ -14,14 +15,7 @@
 import type { CSSProperties, ReactElement } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
-import {
-  ON_SEASON_COLOR,
-  SEASON_COLORS,
-  SEASON_NAMES,
-  seasonOfSymbol,
-  type Card,
-  type Season,
-} from '../types.js';
+import { SEASON_COLORS, SEASON_NAMES, seasonOfSymbol, type Card, type Season } from '../types.js';
 
 export function seasonOfCell(card: Card, index: number): Season | null {
   const cell = card.cells[index];
@@ -46,11 +40,12 @@ export function CellFace({ card, index }: { card: Card; index: number }): ReactE
 
 export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSProperties {
   const season = seasonOfCell(card, index);
-  const isSymbol = card.cells[index]?.kind === 'symbol';
   const isFree = card.cells[index]?.kind === 'free';
   // CSS variables with the Quick Test's values as fallbacks: the live card sets them to
   // the design tokens (the card as the hero element, packages/ui).
-  const base = isFree ? 'var(--cell-free-bg, #2a3645)' : 'var(--cell-bg, #1a2130)';
+  const base = isFree
+    ? 'var(--cell-free-bg, var(--color-border-strong))'
+    : 'var(--cell-bg, var(--color-surface-2))';
   const background = base;
   return {
     width: 'var(--cell-size, 2.6rem)',
@@ -62,13 +57,12 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
     borderRadius: 'var(--cell-radius, 0.25rem)',
     border: season === null ? '2px solid transparent' : `2px solid ${SEASON_COLORS[season]}`,
     // Marked cells get a filled tone and a check outline, not only a colour change.
-    background: marked ? 'var(--cell-marked-bg, #e7ecf3)' : background,
+    background: marked ? 'var(--cell-marked-bg, var(--color-solid))' : background,
+    // The live card sets --cell-*; the Quick Test's cards fall back to the theme tokens.
     color: marked
-      ? 'var(--cell-marked-ink, ' + ON_SEASON_COLOR + ')'
-      : isSymbol
-        ? ON_SEASON_COLOR
-        : 'var(--cell-ink, #e7ecf3)',
-    boxShadow: marked ? 'inset 0 0 0 3px var(--cell-marked-ring, #04aaf7)' : 'none',
+      ? 'var(--cell-marked-ink, var(--color-on-solid))'
+      : 'var(--cell-ink, var(--color-text))',
+    boxShadow: marked ? 'inset 0 0 0 3px var(--cell-marked-ring, var(--color-accent))' : 'none',
     cursor: 'pointer',
     padding: 0,
   };

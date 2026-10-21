@@ -109,9 +109,9 @@ function buttonStyle(active: boolean): React.CSSProperties {
   return {
     padding: '0.35rem 0.65rem',
     marginRight: '0.3rem',
-    background: active ? '#2a3a56' : '#1a2130',
-    color: '#e6edf7',
-    border: active ? '1px solid #3b73c8' : '1px solid #223',
+    background: active ? 'var(--color-active-bg)' : 'var(--color-surface-2)',
+    color: 'var(--color-text)',
+    border: active ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
     borderRadius: '0.3rem',
     cursor: 'pointer',
   };

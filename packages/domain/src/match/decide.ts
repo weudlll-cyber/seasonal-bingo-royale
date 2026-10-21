@@ -79,6 +79,11 @@ const dispatch: Dispatch = {
   endRound: (s, _c) => onEndRound(s),
   applyCut: (s, _c) => onApplyCut(s),
   finishMatch: (s, _c) => onFinish(s),
+  // Only while the match runs and no round is in play (the pause after a round).
+  scheduleNextRound: (s, c) =>
+    s.phase === 'running' && (s.currentRound === null || s.currentRound.ended)
+      ? [{ type: 'nextRoundScheduled', at: c.at }]
+      : [],
   abortMatch: (_s, c) => onAbort(c),
 };
 

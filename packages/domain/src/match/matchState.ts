@@ -101,6 +101,8 @@ export interface MatchState {
   readonly tickedPrizes: readonly string[];
   // Final placement, populated when phase === 'finished' (01 §7.5, §3a.2).
   readonly finalPlacement: readonly { readonly accountId: string; readonly place: number }[];
+  // When the next round starts during the pause after a round (epoch ms), else null.
+  readonly nextRoundAt: number | null;
 }
 
 export function initialPlayerState(

@@ -18,27 +18,29 @@ import { describe, expect, it } from 'vitest';
 import { MatchEngine, MatchError } from './engine.js';
 import { nextDrawAt, waitingForHost } from './flow.js';
 import { ManualClock, MemoryScheduler, MemoryStore } from './fakes.js';
-import type { MatchRecord } from './ports.js';
+import type { StoredEvent } from './ports.js';
 
 function setUp() {
   const store = new MemoryStore();
   const scheduler = new MemoryScheduler();
   const clock = new ManualClock();
-  // Every record change the bus is told about, with the time it happened.
-  const changes: { at: number; record: MatchRecord }[] = [];
+  // Every event the bus publishes, with the time it happened.
+  const published: { at: number; event: StoredEvent['event'] }[] = [];
   let n = 0;
   const engine = new MatchEngine({
     store,
     scheduler,
     bus: {
-      publish: () => undefined,
-      changed: (record) => changes.push({ at: clock.t, record }),
+      publish: (_id, stored) => {
+        for (const s of stored) published.push({ at: clock.t, event: s.event });
+      },
+      changed: () => undefined,
     },
     clock,
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
   });
-  return { store, scheduler, clock, engine, changes };
+  return { store, scheduler, clock, engine, published };
 }
 
 const base = {
@@ -74,18 +76,17 @@ describe('timed flow', () => {
 
 describe('pause between royale rounds (D14)', () => {
   it('tells the screens when the next round starts after a round and its cut', async () => {
-    const { scheduler, clock, engine, changes } = setUp();
+    const { scheduler, clock, engine, published } = setUp();
     const roundPause = { kind: 'wait', ms: 4_000 } as const;
     const m = await engine.create({ ...base, gameType: 'royale', roundPause }, null);
     await engine.fillWithBots(m.id, 20);
     await engine.start(m.id, 1_000);
     await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
-    // The changes that set a new next-round time: one per pause between rounds.
-    const pauses = changes.filter(
-      (c, i) => c.record.nextRoundAt !== changes[i - 1]?.record.nextRoundAt,
-    );
+    // In the event log (it survives a restart): one per pause, the time plus the wait.
+    const pauses = published.filter((p) => p.event.type === 'nextRoundScheduled');
     expect(pauses.length).toBeGreaterThan(1);
-    for (const c of pauses) expect(c.record.nextRoundAt).toBe(c.at + 4_000);
+    for (const p of pauses)
+      expect(p.event).toEqual({ type: 'nextRoundScheduled', at: p.at + 4_000 });
   });
 
   it('waits for the host between royale rounds when the host starts them (D14)', async () => {

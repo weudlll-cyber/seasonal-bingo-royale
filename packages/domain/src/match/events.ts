@@ -115,6 +115,11 @@ export interface MatchFinished {
   readonly type: 'matchFinished';
   readonly placement: readonly { readonly accountId: string; readonly place: number }[];
 }
+// When the next round starts (epoch ms), so the countdown survives a restart.
+export interface NextRoundScheduled {
+  readonly type: 'nextRoundScheduled';
+  readonly at: number;
+}
 export interface MatchAborted {
   readonly type: 'matchAborted';
   readonly reason: string;
@@ -137,4 +142,5 @@ export type DomainEvent =
   | RoundEnded
   | CutApplied
   | MatchFinished
+  | NextRoundScheduled
   | MatchAborted;

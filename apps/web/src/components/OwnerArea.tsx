@@ -92,7 +92,7 @@ function LimitationNote({ result }: { result: QuickTestResult }): ReactElement {
   return (
     <p
       data-testid="quicktest-limitation"
-      style={{ margin: 0, color: '#9aa5b2', fontSize: '0.9rem' }}
+      style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem' }}
     >
       Quick Test: the match is computed on the server before playback, so it cannot know your taps.
       Your points, the standings and the cuts count your cards as if each number were marked for you{' '}

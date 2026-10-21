@@ -10,6 +10,15 @@
    Spec:        docs/spec/01-game-design.md §13
    ============================================================ */
 
+/* The page column keeps its width whether or not the page needs a scrollbar. Only with
+   a mouse: touch screens overlay their scrollbars (nothing shifts), and in mobile WebKit
+   the reserved gutter made the layout unsettled (clicks never became "stable"). */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
 .shell-bar {
   position: relative;
   z-index: 10;
@@ -37,6 +46,7 @@
 }
 
 .shell-brand {
+  order: 1;
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -61,6 +71,7 @@
 }
 
 .shell-nav {
+  order: 2;
   display: flex;
   gap: 0.25rem;
   overflow-x: auto;
@@ -90,6 +101,7 @@
 
 /* The light/dark toggle: a round glass button with a hairline */
 .theme-toggle {
+  order: 3;
   display: inline-grid;
   place-items: center;
   flex: none;
@@ -107,6 +119,7 @@
 }
 
 .shell-account {
+  order: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -125,23 +138,27 @@
     display: none;
   }
 
-  /* One account row on a phone: the chip shortens before the buttons wrap */
+  /* The account row keeps the chip whole: the buttons move to a second line only when
+     chip and buttons do not fit side by side (360 px with the development menu) */
   .shell-account {
     width: 100%;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
 
   .shell-account .sbr-chip {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .shell-account .sbr-btn {
     flex: none;
-    padding: 0 0.7rem;
+    padding: 0 0.6rem;
+    font-size: var(--font-size-small);
     white-space: nowrap;
+  }
+
+  /* On a phone the toggle shares the first row with the brand */
+  .theme-toggle {
+    order: 1;
   }
 
   /* The chip names the account and role; "Signed in as" is read out, not shown */

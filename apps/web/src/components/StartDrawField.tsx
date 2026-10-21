@@ -31,7 +31,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
   return (
     <fieldset
       style={{
-        border: '1px solid var(--color-border, #223)',
+        border: '1px solid var(--color-border)',
         padding: '0.5rem',
         display: 'grid',
         gap: '0.4rem',

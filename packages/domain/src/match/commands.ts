@@ -79,6 +79,12 @@ export interface ApplyCut {
 export interface FinishMatch {
   readonly type: 'finishMatch';
 }
+// The time the next round starts after a round and its cut (D14 "wait N seconds"); the
+// application computes it (the domain has no clock) and records it in the event log.
+export interface ScheduleNextRound {
+  readonly type: 'scheduleNextRound';
+  readonly at: number;
+}
 export interface AbortMatch {
   readonly type: 'abortMatch';
   readonly reason: string;
@@ -97,4 +103,5 @@ export type Command =
   | EndRound
   | ApplyCut
   | FinishMatch
+  | ScheduleNextRound
   | AbortMatch;

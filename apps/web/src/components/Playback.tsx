@@ -39,7 +39,7 @@ export function Playback({ result, view }: PlaybackProps): ReactElement {
       <Header result={result} view={view} />
       <CutScreen cut={view.lastCut} />
       {allOut && !view.finished ? (
-        <p data-testid="spectator-note" style={{ color: '#9aa5b2', margin: 0 }}>
+        <p data-testid="spectator-note" style={{ color: 'var(--color-text-muted)', margin: 0 }}>
           You were eliminated – keep watching as a spectator.
         </p>
       ) : null}
@@ -83,7 +83,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
         {gameTypeName(result.gameType)}
         {showStage ? ` — stage ${String(view.currentStage + 1)} (${stage.kind})` : ''}
       </h2>
-      <p style={{ margin: 0, color: '#9aa5b2' }}>
+      <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
         round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)} /{' '}
         {String(view.totalDraws)}
       </p>
@@ -124,7 +124,7 @@ export function Banners({ banners }: { banners: readonly Banner[] }): ReactEleme
     <ul
       aria-live="polite"
       data-testid="banners"
-      style={{ margin: 0, padding: 0, listStyle: 'none', color: '#dfe6ee' }}
+      style={{ margin: 0, padding: 0, listStyle: 'none', color: 'var(--color-text)' }}
     >
       {banners.slice(-6).map((b) => (
         <li
@@ -132,7 +132,7 @@ export function Banners({ banners }: { banners: readonly Banner[] }): ReactEleme
           className={reduced ? undefined : 'sbr-anim-fade'}
           style={{
             padding: '0.25rem 0.5rem',
-            background: '#1a2130',
+            background: 'var(--color-surface-2)',
             borderRadius: '0.3rem',
             marginBottom: '0.2rem',
           }}

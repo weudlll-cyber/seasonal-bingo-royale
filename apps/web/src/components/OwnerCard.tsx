@@ -67,18 +67,25 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
     );
   };
   return (
-    <div style={{ background: '#1a2130', padding: '0.5rem', borderRadius: '0.5rem' }}>
-      <strong style={{ color: '#afb84e' }}>{accountId} (you)</strong>
+    <div
+      style={{ background: 'var(--color-surface-2)', padding: '0.5rem', borderRadius: '0.5rem' }}
+    >
+      <strong style={{ color: 'var(--color-text)' }}>{accountId} (you)</strong>
       <TapGrid card={card} marks={marks} lastTapped={lastTapped} onTap={tap} />
       {manualMode ? (
-        <p style={{ margin: '0.4rem 0 0', color: '#dfe6ee' }} data-testid="owner-bonus">
+        <p style={{ margin: '0.4rem 0 0', color: 'var(--color-text)' }} data-testid="owner-bonus">
           +{String(manual.bonusEarned)} speed bonus (not counted in Quick Test cuts)
         </p>
       ) : null}
       <p
         data-testid="owner-feedback"
         role="status"
-        style={{ color: '#9aa5b2', fontSize: '0.9rem', minHeight: '1.2em', margin: 0 }}
+        style={{
+          color: 'var(--color-text-muted)',
+          fontSize: '0.9rem',
+          minHeight: '1.2em',
+          margin: 0,
+        }}
       >
         {manualMode ? feedbackText(manual.feedback) : 'Marking: numbers are marked for you'}
       </p>

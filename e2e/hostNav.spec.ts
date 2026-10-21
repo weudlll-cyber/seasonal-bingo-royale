@@ -7,7 +7,8 @@
  *                 it with bots and starts it; opens the match screen and returns via "Open
  *                 host console"; the same window signed in as a player shows no "Manage"
  *                 and no host link. The top bar never covers a field brought to the top edge
- *                 on a wide screen and scrolls away on a phone. The console in the lobby
+ *                 on a wide screen and scrolls away on a phone; at 360 and 390 px the account
+ *                 chip is not cut and the buttons stay on one line. The console in the lobby
  *                 shows the open-match notice with the code. In Chromium it also saves the
  *                 create form, the console in the lobby, the lobby and the waiting room at
  *                 desktop and phone size, light and dark, to reports/screens/look/.
@@ -129,4 +130,25 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
   expect(phone.scrolled, 'the page scrolled').toBeGreaterThan(0);
   // The bar moved up with the page by exactly the distance scrolled.
   expect(phone.top, 'the bar scrolled away on a phone').toBeCloseTo(-phone.scrolled, 0);
+});
+
+test('the account chip and the buttons fit on a phone (360 and 390 px)', async ({ browser }) => {
+  for (const width of [360, 390]) {
+    const page = await (await browser.newContext({ viewport: { width, height: 800 } })).newPage();
+    // The longest development name, with "Dev sign-in" in the bar.
+    await signIn(page, 'player-3');
+    const fit = await page.evaluate(() => {
+      const chip = document.querySelector<HTMLElement>('[data-testid="signed-in-as"]');
+      const buttons = [...document.querySelectorAll<HTMLElement>('.shell-account .sbr-btn')];
+      return {
+        chipCut: chip === null ? true : chip.scrollWidth > chip.clientWidth,
+        tallest: Math.max(...buttons.map((b) => b.getBoundingClientRect().height)),
+        wider: document.documentElement.scrollWidth > window.innerWidth,
+      };
+    });
+    expect(fit.chipCut, `${String(width)} px: chip not cut`).toBe(false);
+    expect(fit.tallest, `${String(width)} px: buttons on one line`).toBeLessThanOrEqual(50);
+    expect(fit.wider, `${String(width)} px: nothing wider than the window`).toBe(false);
+    await page.context().close();
+  }
 });

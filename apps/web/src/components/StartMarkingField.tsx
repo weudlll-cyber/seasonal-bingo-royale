@@ -105,7 +105,7 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
 }
 
 const fieldsetStyle: React.CSSProperties = {
-  border: '1px solid #223',
+  border: '1px solid var(--color-border)',
   padding: '0.5rem',
   display: 'grid',
   gap: '0.4rem',

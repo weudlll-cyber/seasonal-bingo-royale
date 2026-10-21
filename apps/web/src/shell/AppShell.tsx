@@ -48,6 +48,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
             <small>Seasonal Entertainment</small>
           </span>
         </a>
+        {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
+        <ThemeToggle />
         <Nav route={route} dev={dev} />
         <Account dev={dev} />
       </header>
@@ -84,7 +86,6 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
   const { session, signOut, can } = useSession();
   return (
     <div className="shell-account" data-testid="account">
-      <ThemeToggle />
       {session?.account ? (
         <>
           <span className="sbr-chip" data-testid="signed-in-as">

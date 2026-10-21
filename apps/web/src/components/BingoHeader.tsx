@@ -21,7 +21,7 @@ export function BingoHeader(): ReactElement {
           key={letter}
           data-testid="bingo-letter"
           aria-hidden="true"
-          style={{ textAlign: 'center', fontWeight: 700, color: '#9aa5b2' }}
+          style={{ textAlign: 'center', fontWeight: 700, color: 'var(--color-text-muted)' }}
         >
           {letter}
         </span>

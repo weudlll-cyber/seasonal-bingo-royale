@@ -10,7 +10,8 @@
  *                 its sequence, every draw's speed window closes before the next draw), the
  *                 snapshot plus tail rebuilds the same state as a full replay, bots' marks
  *                 are projected, the event log rejects changes, a stale writer is refused,
- *                 and marks older than 90 days are purged.
+ *                 marks older than 90 days are purged, and the next round's start time
+ *                 during the pause between rounds survives a restart (event log).
  * Depends on:     vitest, ./harness, ./session, @sbr/domain, ../src/match/*
  * Spec:           docs/spec/02-software-architecture.md §5.2–§5.4; docs/spec/04-database-design.md §3.3
  */
@@ -161,3 +162,49 @@ function checkDrawOrder(events: readonly DomainEvent[]): void {
   }
   expect(next).toBeGreaterThanOrEqual(6);
 }
+
+// Plays the current round to its end straight through the engine: each draw, then the
+// close of its speed window (no waiting for the clock).
+async function playRoundToEnd(app: App, id: string): Promise<void> {
+  const engine = app.match.engine;
+  for (let i = 0; i < 80; i += 1) {
+    const round = (await engine.runner.current(id)).state.currentRound;
+    if (round === null || round.ended) return;
+    await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
+    const drawIndex = ((await engine.runner.current(id)).state.currentRound?.draws.length ?? 0) - 1;
+    await engine.handle({ matchId: id, kind: 'close_speed_window', dueAt: Date.now(), drawIndex });
+  }
+}
+
+describe('pause between rounds across a restart', () => {
+  it('keeps the next round start time after a restart during the pause', async () => {
+    const a = harness.built;
+    const host = await signIn(a.fastify, 'host');
+    const created = await host.post('/api/v1/matches', {
+      title: 'Pause restart',
+      gameType: 'royale',
+      drawMode: 'host',
+      missedNumbers: { kind: 'noAutoMark' },
+      maxPlayers: 8,
+      roundPause: { kind: 'wait', ms: 60_000 },
+      testProfile: 'fast',
+    });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    await host.post(`/api/v1/matches/${code}/bots`, { upTo: 8 });
+    await a.match.engine.start(id, 0);
+    await a.match.engine.handle({ matchId: id, kind: 'start_match', dueAt: Date.now() });
+    await playRoundToEnd(a, id);
+    const before = (await host.get(`/api/v1/matches/${code}`)).json<{
+      nextRoundAt: number | null;
+    }>();
+    expect(before.nextRoundAt).toBeGreaterThan(Date.now());
+    // A second server on the same database stands for the restart: nothing in memory.
+    const b = await buildOn(harness.pool, harness.container.getConnectionUri());
+    const hostOnB = await signIn(b.fastify, 'host');
+    const after = (await hostOnB.get(`/api/v1/matches/${code}`)).json<{
+      nextRoundAt: number | null;
+    }>();
+    await b.fastify.close();
+    expect(after.nextRoundAt).toBe(before.nextRoundAt);
+  }, 120_000);
+});

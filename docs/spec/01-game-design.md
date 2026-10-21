@@ -375,7 +375,7 @@ BACKLOG; website: embeddable call view).
 - The cut screen comes into view when a cut happens; its button reads “Keep playing” for a survivor and “Watch” for an eliminated player (D15). At the end of a match the final placement (with one line on how places are decided) replaces the live standings, the in-play wording goes (“Match over”), and the screen offers “Back to the lobby” (the host also “Host another match”).
 - The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only, Draw next for host draws only. Draw next keeps 4.5:1 contrast enabled and disabled. The host console shows the same progress line (stage, round, draw) and LIVE badge as the players, with the match log above the standings.
 - A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby leaves stopped matches out.
-- The top bar is sticky from 640 px wide; on phones it scrolls away with the page.
+- The top bar is sticky from 640 px wide; on phones it scrolls away with the page, the theme toggle sits beside the brand, and the account row wraps rather than cutting the account chip. With a mouse the page column keeps its width whether or not a scrollbar shows.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.
 

@@ -36,7 +36,8 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     countsForLeaderboard: r.countsForLeaderboard,
     settings: r.settings,
     startsAt: r.startsAt,
-    nextRoundAt: r.nextRoundAt ?? null,
+    // From the event log (snapshots older than the field have none).
+    nextRoundAt: (m.state.nextRoundAt as number | null | undefined) ?? null,
     // When Draw next unlocks (D13) and whether the match waits for its host (D14).
     nextDrawAt: nextDrawAt(m),
     waitingForHost: waitingForHost(m),
