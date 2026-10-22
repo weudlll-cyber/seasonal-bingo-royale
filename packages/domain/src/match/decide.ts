@@ -84,7 +84,7 @@ const dispatch: Dispatch = {
     s.phase === 'running' && (s.currentRound === null || s.currentRound.ended)
       ? [{ type: 'nextRoundScheduled', at: c.at }]
       : [],
-  abortMatch: (_s, c) => onAbort(c),
+  abortMatch: (s, c) => (s.phase === 'finished' || s.phase === 'aborted' ? [] : onAbort(c)),
 };
 
 export function decide(

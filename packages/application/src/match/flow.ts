@@ -63,7 +63,9 @@ async function startMatch(deps: FlowDeps, matchId: string): Promise<void> {
 
 // Stops the match with a reason (the host's abort, or too few players at the start time).
 export async function stopMatch(deps: FlowDeps, matchId: string, reason: string): Promise<void> {
-  await deps.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
+  // A match that has already ended keeps its status (the domain produces nothing).
+  const produced = await deps.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
+  if (produced.length === 0) return;
   await deps.store.setStatus(matchId, 'aborted');
   deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'aborted' } }));
   await deps.scheduler.cancel(matchId);

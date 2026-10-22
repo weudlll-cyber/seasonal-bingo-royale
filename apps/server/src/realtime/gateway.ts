@@ -8,17 +8,20 @@
  *                 session from the cookie (06 §2); without a live session the socket is
  *                 refused. Committed match events go to the room `match:<id>` as one frame
  *                 `{ s, events }` with the public event projection (the seed removed) and
- *                 the names of newly joined players; record changes (status, start time,
+ *                 every account renamed to its display name, as the state endpoint does (a
+ *                 screen appends such events without fetching); record changes (status, start time,
  *                 draw control) go out as `match`. Intents arrive on `intent` and are
  *                 handled by ./intents. Payloads are capped at 16 KiB; a dropped connection
  *                 recovers missed frames for 2 minutes, longer gaps resync over HTTP.
- * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ./intents, ./inOrder
+ * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ../view/clientEvents,
+ *                 ./intents, ./inOrder
  * Used by:        ../http/app
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */
 import type { Server as HttpServer } from 'node:http';
 
 import type { MatchEngine } from '@sbr/application';
+import type { DomainEvent } from '@sbr/domain';
 import { Server, type Socket } from 'socket.io';
 
 import { findSession, type Session } from '../auth/sessions.js';
@@ -26,6 +29,7 @@ import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
+import { accountIdsIn, renameAccounts } from '../view/clientEvents.js';
 import { inOrder } from './inOrder.js';
 import { handleIntent, type IntentContext } from './intents.js';
 
@@ -77,12 +81,14 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
       void handle(envelope, ack);
     });
   });
+  const names = nameBook(deps.pool);
   deps.bus.subscribe((matchId, events) => {
-    void namesFor(deps.pool, events).then((names) => {
+    const plain = events.map((e) => publicEvent(e.event));
+    void names(plain).then((book) => {
+      const renamed = renameAccounts(plain, book);
       play.to(`match:${matchId}`).emit('events', {
         s: events.at(-1)?.seq ?? 0,
-        events: events.map((e) => ({ s: e.seq, at: e.occurredAt, event: publicEvent(e.event) })),
-        names,
+        events: events.map((e, i) => ({ s: e.seq, at: e.occurredAt, event: renamed[i] })),
       });
     });
   });
@@ -112,19 +118,22 @@ function cookieValue(header: string | undefined, name: string): string | null {
   return null;
 }
 
-// Display names of the players who joined in this batch (bots keep their id).
-async function namesFor(
-  pool: DbPool,
-  events: readonly { readonly event: { readonly type: string } & Partial<{ accountId: string }> }[],
-): Promise<Record<string, string>> {
-  const ids = events.flatMap((e) =>
-    e.event.type === 'playerJoined' && e.event.accountId !== undefined ? [e.event.accountId] : [],
-  );
-  if (ids.length === 0) return {};
-  const r = await pool.query<{ id: string; display_name: string }>(
-    'SELECT id::text, display_name FROM sbr.accounts WHERE id::text = ANY($1)',
-    [ids],
-  );
-  const known = new Map(r.rows.map((row) => [row.id, row.display_name]));
-  return Object.fromEntries(ids.map((id) => [id, known.get(id) ?? id]));
+// Display names for every account the events name, from a cache that only asks the
+// database for names it has not seen (bots keep their id). Names are public and the same
+// for every viewer, so frames carry events already renamed, as the state endpoint does.
+function nameBook(pool: DbPool): (events: readonly DomainEvent[]) => Promise<Map<string, string>> {
+  const known = new Map<string, string>();
+  return async (events) => {
+    const unknown = [...accountIdsIn(events)].filter(
+      (id) => !known.has(id) && !id.startsWith('bot-'),
+    );
+    if (unknown.length > 0) {
+      const r = await pool.query<{ id: string; display_name: string }>(
+        'SELECT id::text, display_name FROM sbr.accounts WHERE id::text = ANY($1)',
+        [unknown],
+      );
+      for (const row of r.rows) known.set(row.id, row.display_name);
+    }
+    return known;
+  };
 }

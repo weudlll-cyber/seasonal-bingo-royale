@@ -26,8 +26,7 @@ import type {
 
 import {
   effectSeasons,
-  renameAccounts,
-  replayForClient,
+  LiveReplay,
   type EffectKind,
   type OwnerStatus,
   type SeasonName,
@@ -79,18 +78,24 @@ export interface ClientViewInput {
   // Internal player id → the name the client shows; owners are the viewer's own players.
   readonly idMap: ReadonlyMap<string, string>;
   readonly owners: ReadonlyMap<string, string>;
+  // The live view passes its per-match replay (all players, already extended); otherwise
+  // one is built from `events` for the owners.
+  readonly replay?: LiveReplay;
 }
 
 export function buildClientView(input: ClientViewInput): ClientView {
-  const { events, state, ruleset, idMap, owners } = input;
+  const { state, ruleset, idMap, owners } = input;
   const placeByAccount = new Map(state.finalPlacement.map((p) => [p.accountId, p.place]));
-  const replay = replayForClient(events, idMap, owners);
+  const replay = input.replay ?? replayOf(input);
+  const ownerStatus = Object.fromEntries(
+    [...owners.values()].map((id) => [id, replay.ownerStatus[id] ?? []]),
+  );
   const players: ClientPlayer[] = state.playerOrder.map((accountId) => {
     const p = state.players[accountId];
     return {
       accountId: idMap.get(accountId) ?? accountId,
       isOwner: owners.has(accountId),
-      card: cardFromEventsFor(events, accountId),
+      card: replay.firstCards.get(accountId) ?? EMPTY_CARD,
       place: placeByAccount.get(accountId) ?? 0,
       points: p?.points ?? 0,
       seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
@@ -104,32 +109,30 @@ export function buildClientView(input: ClientViewInput): ClientView {
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,
     maxSpeedBonus: ruleset.scoring.maxSpeedBonus,
-    events: renameAccounts(events, idMap),
+    events: replay.renamed,
     players,
     stagePlan: state.stagePlan,
     ownerAccountIds: [...owners.values()],
-    ownerStatus: replay.ownerStatus,
+    ownerStatus,
     stagePoints: replay.stagePoints,
     effectSeasons: effectSeasons(ruleset.seasons),
   };
 }
 
-// The card of an account from the first roundStarted event. Cards are deterministic per
-// (seed, matchId, roundIndex, accountId, cardIndex); later rounds come with their events.
-function cardFromEventsFor(events: readonly DomainEvent[], accountId: string): Card {
-  for (const ev of events) {
-    if (ev.type !== 'roundStarted') continue;
-    const cards = ev.cardsByPlayer[accountId];
-    if (cards !== undefined && cards.length > 0 && cards[0] !== undefined) return cards[0];
-  }
-  // Before the first round (lobby) there is no card yet: an empty grid with a free centre.
-  return {
-    cells: Array.from({ length: 25 }, (_v, i) =>
-      i === 12 ? { kind: 'free' as const } : { kind: 'number' as const, value: 0 },
-    ),
-    seasonCells: null,
-  };
+function replayOf(input: ClientViewInput): LiveReplay {
+  const replay = new LiveReplay(input.idMap, [...input.owners.keys()]);
+  replay.extend(input.events);
+  return replay;
 }
+
+// Before the first round (lobby) there is no card yet: an empty grid with a free centre.
+// Later rounds' cards come with their roundStarted events.
+const EMPTY_CARD: Card = {
+  cells: Array.from({ length: 25 }, (_v, i) =>
+    i === 12 ? { kind: 'free' as const } : { kind: 'number' as const, value: 0 },
+  ),
+  seasonCells: null,
+};
 
 function countBits(mask: number): number {
   let count = 0;

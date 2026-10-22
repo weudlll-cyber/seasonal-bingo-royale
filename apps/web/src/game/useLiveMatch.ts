@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '../shell/http.js';
-import type { QuickTestResult } from '../types.js';
+import type { DomainEventLike, QuickTestResult } from '../types.js';
 import { gameSocket, intent } from './socket.js';
 
 export interface MatchSummary {
@@ -76,9 +76,14 @@ export function useLiveMatch(code: string): {
   const [error, setError] = useState<string | null>(null);
   const held = useRef<LiveState | null>(null);
   const busy = useRef<Promise<void>>(Promise.resolve());
+  // One delta fetch waiting is enough: it fetches everything since the held seq.
+  const queued = useRef(false);
   const load = useCallback(
     (full: boolean) => {
+      if (!full && queued.current) return;
+      queued.current = !full;
       busy.current = busy.current.then(async () => {
+        if (!full) queued.current = false;
         const since = full ? 0 : (held.current?.seq ?? 0);
         try {
           const r = await api<StateResponse>(`/matches/${code}/state?since=${String(since)}`);
@@ -104,10 +109,14 @@ export function useLiveMatch(code: string): {
 }
 
 // Appends the new events to the held view; everything else comes fresh from the server.
+// Frames appended while the fetch ran are already held: those events are not repeated.
 function merge(held: LiveState | null, r: StateResponse): LiveState {
-  const events =
-    held === null || r.since === 0 ? r.view.events : [...held.view.events, ...r.view.events];
-  return { match: r.match, seq: r.seq, me: r.me, view: { ...r.view, events } };
+  if (held === null || r.since === 0) {
+    return { match: r.match, seq: r.seq, me: r.me, view: r.view };
+  }
+  const fresh = r.view.events.slice(Math.max(0, held.seq - r.since));
+  const events = [...held.view.events, ...fresh];
+  return { match: r.match, seq: Math.max(r.seq, held.seq), me: r.me, view: { ...r.view, events } };
 }
 
 interface RoomArgs {
@@ -117,18 +126,48 @@ interface RoomArgs {
   readonly setLive: (live: LiveState) => void;
 }
 
-// Watches the match room: a frame that follows the held seq loads only the new events, a
-// gap or a reconnect loads everything; record changes replace the summary.
+// Events a screen appends as they come, without fetching: other players' taps, patterns
+// and prizes, and window closes (frames carry them renamed, as the state endpoint does).
+// Anything else — a draw, the viewer's own events, rounds, stages, cuts, the end — changes
+// what the server computes for this screen (effects, baselines, places), so it fetches.
+const APPENDABLE = new Set([
+  'cellMarked',
+  'patternScored',
+  'classicPrizeAwarded',
+  'speedWindowClosed',
+]);
+
+interface Frame {
+  readonly s: number;
+  readonly events: readonly { readonly s: number; readonly event: DomainEventLike }[];
+}
+
+function appendable(frame: Frame, me: string | null): boolean {
+  return frame.events.every(
+    ({ event }) => APPENDABLE.has(event.type) && !('accountId' in event && event.accountId === me),
+  );
+}
+
+// Watches the match room: a frame that follows the held seq is appended (other players'
+// taps) or loads only the new events, a gap or a reconnect loads everything; record
+// changes replace the summary.
 function watchRoom({ code, held, load, setLive }: RoomArgs): () => void {
   const socket = gameSocket();
   const watch = (): void => {
     void intent('match.watch', { code });
     load(true);
   };
-  const onEvents = (frame: { s: number; events: readonly { s: number }[] }): void => {
+  const onEvents = (frame: Frame): void => {
     const first = frame.events[0]?.s ?? frame.s;
-    const heldSeq = held.current?.seq ?? 0;
+    const now = held.current;
+    const heldSeq = now?.seq ?? 0;
     if (frame.s <= heldSeq) return;
+    if (now !== null && first === heldSeq + 1 && appendable(frame, now.me)) {
+      const events = [...now.view.events, ...frame.events.map((e) => e.event)];
+      held.current = { ...now, seq: frame.s, view: { ...now.view, events } };
+      setLive(held.current);
+      return;
+    }
     load(first !== heldSeq + 1);
   };
   const onMatch = (summary: MatchSummary): void => {

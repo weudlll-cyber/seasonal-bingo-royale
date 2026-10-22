@@ -20,6 +20,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerHostRoutes } from './matchHost.js';
+import { LiveViews } from '../../view/liveViews.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
 
@@ -79,6 +80,11 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
 
 export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
   registerMatchList(app, deps);
+  // One replay per match, extended as events come, for every screen's fetch.
+  const views = new LiveViews({
+    events: (id, afterSeq) => deps.store.events(id, afterSeq),
+    names: (id) => playerNames(deps.pool, id),
+  });
   app.post('/api/v1/matches', async (request, reply) => {
     const accountId = requirePermission(request, reply, 'match.create');
     if (accountId === null) return reply;
@@ -105,18 +111,16 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     async (request, reply) => {
       const id = await matchIdByCode(deps.pool, request.params.code);
       if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-      // Serialized with the match's commands, so the log and the state belong together.
-      return deps.engine.runner.serial(id, async () => {
-        const m = await deps.engine.runner.current(id);
-        const since = Math.max(0, Math.min(m.seq, Number(request.query.since ?? 0) || 0));
-        return liveView({
-          match: m,
-          events: await deps.store.events(id, 0),
-          names: await playerNames(deps.pool, id),
-          me: request.session?.accountId ?? null,
-          since,
-        });
-      });
+      // Not in the match's command queue (fetches must not hold up draws): the shared
+      // replay takes the logged events up to the match's current seq, so log and state
+      // still belong together.
+      const m = await deps.engine.runner.current(id);
+      const entry = await views.entryFor(m);
+      const since = Math.max(
+        0,
+        Math.min(entry.replay.length, Number(request.query.since ?? 0) || 0),
+      );
+      return liveView({ match: m, entry, me: request.session?.accountId ?? null, since });
     },
   );
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {

@@ -6,7 +6,9 @@
  * Responsibility: POST /api/v1/dev/sign-in { as: 'host' | 'player-1' | 'player-2' |
  *                 'player-3' } creates on first use, or reuses, the account `dev-host`
  *                 (role organizer) or `dev-player-N` and starts a session for it, so the
- *                 owner can try host and players alone in several browser windows. The app
+ *                 owner can try host and players alone in several browser windows. The load
+ *                 check signs in `load-001` … `load-200` the same way (`dev-load-NNN`, players)
+ *                 and removes them with DELETE /api/v1/dev/load-accounts. The app
  *                 registers this route only when NODE_ENV is not production; a test proves
  *                 a production build answers 404.
  * Depends on:     fastify, zod, ../../auth/*, ../../db/pool
@@ -16,7 +18,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { ensureDevAccount } from '../../auth/accounts.js';
+import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
 import { setSessionCookie, type CookieConfig } from '../../auth/sessionPlugin.js';
 import { createSession, revokeSession } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
@@ -28,7 +30,20 @@ const DEV_ACCOUNTS = {
   'player-3': { displayName: 'dev-player-3', roles: [] },
 } as const;
 
-const body = z.object({ as: z.enum(['host', 'player-1', 'player-2', 'player-3']) });
+// The load check (load/) signs in numbered players: `load-001` … `load-200`.
+const LOAD = /^load-\d{3}$/;
+const body = z.object({
+  as: z.union([z.enum(['host', 'player-1', 'player-2', 'player-3']), z.string().regex(LOAD)]),
+});
+
+function devAccount(as: string): {
+  readonly displayName: string;
+  readonly roles: readonly string[];
+} {
+  return as in DEV_ACCOUNTS
+    ? DEV_ACCOUNTS[as as keyof typeof DEV_ACCOUNTS]
+    : { displayName: `dev-${as}`, roles: [] };
+}
 
 export function registerDevSignIn(
   app: FastifyInstance,
@@ -37,11 +52,19 @@ export function registerDevSignIn(
   app.post('/api/v1/dev/sign-in', async (request, reply) => {
     const parsed = body.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    const who = DEV_ACCOUNTS[parsed.data.as];
+    const who = devAccount(parsed.data.as);
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
     if (request.session !== null) await revokeSession(deps.pool, request.session.id);
     const { token } = await createSession(deps.pool, accountId, 'dev quick sign-in');
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(200).send({ accountId, displayName: who.displayName });
+  });
+  // The load check removes its accounts afterwards (their sessions and roles go with them).
+  app.delete('/api/v1/dev/load-accounts', async (_request, reply) => {
+    const rows = await deps.pool.query<{ id: string }>(
+      `SELECT id FROM sbr.accounts WHERE display_name LIKE 'dev-load-%'`,
+    );
+    for (const { id } of rows.rows) await deleteAccount(deps.pool, id);
+    return reply.status(200).send({ deleted: rows.rows.length });
   });
 }

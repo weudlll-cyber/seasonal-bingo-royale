@@ -1,0 +1,13 @@
+{
+  "name": "@sbr/load",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Load check of the realtime match against a local development stack (NIGHT-3 piece 5).",
+  "type": "module",
+  "scripts": {
+    "draw-latency": "node drawLatency.mjs"
+  },
+  "dependencies": {
+    "socket.io-client": "4.8.4"
+  }
+}

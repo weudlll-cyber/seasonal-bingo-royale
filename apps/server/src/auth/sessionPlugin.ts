@@ -48,6 +48,8 @@ const SESSION_STARTERS = new Set([
   '/api/v1/auth/guest',
   '/api/v1/dev/sign-in',
 ]);
+// Development only and outside any session: the load check's cleanup (no CSRF token).
+const DEV_UNSESSIONED = new Set(['/api/v1/dev/load-accounts']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export async function registerSessions(
@@ -72,6 +74,7 @@ export async function registerSessions(
 async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   if (SAFE_METHODS.has(request.method)) return;
   const path = request.url.split('?')[0] ?? '';
+  if (DEV_UNSESSIONED.has(path)) return;
   if (SESSION_STARTERS.has(path)) {
     if (!(request.headers['content-type'] ?? '').startsWith('application/json')) {
       await reply.status(415).send({ code: 'JSON_REQUIRED' });

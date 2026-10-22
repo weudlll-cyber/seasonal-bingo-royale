@@ -30,7 +30,8 @@ Everything in this repository is English: code, comments, commit messages, docs,
 - Work on the branch the task names. Push after every finished piece of work.
 - Merge only when the task explicitly allows it. After a merge, check CI for the merge commit (`gh run list --branch master`) and report it.
 - Never force-push or reset. After a branch is merged and the CI run on `master` for the merge commit is green, delete the branch on origin and locally.
-- Data and accounts created for a test are removed by that test.
+- Accounts created for a test are removed by that test; matches it created are aborted, never deleted (the event log is append-only, docs/spec/04-database-design.md §3.3).
+- Never disable a trigger, constraint or other protection. If a task needs that, list it under the owner's questions in the report and continue without it.
 - Run commands one at a time. Do not chain them with `&&`, `;` or `|` unless a single tool needs a pipe; chained commands do not match the permission rules and make the owner approve them by hand.
 
 ## Before reporting

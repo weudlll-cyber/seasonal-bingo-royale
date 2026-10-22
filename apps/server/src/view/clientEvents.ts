@@ -4,18 +4,27 @@
  * @brief  Prepares a match event log for the player client (Quick Test and live match).
  *
  * Responsibility: (1) rename the internal player ids (simulation p000…, account ids) to
- *                 the names the client shows (owner-01 / bot-02 in the Quick Test,
- *                 display names in a live match) in every event, so the client can match events to players; (2) replay the log
- *                 with the domain's evolve and record the owner's effect status (active
- *                 multiplier/growth with remaining draws, shield charges, seasons
- *                 collected) whenever it changes, and every player's points after each
- *                 stage start (score carry), so the client renders them and never
- *                 computes them (CLAUDE.md: the server decides, the client renders).
+ *                 the names the client shows (owner-01 / bot-02 in the Quick Test, display
+ *                 names in a live match) in every event, so the client can match events to
+ *                 players, and list the ids a batch names (the gateway's name lookup);
+ *                 (2) replay the log with the domain's evolve — at once, or extended with
+ *                 new events as they come (`LiveReplay`, one per live match) — and record
+ *                 each tracked player's effect status (active multiplier/growth with
+ *                 remaining draws, shield charges, seasons collected) whenever it changes,
+ *                 every player's points after each stage start (score carry) and first-
+ *                 round card, so the client renders them and never computes them
+ *                 (CLAUDE.md: the server decides, the client renders).
  * Depends on:     @sbr/domain
- * Used by:        ./clientView, ../dev/quicktest.ts
+ * Used by:        ./clientView, ./liveViews, ../realtime/gateway, ../dev/quicktest.ts
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import { createInitialMatchState, evolve, type DomainEvent, type MatchState } from '@sbr/domain';
+import {
+  createInitialMatchState,
+  evolve,
+  type Card,
+  type DomainEvent,
+  type MatchState,
+} from '@sbr/domain';
 
 export type SeasonName = 'spring' | 'summer' | 'autumn' | 'winter';
 export type EffectKind = 'multiplier' | 'growth' | 'harvest' | 'shield' | 'revealNext';
@@ -35,7 +44,23 @@ export function renameAccounts(
   events: readonly DomainEvent[],
   idMap: ReadonlyMap<string, string>,
 ): DomainEvent[] {
-  const rename = (id: string): string => idMap.get(id) ?? id;
+  return mapAccounts(events, (id) => idMap.get(id) ?? id);
+}
+
+// Every account id the events name (the gateway looks up their display names).
+export function accountIdsIn(events: readonly DomainEvent[]): Set<string> {
+  const ids = new Set<string>();
+  mapAccounts(events, (id) => {
+    ids.add(id);
+    return id;
+  });
+  return ids;
+}
+
+function mapAccounts(
+  events: readonly DomainEvent[],
+  rename: (id: string) => string,
+): DomainEvent[] {
   return events.map((ev) => renameEvent(ev, rename));
 }
 
@@ -80,35 +105,61 @@ export interface StagePoints {
   readonly points: Readonly<Record<string, number>>;
 }
 
-export interface ClientReplay {
-  readonly ownerStatus: Record<string, OwnerStatus[]>;
-  readonly stagePoints: StagePoints[];
-}
+// Replays the original (internal-id) log with the domain's evolve, and can be extended
+// with new events (the live view keeps one per match). Keeps one status list per tracked
+// player, with an entry only when that player's status changed, the points after each
+// stage start, the events renamed for the client and every player's first-round card.
+// Keyed by display id.
+export class LiveReplay {
+  private state = createInitialMatchState();
+  private steps = 0;
+  readonly ownerStatus: Record<string, OwnerStatus[]> = {};
+  readonly stagePoints: StagePoints[] = [];
+  readonly renamed: DomainEvent[] = [];
+  readonly firstCards = new Map<string, Card>();
 
-// Replays the original (internal-id) log once with the domain's evolve. Keeps one status
-// list per owner, with an entry only when that owner's status changed, and the points
-// after each stage start. Keyed by display id.
-export function replayForClient(
-  events: readonly DomainEvent[],
-  idMap: ReadonlyMap<string, string>,
-  owners: ReadonlyMap<string, string>,
-): ClientReplay {
-  const timeline: Record<string, OwnerStatus[]> = {};
-  for (const displayId of owners.values()) timeline[displayId] = [];
-  const stagePoints: StagePoints[] = [];
-  let state = createInitialMatchState();
-  events.forEach((ev, i) => {
-    state = evolve(state, ev);
-    if (ev.type === 'stageStarted') stagePoints.push(pointsAfter(state, idMap, i + 1));
-    for (const [internalId, displayId] of owners) {
-      const status = statusOf(state, internalId, i + 1);
-      const list = timeline[displayId];
-      if (list === undefined || status === null) continue;
+  // `tracked`: the internal ids whose status is kept, or 'all' players.
+  constructor(
+    private readonly idMap: ReadonlyMap<string, string>,
+    private readonly tracked: readonly string[] | 'all',
+  ) {
+    if (tracked !== 'all') for (const id of tracked) this.ownerStatus[idMap.get(id) ?? id] = [];
+  }
+
+  get length(): number {
+    return this.steps;
+  }
+
+  extend(events: readonly DomainEvent[]): void {
+    for (const ev of events) {
+      this.state = evolve(this.state, ev);
+      this.steps += 1;
+      if (ev.type === 'stageStarted') {
+        this.stagePoints.push(pointsAfter(this.state, this.idMap, this.steps));
+      }
+      if (ev.type === 'roundStarted') this.noteCards(ev.cardsByPlayer);
+      this.noteStatus();
+      this.renamed.push(...renameAccounts([ev], this.idMap));
+    }
+  }
+
+  private noteCards(cardsByPlayer: Readonly<Record<string, readonly Card[]>>): void {
+    for (const [id, cards] of Object.entries(cardsByPlayer)) {
+      const card = cards[0];
+      if (card !== undefined && !this.firstCards.has(id)) this.firstCards.set(id, card);
+    }
+  }
+
+  private noteStatus(): void {
+    const ids = this.tracked === 'all' ? this.state.playerOrder : this.tracked;
+    for (const id of ids) {
+      const status = statusOf(this.state, id, this.steps);
+      if (status === null) continue;
+      const list = (this.ownerStatus[this.idMap.get(id) ?? id] ??= []);
       const last = list[list.length - 1];
       if (last === undefined || !sameStatus(last, status)) list.push(status);
     }
-  });
-  return { ownerStatus: timeline, stagePoints };
+  }
 }
 
 function pointsAfter(

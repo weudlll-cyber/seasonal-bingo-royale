@@ -194,6 +194,16 @@ describe('guests and the dev quick sign-in', () => {
     expect(player.permissions).not.toContain('match.create');
   });
 
+  it('signs in numbered load players and removes them all afterwards', async () => {
+    const r = await post('/api/v1/dev/sign-in', { as: 'load-007' });
+    expect(r.json<{ displayName: string }>().displayName).toBe('dev-load-007');
+    const cookie = cookieOf(r);
+    expect((await session(cookie)).account?.displayName).toBe('dev-load-007');
+    const gone = await app().inject({ method: 'DELETE', url: '/api/v1/dev/load-accounts' });
+    expect(gone.json<{ deleted: number }>().deleted).toBe(1);
+    expect((await session(cookie)).signedIn).toBe(false);
+  });
+
   it('has no dev sign-in in a production build', async () => {
     const prod = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       NODE_ENV: 'production',

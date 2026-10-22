@@ -38,7 +38,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 ```
 
 - `seq` (client) is per socket, strictly increasing; duplicates/out-of-order intents are dropped (replay protection).
-- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }], names }` (the public event projection, seed removed, plus the display names of newly joined players); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
+- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
 - `s` (server) is the match `event seq`; clients detect gaps (`s` jumps) and resync by calling the state endpoint.
 - Intents use Socket.IO acknowledgements: `{ ok: true, data }` or `{ ok: false, code }` with codes from the error catalogue.
 
@@ -133,6 +133,8 @@ Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed windo
 | Standings broadcasts | ≤ 2/s per match, deltas only |
 | Lobby updates | batched 1/s |
 | Slow client | if Socket.IO buffer > 1 MiB, socket is disconnected; client resyncs on reconnect |
+
+Fetch load (the 200-player check, `load/drawLatency.mjs`): a frame that holds only other players' `cellMarked`, `patternScored`, `classicPrizeAwarded` or `speedWindowClosed` events, and follows the held seq without a gap, is appended by the client without a request. Any other frame triggers one `state?since=` fetch; frames that arrive while it runs are covered by one more fetch afterwards, never one per frame. The server keeps one replay per live match, extended with only the new events and shared by every screen's fetch; these fetches do not wait in the match's command queue, so they never delay draws or taps.
 
 ## 9. Scale-out (step 1 in [02-software-architecture.md](02-software-architecture.md) §8)
 

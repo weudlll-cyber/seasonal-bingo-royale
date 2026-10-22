@@ -69,6 +69,8 @@ export default defineConfig(
       // Static files served as they are (the plain early theme script, outside the TS
       // projects); apps/web/src/shell/theme.test.tsx runs it.
       'apps/web/public/',
+      // The load check: a plain Node script against a running stack, outside the TS projects.
+      'load/',
     ],
   },
   js.configs.recommended,
