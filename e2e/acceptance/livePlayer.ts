@@ -36,14 +36,21 @@ export interface LivePlayer {
   hits: number;
   pending: Pending[];
   readonly missTimings: number[];
+  // The draw already planned (ticker length and number): a later check of the same draw,
+  // e.g. while the match waits for its host after a cut, must not tap it again.
+  lastDraw: string | null;
 }
 
 export function newPlayer(page: Page, who: string, missed: LivePlayer['missed']): LivePlayer {
-  return { page, who, missed, hits: 0, pending: [], missTimings: [] };
+  return { page, who, missed, hits: 0, pending: [], missTimings: [], lastDraw: null };
 }
 
-// A new number is on screen: plan what this player does with it, if it is on the card.
+// A new number is on screen: plan what this player does with it, if it is on the card
+// (once per draw).
 export async function onNewDraw(p: LivePlayer, s: LiveSnap): Promise<void> {
+  const draw = `${String(s.ticker.length)}:${String(s.item)}`;
+  if (draw === p.lastDraw) return;
+  p.lastDraw = draw;
   const cell = s.cells.find((c) => c.value === s.item && !c.marked);
   if (cell === undefined || s.item === null || s.finished) return;
   const plan = PLANS[p.hits % PLANS.length] ?? 'inside';

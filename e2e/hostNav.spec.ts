@@ -33,7 +33,7 @@ async function shootCreateForm(page: Page): Promise<void> {
   await page.getByTestId('create-start-rule').selectOption('at');
   const at = new Date(Date.now() + 3_600_000 - new Date().getTimezoneOffset() * 60_000);
   await page.getByTestId('create-start-at').fill(at.toISOString().slice(0, 16));
-  await captureLook(page, SHOTS, 'create-form');
+  await captureLook(page, SHOTS, 'create-form', page.getByTestId('create-start-at'));
   // The form keeps its choices; the journey's match starts from the console.
   await page.getByTestId('create-start-rule').selectOption('host');
 }
