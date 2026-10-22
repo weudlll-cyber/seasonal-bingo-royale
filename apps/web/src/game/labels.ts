@@ -29,7 +29,7 @@ export function statusName(status: MatchSummary['status']): string {
     lobby: 'Open to join',
     running: 'Running',
     finished: 'Finished',
-    aborted: 'Stopped',
+    aborted: 'Cancelled',
   };
   return names[status];
 }
@@ -153,7 +153,9 @@ export function prizeLine(prizeKey: string, who: string, drawIndex: number, item
 export const decidedAt = (drawIndex: number, item: number): string =>
   `draw ${String(drawIndex + 1)} (${ballLabel(item)})`;
 
-export const abortLine = (reason: string): string => `Match stopped by the host: ${reason}`;
+// Events logged before D17 carry no `by`: those were the host's.
+export const abortLine = (reason: string, by: 'host' | 'system' = 'host'): string =>
+  `Match cancelled by the ${by}: ${reason}`;
 
 // A server error code in plain words; unknown codes get a general sentence, never the code.
 export function problemText(code: string): string {

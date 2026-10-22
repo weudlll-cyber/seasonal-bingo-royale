@@ -123,6 +123,8 @@ export interface NextRoundScheduled {
 export interface MatchAborted {
   readonly type: 'matchAborted';
   readonly reason: string;
+  // Who ended it (D17); absent in events logged before D17, which were the host's.
+  readonly by?: 'host' | 'system';
 }
 
 export type DomainEvent =

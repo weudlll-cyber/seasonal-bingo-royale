@@ -61,10 +61,15 @@ async function startMatch(deps: FlowDeps, matchId: string): Promise<void> {
   await advance(deps, matchId, false);
 }
 
-// Stops the match with a reason (the host's abort).
-export async function stopMatch(deps: FlowDeps, matchId: string, reason: string): Promise<void> {
+// Ends the match without a result, with a reason and who ended it (D17).
+export async function stopMatch(
+  deps: FlowDeps,
+  matchId: string,
+  reason: string,
+  by: 'host' | 'system',
+): Promise<void> {
   // A match that has already ended keeps its status (the domain produces nothing).
-  const produced = await deps.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
+  const produced = await deps.runner.apply(matchId, [{ type: 'abortMatch', reason, by }]);
   if (produced.length === 0) return;
   await deps.store.setStatus(matchId, 'aborted');
   deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'aborted' } }));

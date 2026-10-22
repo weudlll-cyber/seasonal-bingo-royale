@@ -2,7 +2,7 @@
  * @file   apps/web/src/game/Lobby.tsx
  * @module web/game
  * @brief  The lobby: open, running and just-finished matches, to join or watch (WP-12).
- *                 Stopped (aborted) matches are left out.
+ *                 Cancelled matches open their end page (D17).
  *
  * Responsibility: list GET /matches (refreshed every 3 seconds) as cards with title, game
  *                 type, status, code, players, draw mode and missed-number rule, and for an
@@ -55,9 +55,8 @@ export function useMatchList(): {
 
 export function Lobby(): ReactElement {
   const { can } = useSession();
-  const { matches: all, error } = useMatchList();
-  // Stopped matches have nothing to join or watch; finished ones show their result.
-  const matches = all?.filter((m) => m.status !== 'aborted') ?? null;
+  // Finished matches show their result, cancelled ones their end page (D17).
+  const { matches, error } = useMatchList();
   const [joinError, setJoinError] = useState<string | null>(null);
   const join = (code: string): void => {
     api(`/matches/${code}/join`, { method: 'POST', body: {} })

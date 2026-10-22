@@ -164,14 +164,14 @@ describe('plain English on every screen', () => {
       expect(player).toContain('Cut 2: 2 go on, 0 are out (1 saved by Winter shield)');
       expect(player).toContain('bot-02 collected all four seasons');
       expect(player).toContain('Full card won by bot-02 on draw 1 (B 4)');
-      expect(player).toContain('Match stopped by the host: Power cut in the hall');
+      expect(player).toContain('Match cancelled by the host: Power cut in the hall');
       expectPlain(player);
       // One match log, newest first: the abort (last event before the finish) leads.
       const logs = document.querySelectorAll('[data-testid="match-log"]');
       expect(logs).toHaveLength(1);
       expect(document.querySelector('[data-testid="banners"]')).toBeNull();
       expect(logs[0]?.querySelector('li')?.textContent).toBe(
-        'Match stopped by the host: Power cut in the hall',
+        'Match cancelled by the host: Power cut in the hall',
       );
       // At the end: what to do next, one ranking, the rule behind it, no in-play wording.
       expect(document.querySelector('[data-testid="end-actions"]')?.textContent).toContain(

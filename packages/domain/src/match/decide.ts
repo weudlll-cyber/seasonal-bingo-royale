@@ -261,5 +261,5 @@ function onFinish(state: MatchState): readonly DomainEvent[] {
 }
 
 function onAbort(cmd: AbortMatch): readonly DomainEvent[] {
-  return [{ type: 'matchAborted', reason: cmd.reason }];
+  return [{ type: 'matchAborted', reason: cmd.reason, by: cmd.by }];
 }

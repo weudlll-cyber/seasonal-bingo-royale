@@ -62,8 +62,8 @@ export async function stopOpenMatches(h: Harness): Promise<string[]> {
     // A second app on the same database (buildOn) may have moved the match on: the first
     // try then meets a version conflict, drops the stale cache, and the retry reloads.
     await h.built.match.engine
-      .abort(id, 'test cleanup')
-      .catch(() => h.built.match.engine.abort(id, 'test cleanup'));
+      .abort(id, 'test cleanup', 'system')
+      .catch(() => h.built.match.engine.abort(id, 'test cleanup', 'system'));
   }
   return open.rows.map((r) => r.id);
 }

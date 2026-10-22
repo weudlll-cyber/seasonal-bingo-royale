@@ -11,10 +11,11 @@
  *                 prize list in classic types, one match log (newest first), the cut screen
  *                 with the countdown to the next round or "Waiting for the host to start
  *                 round N" (D14), the spectator note once out; at the
- *                 end the final placement on top. Remounted per match code, so nothing of a
- *                 previous match survives.
+ *                 end the final placement on top; a match ended without a result shows its
+ *                 own end page (./MatchCancelled, D17). Remounted per match code, so nothing
+ *                 of a previous match survives.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./CurrentBall,
- *                 ./HostLink, ./WaitingRoom, ./labels
+ *                 ./HostLink, ./WaitingRoom, ./MatchCancelled, ./labels
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -33,6 +34,7 @@ import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
 import { progressText, rulesLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';
+import { MatchCancelled } from './MatchCancelled.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
 import './game.css';
@@ -44,6 +46,7 @@ export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   }
   const view = playbackAt(live.view, live.view.events.length);
   if (live.match.status === 'lobby') return <WaitingRoom live={live} view={view} />;
+  if (live.match.status === 'aborted') return <MatchCancelled live={live} />;
   return <Arena live={live} view={view} />;
 }
 

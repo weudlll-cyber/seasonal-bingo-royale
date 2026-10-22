@@ -143,7 +143,7 @@ function applyLifecycle(state: FoldState, ev: DomainEventLike): boolean {
       state.finished = true;
       return true;
     case 'matchAborted':
-      pushBanner(state, 'aborted', abortLine(ev.reason));
+      pushBanner(state, 'aborted', abortLine(ev.reason, ev.by));
       return true;
     default:
       return false;

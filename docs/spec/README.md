@@ -62,6 +62,7 @@ Complete blueprint for implementation by Claude Code. No code yet.
 | D14 | Pause between royale rounds | Chosen at creation: wait N seconds (default 6, minimum 3) or the host starts the next round ([01](01-game-design.md) §7.1). |
 | D15 | Cut screen button | “Keep playing” for a survivor, “Watch” for an eliminated player ([01](01-game-design.md) §13). |
 | D16 | Start time | A set start time is an announcement; the host can always start the match. “Start automatically at the start time” (default off, switchable in the console until the start) starts it at that time with at least 2 players; with fewer the match waits and the console says so ([01](01-game-design.md) §7.6). |
+| D17 | Match ended without a result | Its own end page for host and players: the reason in plain words and who ended it (“by the host” or “by the system”), “Back to the lobby” (everyone) and “Host another match” (host); never the live arena ([01](01-game-design.md) §13). |
 
 ## 5. Open
 

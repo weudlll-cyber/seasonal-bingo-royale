@@ -116,7 +116,8 @@ export type DomainEventLike =
       readonly type: 'matchFinished';
       readonly placement: readonly { readonly accountId: string; readonly place: number }[];
     }
-  | { readonly type: 'matchAborted'; readonly reason: string };
+  // `by` is absent in events logged before D17 (they were the host's).
+  | { readonly type: 'matchAborted'; readonly reason: string; readonly by?: 'host' | 'system' };
 
 export interface StagePlanEntry {
   readonly kind: 'qualification' | 'elimination' | 'final';

@@ -232,7 +232,8 @@ export class MatchEngine {
     });
   }
 
-  abort(matchId: string, reason: string): Promise<void> {
-    return this.runner.serial(matchId, () => stopMatch(this.flow, matchId, reason));
+  // Ends the match without a result: by its host, or by the system (D17).
+  abort(matchId: string, reason: string, by: 'host' | 'system'): Promise<void> {
+    return this.runner.serial(matchId, () => stopMatch(this.flow, matchId, reason, by));
   }
 }

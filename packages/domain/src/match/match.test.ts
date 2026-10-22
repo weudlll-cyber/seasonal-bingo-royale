@@ -72,7 +72,7 @@ describe('a match that has ended', () => {
       playerCount: 4,
       tickedPrizes: [],
     });
-    const abort = { type: 'abortMatch', reason: 'late' } as const;
+    const abort = { type: 'abortMatch', reason: 'late', by: 'host' } as const;
     expect(decide(r.state, abort, { now: 0 })).toEqual([]);
     const aborted = evolve(r.state, { type: 'matchAborted', reason: 'first' });
     expect(decide(aborted, abort, { now: 0 })).toEqual([]);

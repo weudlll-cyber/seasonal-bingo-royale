@@ -4,7 +4,8 @@
  * @brief  The host's console for one match: lobby, start, live draw control, results (05 §3).
  *
  * Responsibility: in the lobby, ./HostLobby (notice, players, bots, start rules, Start);
- *                 while running, the current and recent numbers, a big Draw next
+ *                 a match ended without a result shows its end page (../game/MatchCancelled,
+ *                 D17); while running, the current and recent numbers, a big Draw next
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
@@ -25,6 +26,7 @@ import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
 import { EndActions } from '../game/EndActions.js';
+import { MatchCancelled } from '../game/MatchCancelled.js';
 import { intent } from '../game/socket.js';
 import '../game/game.css';
 import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
@@ -59,11 +61,11 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
         </div>
         {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
       </header>
-      {live.match.status === 'lobby' ? (
-        <HostLobby live={live} view={view} />
-      ) : (
+      {live.match.status === 'lobby' ? <HostLobby live={live} view={view} /> : null}
+      {live.match.status === 'aborted' ? <MatchCancelled live={live} titled={false} /> : null}
+      {live.match.status === 'running' || live.match.status === 'finished' ? (
         <HostLive live={live} view={view} />
-      )}
+      ) : null}
     </div>
   );
 }

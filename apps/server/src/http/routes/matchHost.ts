@@ -8,7 +8,8 @@
  *                 /next-round (when the match waits for the host, D14), PUT
  *                 /draw-mode { mode, intervalMs } at any time, POST /auto-start { auto }
  *                 while the match waits to start (D16), POST /abort { reason }.
- *                 Development builds add POST /bots { upTo } to fill the lobby with bots.
+ *                 Development builds add POST /bots { upTo } to fill the lobby with bots and
+ *                 POST /dev-system-abort { reason } to end a match as the system (D17).
  *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
  * Depends on:     fastify, zod, ./matches, ./matchInput
  * Used by:        ./matches
@@ -85,10 +86,14 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
     return { settings: record.settings };
   });
   host('/api/v1/matches/:code/abort', (id, request) =>
-    deps.engine.abort(id, abortBody.parse(request.body).reason),
+    deps.engine.abort(id, abortBody.parse(request.body).reason, 'host'),
   );
-  // Development only: fill the lobby with bots so the host can try a match alone.
+  // Development only: fill the lobby with bots so the host can try a match alone, and end
+  // a match as the system would, so its end page can be seen (D17).
   if (deps.dev) {
+    host('/api/v1/matches/:code/dev-system-abort', (id, request) =>
+      deps.engine.abort(id, abortBody.parse(request.body).reason, 'system'),
+    );
     host('/api/v1/matches/:code/bots', (id, request) =>
       deps.engine.fillWithBots(id, botsBody.parse(request.body).upTo),
     );

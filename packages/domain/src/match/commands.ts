@@ -88,6 +88,8 @@ export interface ScheduleNextRound {
 export interface AbortMatch {
   readonly type: 'abortMatch';
   readonly reason: string;
+  // Who ended the match without a result (D17).
+  readonly by: 'host' | 'system';
 }
 
 export type Command =
