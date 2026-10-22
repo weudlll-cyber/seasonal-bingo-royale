@@ -107,31 +107,21 @@ export function cutLine(f: CutFacts): string {
 }
 
 // Where the match stands: "Battle royale · stage 2 (elimination) · round 3 · draw 12".
-interface ProgressFacts {
-  readonly gameType: GameType;
-  readonly stageKind: string | null;
-  readonly stageIndex: number;
-  readonly roundIndex: number;
-  readonly draws: number;
-}
-
-// The progress line of a live match (player screen and host console).
+// The progress line of a live match (player screen and host console): during a round
+// "Battle royale · stage 1 (qualification) · round 1 · draw 12"; in the pause after it
+// the ended round with its own stage, "… · round 1 over", and once the next stage has
+// begun "… · stage 2 (elimination) next" — never the new stage with the old draw count.
 export function progressText(live: LiveState, view: PlaybackView): string {
-  return progressLine({
-    gameType: live.view.gameType,
-    stageKind: live.view.stagePlan[view.currentStage]?.kind ?? null,
-    stageIndex: view.currentStage,
-    roundIndex: view.currentRound,
-    draws: view.drawsSoFar.length,
-  });
-}
-
-function progressLine(f: ProgressFacts): string {
-  const stage =
-    f.gameType === 'royale' && f.stageKind !== null
-      ? ` · stage ${String(f.stageIndex + 1)} (${f.stageKind})`
+  const stage = (index: number): string => {
+    const kind = live.view.stagePlan[index]?.kind;
+    return live.view.gameType === 'royale' && kind !== undefined
+      ? ` · stage ${String(index + 1)} (${kind})`
       : '';
-  return `${gameTypeName(f.gameType)}${stage} · round ${String(f.roundIndex + 1)} · draw ${String(f.draws)}`;
+  };
+  const head = `${gameTypeName(live.view.gameType)}${stage(view.roundStage)} · round ${String(view.currentRound + 1)}`;
+  if (!view.roundOver || view.finished) return `${head} · draw ${String(view.drawsSoFar.length)}`;
+  const next = view.currentStage === view.roundStage ? '' : `${stage(view.currentStage)} next`;
+  return `${head} over${next}`;
 }
 
 export const CUT_NOTE: Readonly<Record<'survived' | 'saved' | 'eliminated', string>> = {

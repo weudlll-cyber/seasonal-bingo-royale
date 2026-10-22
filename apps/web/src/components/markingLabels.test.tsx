@@ -43,18 +43,16 @@ function renderForm() {
 describe('start form labels', () => {
   it('names marking, missed numbers and draws without the word auto', () => {
     const { container } = render(<StartForm onStart={vi.fn()} busy={false} />);
-    expect(optionTexts('marking-mode')).toEqual([
-      'Marking: I tap the numbers',
-      'Marking: mark for me',
-    ]);
+    expect(optionTexts('marking-mode')).toEqual(['I tap the numbers', 'Mark for me']);
     expect(optionTexts('missed-numbers')).toEqual([
-      'Missed numbers: mark for me after 3 seconds',
-      'Missed numbers: leave open (tap later without bonus)',
+      'Mark for me after 3 seconds',
+      'Leave open (tap later, no bonus)',
     ]);
     expect(optionTexts('start-draw-mode')).toEqual([
-      'Draws: timed (every 5 seconds)',
-      'Draws: host presses Draw next',
+      'Timed (every 5 seconds)',
+      'Host presses Draw next',
     ]);
+    expect(container.textContent).toContain('Missed numbers');
     expect(container.textContent).not.toMatch(/\bauto\b/i);
   });
 
@@ -62,8 +60,8 @@ describe('start form labels', () => {
     renderForm();
     fireEvent.change(screen.getByTestId('missed-delay'), { target: { value: '5' } });
     fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '8' } });
-    expect(optionTexts('missed-numbers')[0]).toBe('Missed numbers: mark for me after 5 seconds');
-    expect(optionTexts('start-draw-mode')[0]).toBe('Draws: timed (every 8 seconds)');
+    expect(optionTexts('missed-numbers')[0]).toBe('Mark for me after 5 seconds');
+    expect(optionTexts('start-draw-mode')[0]).toBe('Timed (every 8 seconds)');
     fireEvent.change(screen.getByTestId('marking-mode'), { target: { value: 'auto' } });
     expect(screen.queryByTestId('missed-numbers')).toBeNull();
   });

@@ -8,8 +8,9 @@
  *                 place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
  *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
  *                 longest tap time) and the plain message when the seconds are below it;
- *                 the royale pause choice "wait N seconds" (at least 3) or "host starts the
- *                 next round". The server enforces both as well.
+ *                 the royale pause choice "Wait a few seconds" (N, at least 3) or "I start
+ *                 each round myself". The server enforces both as well. Every option fits a
+ *                 390 px phone.
  * Depends on:     react, @sbr/contracts
  * Used by:        ./CreateMatch
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D14)
@@ -84,8 +85,8 @@ export function RoundPauseField({
           onChange(e.target.value === 'host' ? { kind: 'host' } : INITIAL_PAUSE);
         }}
       >
-        <option value="wait">Wait a few seconds, then start the next round</option>
-        <option value="host">I start the next round myself</option>
+        <option value="wait">Wait a few seconds</option>
+        <option value="host">I start each round myself</option>
       </select>
       {value.kind === 'wait' ? (
         <label className="sbr-row">

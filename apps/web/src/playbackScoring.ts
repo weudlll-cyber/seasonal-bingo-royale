@@ -19,6 +19,9 @@ import type { DomainEventLike } from './types.js';
 export interface FoldState {
   stageIndex: number;
   roundIndex: number;
+  // The stage the current (or just ended) round belongs to; the next stage may already
+  // have begun while its first round has not.
+  roundStage: number;
   drawsSoFar: number[];
   totalDraws: number;
   players: Map<string, PlayerView>;

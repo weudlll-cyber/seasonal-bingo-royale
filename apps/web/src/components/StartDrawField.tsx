@@ -3,8 +3,8 @@
  * @module web
  * @brief  Start-form choice of draw control (D8): timed draws every N seconds, or host draws.
  *
- * Responsibility: pick the draw mode before the run — "Draws: timed (every N seconds)"
- *                 or "Draws: host presses Draw next" — and, for timed draws, the seconds
+ * Responsibility: pick the draw mode before the run — under "Draws", "Timed (every N
+ *                 seconds)" or "Host presses Draw next" — and, for timed draws, the seconds
  *                 between draws (left empty, the ruleset interval applies; clamped to
  *                 the allowed range by ../drawControl). The host can change both during
  *                 play. Labels never use the word "auto" alone, so they cannot be
@@ -47,8 +47,8 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
           onChange({ ...value, mode: e.target.value as DrawMode });
         }}
       >
-        <option value="auto">Draws: timed (every {String(seconds)} seconds)</option>
-        <option value="host">Draws: host presses Draw next</option>
+        <option value="auto">Timed (every {String(seconds)} seconds)</option>
+        <option value="host">Host presses Draw next</option>
       </select>
       <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
         <span>Seconds between timed draws</span>

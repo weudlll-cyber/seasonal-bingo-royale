@@ -50,6 +50,9 @@ export interface PrizeWin {
 export interface PlaybackView {
   readonly currentStage: number;
   readonly currentRound: number;
+  // The stage of the current or just ended round (during a pause the next stage may
+  // already be current).
+  readonly roundStage: number;
   readonly drawsSoFar: readonly number[];
   readonly totalDraws: number;
   readonly standings: readonly PlayerView[];

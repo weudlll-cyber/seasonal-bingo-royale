@@ -38,6 +38,7 @@ export function playbackAt(result: QuickTestResult, step: number): PlaybackView 
   return {
     currentStage: state.stageIndex,
     currentRound: state.roundIndex,
+    roundStage: state.roundStage,
     drawsSoFar: state.drawsSoFar,
     totalDraws: state.totalDraws,
     standings: players.sort(standingsOrder),
@@ -67,6 +68,7 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
   const state: FoldState = {
     stageIndex: 0,
     roundIndex: 0,
+    roundStage: 0,
     drawsSoFar: [],
     totalDraws: 0,
     players: new Map(
@@ -155,6 +157,7 @@ function startRound(
   ev: Extract<DomainEventLike, { type: 'roundStarted' }>,
 ): void {
   state.roundIndex = ev.roundIndex;
+  state.roundStage = state.stageIndex;
   state.roundOver = false;
   state.lastScorer = null;
   state.drawsSoFar = [];

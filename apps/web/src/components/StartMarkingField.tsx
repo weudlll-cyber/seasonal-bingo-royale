@@ -3,9 +3,10 @@
  * @module web
  * @brief  Start-form choice of marking and of the missed-number rule (01 §6, D9).
  *
- * Responsibility: "Marking: I tap the numbers" or "Marking: mark for me"; when the owner
- *                 taps, a second choice for missed numbers: marked for the owner after N
- *                 seconds (default 3) or left open to be tapped later without bonus.
+ * Responsibility: under "Marking", "I tap the numbers" or "Mark for me"; when the owner
+ *                 taps, a second choice under "Missed numbers": "Mark for me after N seconds"
+ *                 (default 3) or "Leave open (tap later, no bonus)". The options leave out
+ *                 what their legend says, so they fit a 390 px phone.
  *                 Labels never use the word "auto" alone, so they cannot be confused
  *                 with the draw control.
  * Depends on:     react, ../types
@@ -57,10 +58,15 @@ export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): 
           onChange({ ...value, mode: e.target.value as MarkingMode });
         }}
       >
-        <option value="manual">Marking: I tap the numbers</option>
-        <option value="auto">Marking: mark for me</option>
+        <option value="manual">I tap the numbers</option>
+        <option value="auto">Mark for me</option>
       </select>
-      {value.mode === 'manual' ? <MissedField value={value} onChange={onChange} /> : null}
+      {value.mode === 'manual' ? (
+        <>
+          <span className="sbr-muted">Missed numbers</span>
+          <MissedField value={value} onChange={onChange} />
+        </>
+      ) : null}
     </fieldset>
   );
 }
@@ -78,10 +84,8 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
           onChange({ ...value, missed: e.target.value as MissedNumbers['kind'] });
         }}
       >
-        <option value="autoMarkAfter">
-          Missed numbers: mark for me after {String(value.delaySec)} seconds
-        </option>
-        <option value="noAutoMark">Missed numbers: leave open (tap later without bonus)</option>
+        <option value="autoMarkAfter">Mark for me after {String(value.delaySec)} seconds</option>
+        <option value="noAutoMark">Leave open (tap later, no bonus)</option>
       </select>
       {value.missed === 'autoMarkAfter' ? (
         <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
