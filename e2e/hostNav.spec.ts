@@ -10,20 +10,31 @@
  *                 on a wide screen and scrolls away on a phone; at 360 and 390 px the account
  *                 chip is not cut and the buttons stay on one line. The console in the lobby
  *                 shows the open-match notice with the code. In Chromium it also saves the
- *                 create form, the console in the lobby, the lobby and the waiting room at
- *                 desktop and phone size, light and dark, to reports/screens/look/.
+ *                 create form (start rule "At a set time"), the console in the lobby, the
+ *                 lobby and the waiting room at desktop and phone size, light and dark, to
+ *                 reports/screens/night-3/.
  * Depends on:     @playwright/test, node:path, ./devStack, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { REPO_ROOT } from './devStack.js';
 import { fillAndStart, hostMatch, joinFromLobby, signIn, stopMatch } from './realGame.js';
 import { captureLook, DESKTOP, PHONE } from './screens.js';
 
-const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'look');
+const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'night-3');
+
+// The create form with the start rules: a start time an hour ahead (local, as the field takes it).
+async function shootCreateForm(page: Page): Promise<void> {
+  await page.goto('/#/host/new');
+  await page.getByTestId('create-title').fill('Friday night bingo');
+  await page.getByTestId('create-start-rule').selectOption('at');
+  const at = new Date(Date.now() + 3_600_000 - new Date().getTimezoneOffset() * 60_000);
+  await page.getByTestId('create-start-at').fill(at.toISOString().slice(0, 16));
+  await captureLook(page, SHOTS, 'create-form');
+}
 
 test('the host returns via Manage and Open host console; a player sees no Manage', async ({
   browser,
@@ -33,11 +44,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
   const shots = info.project.name === 'chromium';
   const page = await (await browser.newContext({ viewport: DESKTOP })).newPage();
   await signIn(page, 'host');
-  if (shots) {
-    await page.goto('/#/host/new');
-    await page.getByTestId('create-title').fill('Friday night bingo');
-    await captureLook(page, SHOTS, 'create-form');
-  }
+  if (shots) await shootCreateForm(page);
   const code = await hostMatch(page, {
     title: 'Friday night bingo',
     gameType: 'royale',

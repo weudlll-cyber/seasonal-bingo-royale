@@ -8,13 +8,21 @@
  *                 unknown e-mail get the same plain answer; repeated failures for one
  *                 account get the rate-limit message (Chromium only, so the full suite stays
  *                 under the per-address login limit). The test deletes its account
- *                 (DELETE /me) and stops its match, also when a step fails.
- * Depends on:     @playwright/test, ./realGame
+ *                 (DELETE /me) and stops its match, also when a step fails. In Chromium it
+ *                 saves the register and sign-in forms (both sizes and themes) to
+ *                 reports/screens/night-3/.
+ * Depends on:     @playwright/test, node:path, ./devStack, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §13
  */
+import path from 'node:path';
+
 import { expect, test, type Page } from '@playwright/test';
 
+import { REPO_ROOT } from './devStack.js';
 import { hostMatch, signIn, stopMatch } from './realGame.js';
+import { captureLook } from './screens.js';
+
+const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'night-3');
 
 const PASSWORD = 'correct horse battery staple';
 
@@ -41,8 +49,9 @@ async function signInWithForm(page: Page, email: string, password: string): Prom
   await page.getByTestId('sign-in-submit').click();
 }
 
-test('register, sign out, sign in, join a match, sign out', async ({ browser }) => {
+test('register, sign out, sign in, join a match, sign out', async ({ browser }, info) => {
   test.setTimeout(120_000);
+  const shots = info.project.name === 'chromium';
   const name = `e2e${Date.now().toString(36)}`;
   const email = `${name}@example.com`;
   const page = await (await browser.newContext()).newPage();
@@ -61,10 +70,15 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }) 
     await page.getByTestId('register-displayName').fill(name);
     await page.getByTestId('register-email').fill(email);
     await page.getByTestId('register-password').fill(PASSWORD);
+    if (shots) await captureLook(page, SHOTS, 'register');
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
     await page.getByTestId('sign-out').click();
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
+    if (shots) {
+      await page.getByTestId('open-sign-in').click();
+      await captureLook(page, SHOTS, 'sign-in');
+    }
     await signInWithForm(page, email, PASSWORD);
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
     await page.getByTestId(`join-${code}`).click();
