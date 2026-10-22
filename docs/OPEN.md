@@ -2,7 +2,7 @@
 
 Full list: [BACKLOG.md](BACKLOG.md).
 
-- Implementation: WP-01, WP-02, SPEC-MODES-1, WP-03, WP-04, WP-05, WP-06 and WP-07 done (match lifecycle completed on branch feat/wp-07b-match-lifecycle 2026-10-20; property-based tests on branch test/domain-properties). WP-08 Quick Test on branch feat/wp-08-quicktest (merge approved for NIGHT-2). WP-09 and later: first draft of the real game on branch feat/real-game-draft (NIGHT-2, not merged), polished by POLISH-1 (host navigation, visible defects); LOOK-1 adds D12–D15 and the website's look. NIGHT-3 adds account forms, start rules, the fast acceptance profile and the 200-player check (`load/`).
+- Implementation: WP-01, WP-02, SPEC-MODES-1, WP-03, WP-04, WP-05, WP-06 and WP-07 done (match lifecycle completed on branch feat/wp-07b-match-lifecycle 2026-10-20; property-based tests on branch test/domain-properties). WP-08 Quick Test on branch feat/wp-08-quicktest (merge approved for NIGHT-2). WP-09 and later: first draft of the real game on branch feat/real-game-draft (NIGHT-2, not merged), polished by POLISH-1 (host navigation, visible defects); LOOK-1 adds D12–D15 and the website's look. NIGHT-3 adds account forms, start rules, the fast acceptance profile and the 200-player check (`load/`). NIGHT-4 (in progress): D16 start time as an announcement.
 - To decide with the owner before WP-12: what happens to players still tapping when a realtime classic prize is decided on a draw.
 - Three small pieces in the website repository, needed only for Phase 6: login handoff endpoint, chat room `bingo`, embeddable call view (consumed by WP-25b).
 - Owner idea, to be described: an interlude between royale rounds.

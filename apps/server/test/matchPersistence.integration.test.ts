@@ -211,7 +211,7 @@ describe('pause between rounds across a restart', () => {
 });
 
 describe('start at a set time across a restart', () => {
-  it('starts the match at its time on a server that came up after it was set', async () => {
+  it('starts the match itself at its time on a server that came up after it was set', async () => {
     const a = harness.built;
     const host = await signIn(a.fastify, 'host');
     const at = Date.now() + 11_000;
@@ -226,17 +226,27 @@ describe('start at a set time across a restart', () => {
     });
     const { code, id } = created.json<{ code: string; id: string }>();
     await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
-    // The running server shows the set time, and the rule (NIGHT-3: it once showed 'host').
+    // Off by default; the host switches it on in the console.
+    expect((await host.post(`/api/v1/matches/${code}/auto-start`, { auto: true })).statusCode).toBe(
+      200,
+    );
+    // The running server shows the announced time and the automatic start (NIGHT-3: the rule
+    // once showed 'host'); no countdown runs yet (D16).
     const summary = (await host.get(`/api/v1/matches/${code}`)).json<{
-      startsAt: number;
-      settings: { startRule: { kind: string } };
+      startsAt: number | null;
+      settings: { startRule: unknown };
     }>();
-    expect(summary.startsAt).toBe(at);
-    expect(summary.settings.startRule).toEqual({ kind: 'at', at });
+    expect(summary.startsAt).toBeNull();
+    expect(summary.settings.startRule).toEqual({ kind: 'at', at, auto: true });
     // The restart: a new server on the same database, nothing in memory, its scheduler on.
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
     b.match.startScheduler();
     const status = async () => (await b.match.store.load(id))?.record.status;
+    expect((await b.match.store.load(id))?.record.settings.startRule).toEqual({
+      kind: 'at',
+      at,
+      auto: true,
+    });
     const until = Date.now() + 40_000;
     while ((await status()) !== 'running' && Date.now() < until) {
       await new Promise((resolve) => setTimeout(resolve, 500));

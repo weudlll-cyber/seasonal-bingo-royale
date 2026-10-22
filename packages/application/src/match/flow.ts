@@ -3,7 +3,8 @@
  * @module application/match
  * @brief  The timed flow of a live match: what each scheduled action does and schedules next.
  *
- * Responsibility: start_match starts the match and its first round; start_round deals the
+ * Responsibility: start_match starts the match and its first round; auto_start begins the
+ *                 countdown of a set start time (./startRules, D16); start_round deals the
  *                 cards and, with timed draws, schedules the first draw one interval
  *                 later; a draw schedules the missed-number auto-mark (when people tap
  *                 under autoMarkAfter) and the close of its speed window; the window close
@@ -12,7 +13,7 @@
  *                 to the screens as nextRoundAt), the next stage begins or the match finishes — or,
  *                 with timed draws, schedules the next draw one interval after this one.
  *                 Host draws follow the same path from the host's Draw next (D8, D10).
- * Depends on:     @sbr/domain, ./ports, ./runner
+ * Depends on:     @sbr/domain, ./ports, ./runner, ./startRules
  * Used by:        ./engine
  * Spec:           docs/spec/01-game-design.md §5, §6, §7; docs/spec/06-realtime-architecture.md §5
  */
@@ -20,7 +21,7 @@ import { nextStep } from '@sbr/domain';
 
 import type { Clock, LoadedMatch, MatchStore, ScheduledAction, Scheduler } from './ports.js';
 import type { MatchRunner } from './runner.js';
-import { NOT_ENOUGH_AT_START, tooFewToStart } from './startRules.js';
+import { autoStart } from './startRules.js';
 
 export interface FlowDeps {
   readonly runner: MatchRunner;
@@ -33,6 +34,8 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
   switch (action.kind) {
     case 'start_match':
       return startMatch(deps, action.matchId);
+    case 'auto_start':
+      return autoStart(deps, action.matchId);
     case 'start_round':
       return startRound(deps, action.matchId);
     case 'draw':
@@ -51,9 +54,6 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
 }
 
 async function startMatch(deps: FlowDeps, matchId: string): Promise<void> {
-  if (tooFewToStart(await deps.runner.current(matchId))) {
-    return stopMatch(deps, matchId, NOT_ENOUGH_AT_START);
-  }
   const produced = await deps.runner.apply(matchId, [{ type: 'startMatch' }]);
   if (produced.length === 0) return;
   await deps.store.setStatus(matchId, 'running');
@@ -61,7 +61,7 @@ async function startMatch(deps: FlowDeps, matchId: string): Promise<void> {
   await advance(deps, matchId, false);
 }
 
-// Stops the match with a reason (the host's abort, or too few players at the start time).
+// Stops the match with a reason (the host's abort).
 export async function stopMatch(deps: FlowDeps, matchId: string, reason: string): Promise<void> {
   // A match that has already ended keeps its status (the domain produces nothing).
   const produced = await deps.runner.apply(matchId, [{ type: 'abortMatch', reason }]);

@@ -3,9 +3,8 @@
  * @module web/host
  * @brief  The host's console for one match: lobby, start, live draw control, results (05 §3).
  *
- * Responsibility: in the lobby, the notice "Your match is open — players can join now from
- *                 the lobby (code …)", the joined players, "Fill with N bots" (development
- *                 only) and Start; while running, the current and recent numbers, a big Draw next
+ * Responsibility: in the lobby, ./HostLobby (notice, players, bots, start rules, Start);
+ *                 while running, the current and recent numbers, a big Draw next
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
@@ -13,7 +12,8 @@
  *                 players first, prizes awarded, the match log (newest first) with cut
  *                 results, and abort with a reason; at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
- * Depends on:     react, ../playback, ../components/*, ../game/*, ../shell/http, ./HostDrawControls
+ * Depends on:     react, ../playback, ../components/*, ../game/*, ../shell/http, ./HostDrawControls,
+ *                 ./HostLobby
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
  */
@@ -27,19 +27,13 @@ import { CurrentBall } from '../game/CurrentBall.js';
 import { EndActions } from '../game/EndActions.js';
 import { intent } from '../game/socket.js';
 import '../game/game.css';
-import {
-  gameTypeName,
-  problemText,
-  progressText,
-  rulesLine,
-  startRuleLine,
-  statusName,
-} from '../game/labels.js';
+import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
-import { api, ApiError } from '../shell/http.js';
+import { api } from '../shell/http.js';
 import { HostDrawControls } from './HostDrawControls.js';
+import { HostLobby } from './HostLobby.js';
 
 export function HostConsole({ code }: { readonly code: string }): ReactElement {
   const { live, error } = useLiveMatch(code);
@@ -71,76 +65,6 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
         <HostLive live={live} view={view} />
       )}
     </div>
-  );
-}
-
-function HostLobby({
-  live,
-  view,
-}: {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-}): ReactElement {
-  const [message, setMessage] = useState<string | null>(null);
-  const call = (path: string, body: unknown): void => {
-    api(`/matches/${live.match.code}/${path}`, { method: 'POST', body })
-      .then(() => {
-        setMessage(null);
-      })
-      .catch((e: unknown) => {
-        setMessage(problemText(e instanceof ApiError ? e.code : ''));
-      });
-  };
-  return (
-    <section className="sbr-panel sbr-stack">
-      <OpenNotice match={live.match} />
-      <h2>
-        Players {live.match.players} / {live.match.maxPlayers}
-      </h2>
-      <ul className="waiting-players" data-testid="host-players">
-        {view.standings.map((p) => (
-          <li key={p.accountId}>{p.accountId}</li>
-        ))}
-      </ul>
-      {import.meta.env.DEV ? (
-        <BotFill
-          onFill={(upTo) => {
-            call('bots', { upTo });
-          }}
-        />
-      ) : null}
-      {live.match.startsAt === null ? (
-        <button
-          type="button"
-          className="sbr-btn sbr-btn--primary sbr-btn--big"
-          data-testid="start-match"
-          onClick={() => {
-            call('start', {});
-          }}
-        >
-          Start match
-        </button>
-      ) : (
-        <p className="countdown" data-testid="host-countdown">
-          Starting… players see the countdown.
-        </p>
-      )}
-      {message !== null ? <p className="lobby-error">{message}</p> : null}
-    </section>
-  );
-}
-
-// Right after Create match and while the lobby is open: where players find it, how it starts.
-function OpenNotice({ match }: { readonly match: LiveState['match'] }): ReactElement {
-  return (
-    <>
-      <p className="open-notice" role="status" data-testid="open-match-notice">
-        Your match is open — players can join now from the lobby (code {match.code}).
-      </p>
-      <p className="sbr-muted" data-testid="host-start-rule">
-        {startRuleLine(match)}
-      </p>
-    </>
   );
 }
 
@@ -247,41 +171,6 @@ function Abort({ code }: { readonly code: string }): ReactElement {
         Abort match
       </button>
     </form>
-  );
-}
-
-// Development only: fill the lobby with bots that mark automatically.
-function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): ReactElement {
-  const [bots, setBots] = useState(20);
-  return (
-    <div className="sbr-row">
-      <label className="sbr-row">
-        Fill with
-        <input
-          className="sbr-input"
-          style={{ width: '6rem' }}
-          type="number"
-          min={2}
-          max={200}
-          value={bots}
-          data-testid="bots-up-to"
-          onChange={(e) => {
-            setBots(Number(e.target.value));
-          }}
-        />
-        players (bots mark automatically)
-      </label>
-      <button
-        type="button"
-        className="sbr-btn"
-        data-testid="fill-bots"
-        onClick={() => {
-          onFill(bots);
-        }}
-      >
-        Fill with bots
-      </button>
-    </div>
   );
 }
 

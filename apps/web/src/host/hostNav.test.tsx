@@ -10,7 +10,8 @@
  *                 when there are none; "Open host console" shows only for the host; the
  *                 console in the lobby says the match is open and gives its code (LOOK-1);
  *                 a player on #/host/<code> sees no controls.
- * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink, ./YourMatches, ./HostConsole
+ * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink, ./YourMatches,
+ *                 ./HostConsole, ../matchFixture
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
@@ -19,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HostLink } from '../game/HostLink.js';
 import { Lobby } from '../game/Lobby.js';
 import type { MatchSummary } from '../game/useLiveMatch.js';
+import { matchSummary } from '../matchFixture.js';
 import { royaleFixture } from '../quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 import { HostConsole } from './HostConsole.js';
@@ -36,32 +38,7 @@ afterEach(() => {
 });
 
 function summary(code: string, over: Partial<MatchSummary> = {}): MatchSummary {
-  return {
-    id: code,
-    code,
-    title: `Match ${code}`,
-    gameType: 'royale',
-    status: 'lobby',
-    players: 1,
-    maxPlayers: 20,
-    prizes: [],
-    countsForLeaderboard: true,
-    settings: {
-      markingMode: 'manual',
-      missedNumbers: { kind: 'noAutoMark' },
-      drawMode: 'host',
-      drawIntervalMs: 5000,
-      roundPause: { kind: 'wait', ms: 6000 },
-      startRule: { kind: 'host' },
-    },
-    startsAt: null,
-    nextRoundAt: null,
-    nextDrawAt: null,
-    waitingForHost: false,
-    createdBy: 'h',
-    youHost: false,
-    ...over,
-  };
+  return matchSummary({ id: code, code, title: `Match ${code}`, ...over });
 }
 
 function serve(body: (url: string) => unknown): void {

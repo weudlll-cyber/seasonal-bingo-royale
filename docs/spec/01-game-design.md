@@ -237,7 +237,7 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 | `maxPlayers` per match | 200 |
 | Lobby open before start | 10 min (realtime) / 24 h (async) |
 | Late join | Allowed until the end of round 1 of the first stage (async: until first cut); a late joiner starts with 0 points. |
-| Start rule | chosen at creation: the host starts it (default), at a set time (at least a minute and at most a week ahead), or when every place is taken; a 10-second countdown either way. A match whose set time comes with fewer than 2 players is stopped with the reason “Not enough players at the start time”; with 2 or more it starts with whoever is there. (`either` is not offered yet.) |
+| Start rule | chosen at creation: the host starts it (default), at a set time (at least a minute and at most a week ahead), or when every place is taken; a 10-second countdown either way. A set time is an announcement (D16): the host can always start the match with “Start match”, before or after that time. “Start automatically at the start time” (default off) is set at creation and can be switched on and off in the console until the match starts. With it on, the match starts itself at the start time if at least 2 players have joined (the countdown begins 10 seconds before the time); with fewer it neither starts nor stops: it waits, and the console says “Not enough players at the start time — start it yourself or abort”. (`either` is not offered yet.) |
 
 ## 8. Scoring and seasons
 

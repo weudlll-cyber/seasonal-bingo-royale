@@ -41,7 +41,7 @@ import type {
   Scheduler,
 } from './ports.js';
 import { MatchRunner } from './runner.js';
-import { scheduleStart, startIfFull, startTimeValid } from './startRules.js';
+import { planAutoStart, scheduleStart, startIfFull, startTimeValid } from './startRules.js';
 import { withinDrawRange } from './timing.js';
 
 export class MatchError extends Error {
@@ -87,10 +87,26 @@ export class MatchEngine {
     });
     await this.deps.store.insert(created.record);
     await this.runner.apply(created.record.id, [created.openLobby]);
-    const rule = created.record.settings.startRule;
-    // A set start time: the countdown target from now on, the start through the scheduler.
-    if (rule.kind === 'at') await scheduleStart(this.flow, created.record.id, rule.at);
-    return { ...created.record, status: 'lobby', startsAt: rule.kind === 'at' ? rule.at : null };
+    // A set start time with the automatic start on: through the scheduler (D16).
+    await planAutoStart(this.flow, await this.runner.current(created.record.id));
+    return { ...created.record, status: 'lobby', startsAt: null };
+  }
+
+  // The console's "Start automatically at the start time", until the match starts (D16).
+  setAutoStart(matchId: string, auto: boolean): Promise<MatchRecord> {
+    return this.runner.serial(matchId, async () => {
+      const m = await this.runner.current(matchId);
+      const rule = m.record.settings.startRule;
+      if (m.record.status !== 'lobby' || m.record.startsAt !== null) {
+        throw new MatchError('MATCH_NOT_IN_LOBBY');
+      }
+      if (rule.kind !== 'at') throw new MatchError('NO_START_TIME');
+      const settings = { ...m.record.settings, startRule: { ...rule, auto } };
+      await this.deps.store.setStartRule(matchId, settings.startRule);
+      this.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, settings } }));
+      await planAutoStart(this.flow, await this.runner.current(matchId));
+      return { ...m.record, settings };
+    });
   }
 
   join(matchId: string, playerId: string, human: boolean): Promise<void> {

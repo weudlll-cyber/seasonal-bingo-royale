@@ -7,7 +7,8 @@
  *                 its latest snapshot plus the event tail, with the draw times of the
  *                 current round; append a batch in one transaction — version check on the
  *                 matches row (optimistic concurrency), events with consecutive seq, the
- *                 projections, and a snapshot every 25 events (the last 3 are kept).
+ *                 projections, and a snapshot every 25 events (the last 3 are kept); set
+ *                 the status, the draw control and the start rule (D16) on the row.
  * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records
  * Used by:        ../http/app, ./scheduler
  * Spec:           docs/spec/02-software-architecture.md §5.2; docs/spec/04-database-design.md §3.3
@@ -19,6 +20,7 @@ import type {
   MatchStatus,
   MatchStore,
   NewMatchRecord,
+  StartRule,
   StoredEvent,
 } from '@sbr/application';
 import { createInitialMatchState, evolve, type DomainEvent, type MatchState } from '@sbr/domain';
@@ -44,8 +46,8 @@ export class PgMatchStore implements MatchStore {
       `INSERT INTO sbr.matches (id, code, title, game_type, ruleset_name, ruleset, max_players,
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
          missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms,
-         start_rule, starts_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)`,
+         start_rule, start_at, start_auto)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
       [
         r.id,
         r.code,
@@ -66,8 +68,9 @@ export class PgMatchStore implements MatchStore {
         r.createdBy,
         s.roundPause.kind === 'wait' ? s.roundPause.ms : null,
         s.startRule.kind,
-        // A set start time is in the row from the start, so a load reads the rule back.
+        // The announced time is in the row from the start, so a load reads the rule back.
         s.startRule.kind === 'at' ? new Date(s.startRule.at) : null,
+        s.startRule.kind === 'at' && s.startRule.auto,
       ],
     );
   }
@@ -183,6 +186,18 @@ export class PgMatchStore implements MatchStore {
     await this.pool.query(
       'UPDATE sbr.matches SET draw_mode = $2, draw_interval_ms = $3 WHERE id = $1',
       [matchId, drawMode, drawIntervalMs],
+    );
+  }
+
+  async setStartRule(matchId: string, rule: StartRule): Promise<void> {
+    await this.pool.query(
+      'UPDATE sbr.matches SET start_rule = $2, start_at = $3, start_auto = $4 WHERE id = $1',
+      [
+        matchId,
+        rule.kind,
+        rule.kind === 'at' ? new Date(rule.at) : null,
+        rule.kind === 'at' && rule.auto,
+      ],
     );
   }
 }

@@ -41,7 +41,8 @@ export const createBody = z.object({
   startRule: z
     .discriminatedUnion('kind', [
       z.object({ kind: z.literal('host') }),
-      z.object({ kind: z.literal('at'), at: z.number().int() }),
+      // A set time is announced; `auto` starts the match itself then (D16, default off).
+      z.object({ kind: z.literal('at'), at: z.number().int(), auto: z.boolean().default(false) }),
       z.object({ kind: z.literal('whenFull') }),
     ])
     .optional(),
@@ -62,6 +63,7 @@ const CONFLICT = new Set([
   'DRAW_NOT_ALLOWED',
   'DRAW_TOO_EARLY',
   'NOT_WAITING_FOR_HOST',
+  'NO_START_TIME',
 ]);
 // START_TIME_INVALID (a set time too soon or more than a week ahead) answers 422.
 

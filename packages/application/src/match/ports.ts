@@ -31,11 +31,12 @@ export interface MatchSettings {
   readonly startRule: StartRule;
 }
 
-// How a match starts (01 §7.6): the host presses Start, at a set time, or when every
-// place is taken; each with the same countdown before the first round.
+// How a match starts (01 §7.6, D16): the host presses Start; a set time, announced, at
+// which the match starts itself only with `auto` on (the host may always start it); or
+// when every place is taken. Each with the same countdown before the first round.
 export type StartRule =
   | { readonly kind: 'host' }
-  | { readonly kind: 'at'; readonly at: number }
+  | { readonly kind: 'at'; readonly at: number; readonly auto: boolean }
   | { readonly kind: 'whenFull' };
 
 export interface MatchRecord {
@@ -100,10 +101,18 @@ export interface MatchStore {
     extra?: { readonly startsAt?: number },
   ): Promise<void>;
   setDrawControl(matchId: string, drawMode: DrawMode, drawIntervalMs: number): Promise<void>;
+  // The host switches the automatic start on or off (D16).
+  setStartRule(matchId: string, rule: StartRule): Promise<void>;
 }
 
 export type ActionKind =
-  'start_match' | 'start_round' | 'draw' | 'close_speed_window' | 'auto_mark';
+  | 'start_match'
+  | 'start_round'
+  | 'draw'
+  | 'close_speed_window'
+  | 'auto_mark'
+  // At the announced start time minus the countdown: start if enough players (D16).
+  | 'auto_start';
 
 export interface ScheduledAction {
   readonly matchId: string;

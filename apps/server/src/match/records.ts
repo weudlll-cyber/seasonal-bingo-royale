@@ -33,7 +33,11 @@ export interface MatchRow {
   // NULL: the host starts the next royale round (D14).
   round_pause_ms: number | null;
   start_rule: 'host' | 'at' | 'whenFull';
+  // The announced start time of an 'at' match and its automatic start (D16).
+  start_at: Date | null;
+  start_auto: boolean;
   created_by: string | null;
+  // The end of a running countdown.
   starts_at: Date | null;
 }
 
@@ -66,10 +70,9 @@ export function recordFrom(row: MatchRow): MatchRecord {
   };
 }
 
-// The set start time of an 'at' match is the countdown target in starts_at.
 function startRuleOf(row: MatchRow): MatchRecord['settings']['startRule'] {
-  if (row.start_rule === 'at' && row.starts_at !== null) {
-    return { kind: 'at', at: row.starts_at.getTime() };
+  if (row.start_rule === 'at' && row.start_at !== null) {
+    return { kind: 'at', at: row.start_at.getTime(), auto: row.start_auto };
   }
   return row.start_rule === 'whenFull' ? { kind: 'whenFull' } : { kind: 'host' };
 }

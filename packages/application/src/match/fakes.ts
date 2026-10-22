@@ -6,14 +6,14 @@
  * Responsibility: the engine's ports without a database: the store folds its events with
  *                 the domain's evolve and checks the expected seq; the scheduler keeps due
  *                 actions and `runDue` executes them in due order while advancing the clock,
- *                 as PgScheduler does. Test support only.
+ *                 as PgScheduler does; `fakeEngine` wires an engine to them. Test support only.
  * Depends on:     @sbr/domain, ./ports, ./engine
- * Used by:        ./engine.test.ts
+ * Used by:        ./engine.test.ts, ./startRules.test.ts
  * Spec:           docs/spec/12-testing-strategy.md §2
  */
 import { createInitialMatchState, evolve, type DomainEvent } from '@sbr/domain';
 
-import type { MatchEngine } from './engine.js';
+import { MatchEngine } from './engine.js';
 import type {
   ActionKind,
   AppendInput,
@@ -23,6 +23,7 @@ import type {
   NewMatchRecord,
   ScheduledAction,
   Scheduler,
+  StartRule,
   StoredEvent,
 } from './ports.js';
 
@@ -90,6 +91,13 @@ export class MemoryStore implements MatchStore {
     return Promise.resolve();
   }
 
+  setStartRule(matchId: string, startRule: StartRule): Promise<void> {
+    const r = this.records.get(matchId);
+    if (r !== undefined)
+      this.records.set(matchId, { ...r, settings: { ...r.settings, startRule } });
+    return Promise.resolve();
+  }
+
   types(matchId: string): readonly DomainEvent['type'][] {
     return (this.events.get(matchId) ?? []).map((e) => e.event.type);
   }
@@ -129,4 +137,27 @@ export class MemoryScheduler implements Scheduler {
       await engine.handle(next);
     }
   }
+}
+
+// An engine on the in-memory ports, with every event the bus publishes and its time.
+export function fakeEngine() {
+  const store = new MemoryStore();
+  const scheduler = new MemoryScheduler();
+  const clock = new ManualClock();
+  const published: { at: number; event: StoredEvent['event'] }[] = [];
+  let n = 0;
+  const engine = new MatchEngine({
+    store,
+    scheduler,
+    bus: {
+      publish: (_id, stored) => {
+        for (const s of stored) published.push({ at: clock.t, event: s.event });
+      },
+      changed: () => undefined,
+    },
+    clock,
+    randomSeed: () => new Uint8Array(32).fill(7),
+    randomCode: () => `CODE${String((n += 1))}`,
+  });
+  return { store, scheduler, clock, engine, published };
 }

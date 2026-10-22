@@ -4,8 +4,9 @@
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
  * Responsibility: the summary (code, title, game type, status, settings, player count,
- *                 prizes, start time, next round's start, when Draw next unlocks, whether
- *                 the match waits for its host, creator, whether the viewer hosts it) and the live
+ *                 prizes, countdown end, next round's start, when Draw next unlocks, whether
+ *                 the match waits for its host or for players at its start time (D16),
+ *                 creator, whether the viewer hosts it) and the live
  *                 view the player and host screens fold with the Quick Test's playback logic: the same payload as
  *                 the Quick Test (../../view/clientView) built from the public event log
  *                 (seed removed, 01 §9), with every player named by display name and the
@@ -16,7 +17,7 @@
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
  */
-import { nextDrawAt, waitingForHost, type LoadedMatch } from '@sbr/application';
+import { nextDrawAt, tooFewAtStart, waitingForHost, type LoadedMatch } from '@sbr/application';
 
 import { buildClientView } from '../../view/clientView.js';
 import type { LiveEntry } from '../../view/liveViews.js';
@@ -42,6 +43,8 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     // When Draw next unlocks (D13) and whether the match waits for its host (D14).
     nextDrawAt: nextDrawAt(m),
     waitingForHost: waitingForHost(m),
+    // The automatic start found fewer than 2 players: the match waits for its host (D16).
+    tooFewAtStart: tooFewAtStart(m, Date.now()),
     createdBy: r.createdBy,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };

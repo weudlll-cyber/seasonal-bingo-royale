@@ -6,7 +6,8 @@
  * Responsibility: only the match's creator with `match.manage` runs it (05 §3, 06 §4.1):
  *                 POST /start (10-second countdown), /draw-next (host mode, D8, D13),
  *                 /next-round (when the match waits for the host, D14), PUT
- *                 /draw-mode { mode, intervalMs } at any time, POST /abort { reason }.
+ *                 /draw-mode { mode, intervalMs } at any time, POST /auto-start { auto }
+ *                 while the match waits to start (D16), POST /abort { reason }.
  *                 Development builds add POST /bots { upTo } to fill the lobby with bots.
  *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
  * Depends on:     fastify, zod, ./matches, ./matchInput
@@ -27,6 +28,7 @@ const drawModeBody = z.object({
   intervalMs: z.number().int().min(1).max(3_600_000).optional(),
 });
 const abortBody = z.object({ reason: z.string().trim().min(3).max(200) });
+const autoStartBody = z.object({ auto: z.boolean() });
 const botsBody = z.object({ upTo: z.number().int().min(2).max(200) });
 const markBody = z.object({
   cardIndex: z.number().int().min(0).max(3),
@@ -75,6 +77,11 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
   host('/api/v1/matches/:code/draw-mode', async (id, request) => {
     const body = drawModeBody.parse(request.body);
     const record = await deps.engine.setDrawControl(id, body.mode, body.intervalMs);
+    return { settings: record.settings };
+  });
+  // "Start automatically at the start time" on or off, until the match starts (D16).
+  host('/api/v1/matches/:code/auto-start', async (id, request) => {
+    const record = await deps.engine.setAutoStart(id, autoStartBody.parse(request.body).auto);
     return { settings: record.settings };
   });
   host('/api/v1/matches/:code/abort', (id, request) =>

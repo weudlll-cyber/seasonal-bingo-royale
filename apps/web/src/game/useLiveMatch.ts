@@ -37,12 +37,13 @@ export interface MatchSummary {
     readonly drawIntervalMs: number;
     // The pause between royale rounds (D14).
     readonly roundPause: { readonly kind: 'wait'; readonly ms: number } | { readonly kind: 'host' };
-    // How the match starts (01 §7.6).
+    // How the match starts (01 §7.6); a set time is announced, `auto` starts it then (D16).
     readonly startRule:
       | { readonly kind: 'host' }
-      | { readonly kind: 'at'; readonly at: number }
+      | { readonly kind: 'at'; readonly at: number; readonly auto: boolean }
       | { readonly kind: 'whenFull' };
   };
+  // The end of the running countdown; null before it runs.
   readonly startsAt: number | null;
   // When the next round starts after a cut (the cut screen counts down); null if unknown.
   readonly nextRoundAt: number | null;
@@ -50,6 +51,8 @@ export interface MatchSummary {
   readonly nextDrawAt: number | null;
   // The match waits for its host to start the next round (D14).
   readonly waitingForHost: boolean;
+  // The automatic start found fewer than 2 players; the match waits for its host (D16).
+  readonly tooFewAtStart: boolean;
   readonly createdBy: string | null;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.

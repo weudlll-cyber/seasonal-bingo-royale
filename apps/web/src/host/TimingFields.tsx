@@ -3,8 +3,9 @@
  * @module web/host
  * @brief  The create form's timing rules: start rule, shortest draw interval (D12), round pause (D14).
  *
- * Responsibility: the start rule (I start it, at a set time at least a minute ahead, when
- *                 every place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
+ * Responsibility: the start rule (I start it; at a set time at least a minute ahead, with
+ *                 "Start automatically at the start time", default off, D16; when every
+ *                 place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
  *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
  *                 longest tap time) and the plain message when the seconds are below it;
  *                 the royale pause choice "wait N seconds" (at least 3) or "host starts the
@@ -107,17 +108,48 @@ export function RoundPauseField({
   );
 }
 
-// How the match starts (01 §7.6); `local` is the date and time field's value.
+// How the match starts (01 §7.6, D16); `local` is the date and time field's value, `auto`
+// the automatic start at that time.
 export type StartRuleChoice =
   | { readonly kind: 'host' }
-  | { readonly kind: 'at'; readonly local: string }
+  | { readonly kind: 'at'; readonly local: string; readonly auto: boolean }
   | { readonly kind: 'whenFull' };
 
 // The request field; null for a set time that is missing or not at least a minute ahead.
 export function toStartRule(c: StartRuleChoice, now: number) {
   if (c.kind !== 'at') return { kind: c.kind };
   const at = new Date(c.local).getTime();
-  return Number.isFinite(at) && at >= now + 60_000 ? { kind: 'at' as const, at } : null;
+  return Number.isFinite(at) && at >= now + 60_000
+    ? { kind: 'at' as const, at, auto: c.auto }
+    : null;
+}
+
+// "Start automatically at the start time" (D16): in the create form and in the console.
+export function AutoStartBox({
+  checked,
+  onChange,
+  testId,
+  disabled = false,
+}: {
+  readonly checked: boolean;
+  readonly onChange: (auto: boolean) => void;
+  readonly testId: string;
+  readonly disabled?: boolean;
+}): ReactElement {
+  return (
+    <label className="sbr-row">
+      <input
+        type="checkbox"
+        data-testid={testId}
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => {
+          onChange(e.target.checked);
+        }}
+      />
+      Start automatically at the start time
+    </label>
+  );
 }
 
 // The plain message for a set time that cannot be used, or null.
@@ -142,7 +174,7 @@ export function StartRuleField({
         value={value.kind}
         onChange={(e) => {
           const kind = e.target.value as StartRuleChoice['kind'];
-          onChange(kind === 'at' ? { kind, local: '' } : { kind });
+          onChange(kind === 'at' ? { kind, local: '', auto: false } : { kind });
         }}
       >
         <option value="host">I start it from the console</option>
@@ -159,10 +191,19 @@ export function StartRuleField({
             value={value.local}
             data-testid="create-start-at"
             onChange={(e) => {
-              onChange({ kind: 'at', local: e.target.value });
+              onChange({ ...value, local: e.target.value });
             }}
           />
         </label>
+      ) : null}
+      {value.kind === 'at' ? (
+        <AutoStartBox
+          testId="create-start-auto"
+          checked={value.auto}
+          onChange={(auto) => {
+            onChange({ ...value, auto });
+          }}
+        />
       ) : null}
       <small className="sbr-muted">Players see a 10-second countdown before the first round.</small>
     </fieldset>

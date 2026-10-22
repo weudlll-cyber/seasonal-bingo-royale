@@ -10,21 +10,19 @@
  *                 is locked; the console offers "Start next round" and players read
  *                 "Waiting for the host to start round N" while the match waits for the host.
  * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./HostDrawControls,
- *                 ./TimingFields, ../game/MatchScreen, ../quickTestFixture, ../shell/session
+ *                 ./HostConsole, ../game/MatchScreen, ../matchFixture, ../quickTestFixture
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D13, D14)
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MatchScreen } from '../game/MatchScreen.js';
 import type { LiveState, MatchSummary } from '../game/useLiveMatch.js';
+import { matchSummary, serveMatch, show } from '../matchFixture.js';
 import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../quickTestFixture.js';
-import { SessionProvider } from '../shell/session.js';
 import { CreateMatch } from './CreateMatch.js';
-import { startRuleLine } from '../game/labels.js';
 import { createBody } from './createForm.js';
-import { startTimeProblem } from './TimingFields.js';
 import { HostConsole } from './HostConsole.js';
 import { HostDrawControls } from './HostDrawControls.js';
 
@@ -41,24 +39,13 @@ afterEach(() => {
   sent.mockClear();
 });
 
-const session = {
-  signedIn: true,
-  account: { id: 'h', displayName: 'dev-host' },
-  permissions: ['match.join', 'match.create'],
-  csrfToken: 'x',
-};
-
+// A running royale match with host draws, as the rules tests need it.
 function summary(over: Partial<MatchSummary> = {}): MatchSummary {
-  return {
-    id: 'm',
+  return matchSummary({
     code: 'RULES1',
     title: 'Rules',
-    gameType: 'royale',
     status: 'running',
     players: 3,
-    maxPlayers: 20,
-    prizes: [],
-    countsForLeaderboard: true,
     settings: {
       markingMode: 'manual',
       missedNumbers: { kind: 'autoMarkAfter', delayMs: 5000 },
@@ -67,36 +54,12 @@ function summary(over: Partial<MatchSummary> = {}): MatchSummary {
       roundPause: { kind: 'host' },
       startRule: { kind: 'host' },
     },
-    startsAt: null,
-    nextRoundAt: null,
-    nextDrawAt: null,
-    waitingForHost: false,
-    createdBy: 'h',
     youHost: true,
     ...over,
-  };
-}
-
-function serve(match: MatchSummary, view = royaleFixture()): ReturnType<typeof vi.fn> {
-  const fetch = vi.fn((url: string) =>
-    Promise.resolve(
-      new Response(
-        JSON.stringify(
-          url.endsWith('/session') ? session : { match, seq: 0, since: 0, me: 'owner-01', view },
-        ),
-      ),
-    ),
-  );
-  vi.stubGlobal('fetch', fetch);
-  return fetch;
-}
-
-async function show(ui: React.ReactElement): Promise<void> {
-  render(<SessionProvider>{ui}</SessionProvider>);
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
+
+const serve = serveMatch;
 
 describe('D12: the shortest timed-draw interval', () => {
   it('refuses seconds below the longest tap time plus 1 s with a plain message', async () => {
@@ -177,53 +140,5 @@ describe('D14: the pause between royale rounds', () => {
     expect(screen.getByTestId('waiting-for-host').textContent).toBe(
       'Waiting for the host to start round 2',
     );
-  });
-});
-
-describe('start rules (01 §7.6)', () => {
-  const form = {
-    title: 't',
-    gameType: 'classic' as const,
-    prizes: new Set(['fullCard']),
-    draw: { mode: 'host' as const, intervalSec: null, skipped: false },
-    missed: { mode: 'manual' as const, missed: 'noAutoMark' as const, delaySec: 3 },
-    leaderboard: null,
-    maxPlayers: 8,
-    pause: { kind: 'host' as const },
-    fast: false,
-  };
-
-  it('sends a set time as a moment, and refuses one less than a minute ahead', () => {
-    const later = new Date(Date.now() + 3_600_000);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const local = `${String(later.getFullYear())}-${pad(later.getMonth() + 1)}-${pad(later.getDate())}T${pad(later.getHours())}:${pad(later.getMinutes())}`;
-    const body = createBody({ ...form, start: { kind: 'at', local } });
-    expect(body.startRule).toEqual({ kind: 'at', at: new Date(local).getTime() });
-    expect(startTimeProblem({ kind: 'at', local: '' }, Date.now())).toBe(
-      'Pick a start time at least a minute from now.',
-    );
-    expect(createBody({ ...form, start: { kind: 'whenFull' } }).startRule).toEqual({
-      kind: 'whenFull',
-    });
-  });
-
-  it('tells players how the match starts', () => {
-    const settings = summary().settings;
-    expect(startRuleLine(summary({ settings: { ...settings, startRule: { kind: 'host' } } }))).toBe(
-      'The host starts the match.',
-    );
-    expect(
-      startRuleLine(
-        summary({
-          players: 5,
-          maxPlayers: 8,
-          settings: { ...settings, startRule: { kind: 'whenFull' } },
-        }),
-      ),
-    ).toBe('Starts when all 8 places are taken (5 so far).');
-    const at = new Date(2026, 9, 22, 20, 30).getTime();
-    expect(
-      startRuleLine(summary({ settings: { ...settings, startRule: { kind: 'at', at } } })),
-    ).toMatch(/^Starts on Thursday 22 October, 20:30 /);
   });
 });

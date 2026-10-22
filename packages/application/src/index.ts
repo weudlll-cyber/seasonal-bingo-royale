@@ -16,6 +16,7 @@ export { defaultRulesetFor, toMatchRuleset } from './match/rulesets.js';
 export { chosenMissedNumbers, delayOf, drawRange, withinDrawRange } from './match/timing.js';
 export { MatchEngine, MatchError, type EngineDeps } from './match/engine.js';
 export { nextDrawAt, waitingForHost } from './match/flow.js';
+export { tooFewAtStart } from './match/startRules.js';
 export { MatchNotFound } from './match/runner.js';
 export type { CreateMatchInput } from './match/create.js';
 export type * from './match/ports.js';
