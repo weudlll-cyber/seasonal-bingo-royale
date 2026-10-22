@@ -6,12 +6,13 @@
  * Responsibility: one way for every real-game spec to sign in with the development quick
  *                 sign-in, create a match from the host's form, join from the lobby, start
  *                 it with bots, press Draw next once its window allows, read the current
- *                 number and the standings from a screen, and stop a match in teardown.
+ *                 number and the standings from a screen, post as the signed-in account (with
+ *                 its CSRF token), and stop a match in teardown.
  * Depends on:     @playwright/test
- * Used by:        ./realGame.spec.ts, ./acceptance/realGame.spec.ts
+ * Used by:        ./realGame.spec.ts, ./startScreens.spec.ts, ./acceptance/realGame.spec.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
-import { expect, type Page } from '@playwright/test';
+import { expect, type APIResponse, type Page } from '@playwright/test';
 
 export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
 
@@ -83,14 +84,16 @@ export async function stopMatch(page: Page, code: string): Promise<void> {
   const match = await page.request.get(`/api/v1/matches/${code}`);
   const { status } = (await match.json()) as { status: string };
   if (status !== 'lobby' && status !== 'running') return;
+  const r = await post(page, `/api/v1/matches/${code}/abort`, { reason: 'test cleanup' });
+  expect(r.status(), `abort ${code}`).toBeLessThan(300);
+}
+
+// A POST as the page's signed-in account, with its CSRF token (as the client sends it).
+export async function post(page: Page, path: string, data: unknown): Promise<APIResponse> {
   const session = (await (await page.request.get('/api/v1/session')).json()) as {
     csrfToken: string;
   };
-  const r = await page.request.post(`/api/v1/matches/${code}/abort`, {
-    headers: { 'x-csrf-token': session.csrfToken },
-    data: { reason: 'test cleanup' },
-  });
-  expect(r.status(), `abort ${code}`).toBeLessThan(300);
+  return page.request.post(path, { headers: { 'x-csrf-token': session.csrfToken }, data });
 }
 
 // The current number on a screen (data-item of the ball), or null before the first draw.

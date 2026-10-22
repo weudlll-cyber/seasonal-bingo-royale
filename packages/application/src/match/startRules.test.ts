@@ -4,7 +4,7 @@
  * @brief  How a match starts (01 §7.6, D16): Start, a set time with or without auto start, when full.
  *
  * Responsibility: the host starts a match with a set time before that time; with the
- *                 automatic start on, the countdown ends at the set time when at least 2
+ *                 automatic start on, the countdown begins at the set time when at least 2
  *                 players have joined; with fewer the match waits (not aborted) and the
  *                 host can still start it; the console's switch takes effect both ways, also
  *                 after the time has passed; "start when full" begins the countdown with the
@@ -50,18 +50,20 @@ describe('a set start time (D16)', () => {
   it('starts itself at the time with at least 2 players when set to', async () => {
     const t = await announced(true);
     await t.engine.fillWithBots(t.id, 2);
-    await t.scheduler.runUntil(t.engine, t.clock, t.at - 10_001);
-    expect(t.store.records.get(t.id)?.startsAt).toBeNull();
     await t.scheduler.runUntil(t.engine, t.clock, t.at - 1);
-    expect(t.store.records.get(t.id)?.startsAt).toBe(t.at);
-    expect(t.status()).toBe('lobby');
+    expect(t.store.records.get(t.id)?.startsAt).toBeNull();
     await t.scheduler.runUntil(t.engine, t.clock, t.at);
+    expect(t.store.records.get(t.id)?.startsAt).toBe(t.at + 10_000);
+    expect(t.status()).toBe('lobby');
+    await t.scheduler.runUntil(t.engine, t.clock, t.at + 10_000);
     expect(t.status()).toBe('running');
   });
 
   it('waits with fewer than 2 players, and the host can still start it', async () => {
     const t = await announced(true);
     await t.engine.join(t.id, 'person', true);
+    await t.scheduler.runUntil(t.engine, t.clock, t.at - 1);
+    expect(tooFewAtStart(await t.engine.runner.current(t.id), t.clock.t)).toBe(false);
     await t.scheduler.runUntil(t.engine, t.clock, t.at + 60_000);
     const m = await t.engine.runner.current(t.id);
     expect(t.status()).toBe('lobby');

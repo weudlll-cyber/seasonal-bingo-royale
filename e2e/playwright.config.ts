@@ -5,8 +5,12 @@
  *
  * Responsibility: start PostgreSQL (global setup), the server on 3900 and the player
  *                 client on 5390, then run the specs in Chromium, Firefox and WebKit at a
- *                 phone viewport. Locally an already-running stack is reused. The
- *                 acceptance play-through runs only with SBR_ACCEPTANCE=1.
+ *                 phone viewport. The specs that measure time in the browser (speed window,
+ *                 missed-number delay, timed draws) run afterwards, one at a time and one
+ *                 browser after the other, so no other browser starves their timers (NIGHT-3:
+ *                 six of them failed under the full parallel run and passed alone). Locally
+ *                 an already-running stack is reused. The acceptance play-through runs only
+ *                 with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ./devStack, ./globalSetup
  * Spec:           docs/spec/12-testing-strategy.md §2, §4; docs/spec/15-implementation-plan.md WP-08
  */
@@ -16,11 +20,20 @@ import { CLIENT_URL, REPO_ROOT, SERVER_URL, databaseUrl } from './devStack.js';
 
 const CI = process.env['CI'] !== undefined;
 
+// Specs whose checks depend on browser timers firing on time.
+const TIMING = ['missedNumbers.spec.ts', 'drawControl.spec.ts', 'manual.spec.ts', 'newRun.spec.ts'];
+const ACCEPTANCE = process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'];
+const BROWSERS = [
+  { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+  { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  { name: 'webkit-mobile', use: { ...devices['iPhone 13'] } },
+] as const;
+
 export default defineConfig({
   testDir: '.',
-  // The acceptance play-through (./acceptance) takes about half an hour; it runs only
-  // when asked for with SBR_ACCEPTANCE=1, never in CI.
-  testIgnore: process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'],
+  // The acceptance play-through (./acceptance) runs only when asked for with
+  // SBR_ACCEPTANCE=1, never in CI.
+  testIgnore: ACCEPTANCE,
   outputDir: '../test-results',
   globalSetup: './globalSetup.ts',
   timeout: 90_000,
@@ -31,9 +44,16 @@ export default defineConfig({
   reporter: 'list',
   use: { baseURL: CLIENT_URL, trace: 'retain-on-failure' },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit-mobile', use: { ...devices['iPhone 13'] } },
+    ...BROWSERS.map((b) => ({ ...b, testIgnore: [...ACCEPTANCE, ...TIMING] })),
+    // The timing specs: after all others, one test at a time, one browser after another.
+    ...BROWSERS.map((b, i) => ({
+      ...b,
+      name: `${b.name}-timing`,
+      testMatch: TIMING,
+      workers: 1,
+      dependencies:
+        i === 0 ? BROWSERS.map((x) => x.name) : [`${BROWSERS[i - 1]?.name ?? ''}-timing`],
+    })),
   ],
   webServer: [
     {

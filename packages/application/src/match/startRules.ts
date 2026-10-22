@@ -6,7 +6,7 @@
  * Responsibility: check a set start time (at least the countdown ahead, at most a week).
  *                 A set time is an announcement (D16): the host can always start; with the
  *                 automatic start on, the persistent scheduler (so a restart keeps it) runs
- *                 `auto_start` one countdown before the time, which begins the countdown
+ *                 `auto_start` at the time, which begins the countdown
  *                 when at least 2 players have joined and otherwise leaves the match waiting
  *                 in the lobby (`tooFewAtStart`). Under "start when full" the last place
  *                 taken begins the countdown. Every start runs the same countdown.
@@ -46,19 +46,18 @@ export async function startIfFull(deps: FlowDeps, m: LoadedMatch): Promise<void>
   await scheduleStart(deps, m.record.id, deps.clock.now() + START_COUNTDOWN_MS);
 }
 
-// Schedules (or drops) the automatic start one countdown before the set time; when that
-// moment has passed (the host switched it on late), the scheduler runs it at once.
+// Schedules (or drops) the automatic start at the set time; when that has passed (the host
+// switched it on late), the scheduler runs it at once.
 export async function planAutoStart(deps: FlowDeps, m: LoadedMatch): Promise<void> {
   await deps.scheduler.cancel(m.record.id, 'auto_start');
   const rule = m.record.settings.startRule;
   if (rule.kind !== 'at' || !rule.auto || m.record.startsAt !== null) return;
-  const dueAt = rule.at - START_COUNTDOWN_MS;
-  await deps.scheduler.schedule({ matchId: m.record.id, kind: 'auto_start', dueAt });
+  await deps.scheduler.schedule({ matchId: m.record.id, kind: 'auto_start', dueAt: rule.at });
 }
 
-// The automatic start is due (one countdown before the set time, or later when switched
-// on late): with at least 2 players the countdown begins; with fewer the match waits for
-// its host, who sees why.
+// The automatic start is due (at the set time, or later when switched on late): with at
+// least 2 players the countdown begins; with fewer the match waits for its host, who sees
+// why.
 export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> {
   const m = await deps.runner.current(matchId);
   const rule = m.record.settings.startRule;
@@ -80,6 +79,6 @@ export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
     rule.auto &&
     m.record.status === 'lobby' &&
     m.record.startsAt === null &&
-    now >= rule.at - START_COUNTDOWN_MS
+    now >= rule.at
   );
 }

@@ -17,16 +17,13 @@
  *                 then one more match right away must start fresh. Every match the test
  *                 created is stopped in teardown. Screenshots of royale with host draws and
  *                 classic with seasons (mid-match, cut, pause, end; light and dark) go to
- *                 reports/screens/night-3/. Runs only with SBR_ACCEPTANCE=1.
- * Depends on:     @playwright/test, ../realGame, ../devStack, ../screens, ./combos, ./liveSnap,
+ *                 reports/screens/night-4/. Runs only with SBR_ACCEPTANCE=1.
+ * Depends on:     @playwright/test, ../realGame, ../screens, ./combos, ./liveSnap,
  *                 ./livePlayer, ./cuts, ./ownerRules
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
-import path from 'node:path';
-
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
-import { REPO_ROOT } from '../devStack.js';
 import {
   currentItem,
   drawNext,
@@ -40,7 +37,7 @@ import { COMBOS, FIELD, title, type Combo } from './combos.js';
 import { checkCuts, type ServerResult } from './cuts.js';
 import { handlePending, newPlayer, onNewDraw, type LivePlayer } from './livePlayer.js';
 import { checkPlayer, liveSnap } from './liveSnap.js';
-import { captureThemes, DESKTOP, PHONE } from '../screens.js';
+import { captureThemes, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
 import {
   checkCutButton,
   checkDrawCountdown,
@@ -49,8 +46,6 @@ import {
   startNextRoundByHost,
   waitingForHost,
 } from './ownerRules.js';
-
-const SHOTS_DIR = path.join(REPO_ROOT, 'reports', 'screens', 'night-3');
 
 interface Table {
   readonly host: Page;

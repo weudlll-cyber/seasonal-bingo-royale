@@ -53,7 +53,9 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
             <span data-testid="host-status" data-status={live.match.status}>
               {statusName(live.match.status)}
             </span>
-            {live.match.status === 'lobby' ? null : ` · ${progressText(live, view)}`}
+            {live.match.status === 'running' || live.match.status === 'finished'
+              ? ` · ${progressText(live, view)}`
+              : null}
           </p>
           <p className="sbr-muted">
             {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}

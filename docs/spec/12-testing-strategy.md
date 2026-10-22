@@ -88,6 +88,7 @@ Headroom check: same scenario at 400 players must stay below 1 s p95 draw latenc
 - Fixed seeds for all domain tests; the seed of any failing property test is printed and turned into a regular regression test.
 - Builders (`aRuleset().withStages(…)`, `aMatch().withPlayers(50)`) in `packages/domain/test/builders` — shared, not duplicated.
 - Test accounts created by a test are removed by the test; matches it created are aborted and stay in the database, since the event log is append-only (04 §3.3) (Testcontainers DB per test file; E2E uses a dedicated DB reset endpoint enabled only in test builds).
+- Specs whose checks depend on browser timers (speed window, missed-number delay, timed draws) run in their own Playwright projects after all other specs, one test at a time and one browser after another, so no parallel browser delays their timers; their limits stay as the game defines them. Run one of them alone with `--project=<browser>-timing --no-deps`. Vitest runs on half the cores (`maxWorkers: '50%'`), so tests are not starved next to the integration tests' databases.
 - E2E tests target the project's fixed local ports: server **3900**, player client **5390**, admin client **5391** (08 §1.1). Playwright `baseURL` points at `http://127.0.0.1:5390`; the admin spec switches to `5391`.
 
 ## 8. Manual acceptance (owner)

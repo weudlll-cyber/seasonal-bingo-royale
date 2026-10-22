@@ -10,19 +10,14 @@
  *                 under the per-address login limit). The test deletes its account
  *                 (DELETE /me) and stops its match, also when a step fails. In Chromium it
  *                 saves the register and sign-in forms (both sizes and themes) to
- *                 reports/screens/night-3/.
- * Depends on:     @playwright/test, node:path, ./devStack, ./realGame, ./screens
+ *                 reports/screens/night-4/.
+ * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §13
  */
-import path from 'node:path';
-
 import { expect, test, type Page } from '@playwright/test';
 
-import { REPO_ROOT } from './devStack.js';
 import { hostMatch, signIn, stopMatch } from './realGame.js';
-import { captureLook } from './screens.js';
-
-const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'night-3');
+import { captureLook, SHOTS_DIR } from './screens.js';
 
 const PASSWORD = 'correct horse battery staple';
 
@@ -70,14 +65,14 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await page.getByTestId('register-displayName').fill(name);
     await page.getByTestId('register-email').fill(email);
     await page.getByTestId('register-password').fill(PASSWORD);
-    if (shots) await captureLook(page, SHOTS, 'register');
+    if (shots) await captureLook(page, SHOTS_DIR, 'register');
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
     await page.getByTestId('sign-out').click();
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
     if (shots) {
       await page.getByTestId('open-sign-in').click();
-      await captureLook(page, SHOTS, 'sign-in');
+      await captureLook(page, SHOTS_DIR, 'sign-in');
     }
     await signInWithForm(page, email, PASSWORD);
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);

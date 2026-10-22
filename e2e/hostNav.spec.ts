@@ -12,19 +12,14 @@
  *                 shows the open-match notice with the code. In Chromium it also saves the
  *                 create form (start rule "At a set time"), the console in the lobby, the
  *                 lobby and the waiting room at desktop and phone size, light and dark, to
- *                 reports/screens/night-3/.
- * Depends on:     @playwright/test, node:path, ./devStack, ./realGame, ./screens
+ *                 reports/screens/night-4/.
+ * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
-import path from 'node:path';
-
 import { expect, test, type Page } from '@playwright/test';
 
-import { REPO_ROOT } from './devStack.js';
 import { fillAndStart, hostMatch, joinFromLobby, signIn, stopMatch } from './realGame.js';
-import { captureLook, DESKTOP, PHONE } from './screens.js';
-
-const SHOTS = path.join(REPO_ROOT, 'reports', 'screens', 'night-3');
+import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 
 // The create form with the start rules: a start time an hour ahead (local, as the field takes it).
 async function shootCreateForm(page: Page): Promise<void> {
@@ -33,7 +28,7 @@ async function shootCreateForm(page: Page): Promise<void> {
   await page.getByTestId('create-start-rule').selectOption('at');
   const at = new Date(Date.now() + 3_600_000 - new Date().getTimezoneOffset() * 60_000);
   await page.getByTestId('create-start-at').fill(at.toISOString().slice(0, 16));
-  await captureLook(page, SHOTS, 'create-form', page.getByTestId('create-start-at'));
+  await captureLook(page, SHOTS_DIR, 'create-form', page.getByTestId('create-start-at'));
   // The form keeps its choices; the journey's match starts from the console.
   await page.getByTestId('create-start-rule').selectOption('host');
 }
@@ -56,18 +51,18 @@ test('the host returns via Manage and Open host console; a player sees no Manage
   });
   // The console in the lobby, with the open-match notice.
   await expect(page.getByTestId('open-match-notice')).toContainText(`(code ${code})`);
-  if (shots) await captureLook(page, SHOTS, 'console-lobby');
+  if (shots) await captureLook(page, SHOTS_DIR, 'console-lobby');
   try {
     // A player waits in the waiting room.
     const player = await (await browser.newContext({ viewport: DESKTOP })).newPage();
     await signIn(player, 'player-2');
     await joinFromLobby(player, code);
-    if (shots) await captureLook(player, SHOTS, 'waiting-room');
+    if (shots) await captureLook(player, SHOTS_DIR, 'waiting-room');
 
     // To the lobby, and back to the console via Manage.
     await page.getByRole('link', { name: 'Play', exact: true }).click();
     await expect(page.getByTestId(`manage-${code}`)).toBeVisible();
-    if (shots) await captureLook(page, SHOTS, 'lobby');
+    if (shots) await captureLook(page, SHOTS_DIR, 'lobby');
     await page.getByTestId(`manage-${code}`).click();
     await expect(page.getByTestId('host-console')).toBeVisible();
     await fillAndStart(page, 6);
