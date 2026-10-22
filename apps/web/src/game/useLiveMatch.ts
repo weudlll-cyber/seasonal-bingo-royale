@@ -5,9 +5,9 @@
  *
  * Responsibility: load GET /matches/:code/state, watch the match room, and on every event
  *                 frame fetch only the events after the seq already held (`since`) and
- *                 append them; a frame that does not follow the held seq (a gap) or a
- *                 reconnect reloads everything, so nothing is lost and nothing doubled (06
- *                 §4, §5). Record changes (status, start time, draw control) arrive as
+ *                 append them — a gap too, since that fetch covers it; only a (re)connect
+ *                 reloads everything, so nothing is lost and nothing doubled (06 §4, §5, §8).
+ *                 A delta without the player list keeps the one held. Record changes (status, start time, draw control) arrive as
  *                 `match`. Fetches never overlap. The view has the Quick Test's shape, so the
  *                 screens fold it with the same playback logic.
  * Depends on:     react, ../shell/http, ./socket, ../types
@@ -66,8 +66,11 @@ export interface LiveState {
   readonly view: QuickTestResult;
 }
 
-interface StateResponse extends LiveState {
+// A delta (since > 0) leaves out the player list unless a join, a round start or the
+// finish is among its events; the client keeps the list it holds.
+interface StateResponse extends Omit<LiveState, 'view'> {
   readonly since: number;
+  readonly view: Omit<QuickTestResult, 'players'> & Partial<Pick<QuickTestResult, 'players'>>;
 }
 
 export function useLiveMatch(code: string): {
@@ -114,12 +117,14 @@ export function useLiveMatch(code: string): {
 // Appends the new events to the held view; everything else comes fresh from the server.
 // Frames appended while the fetch ran are already held: those events are not repeated.
 function merge(held: LiveState | null, r: StateResponse): LiveState {
+  const players = r.view.players ?? held?.view.players ?? [];
   if (held === null || r.since === 0) {
-    return { match: r.match, seq: r.seq, me: r.me, view: r.view };
+    return { match: r.match, seq: r.seq, me: r.me, view: { ...r.view, players } };
   }
   const fresh = r.view.events.slice(Math.max(0, held.seq - r.since));
   const events = [...held.view.events, ...fresh];
-  return { match: r.match, seq: Math.max(r.seq, held.seq), me: r.me, view: { ...r.view, events } };
+  const view = { ...r.view, players, events };
+  return { match: r.match, seq: Math.max(r.seq, held.seq), me: r.me, view };
 }
 
 interface RoomArgs {
@@ -152,8 +157,8 @@ function appendable(frame: Frame, me: string | null): boolean {
 }
 
 // Watches the match room: a frame that follows the held seq is appended (other players'
-// taps) or loads only the new events, a gap or a reconnect loads everything; record
-// changes replace the summary.
+// taps); any other frame, a gap included, loads only the new events; a (re)connect loads
+// everything; record changes replace the summary.
 function watchRoom({ code, held, load, setLive }: RoomArgs): () => void {
   const socket = gameSocket();
   const watch = (): void => {
@@ -171,7 +176,10 @@ function watchRoom({ code, held, load, setLive }: RoomArgs): () => void {
       setLive(held.current);
       return;
     }
-    load(first !== heldSeq + 1);
+    // Everything else, a gap included (frames that came while a fetch ran), fetches the
+    // events after the held seq once the running fetch is done: one delta covers the gap,
+    // no full reload (06 §8).
+    load(false);
   };
   const onMatch = (summary: MatchSummary): void => {
     if (summary.code !== code || held.current === null) return;

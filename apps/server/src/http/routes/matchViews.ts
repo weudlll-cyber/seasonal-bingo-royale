@@ -12,12 +12,15 @@
  *                 (seed removed, 01 §9), with every player named by display name and the
  *                 caller as the owner, from the match's shared replay (../../view/liveViews).
  *                 `since` limits the events to those after a seq, so a client that already
- *                 holds the start of the log fetches only the rest.
+ *                 holds the start of the log fetches only the rest; such a delta leaves out
+ *                 the player list unless a join, the first round's start or the finish is
+ *                 among its events (the client keeps the list it holds).
  * Depends on:     @sbr/application, ../../view/clientView, ../../view/liveViews (types)
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
  */
 import { nextDrawAt, tooFewAtStart, waitingForHost, type LoadedMatch } from '@sbr/application';
+import type { DomainEvent } from '@sbr/domain';
 
 import { buildClientView } from '../../view/clientView.js';
 import type { LiveEntry } from '../../view/liveViews.js';
@@ -58,6 +61,17 @@ export interface LiveViewInput {
   readonly since: number;
 }
 
+// Events after which the screens need the player list again: a join, the first round's
+// cards (later cards come in their roundStarted events), the final places. Other deltas
+// leave it out (at 200 players it is 169 of 175 KiB).
+function changesPlayers(e: DomainEvent): boolean {
+  return (
+    e.type === 'playerJoined' ||
+    e.type === 'matchFinished' ||
+    (e.type === 'roundStarted' && e.roundIndex === 0)
+  );
+}
+
 export function liveView({ match: m, entry, me, since }: LiveViewInput) {
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
@@ -79,11 +93,14 @@ export function liveView({ match: m, entry, me, since }: LiveViewInput) {
     owners,
     replay,
   });
+  const events = view.events.slice(since);
+  const withPlayers = since === 0 || events.some(changesPlayers);
+  const { players, ...rest } = view;
   return {
     match: matchSummary(m, me),
     seq: replay.length,
     since,
     me: owner === null ? null : (idMap.get(owner) ?? owner),
-    view: { ...view, events: view.events.slice(since) },
+    view: withPlayers ? { ...rest, players, events } : { ...rest, events },
   };
 }

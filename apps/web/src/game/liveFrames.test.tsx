@@ -6,7 +6,9 @@
  *
  * Responsibility: a frame with only other players' taps is appended without a request; a
  *                 frame with a draw, or with the viewer's own tap, fetches the new events
- *                 (since the held seq); events are never held twice.
+ *                 (since the held seq); a gap fetches the new events too, never the whole
+ *                 log again; a delta without the player list keeps the one held; events are
+ *                 never held twice.
  * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../quickTestFixture
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8
  */
@@ -35,12 +37,16 @@ afterEach(() => {
 
 const view = royaleFixture();
 const HELD = view.events.length;
+const PLAYERS = view.players.length;
+const DRAW = { type: 'drawMade', drawIndex: 9, item: 9 };
 
 function Probe(): React.ReactElement {
   const { live } = useLiveMatch('LIVE1');
   return (
     <p data-testid="probe">
-      {live === null ? '-' : `${String(live.seq)}:${String(live.view.events.length)}`}
+      {live === null
+        ? '-'
+        : `${String(live.seq)}:${String(live.view.events.length)}:${String(live.view.players.length)}`}
     </p>
   );
 }
@@ -48,13 +54,13 @@ function Probe(): React.ReactElement {
 function serve(): ReturnType<typeof vi.fn> {
   const fetch = vi.fn((url: string) => {
     const since = Number(new URL(url, 'http://x').searchParams.get('since') ?? 0);
-    const events = since === 0 ? view.events : [{ type: 'drawMade', drawIndex: 9, item: 9 }];
-    const seq = since === 0 ? HELD : since + 1;
-    return Promise.resolve(
-      new Response(
-        JSON.stringify({ match: {}, seq, since, me: 'owner-01', view: { ...view, events } }),
-      ),
-    );
+    // A delta leaves out the player list, as the server does for draws and taps.
+    const { players: _players, ...slim } = view;
+    const body =
+      since === 0
+        ? { match: {}, seq: HELD, since, me: 'owner-01', view }
+        : { match: {}, seq: since + 1, since, me: 'owner-01', view: { ...slim, events: [DRAW] } };
+    return Promise.resolve(new Response(JSON.stringify(body)));
   });
   vi.stubGlobal('fetch', fetch);
   return fetch;
@@ -84,7 +90,9 @@ describe('live frames', () => {
     });
     await settle();
     expect(fetch.mock.calls.length).toBe(before);
-    expect(screen.getByTestId('probe').textContent).toBe(`${String(HELD + 1)}:${String(HELD + 1)}`);
+    expect(screen.getByTestId('probe').textContent).toBe(
+      `${String(HELD + 1)}:${String(HELD + 1)}:${String(PLAYERS)}`,
+    );
   });
 
   it("fetches for a draw and for the viewer's own tap, without repeating held events", async () => {
@@ -96,6 +104,24 @@ describe('live frames', () => {
     });
     await settle();
     expect(String(fetch.mock.calls.at(-1)?.[0])).toContain(`since=${String(HELD)}`);
-    expect(screen.getByTestId('probe').textContent).toBe(`${String(HELD + 1)}:${String(HELD + 1)}`);
+    expect(screen.getByTestId('probe').textContent).toBe(
+      `${String(HELD + 1)}:${String(HELD + 1)}:${String(PLAYERS)}`,
+    );
+  });
+
+  it('fetches only the new events after a gap and keeps the player list (NIGHT-4)', async () => {
+    const fetch = serve();
+    render(<Probe />);
+    await settle();
+    act(() => {
+      handlers.get('events')?.(tap(HELD + 3, 'bot-02'));
+    });
+    await settle();
+    const urls = (fetch.mock.calls as [string][]).map(([url]) => url);
+    expect(urls.filter((u) => u.includes('since=0'))).toHaveLength(1);
+    expect(urls.at(-1)).toContain(`since=${String(HELD)}`);
+    expect(screen.getByTestId('probe').textContent).toBe(
+      `${String(HELD + 1)}:${String(HELD + 1)}:${String(PLAYERS)}`,
+    );
   });
 });
