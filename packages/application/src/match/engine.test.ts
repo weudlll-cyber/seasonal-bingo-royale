@@ -262,7 +262,9 @@ describe('start rules (01 §7.6)', () => {
       reason: 'Not enough players at the start time',
     });
   });
+});
 
+describe('start rules: when full and the time limits (01 §7.6)', () => {
   it('begins the countdown when the last place is taken', async () => {
     const { store, scheduler, clock, engine } = setUp();
     const m = await engine.create(

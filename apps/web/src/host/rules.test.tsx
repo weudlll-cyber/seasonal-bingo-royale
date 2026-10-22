@@ -195,7 +195,8 @@ describe('start rules (01 §7.6)', () => {
 
   it('sends a set time as a moment, and refuses one less than a minute ahead', () => {
     const later = new Date(Date.now() + 3_600_000);
-    const local = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-${String(later.getDate()).padStart(2, '0')}T${String(later.getHours()).padStart(2, '0')}:${String(later.getMinutes()).padStart(2, '0')}`;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const local = `${String(later.getFullYear())}-${pad(later.getMonth() + 1)}-${pad(later.getDate())}T${pad(later.getHours())}:${pad(later.getMinutes())}`;
     const body = createBody({ ...form, start: { kind: 'at', local } });
     expect(body.startRule).toEqual({ kind: 'at', at: new Date(local).getTime() });
     expect(startTimeProblem({ kind: 'at', local: '' }, Date.now())).toBe(
