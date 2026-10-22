@@ -143,6 +143,36 @@ describe('login, CSRF and limits', () => {
   });
 });
 
+describe('deleting the own account (DELETE /me)', () => {
+  it('needs the password, then removes the account and its session', async () => {
+    // From its own address: the suite's earlier registrations count against the limit.
+    const r = await app().inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      remoteAddress: '10.0.0.77',
+      payload: { email: 'gone@example.com', displayName: 'gone', password: strong },
+    });
+    expect(r.statusCode).toBe(201);
+    const cookie = cookieOf(r);
+    const { csrfToken } = await session(cookie);
+    const del = (password: string) =>
+      app().inject({
+        method: 'DELETE',
+        url: '/api/v1/me',
+        payload: { password },
+        headers: { cookie, 'x-csrf-token': csrfToken ?? '' },
+      });
+    const wrong = await del('not the password');
+    expect(wrong.body).toBe('{"code":"PASSWORD_REQUIRED"}');
+    const ok = await del(strong);
+    expect(ok.body).toBe('');
+    expect(ok.statusCode).toBe(204);
+    expect((await session(cookie)).signedIn).toBe(false);
+    const again = await post('/api/v1/auth/login', { email: 'gone@example.com', password: strong });
+    expect(again.statusCode).toBe(401);
+  });
+});
+
 describe('guests and the dev quick sign-in', () => {
   it('gives a guest a watch-only session', async () => {
     const r = await post('/api/v1/auth/guest', {});

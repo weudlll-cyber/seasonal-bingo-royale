@@ -1,7 +1,7 @@
 /**
  * @file   apps/web/src/shell/router.ts
  * @module web/shell
- * @brief  Hash routes of the player client: lobby, match, host screens, Quick Test.
+ * @brief  Hash routes of the player client: lobby, match, host screens, Quick Test, sign-in, register.
  *
  * Responsibility: parse `location.hash` into a route and back, and a hook that follows
  *                 hash changes. Hash routing keeps every screen reachable from the dev
@@ -17,7 +17,9 @@ export type Route =
   | { readonly name: 'match'; readonly code: string }
   | { readonly name: 'hostNew' }
   | { readonly name: 'host'; readonly code: string }
-  | { readonly name: 'quicktest' };
+  | { readonly name: 'quicktest' }
+  | { readonly name: 'signIn' }
+  | { readonly name: 'register' };
 
 export function parseRoute(hash: string): Route {
   const parts = hash
@@ -29,6 +31,8 @@ export function parseRoute(hash: string): Route {
   if (first === 'host' && second === 'new') return { name: 'hostNew' };
   if (first === 'host' && second !== undefined) return { name: 'host', code: second };
   if (first === 'quicktest') return { name: 'quicktest' };
+  if (first === 'sign-in') return { name: 'signIn' };
+  if (first === 'register') return { name: 'register' };
   return { name: 'lobby' };
 }
 
@@ -44,6 +48,10 @@ export function hrefOf(route: Route): string {
       return `#/host/${route.code}`;
     case 'quicktest':
       return '#/quicktest';
+    case 'signIn':
+      return '#/sign-in';
+    case 'register':
+      return '#/register';
   }
 }
 

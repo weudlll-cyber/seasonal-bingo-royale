@@ -6,7 +6,8 @@
  * Responsibility: show the Seasonal Entertainment emblem with the "Seasonal Bingo Royale"
  *                 wordmark, the light/dark toggle, links to the lobby, hosting (with
  *                 `match.create`) and the Quick Test (development only), the account with
- *                 sign-out ("Signed in as <name> (host|player)"), and in development a compact
+ *                 sign-out ("Signed in as <name> (host|player)") or, signed out, "Sign in"
+ *                 and "Register" (../account), and in development a compact
  *                 "Dev sign-in" menu with "Sign in as host" / "Sign in as player 1/2/3" and a
  *                 hint that one window holds one sign-in (05 §2.1). Below the bar, the screen of the
  *                 current route. `dev` decides the development-only parts; production builds
@@ -19,6 +20,8 @@
 import { useState, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
+import { Register } from '../account/Register.js';
+import { SignIn } from '../account/SignIn.js';
 import { App as QuickTest } from '../App.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
@@ -92,9 +95,28 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
             <span className="chip-prefix">Signed in as </span>
             {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
           </span>
-          <button type="button" className="sbr-btn" onClick={() => void signOut()}>
+          <button
+            type="button"
+            className="sbr-btn"
+            data-testid="sign-out"
+            onClick={() => void signOut()}
+          >
             Sign out
           </button>
+        </>
+      ) : null}
+      {session !== null && session.account === null ? (
+        <>
+          <a
+            className="sbr-btn sbr-btn--primary"
+            href={hrefOf({ name: 'signIn' })}
+            data-testid="open-sign-in"
+          >
+            Sign in
+          </a>
+          <a className="sbr-btn" href={hrefOf({ name: 'register' })} data-testid="open-register">
+            Register
+          </a>
         </>
       ) : null}
       {dev ? <DevSignIn /> : null}
@@ -161,5 +183,9 @@ function Screen({ route }: { readonly route: Route }): ReactElement {
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'quicktest':
       return <QuickTest />;
+    case 'signIn':
+      return <SignIn />;
+    case 'register':
+      return <Register />;
   }
 }

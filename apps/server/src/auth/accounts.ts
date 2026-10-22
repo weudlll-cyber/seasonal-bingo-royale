@@ -79,6 +79,36 @@ export async function findLoginAccount(pool: DbPool, email: string): Promise<Log
   };
 }
 
+export async function passwordHashOf(pool: DbPool, accountId: string): Promise<string | null> {
+  const result = await pool.query<{ password_hash: string | null }>(
+    'SELECT password_hash FROM sbr.accounts WHERE id = $1',
+    [accountId],
+  );
+  return result.rows[0]?.password_hash ?? null;
+}
+
+// Deletes an account (05 §2.2 DELETE /me): its sessions and roles go with it (cascade); the
+// matches it hosted or played keep their history without the link to the account.
+export async function deleteAccount(pool: DbPool, accountId: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE sbr.matches SET created_by = NULL WHERE created_by = $1', [
+      accountId,
+    ]);
+    await client.query('UPDATE sbr.match_entries SET account_id = NULL WHERE account_id = $1', [
+      accountId,
+    ]);
+    await client.query('DELETE FROM sbr.accounts WHERE id = $1', [accountId]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function recordLogin(pool: DbPool, accountId: string): Promise<void> {
   await pool.query('UPDATE sbr.accounts SET last_login_at = now() WHERE id = $1', [accountId]);
 }

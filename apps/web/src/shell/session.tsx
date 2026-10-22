@@ -38,7 +38,16 @@ interface SessionContextValue {
   readonly refresh: () => Promise<void>;
   readonly devSignIn: (as: DevIdentity) => Promise<void>;
   readonly signOut: () => Promise<void>;
+  // Local accounts (05 §2.1); both throw ApiError with the server's code on refusal.
+  readonly signIn: (email: string, password: string) => Promise<void>;
+  readonly register: (account: NewAccount) => Promise<void>;
   readonly can: (permission: string) => boolean;
+}
+
+export interface NewAccount {
+  readonly displayName: string;
+  readonly email: string;
+  readonly password: string;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -66,6 +75,16 @@ export function SessionProvider({ children }: { children: ReactNode }): ReactEle
       },
       signOut: async () => {
         await api('/auth/logout', { method: 'POST', body: {} });
+        resetSocket();
+        await refresh();
+      },
+      signIn: async (email, password) => {
+        await api('/auth/login', { method: 'POST', body: { email, password } });
+        resetSocket();
+        await refresh();
+      },
+      register: async (account) => {
+        await api('/auth/register', { method: 'POST', body: account });
         resetSocket();
         await refresh();
       },

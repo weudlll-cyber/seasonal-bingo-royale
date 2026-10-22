@@ -16,6 +16,8 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
+    // The server's detail when it gives one (e.g. PASSWORD_WEAK: tooShort, tooCommon).
+    readonly reason: string | null = null,
   ) {
     super(`${String(status)} ${code}`);
   }
@@ -42,7 +44,7 @@ export async function api<T>(
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
   });
   if (response.status === 204) return undefined as T;
-  const body = (await response.json().catch(() => ({}))) as { code?: string };
-  if (!response.ok) throw new ApiError(response.status, body.code ?? 'ERROR');
+  const body = (await response.json().catch(() => ({}))) as { code?: string; reason?: string };
+  if (!response.ok) throw new ApiError(response.status, body.code ?? 'ERROR', body.reason ?? null);
   return body as T;
 }

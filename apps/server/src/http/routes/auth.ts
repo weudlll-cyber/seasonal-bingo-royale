@@ -4,7 +4,8 @@
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
  * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags),
- *                 POST /auth/register, /auth/login, /auth/logout, /auth/guest. Login answers
+ *                 POST /auth/register, /auth/login, /auth/logout, /auth/guest, and DELETE /me
+ *                 (the account, after its password is checked). Login answers
  *                 uniformly and verifies a dummy hash for unknown e-mails, so timing and
  *                 text never reveal whether an account exists (03 §2.1). Login and
  *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
@@ -17,7 +18,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { findLoginAccount, recordLogin, registerAccount } from '../../auth/accounts.js';
+import {
+  deleteAccount,
+  findLoginAccount,
+  passwordHashOf,
+  recordLogin,
+  registerAccount,
+} from '../../auth/accounts.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
 import { RATE_RULES, RateLimiter } from '../../auth/rateLimit.js';
 import {
@@ -72,6 +79,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     clearSessionCookie(reply, deps.cookie);
     return reply.status(204).send();
   });
+  app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
   app.post('/api/v1/auth/guest', async (request, reply) => {
     if (!deps.features.guests) return reply.status(404).send({ code: 'NOT_FOUND' });
     const { token } = await createSession(deps.pool, null, request.headers['user-agent'] ?? null);
@@ -135,6 +143,22 @@ async function startSession(
   );
   setSessionCookie(reply, deps.cookie, token);
   return reply.status(status).send({ accountId });
+}
+
+// DELETE /me { password } (05 §2.2): the account is deleted after its password is checked.
+const deleteBody = z.object({ password: z.string().max(128) });
+
+async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: AuthDeps) {
+  const accountId = request.session?.accountId ?? null;
+  if (accountId === null) return reply.status(401).send({ code: 'SIGN_IN_REQUIRED' });
+  const parsed = deleteBody.safeParse(request.body);
+  const encoded = await passwordHashOf(deps.pool, accountId);
+  const valid =
+    parsed.success && encoded !== null && (await verifyPassword(encoded, parsed.data.password));
+  if (!valid) return reply.status(403).send({ code: 'PASSWORD_REQUIRED' });
+  await deleteAccount(deps.pool, accountId);
+  clearSessionCookie(reply, deps.cookie);
+  return reply.status(204).send();
 }
 
 function tooMany(reply: FastifyReply) {
