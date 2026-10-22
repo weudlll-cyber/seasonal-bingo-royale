@@ -226,9 +226,13 @@ describe('start at a set time across a restart', () => {
     });
     const { code, id } = created.json<{ code: string; id: string }>();
     await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
-    expect((await host.get(`/api/v1/matches/${code}`)).json<{ startsAt: number }>().startsAt).toBe(
-      at,
-    );
+    // The running server shows the set time, and the rule (NIGHT-3: it once showed 'host').
+    const summary = (await host.get(`/api/v1/matches/${code}`)).json<{
+      startsAt: number;
+      settings: { startRule: { kind: string } };
+    }>();
+    expect(summary.startsAt).toBe(at);
+    expect(summary.settings.startRule).toEqual({ kind: 'at', at });
     // The restart: a new server on the same database, nothing in memory, its scheduler on.
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
     b.match.startScheduler();
