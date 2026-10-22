@@ -27,7 +27,7 @@ import {
   type Ruleset,
 } from '@sbr/contracts';
 
-import type { DrawMode, NewMatchRecord, RoundPause } from './ports.js';
+import type { DrawMode, NewMatchRecord, RoundPause, StartRule } from './ports.js';
 import { defaultRulesetFor, toMatchRuleset } from './rulesets.js';
 import { chosenMissedNumbers, withinDrawRange } from './timing.js';
 
@@ -42,6 +42,8 @@ export interface CreateMatchInput {
   readonly countsForLeaderboard?: boolean | undefined;
   readonly maxPlayers: number;
   readonly roundPause?: RoundPause | undefined;
+  // How the match starts (01 §7.6); the host starts it by default.
+  readonly startRule?: StartRule | undefined;
   // Instead of the published default of the game type: a named ruleset (the server passes
   // its development-only fast test profile here; production never does).
   readonly ruleset?: { readonly name: string; readonly ruleset: Ruleset } | undefined;
@@ -102,6 +104,7 @@ export function toNewMatch(
         missedNumbers,
       ),
       roundPause: chosenRoundPause(input.roundPause),
+      startRule: input.startRule ?? { kind: 'host' },
     },
     createdBy: ids.createdBy,
     seed: ids.seed,

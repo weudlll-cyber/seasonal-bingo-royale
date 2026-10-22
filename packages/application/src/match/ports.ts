@@ -28,7 +28,15 @@ export interface MatchSettings {
   readonly drawMode: DrawMode;
   readonly drawIntervalMs: number;
   readonly roundPause: RoundPause;
+  readonly startRule: StartRule;
 }
+
+// How a match starts (01 §7.6): the host presses Start, at a set time, or when every
+// place is taken; each with the same countdown before the first round.
+export type StartRule =
+  | { readonly kind: 'host' }
+  | { readonly kind: 'at'; readonly at: number }
+  | { readonly kind: 'whenFull' };
 
 export interface MatchRecord {
   readonly id: string;

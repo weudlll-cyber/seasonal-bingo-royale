@@ -37,6 +37,11 @@ export interface MatchSummary {
     readonly drawIntervalMs: number;
     // The pause between royale rounds (D14).
     readonly roundPause: { readonly kind: 'wait'; readonly ms: number } | { readonly kind: 'host' };
+    // How the match starts (01 §7.6).
+    readonly startRule:
+      | { readonly kind: 'host' }
+      | { readonly kind: 'at'; readonly at: number }
+      | { readonly kind: 'whenFull' };
   };
   readonly startsAt: number | null;
   // When the next round starts after a cut (the cut screen counts down); null if unknown.

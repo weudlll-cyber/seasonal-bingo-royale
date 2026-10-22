@@ -14,12 +14,11 @@
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/06-realtime-architecture.md §4.1; docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
 import { matchIdByCode, requirePermission, type MatchRouteDeps } from './matches.js';
 import { sendEngineError } from './matchInput.js';
-
-export const START_COUNTDOWN_MS = 10_000;
 
 type CodeRequest = FastifyRequest<{ Params: { code: string } }>;
 

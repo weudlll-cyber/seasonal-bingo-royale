@@ -121,6 +121,7 @@ function serveLive(view: QuickTestResult, youHost: boolean): void {
       drawMode: 'host',
       drawIntervalMs: 5000,
       roundPause: { kind: 'wait', ms: 6000 },
+      startRule: { kind: 'host' },
     },
     startsAt: null,
     nextRoundAt: null,

@@ -37,6 +37,14 @@ export const createBody = z.object({
       z.object({ kind: z.literal('host') }),
     ])
     .optional(),
+  // How the match starts (01 §7.6): the host's Start (default), a set time, when full.
+  startRule: z
+    .discriminatedUnion('kind', [
+      z.object({ kind: z.literal('host') }),
+      z.object({ kind: z.literal('at'), at: z.number().int() }),
+      z.object({ kind: z.literal('whenFull') }),
+    ])
+    .optional(),
   // Development only (the route refuses it otherwise): the fast test profile (../../dev).
   testProfile: z.literal('fast').optional(),
 });
@@ -55,6 +63,7 @@ const CONFLICT = new Set([
   'DRAW_TOO_EARLY',
   'NOT_WAITING_FOR_HOST',
 ]);
+// START_TIME_INVALID (a set time too soon or more than a week ahead) answers 422.
 
 export function sendEngineError(reply: FastifyReply, error: unknown): FastifyReply {
   if (error instanceof z.ZodError) return reply.status(400).send({ code: 'VALIDATION_FAILED' });

@@ -1,9 +1,10 @@
 /**
  * @file   apps/web/src/host/TimingFields.tsx
  * @module web/host
- * @brief  The create form's timing rules: shortest draw interval (D12), pause between rounds (D14).
+ * @brief  The create form's timing rules: start rule, shortest draw interval (D12), round pause (D14).
  *
- * Responsibility: the shortest timed-draw interval for the chosen game type and missed-
+ * Responsibility: the start rule (I start it, at a set time at least a minute ahead, when
+ *                 every place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
  *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
  *                 longest tap time) and the plain message when the seconds are below it;
  *                 the royale pause choice "wait N seconds" (at least 3) or "host starts the
@@ -102,6 +103,68 @@ export function RoundPauseField({
           />
         </label>
       ) : null}
+    </fieldset>
+  );
+}
+
+// How the match starts (01 §7.6); `local` is the date and time field's value.
+export type StartRuleChoice =
+  | { readonly kind: 'host' }
+  | { readonly kind: 'at'; readonly local: string }
+  | { readonly kind: 'whenFull' };
+
+// The request field; null for a set time that is missing or not at least a minute ahead.
+export function toStartRule(c: StartRuleChoice, now: number) {
+  if (c.kind !== 'at') return { kind: c.kind };
+  const at = new Date(c.local).getTime();
+  return Number.isFinite(at) && at >= now + 60_000 ? { kind: 'at' as const, at } : null;
+}
+
+// The plain message for a set time that cannot be used, or null.
+export function startTimeProblem(c: StartRuleChoice, now: number): string | null {
+  return toStartRule(c, now) === null ? 'Pick a start time at least a minute from now.' : null;
+}
+
+export function StartRuleField({
+  value,
+  onChange,
+}: {
+  readonly value: StartRuleChoice;
+  readonly onChange: (next: StartRuleChoice) => void;
+}): ReactElement {
+  return (
+    <fieldset>
+      <legend>Start</legend>
+      <select
+        className="sbr-select"
+        data-testid="create-start-rule"
+        aria-label="Start"
+        value={value.kind}
+        onChange={(e) => {
+          const kind = e.target.value as StartRuleChoice['kind'];
+          onChange(kind === 'at' ? { kind, local: '' } : { kind });
+        }}
+      >
+        <option value="host">I start it from the console</option>
+        <option value="at">At a set time</option>
+        <option value="whenFull">When every place is taken</option>
+      </select>
+      {value.kind === 'at' ? (
+        <label className="sbr-row">
+          Start time
+          <input
+            className="sbr-input"
+            style={{ width: 'auto' }}
+            type="datetime-local"
+            value={value.local}
+            data-testid="create-start-at"
+            onChange={(e) => {
+              onChange({ kind: 'at', local: e.target.value });
+            }}
+          />
+        </label>
+      ) : null}
+      <small className="sbr-muted">Players see a 10-second countdown before the first round.</small>
     </fieldset>
   );
 }

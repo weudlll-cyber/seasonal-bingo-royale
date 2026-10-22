@@ -237,7 +237,7 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 | `maxPlayers` per match | 200 |
 | Lobby open before start | 10 min (realtime) / 24 h (async) |
 | Late join | Allowed until the end of round 1 of the first stage (async: until first cut); a late joiner starts with 0 points. |
-| Start rule | `scheduled` (fixed time) or `whenFull` or `either` |
+| Start rule | chosen at creation: the host starts it (default), at a set time (at least a minute and at most a week ahead), or when every place is taken; a 10-second countdown either way. A match whose set time comes with fewer than 2 players is stopped with the reason “Not enough players at the start time”; with 2 or more it starts with whoever is there. (`either` is not offered yet.) |
 
 ## 8. Scoring and seasons
 

@@ -22,7 +22,9 @@ import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 import { CreateMatch } from './CreateMatch.js';
+import { startRuleLine } from '../game/labels.js';
 import { createBody } from './createForm.js';
+import { startTimeProblem } from './TimingFields.js';
 import { HostConsole } from './HostConsole.js';
 import { HostDrawControls } from './HostDrawControls.js';
 
@@ -63,6 +65,7 @@ function summary(over: Partial<MatchSummary> = {}): MatchSummary {
       drawMode: 'host',
       drawIntervalMs: 6000,
       roundPause: { kind: 'host' },
+      startRule: { kind: 'host' },
     },
     startsAt: null,
     nextRoundAt: null,
@@ -153,6 +156,7 @@ describe('D14: the pause between royale rounds', () => {
       maxPlayers: 20,
       pause: { kind: 'host' },
       fast: false,
+      start: { kind: 'host' },
     });
     expect(body.roundPause).toEqual({ kind: 'host' });
   });
@@ -173,5 +177,52 @@ describe('D14: the pause between royale rounds', () => {
     expect(screen.getByTestId('waiting-for-host').textContent).toBe(
       'Waiting for the host to start round 2',
     );
+  });
+});
+
+describe('start rules (01 §7.6)', () => {
+  const form = {
+    title: 't',
+    gameType: 'classic' as const,
+    prizes: new Set(['fullCard']),
+    draw: { mode: 'host' as const, intervalSec: null, skipped: false },
+    missed: { mode: 'manual' as const, missed: 'noAutoMark' as const, delaySec: 3 },
+    leaderboard: null,
+    maxPlayers: 8,
+    pause: { kind: 'host' as const },
+    fast: false,
+  };
+
+  it('sends a set time as a moment, and refuses one less than a minute ahead', () => {
+    const later = new Date(Date.now() + 3_600_000);
+    const local = `${later.getFullYear()}-${String(later.getMonth() + 1).padStart(2, '0')}-${String(later.getDate()).padStart(2, '0')}T${String(later.getHours()).padStart(2, '0')}:${String(later.getMinutes()).padStart(2, '0')}`;
+    const body = createBody({ ...form, start: { kind: 'at', local } });
+    expect(body.startRule).toEqual({ kind: 'at', at: new Date(local).getTime() });
+    expect(startTimeProblem({ kind: 'at', local: '' }, Date.now())).toBe(
+      'Pick a start time at least a minute from now.',
+    );
+    expect(createBody({ ...form, start: { kind: 'whenFull' } }).startRule).toEqual({
+      kind: 'whenFull',
+    });
+  });
+
+  it('tells players how the match starts', () => {
+    const settings = summary().settings;
+    expect(startRuleLine(summary({ settings: { ...settings, startRule: { kind: 'host' } } }))).toBe(
+      'The host starts the match.',
+    );
+    expect(
+      startRuleLine(
+        summary({
+          players: 5,
+          maxPlayers: 8,
+          settings: { ...settings, startRule: { kind: 'whenFull' } },
+        }),
+      ),
+    ).toBe('Starts when all 8 places are taken (5 so far).');
+    const at = new Date(2026, 9, 22, 20, 30).getTime();
+    expect(
+      startRuleLine(summary({ settings: { ...settings, startRule: { kind: 'at', at } } })),
+    ).toMatch(/^Starts on Thursday 22 October, 20:30 /);
   });
 });

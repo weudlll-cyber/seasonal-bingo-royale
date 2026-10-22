@@ -14,13 +14,22 @@
  *                 seconds at any time (D8, never below D12); a tap is scored with the
  *                 speed bonus from the time since its draw (01 §6). Every command for a
  *                 match runs serialized through ./runner.
- * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./rulesets, ./timing
+ * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./rulesets, ./timing,
+ *                 ./startRules (set time, start when full)
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler)
  * Spec:           docs/spec/01-game-design.md §3–§8; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§5
  */
 import { speedBonus, type Command } from '@sbr/domain';
 
-import { canDraw, draw, nextDrawAt, runAction, startNextRound, type FlowDeps } from './flow.js';
+import {
+  canDraw,
+  draw,
+  nextDrawAt,
+  runAction,
+  startNextRound,
+  stopMatch,
+  type FlowDeps,
+} from './flow.js';
 import { prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
 import type {
   Clock,
@@ -32,6 +41,7 @@ import type {
   Scheduler,
 } from './ports.js';
 import { MatchRunner } from './runner.js';
+import { scheduleStart, startIfFull, startTimeValid } from './startRules.js';
 import { withinDrawRange } from './timing.js';
 
 export class MatchError extends Error {
@@ -66,6 +76,9 @@ export class MatchEngine {
   async create(input: CreateMatchInput, createdBy: string | null): Promise<MatchRecord> {
     const prizes = prizesFor(input);
     if (prizes === null) throw new MatchError('INVALID_PRIZES');
+    if (!startTimeValid(input.startRule, this.deps.clock.now())) {
+      throw new MatchError('START_TIME_INVALID');
+    }
     const created = toNewMatch(input, prizes, {
       id: crypto.randomUUID(),
       code: this.deps.randomCode(),
@@ -74,7 +87,10 @@ export class MatchEngine {
     });
     await this.deps.store.insert(created.record);
     await this.runner.apply(created.record.id, [created.openLobby]);
-    return { ...created.record, status: 'lobby', startsAt: null };
+    const rule = created.record.settings.startRule;
+    // A set start time: the countdown target from now on, the start through the scheduler.
+    if (rule.kind === 'at') await scheduleStart(this.flow, created.record.id, rule.at);
+    return { ...created.record, status: 'lobby', startsAt: rule.kind === 'at' ? rule.at : null };
   }
 
   join(matchId: string, playerId: string, human: boolean): Promise<void> {
@@ -90,6 +106,7 @@ export class MatchEngine {
         ? { type: 'joinMatch', accountId: playerId, joinedAt, human: true }
         : { type: 'joinMatch', accountId: playerId, joinedAt };
       await this.runner.apply(matchId, [command], { actorAccountId: human ? playerId : null });
+      await startIfFull(this.flow, await this.runner.current(matchId));
     });
   }
 
@@ -110,9 +127,7 @@ export class MatchEngine {
       if (m.record.status !== 'lobby') throw new MatchError('MATCH_NOT_IN_LOBBY');
       if (m.state.playerOrder.length < 2) throw new MatchError('NOT_ENOUGH_PLAYERS');
       const startsAt = this.deps.clock.now() + countdownMs;
-      await this.deps.store.setStatus(matchId, 'lobby', { startsAt });
-      this.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, startsAt } }));
-      await this.deps.scheduler.schedule({ matchId, kind: 'start_match', dueAt: startsAt });
+      await scheduleStart(this.flow, matchId, startsAt);
       return startsAt;
     });
   }
@@ -202,11 +217,6 @@ export class MatchEngine {
   }
 
   abort(matchId: string, reason: string): Promise<void> {
-    return this.runner.serial(matchId, async () => {
-      await this.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
-      await this.deps.store.setStatus(matchId, 'aborted');
-      this.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'aborted' } }));
-      await this.deps.scheduler.cancel(matchId);
-    });
+    return this.runner.serial(matchId, () => stopMatch(this.flow, matchId, reason));
   }
 }

@@ -20,6 +20,7 @@ import { nextStep } from '@sbr/domain';
 
 import type { Clock, LoadedMatch, MatchStore, ScheduledAction, Scheduler } from './ports.js';
 import type { MatchRunner } from './runner.js';
+import { NOT_ENOUGH_AT_START, tooFewToStart } from './startRules.js';
 
 export interface FlowDeps {
   readonly runner: MatchRunner;
@@ -50,11 +51,22 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
 }
 
 async function startMatch(deps: FlowDeps, matchId: string): Promise<void> {
+  if (tooFewToStart(await deps.runner.current(matchId))) {
+    return stopMatch(deps, matchId, NOT_ENOUGH_AT_START);
+  }
   const produced = await deps.runner.apply(matchId, [{ type: 'startMatch' }]);
   if (produced.length === 0) return;
   await deps.store.setStatus(matchId, 'running');
   deps.runner.update(matchId, (m) => ({ ...m, record: { ...m.record, status: 'running' } }));
   await advance(deps, matchId, false);
+}
+
+// Stops the match with a reason (the host's abort, or too few players at the start time).
+export async function stopMatch(deps: FlowDeps, matchId: string, reason: string): Promise<void> {
+  await deps.runner.apply(matchId, [{ type: 'abortMatch', reason }]);
+  await deps.store.setStatus(matchId, 'aborted');
+  deps.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, status: 'aborted' } }));
+  await deps.scheduler.cancel(matchId);
 }
 
 // After the match started or a round (and its cut) is over: next round, stage or finish.

@@ -10,8 +10,9 @@
  *                 its sequence, every draw's speed window closes before the next draw), the
  *                 snapshot plus tail rebuilds the same state as a full replay, bots' marks
  *                 are projected, the event log rejects changes, a stale writer is refused,
- *                 marks older than 90 days are purged, and the next round's start time
- *                 during the pause between rounds survives a restart (event log).
+ *                 marks older than 90 days are purged, the next round's start time during
+ *                 the pause between rounds survives a restart (event log), and a match set
+ *                 to start at a time starts then on a server that came up after it was set.
  * Depends on:     vitest, ./harness, ./session, @sbr/domain, ../src/match/*
  * Spec:           docs/spec/02-software-architecture.md §5.2–§5.4; docs/spec/04-database-design.md §3.3
  */
@@ -206,5 +207,39 @@ describe('pause between rounds across a restart', () => {
     }>();
     await b.fastify.close();
     expect(after.nextRoundAt).toBe(before.nextRoundAt);
+  }, 120_000);
+});
+
+describe('start at a set time across a restart', () => {
+  it('starts the match at its time on a server that came up after it was set', async () => {
+    const a = harness.built;
+    const host = await signIn(a.fastify, 'host');
+    const at = Date.now() + 11_000;
+    const created = await host.post('/api/v1/matches', {
+      title: 'Set time',
+      gameType: 'classic',
+      prizes: ['fullCard'],
+      drawMode: 'host',
+      missedNumbers: { kind: 'noAutoMark' },
+      maxPlayers: 8,
+      startRule: { kind: 'at', at },
+    });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
+    expect((await host.get(`/api/v1/matches/${code}`)).json<{ startsAt: number }>().startsAt).toBe(
+      at,
+    );
+    // The restart: a new server on the same database, nothing in memory, its scheduler on.
+    const b = await buildOn(harness.pool, harness.container.getConnectionUri());
+    b.match.startScheduler();
+    const status = async () => (await b.match.store.load(id))?.record.status;
+    const until = Date.now() + 40_000;
+    while ((await status()) !== 'running' && Date.now() < until) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    await b.match.scheduler.stop();
+    await b.fastify.close();
+    expect(await status()).toBe('running');
+    expect(Date.now()).toBeGreaterThanOrEqual(at);
   }, 120_000);
 });

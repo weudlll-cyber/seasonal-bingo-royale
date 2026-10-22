@@ -28,6 +28,8 @@ export {
   DEFAULT_AUTO_MARK_DELAY_MS,
   DEFAULT_ROUND_PAUSE_MS,
   MIN_ROUND_PAUSE_MS,
+  START_COUNTDOWN_MS,
+  MAX_START_AHEAD_MS,
   shortestDrawIntervalMs,
   RulesetSchema,
   type Effect,

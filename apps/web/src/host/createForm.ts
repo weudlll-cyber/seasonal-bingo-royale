@@ -4,7 +4,7 @@
  * @brief  The create form's values, their defaults, the D12 check and the POST /matches body.
  *
  * Responsibility: what the host fills in (title, game type, prizes, draws, missed numbers,
- *                 leaderboard, max players, royale pause, the development-only fast test
+ *                 leaderboard, max players, royale pause, start rule, the development-only fast test
  *                 profile), the starting values, the message for seconds below the shortest
  *                 interval (D12), and the request body (05 §2.3; the server clamps seconds
  *                 and delays into range as well).
@@ -26,7 +26,9 @@ import {
   rulesetIntervalMs,
   shortestInterval,
   toRoundPause,
+  toStartRule,
   type RoundPauseChoice,
+  type StartRuleChoice,
 } from './TimingFields.js';
 
 export interface FormValues {
@@ -42,6 +44,8 @@ export interface FormValues {
   readonly pause: RoundPauseChoice;
   // Development only: the server's fast test profile (short royale for the play-through).
   readonly fast: boolean;
+  // How the match starts (01 §7.6).
+  readonly start: StartRuleChoice;
 }
 
 export const INITIAL: FormValues = {
@@ -54,6 +58,7 @@ export const INITIAL: FormValues = {
   maxPlayers: 20,
   pause: INITIAL_PAUSE,
   fast: false,
+  start: { kind: 'host' },
 };
 
 // The seconds between draws below the match's shortest interval (D12): the message, else null.
@@ -78,5 +83,6 @@ export function createBody(v: FormValues) {
     maxPlayers: Math.min(200, Math.max(2, v.maxPlayers)),
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
     ...(v.fast ? { testProfile: 'fast' as const } : {}),
+    startRule: toStartRule(v.start, Date.now()) ?? { kind: 'host' as const },
   };
 }

@@ -230,3 +230,65 @@ describe('taps (01 §6)', () => {
     expect(await tapAfter(await runningHostMatch({ kind: 'noAutoMark' }), 4_000)).toBe(10);
   });
 });
+
+describe('start rules (01 §7.6)', () => {
+  it('starts at the set time through the scheduler', async () => {
+    const { store, scheduler, clock, engine } = setUp();
+    const at = clock.t + 60_000;
+    const m = await engine.create(
+      { ...base, gameType: 'classic', startRule: { kind: 'at', at } },
+      null,
+    );
+    expect(m.startsAt).toBe(at);
+    await engine.fillWithBots(m.id, 4);
+    await scheduler.runUntil(engine, clock, at - 1);
+    expect(store.records.get(m.id)?.status).toBe('lobby');
+    await scheduler.runUntil(engine, clock, at);
+    expect(store.records.get(m.id)?.status).toBe('running');
+  });
+
+  it('stops a match with fewer than 2 players at its start time', async () => {
+    const { store, scheduler, clock, engine } = setUp();
+    const at = clock.t + 60_000;
+    const m = await engine.create(
+      { ...base, gameType: 'classic', startRule: { kind: 'at', at } },
+      null,
+    );
+    await engine.join(m.id, 'person', true);
+    await scheduler.runUntil(engine, clock, at);
+    expect(store.records.get(m.id)?.status).toBe('aborted');
+    expect(store.events.get(m.id)?.at(-1)?.event).toEqual({
+      type: 'matchAborted',
+      reason: 'Not enough players at the start time',
+    });
+  });
+
+  it('begins the countdown when the last place is taken', async () => {
+    const { store, scheduler, clock, engine } = setUp();
+    const m = await engine.create(
+      { ...base, gameType: 'classic', maxPlayers: 4, startRule: { kind: 'whenFull' } },
+      null,
+    );
+    await engine.fillWithBots(m.id, 3);
+    expect(scheduler.pending.some((a) => a.kind === 'start_match')).toBe(false);
+    await engine.join(m.id, 'person', true);
+    expect(store.records.get(m.id)?.startsAt).toBe(clock.t + 10_000);
+    await scheduler.runUntil(engine, clock, clock.t + 10_000);
+    expect(store.records.get(m.id)?.status).toBe('running');
+  });
+
+  it('refuses a start time too soon or more than a week ahead', async () => {
+    const { clock, engine } = setUp();
+    const at = (ms: number) => ({
+      ...base,
+      gameType: 'classic' as const,
+      startRule: { kind: 'at' as const, at: clock.t + ms },
+    });
+    await expect(engine.create(at(5_000), null)).rejects.toEqual(
+      new MatchError('START_TIME_INVALID'),
+    );
+    await expect(engine.create(at(8 * 24 * 3_600_000), null)).rejects.toEqual(
+      new MatchError('START_TIME_INVALID'),
+    );
+  });
+});

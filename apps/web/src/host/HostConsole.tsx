@@ -27,7 +27,14 @@ import { CurrentBall } from '../game/CurrentBall.js';
 import { EndActions } from '../game/EndActions.js';
 import { intent } from '../game/socket.js';
 import '../game/game.css';
-import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
+import {
+  gameTypeName,
+  problemText,
+  progressText,
+  rulesLine,
+  startRuleLine,
+  statusName,
+} from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
@@ -86,10 +93,7 @@ function HostLobby({
   };
   return (
     <section className="sbr-panel sbr-stack">
-      {/* Right after Create match and while the lobby is open: where players find it. */}
-      <p className="open-notice" role="status" data-testid="open-match-notice">
-        Your match is open — players can join now from the lobby (code {live.match.code}).
-      </p>
+      <OpenNotice match={live.match} />
       <h2>
         Players {live.match.players} / {live.match.maxPlayers}
       </h2>
@@ -123,6 +127,20 @@ function HostLobby({
       )}
       {message !== null ? <p className="lobby-error">{message}</p> : null}
     </section>
+  );
+}
+
+// Right after Create match and while the lobby is open: where players find it, how it starts.
+function OpenNotice({ match }: { readonly match: LiveState['match'] }): ReactElement {
+  return (
+    <>
+      <p className="open-notice" role="status" data-testid="open-match-notice">
+        Your match is open — players can join now from the lobby (code {match.code}).
+      </p>
+      <p className="sbr-muted" data-testid="host-start-rule">
+        {startRuleLine(match)}
+      </p>
+    </>
   );
 }
 

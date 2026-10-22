@@ -5,7 +5,7 @@
  *
  * Responsibility: the row type of sbr.matches and its mapping to MatchRecord: the frozen
  *                 ruleset document, the starter's settings (marking, missed numbers, draw
- *                 mode and seconds, pause between rounds) and the status. The seed never leaves the database here.
+ *                 mode and seconds, pause between rounds, start rule) and the status. The seed never leaves the database here.
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types)
  * Used by:        ./pgMatchStore, ../http/routes/matches
  * Spec:           docs/spec/04-database-design.md §3.3
@@ -32,6 +32,7 @@ export interface MatchRow {
   draw_interval_ms: number;
   // NULL: the host starts the next royale round (D14).
   round_pause_ms: number | null;
+  start_rule: 'host' | 'at' | 'whenFull';
   created_by: string | null;
   starts_at: Date | null;
 }
@@ -58,8 +59,17 @@ export function recordFrom(row: MatchRow): MatchRecord {
       drawIntervalMs: row.draw_interval_ms,
       roundPause:
         row.round_pause_ms === null ? { kind: 'host' } : { kind: 'wait', ms: row.round_pause_ms },
+      startRule: startRuleOf(row),
     },
     createdBy: row.created_by,
     startsAt: row.starts_at === null ? null : row.starts_at.getTime(),
   };
+}
+
+// The set start time of an 'at' match is the countdown target in starts_at.
+function startRuleOf(row: MatchRow): MatchRecord['settings']['startRule'] {
+  if (row.start_rule === 'at' && row.starts_at !== null) {
+    return { kind: 'at', at: row.starts_at.getTime() };
+  }
+  return row.start_rule === 'whenFull' ? { kind: 'whenFull' } : { kind: 'host' };
 }

@@ -9,7 +9,8 @@
  *                 Quick Test's field), missed numbers (marked after N seconds, or left open —
  *                 the Quick Test's field), the leaderboard switch (on for royale, off for the
  *                 classic types by default), max players, the pause between royale rounds
- *                 (D14) and the start rule (the host starts, with a 10-second countdown).
+ *                 (D14) and the start rule (the host starts it, at a set time, or when every
+ *                 place is taken; a 10-second countdown either way).
  *                 Seconds between draws below the shortest interval (D12) show a plain
  *                 message and keep the form from being sent. POST /matches, then the console.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
@@ -28,7 +29,7 @@ import { PRIZE_CATALOGUE } from '../prizes.js';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
 import { createBody, INITIAL, intervalMessage, type FormValues } from './createForm.js';
-import { RoundPauseField } from './TimingFields.js';
+import { RoundPauseField, StartRuleField, startTimeProblem } from './TimingFields.js';
 import { YourMatches } from './YourMatches.js';
 import type { GameType } from '../types.js';
 
@@ -42,8 +43,11 @@ export function CreateMatch(): ReactElement {
   };
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
-    // D12: the message under the draws field says why nothing is sent.
+    // D12 and the start time: the message under the field says why nothing is sent.
     if (intervalMessage(values) !== null) return;
+    const startProblem = startTimeProblem(values.start, Date.now());
+    setError(startProblem);
+    if (startProblem !== null) return;
     api<{ code: string }>('/matches', { method: 'POST', body: createBody(values) })
       .then((r) => {
         navigate({ name: 'host', code: r.code });
@@ -71,9 +75,12 @@ export function CreateMatch(): ReactElement {
           />
         )}
         <RulesFields values={values} set={set} />
-        <p className="sbr-muted">
-          Start: you start the match from the console; players see a 10-second countdown.
-        </p>
+        <StartRuleField
+          value={values.start}
+          onChange={(s) => {
+            set('start', s);
+          }}
+        />
         {error !== null ? <p className="lobby-error">{error}</p> : null}
         <button
           type="submit"
