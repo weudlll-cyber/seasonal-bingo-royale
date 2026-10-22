@@ -12,11 +12,16 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { signIn } from './realGame.js';
+import { closeContexts, signIn } from './realGame.js';
 import { PHONE } from './screens.js';
 
 // The native arrow of a closed dropdown takes about this much of its inner width.
 const ARROW_PX = 24;
+
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
 
 test('every create-form option fits its dropdown on a 390 px phone', async ({ browser }) => {
   const page = await (await browser.newContext({ viewport: PHONE })).newPage();
@@ -41,5 +46,4 @@ test('every create-form option fits its dropdown on a 390 px phone', async ({ br
     return out;
   }, ARROW_PX);
   expect(cut).toEqual([]);
-  await page.context().close();
 });

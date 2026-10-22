@@ -305,7 +305,7 @@ describe('teardown (LOOK-1)', () => {
     expect(open.rowCount).toBe(0);
     for (const id of stopped) {
       const last = (await harness.built.match.store.events(id, 0)).at(-1)?.event;
-      expect(last).toEqual({ type: 'matchAborted', reason: 'test cleanup' });
+      expect(last).toEqual({ type: 'matchAborted', reason: 'test cleanup', by: 'system' });
     }
   });
 });

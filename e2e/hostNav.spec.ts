@@ -18,7 +18,14 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { fillAndStart, hostMatch, joinFromLobby, signIn, stopMatch } from './realGame.js';
+import {
+  closeContexts,
+  fillAndStart,
+  hostMatch,
+  joinFromLobby,
+  signIn,
+  stopMatch,
+} from './realGame.js';
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 
 // The create form with the start rules: a start time an hour ahead (local, as the field takes it).
@@ -32,6 +39,11 @@ async function shootCreateForm(page: Page): Promise<void> {
   // The form keeps its choices; the journey's match starts from the console.
   await page.getByTestId('create-start-rule').selectOption('host');
 }
+
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
 
 test('the host returns via Manage and Open host console; a player sees no Manage', async ({
   browser,

@@ -17,7 +17,7 @@
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
-import { post, signIn, stopMatch, type Who } from './realGame.js';
+import { closeContexts, post, signIn, stopMatch, type Who } from './realGame.js';
 import { captureLook, DESKTOP, SHOTS_DIR } from './screens.js';
 
 type StartRule =
@@ -31,6 +31,13 @@ async function open(browser: Browser, who: Who): Promise<Page> {
   return page;
 }
 
+// Plain titles: they show in the screenshots.
+const TITLES: Record<StartRule['kind'], string> = {
+  host: 'Friday bingo',
+  at: 'Bingo at eight',
+  whenFull: 'Bingo when full',
+};
+
 // Opens a match with the start rule over the API; the player joins unless told not to.
 async function openMatch(
   host: Page,
@@ -39,7 +46,7 @@ async function openMatch(
   join = true,
 ): Promise<string> {
   const r = await post(host, '/api/v1/matches', {
-    title: `Start ${startRule.kind}`,
+    title: TITLES[startRule.kind],
     gameType: 'royale',
     drawMode: 'host',
     missedNumbers: { kind: 'noAutoMark' },
@@ -61,9 +68,18 @@ async function registration(host: Page, player: Page, code: string): Promise<str
   return line;
 }
 
-async function shoot(shots: boolean, pages: [Page, string][]): Promise<void> {
+// Saves each page at both sizes and themes; `show` keeps one element in view (a notice
+// below the fold on a phone).
+async function shoot(shots: boolean, pages: [Page, string, string?][]): Promise<void> {
   if (!shots) return;
-  for (const [page, name] of pages) await captureLook(page, SHOTS_DIR, name);
+  for (const [page, name, show] of pages) {
+    await captureLook(
+      page,
+      SHOTS_DIR,
+      name,
+      show === undefined ? undefined : page.getByTestId(show),
+    );
+  }
 }
 
 // An automatic start 12 s ahead with nobody in: the match waits and the console says so.
@@ -78,7 +94,7 @@ async function checkTooFew(host: Page, player: Page, shots: boolean): Promise<st
   await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'lobby');
   await player.goto(`/#/match/${code}`);
   await shoot(shots, [
-    [host, 'start-too-few-console'],
+    [host, 'start-too-few-console', 'host-too-few'],
     [player, 'start-too-few-waiting'],
   ]);
   return code;
@@ -97,6 +113,11 @@ async function checkCountdown(host: Page, player: Page, code: string, shots: boo
   await expect(player.getByTestId('countdown')).toContainText('Starting in');
   await shoot(shots, [[player, 'start-countdown-waiting']]);
 }
+
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
 
 test('the registration line, the D16 notice and the countdown', async ({ browser }, info) => {
   test.setTimeout(300_000);

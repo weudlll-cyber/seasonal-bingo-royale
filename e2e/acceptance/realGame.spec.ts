@@ -25,6 +25,7 @@
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
 import {
+  closeContexts,
   currentItem,
   drawNext,
   fillAndStart,
@@ -236,6 +237,11 @@ async function checkFreshStart(t: Table, combo: Combo, created: string[]): Promi
 }
 
 // The six matches run side by side (three workers): separate contexts and matches.
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
+
 test.describe.configure({ mode: 'parallel' });
 
 for (const combo of COMBOS) {

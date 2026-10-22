@@ -17,6 +17,7 @@
 import { expect, test } from '@playwright/test';
 
 import {
+  closeContexts,
   currentItem,
   drawNext,
   fillAndStart,
@@ -25,6 +26,11 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
 
 test('host and player share one live match', async ({ browser }) => {
   test.setTimeout(120_000);

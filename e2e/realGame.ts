@@ -7,12 +7,12 @@
  *                 sign-in, create a match from the host's form, join from the lobby, start
  *                 it with bots, press Draw next once its window allows, read the current
  *                 number and the standings from a screen, post as the signed-in account (with
- *                 its CSRF token), and stop a match in teardown.
+ *                 its CSRF token), stop a match in teardown and close the test's contexts.
  * Depends on:     @playwright/test
  * Used by:        ./realGame.spec.ts, ./startScreens.spec.ts, ./acceptance/realGame.spec.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
-import { expect, type APIResponse, type Page } from '@playwright/test';
+import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';
 
 export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
 
@@ -114,4 +114,11 @@ export async function drawNext(host: Page): Promise<void> {
       timeout: 10_000,
     })
     .not.toBe(before);
+}
+
+// After each test of a spec that opens its own browser contexts: close them all. Left
+// open, their pages keep sockets and timers running in the worker and slow every later
+// test there (NIGHT-4: WebKit tests took minutes and timed out at the end of a run).
+export async function closeContexts(browser: Browser): Promise<void> {
+  await Promise.all(browser.contexts().map((context) => context.close()));
 }

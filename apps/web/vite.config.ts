@@ -43,5 +43,8 @@ export default defineConfig({
   test: {
     // Tests read these as raw text (reduced motion, token contrast); other CSS is skipped.
     css: { include: [/motion\.css/, /tokens\.css/] },
+    // Rendering a whole arena in jsdom takes 0.3 s alone but up to 10 s inside "pnpm verify",
+    // beside the simulations and the databases; the 5 s default then failed tests that pass.
+    testTimeout: 20_000,
   },
 });

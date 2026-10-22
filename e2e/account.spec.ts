@@ -16,7 +16,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { hostMatch, signIn, stopMatch } from './realGame.js';
+import { closeContexts, hostMatch, signIn, stopMatch } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
 
 const PASSWORD = 'correct horse battery staple';
@@ -43,6 +43,11 @@ async function signInWithForm(page: Page, email: string, password: string): Prom
   await page.getByTestId('sign-in-password').fill(password);
   await page.getByTestId('sign-in-submit').click();
 }
+
+// Contexts this spec opens are closed after every test (see closeContexts).
+test.afterEach(async ({ browser }) => {
+  await closeContexts(browser);
+});
 
 test('register, sign out, sign in, join a match, sign out', async ({ browser }, info) => {
   test.setTimeout(120_000);
