@@ -175,29 +175,3 @@ export function problemText(code: string): string {
   };
   return texts[code] ?? 'Something went wrong — please try again.';
 }
-
-// A moment in the website's one date format: "Thursday 22 October, 20:30 CEST".
-export function whenText(at: number): string {
-  const d = new Date(at);
-  const day = new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(d);
-  const time = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  }).format(d);
-  return `${day}, ${time}`;
-}
-
-// How the match starts, for the waiting room and the console (01 §7.6).
-export function startRuleLine(match: MatchSummary): string {
-  const rule = match.settings.startRule;
-  if (rule.kind === 'at') return `Starts on ${whenText(rule.at)}.`;
-  if (rule.kind === 'whenFull') {
-    return `Starts when all ${String(match.maxPlayers)} places are taken (${String(match.players)} so far).`;
-  }
-  return 'The host starts the match.';
-}

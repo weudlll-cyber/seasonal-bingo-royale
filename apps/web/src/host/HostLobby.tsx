@@ -4,20 +4,22 @@
  * @brief  The host's console while the match is open: notice, players, start (01 §7.6, D16).
  *
  * Responsibility: the notice "Your match is open — players can join now from the lobby
- *                 (code …)" with how the match starts; the joined players; "Fill with N
+ *                 (code …)" with the registration status (../game/Registration); the joined
+ *                 players; "Fill with N
  *                 bots" (development only); for a set start time the switch "Start
  *                 automatically at the start time" (until the countdown runs) and, when the
  *                 automatic start found fewer than 2 players, "Not enough players at the
  *                 start time — start it yourself or abort"; Start match, which the host can
  *                 always press, or the countdown once it runs.
- * Depends on:     react, ../game/labels, ../game/useLiveMatch, ../playback, ../shell/http,
+ * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback, ../shell/http,
  *                 ./TimingFields
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3, §3
  */
 import { useState, type ReactElement } from 'react';
 
-import { problemText, startRuleLine } from '../game/labels.js';
+import { problemText } from '../game/labels.js';
+import { RegistrationStatus } from '../game/Registration.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
@@ -119,8 +121,8 @@ function OpenNotice({ match }: { readonly match: LiveState['match'] }): ReactEle
       <p className="open-notice" role="status" data-testid="open-match-notice">
         Your match is open — players can join now from the lobby (code {match.code}).
       </p>
-      <p className="sbr-muted" data-testid="host-start-rule">
-        {startRuleLine(match)}
+      <p className="sbr-muted">
+        <RegistrationStatus match={match} testId="host-start-rule" />
       </p>
     </>
   );

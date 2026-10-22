@@ -4,12 +4,12 @@
  * @brief  The waiting room before a match starts: rules, players, countdown, join (WP-12).
  *
  * Responsibility: show the match's title, game type, prizes (classic types) and rules in
- *                 plain words, every player who joined, how the match starts (the host, a set
- *                 time, or when full), and the countdown to the first round once the start is
- *                 set (minutes before the last minute). A signed-in player who has not joined yet
+ *                 plain words, every player who joined, the registration status
+ *                 (./Registration: the host, a set time with a live countdown, or places
+ *                 left), and the 10-second countdown to the first round once it runs. A signed-in player who has not joined yet
  *                 gets a Join button.
  * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil, ../playback (types),
- *                 ./useLiveMatch, ./labels
+ *                 ./useLiveMatch, ./labels, ./Registration
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
@@ -20,7 +20,8 @@ import { api } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 import { HostLink } from './HostLink.js';
-import { gameTypeName, prizeName, rulesLine, startRuleLine } from './labels.js';
+import { gameTypeName, prizeName, rulesLine } from './labels.js';
+import { RegistrationStatus } from './Registration.js';
 import type { LiveState } from './useLiveMatch.js';
 
 export function WaitingRoom({
@@ -76,20 +77,19 @@ export function WaitingRoom({
       ) : null}
       <p className="sbr-muted" data-testid="start-rule">
         {joined ? 'You are in. ' : ''}
-        {startRuleLine(live.match)}
+        <RegistrationStatus match={live.match} testId="registration" />
       </p>
     </div>
   );
 }
 
+// The real countdown before the first round (10 s; a set time shows in the registration line).
 function Countdown({ startsAt }: { readonly startsAt: number | null }): ReactElement | null {
   const left = useSecondsUntil(startsAt);
   if (left === null) return null;
   return (
     <p className="countdown" data-testid="countdown" aria-live="polite">
-      {/* Seconds for the last minute, minutes before (a set time can be days ahead). */}
-      Starting in <strong>{left > 60 ? Math.ceil(left / 60) : left}</strong>{' '}
-      {left > 60 ? 'min' : 's'}
+      Starting in <strong>{left}</strong> s
     </p>
   );
 }

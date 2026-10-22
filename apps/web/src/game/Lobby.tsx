@@ -5,12 +5,14 @@
  *                 Stopped (aborted) matches are left out.
  *
  * Responsibility: list GET /matches (refreshed every 3 seconds) as cards with title, game
- *                 type, status, code, players, draw mode and missed-number rule; "Manage"
+ *                 type, status, code, players, draw mode and missed-number rule, and for an
+ *                 open match its registration status (./Registration); "Manage"
  *                 for the match's host (the server says who that is) while it is open or
  *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
  *                 POST /matches/:code/join and opens the match. Without a session it points
  *                 to the sign-in buttons.
- * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./useLiveMatch (types), ./labels
+ * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./useLiveMatch (types), ./labels,
+ *                 ./Registration
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13
  */
@@ -20,6 +22,7 @@ import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { gameTypeName, problemText, rulesLine, statusName } from './labels.js';
+import { RegistrationStatus } from './Registration.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
 
@@ -130,6 +133,11 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
         </span>
       </p>
       <p className="sbr-muted">{rulesLine(m)}</p>
+      {m.status === 'lobby' ? (
+        <p>
+          <RegistrationStatus match={m} testId={`registration-${m.code}`} />
+        </p>
+      ) : null}
       <div className="sbr-row">
         {manageable(m) ? (
           <a

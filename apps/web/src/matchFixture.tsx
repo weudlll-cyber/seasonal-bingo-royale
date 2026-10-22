@@ -5,11 +5,11 @@
  *
  * Responsibility: `matchSummary` — an open royale match with host draws, changed by the
  *                 fields a test gives; `serveMatch` stubs fetch with the signed-in host's
- *                 session and the live state of one match; `show` renders inside the
+ *                 session, the lobby list and the live state of one match; `show` renders inside the
  *                 session provider and lets the first fetches settle. Test support only.
  * Depends on:     @testing-library/react, vitest, ./game/useLiveMatch (types), ./quickTestFixture,
  *                 ./shell/session
- * Used by:        ./host/*.test.tsx
+ * Used by:        ./host/*.test.tsx, ./game/registration.test.tsx
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §2
  */
 import { act, render } from '@testing-library/react';
@@ -56,19 +56,15 @@ const HOST_SESSION = {
   csrfToken: 'x',
 };
 
-// Answers the session and the match's live state; returns the fetch stub.
+// Answers the session, the lobby list (this one match) and the match's live state;
+// returns the fetch stub.
 export function serveMatch(match: MatchSummary, view = royaleFixture()): ReturnType<typeof vi.fn> {
-  const fetch = vi.fn((url: string) =>
-    Promise.resolve(
-      new Response(
-        JSON.stringify(
-          url.endsWith('/session')
-            ? HOST_SESSION
-            : { match, seq: 0, since: 0, me: 'owner-01', view },
-        ),
-      ),
-    ),
-  );
+  const answer = (url: string): unknown => {
+    if (url.endsWith('/session')) return HOST_SESSION;
+    if (url.endsWith('/matches')) return { matches: [match] };
+    return { match, seq: 0, since: 0, me: 'owner-01', view };
+  };
+  const fetch = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(answer(url)))));
   vi.stubGlobal('fetch', fetch);
   return fetch;
 }
