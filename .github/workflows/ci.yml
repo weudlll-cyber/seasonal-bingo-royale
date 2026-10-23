@@ -3,10 +3,10 @@
 # @brief  CI: verify, security scans, docs links, browser tests and the container image.
 #
 # Responsibility: run what "pnpm verify" runs and the domain/application coverage, the
-#                 dependency/secret scans, the license
-#                 check of the production dependencies and the markdown link check on every
-#                 push; on the way to master also the Playwright suite in three browsers
-#                 and the image build, scan and size check. Any red job blocks merge.
+#                 dependency/secret scans, the license check of the production
+#                 dependencies, the markdown link check and the Playwright suite in three
+#                 browsers on every push; on the way to master also the image build, scan
+#                 and size check. Any red job blocks merge.
 # Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/
 # Spec:           docs/spec/08-devops-architecture.md §3–§4, docs/spec/03-security-architecture.md §18
 name: CI
@@ -97,8 +97,8 @@ jobs:
             --exclude-path node_modules --exclude-path reports '**/*.md'
 
   e2e:
-    # Only on the way to master: PRs to master and pushes to master.
-    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
+    # On every push and pull request: a branch learns of a red browser test before it
+    # reaches master (MERGE-AUDIT-1: master went red four times on tests no branch had run).
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
