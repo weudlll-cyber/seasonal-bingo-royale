@@ -1,43 +1,47 @@
 /**
  * @file   apps/web/src/shell/AppShell.tsx
  * @module web/shell
- * @brief  The player client's frame: top bar, navigation, account, dev quick sign-in, screens.
+ * @brief  The player client's frame: top bar, navigation, account, screens.
  *
  * Responsibility: show the Seasonal Entertainment emblem with the "Seasonal Bingo Royale"
- *                 wordmark, the light/dark toggle, links to the lobby, hosting (with
- *                 `match.create`) and the Quick Test (development only), the account with
- *                 sign-out ("Signed in as <name> (host|player)") or, signed out, "Sign in"
- *                 and "Register" (../account), and in development a compact
- *                 "Dev sign-in" menu with "Sign in as host" / "Sign in as player 1/2/3" and a
- *                 hint that one window holds one sign-in (05 §2.1). Below the bar, the screen of the
- *                 current route. `dev` decides the development-only parts; production builds
- *                 pass false.
- * Depends on:     react, ./router, ./session, ./ThemeToggle, ../game/*, ../host/*, ../App,
- *                 ./shell.css, assets/brand/emblem.webp
+ *                 wordmark, the light/dark toggle, links to the lobby and hosting (with
+ *                 `match.create`), the account with sign-out ("Signed in as <name>
+ *                 (host|player)") or, signed out, "Sign in" and "Register" (../account).
+ *                 Below the bar, the screen of the current route. In development also the
+ *                 Quick Test link and page and the "Dev sign-in" menu (./DevTools), loaded on
+ *                 demand: a production build (Vite's DEV false) leaves them out of the bundle,
+ *                 and `dev` (false in production) decides whether they show.
+ * Depends on:     react, ./router, ./session, ./ThemeToggle, ./DevTools and ../App (lazy,
+ *                 development only), ../game/*, ../host/*, ../account/*, ./shell.css,
+ *                 assets/brand/emblem.webp
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.1
  */
-import { useState, type ReactElement } from 'react';
+import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { Register } from '../account/Register.js';
 import { SignIn } from '../account/SignIn.js';
-import { App as QuickTest } from '../App.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { hrefOf, useRoute, type Route } from './router.js';
-import { useSession, type DevIdentity } from './session.js';
+import { useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import './shell.css';
 
-const DEV_IDENTITIES: readonly { readonly as: DevIdentity; readonly label: string }[] = [
-  { as: 'host', label: 'Sign in as host' },
-  { as: 'player-1', label: 'Sign in as player 1' },
-  { as: 'player-2', label: 'Sign in as player 2' },
-  { as: 'player-3', label: 'Sign in as player 3' },
-];
+// Development tools load on demand. A production build replaces import.meta.env.DEV with
+// false, so these imports and everything behind them stay out of the bundle (audit B).
+const QuickTestLink = import.meta.env.DEV
+  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.QuickTestLink })))
+  : null;
+const DevSignIn = import.meta.env.DEV
+  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.DevSignIn })))
+  : null;
+const QuickTest = import.meta.env.DEV
+  ? lazy(() => import('../App.js').then((m) => ({ default: m.App })))
+  : null;
 
 export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const route = useRoute();
@@ -80,7 +84,11 @@ function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): 
             route.name === 'hostNew' || route.name === 'host',
           )
         : null}
-      {dev ? link({ name: 'quicktest' }, 'Quick Test', route.name === 'quicktest') : null}
+      {dev && QuickTestLink !== null ? (
+        <Suspense fallback={null}>
+          <QuickTestLink active={route.name === 'quicktest'} />
+        </Suspense>
+      ) : null}
     </nav>
   );
 }
@@ -119,50 +127,10 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
           </a>
         </>
       ) : null}
-      {dev ? <DevSignIn /> : null}
-    </div>
-  );
-}
-
-// Development only: one compact menu instead of four buttons in the bar.
-function DevSignIn(): ReactElement {
-  const { devSignIn } = useSession();
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="dev-menu">
-      <button
-        type="button"
-        className="sbr-btn"
-        aria-expanded={open}
-        data-testid="dev-menu"
-        onClick={() => {
-          setOpen(!open);
-        }}
-      >
-        Dev sign-in
-      </button>
-      {open ? (
-        <div className="dev-menu-panel sbr-panel" role="menu">
-          {DEV_IDENTITIES.map((d) => (
-            <button
-              key={d.as}
-              type="button"
-              role="menuitem"
-              className="sbr-btn"
-              data-testid={`dev-sign-in-${d.as}`}
-              onClick={() => {
-                setOpen(false);
-                void devSignIn(d.as);
-              }}
-            >
-              {d.label}
-            </button>
-          ))}
-          <p className="sbr-muted dev-menu-hint">
-            One window holds one sign-in — use a private window or another browser for a second
-            person.
-          </p>
-        </div>
+      {dev && DevSignIn !== null ? (
+        <Suspense fallback={null}>
+          <DevSignIn />
+        </Suspense>
       ) : null}
     </div>
   );
@@ -182,11 +150,20 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'quicktest':
-      // The Quick Test calls a development-only server route; production shows the lobby.
-      return dev ? <QuickTest /> : <Lobby />;
+      return <QuickTestScreen dev={dev} />;
     case 'signIn':
       return <SignIn />;
     case 'register':
       return <Register />;
   }
+}
+
+// The Quick Test calls a development-only server route; production shows the lobby.
+function QuickTestScreen({ dev }: { readonly dev: boolean }): ReactElement {
+  if (!dev || QuickTest === null) return <Lobby />;
+  return (
+    <Suspense fallback={null}>
+      <QuickTest />
+    </Suspense>
+  );
 }

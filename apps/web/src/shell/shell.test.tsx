@@ -75,11 +75,12 @@ describe('app shell', () => {
     await renderShell(true);
     // One compact menu in the bar; its items appear when it opens.
     expect(screen.queryByTestId('dev-sign-in-host')).toBeNull();
-    fireEvent.click(screen.getByTestId('dev-menu'));
+    // The development tools load on demand (lazy import, left out of production bundles).
+    fireEvent.click(await screen.findByTestId('dev-menu'));
     expect(screen.getByTestId('dev-sign-in-host').textContent).toBe('Sign in as host');
     expect(screen.getByText(/One window holds one sign-in/)).toBeTruthy();
     expect(screen.getByTestId('dev-sign-in-player-3').textContent).toBe('Sign in as player 3');
-    expect(screen.getByText('Quick Test')).toBeTruthy();
+    expect(await screen.findByText('Quick Test')).toBeTruthy();
     cleanup();
     await renderShell(false);
     expect(screen.queryByTestId('dev-menu')).toBeNull();

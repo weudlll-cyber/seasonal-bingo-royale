@@ -3,8 +3,8 @@
  * @module web
  * @brief  Vite config for the player client; bound to 127.0.0.1:5390 (08 §1.1).
  *
- * Responsibility: run the React dev server on the project's reserved port, proxy /api
- *                 and /ws to the server on 3900, inject the dev-badge port via `define`,
+ * Responsibility: run the React dev server on the project's reserved port, proxy /api,
+ *                 /ws and the development routes /dev to the server on 3900, inject the dev-badge port via `define`,
  *                 keep HMR local. The build target is
  *                 modern browsers only (ES2023 lib). As the Vitest project config it
  *                 lets tests read motion.css and the design tokens (Vitest skips CSS by
@@ -32,6 +32,8 @@ export default defineConfig({
     proxy: {
       '/api': { target: SERVER, changeOrigin: false },
       '/ws': { target: SERVER, ws: true, changeOrigin: false },
+      // Development routes (Quick Test); the server registers them only with SBR_DEV=1.
+      '/dev': { target: SERVER, changeOrigin: false },
     },
   },
   preview: {

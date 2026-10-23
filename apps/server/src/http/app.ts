@@ -74,7 +74,6 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development features only with SBR_DEV=1 (fail closed, audit S1).
   const isDev = deps.env.SBR_DEV;
   await registerSecurityHeaders(fastify);
-  if (isDev) registerDevCors(fastify);
   registerProblemDetails(fastify);
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
@@ -125,20 +124,4 @@ export function withoutBase(url: string, base: string): string {
   if (base === '/') return url;
   if (url === base.slice(0, -1)) return '/';
   return url.startsWith(base) ? url.slice(base.length - 1) : url;
-}
-
-// The player client (Vite on 127.0.0.1:5390) is a different origin from the server
-// (127.0.0.1:3900); the dev-only Quick Test endpoint accepts cross-origin POSTs so the
-// client can call it directly without a Vite proxy. Not registered in production.
-function registerDevCors(app: FastifyInstance): void {
-  app.addHook('onSend', (request, reply, _payload, done) => {
-    const origin = request.headers.origin;
-    if (typeof origin === 'string' && /^http:\/\/(127\.0\.0\.1|localhost):53\d\d$/.test(origin)) {
-      reply.header('access-control-allow-origin', origin);
-      reply.header('access-control-allow-headers', 'content-type');
-      reply.header('access-control-allow-methods', 'GET, POST, OPTIONS');
-    }
-    done();
-  });
-  app.options('/dev/quicktest', (_request, reply) => reply.status(204).send());
 }
