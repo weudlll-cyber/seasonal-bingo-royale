@@ -53,7 +53,6 @@ export interface MatchSummary {
   readonly waitingForHost: boolean;
   // The automatic start found fewer than 2 players; the match waits for its host (D16).
   readonly tooFewAtStart: boolean;
-  readonly createdBy: string | null;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.
   readonly youHost: boolean | null;

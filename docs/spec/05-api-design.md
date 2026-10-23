@@ -84,7 +84,7 @@ Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/ma
 | GET | `/config/public` | Branding, theme tokens, public feature flags, season icon URLs |
 | GET | `/assets/:uploadId` | Serve uploaded asset |
 | GET | `/healthz` (liveness) · `/readyz` (readiness: DB, migrations) | Ops (no auth, no details) |
-| GET | `/metrics` | Prometheus; bound to the internal network only |
+| GET | `/metrics` | Prometheus, for scrapers inside the server only: a request that came through a proxy (it carries `X-Forwarded-For`) gets 404 in every install type; the standalone Caddy and the website snippet also answer 404 for the path |
 
 ## 3. Admin endpoints (`/api/v1/admin`)
 

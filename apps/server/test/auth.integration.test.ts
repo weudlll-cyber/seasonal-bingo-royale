@@ -193,6 +193,16 @@ describe('guests and the dev quick sign-in', () => {
     expect(player.account?.displayName).toBe('dev-player-2');
     expect(player.permissions).not.toContain('match.create');
   });
+});
+
+describe('development accounts', () => {
+  it('gives the development accounts no password anyone knows (audit S2)', async () => {
+    expect((await post('/api/v1/dev/sign-in', { as: 'player-3' })).statusCode).toBe(200);
+    const old = { email: 'dev-player-3@dev.invalid', password: 'dev-player-3-dev-only-password' };
+    expect(
+      (await post('/api/v1/auth/login', old, { 'x-forwarded-for': '10.0.0.88' })).statusCode,
+    ).toBe(401);
+  });
 
   it('signs in numbered load players and removes them all afterwards', async () => {
     const r = await post('/api/v1/dev/sign-in', { as: 'load-007' });
@@ -207,6 +217,7 @@ describe('guests and the dev quick sign-in', () => {
   it('has no dev sign-in in a production build', async () => {
     const prod = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       NODE_ENV: 'production',
+      SBR_DEV: '0',
       SBR_SEED_KEY: 'ab'.repeat(32),
     });
     const r = await prod.fastify.inject({

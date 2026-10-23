@@ -9,7 +9,7 @@
  *                 owner can try host and players alone in several browser windows. The load
  *                 check signs in `load-001` … `load-200` the same way (`dev-load-NNN`, players)
  *                 and removes them with DELETE /api/v1/dev/load-accounts. The app
- *                 registers this route only when NODE_ENV is not production; a test proves
+ *                 registers this route only with SBR_DEV=1; a test proves
  *                 a production build answers 404.
  * Depends on:     fastify, zod, ../../auth/*, ../../db/pool
  * Used by:        ../app
@@ -20,7 +20,8 @@ import { z } from 'zod';
 
 import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
 import { setSessionCookie, type CookieConfig } from '../../auth/sessionPlugin.js';
-import { createSession, revokeSession } from '../../auth/sessions.js';
+import type { SessionEnds } from '../../auth/sessionEnds.js';
+import { accountSessionIds, createSession, revokeSession } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
 
 const DEV_ACCOUNTS = {
@@ -47,14 +48,17 @@ function devAccount(as: string): {
 
 export function registerDevSignIn(
   app: FastifyInstance,
-  deps: { readonly pool: DbPool; readonly cookie: CookieConfig },
+  deps: { readonly pool: DbPool; readonly cookie: CookieConfig; readonly sessionEnds: SessionEnds },
 ): void {
   app.post('/api/v1/dev/sign-in', async (request, reply) => {
     const parsed = body.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     const who = devAccount(parsed.data.as);
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
-    if (request.session !== null) await revokeSession(deps.pool, request.session.id);
+    if (request.session !== null) {
+      await revokeSession(deps.pool, request.session.id);
+      deps.sessionEnds.end([request.session.id]);
+    }
     const { token } = await createSession(deps.pool, accountId, 'dev quick sign-in');
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(200).send({ accountId, displayName: who.displayName });
@@ -64,7 +68,11 @@ export function registerDevSignIn(
     const rows = await deps.pool.query<{ id: string }>(
       `SELECT id FROM sbr.accounts WHERE display_name LIKE 'dev-load-%'`,
     );
-    for (const { id } of rows.rows) await deleteAccount(deps.pool, id);
+    for (const { id } of rows.rows) {
+      const sessions = await accountSessionIds(deps.pool, id);
+      await deleteAccount(deps.pool, id);
+      deps.sessionEnds.end(sessions);
+    }
     return reply.status(200).send({ deleted: rows.rows.length });
   });
 }

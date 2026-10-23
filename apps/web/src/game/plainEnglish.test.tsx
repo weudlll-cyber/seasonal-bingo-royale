@@ -127,7 +127,6 @@ function serveLive(view: QuickTestResult, youHost: boolean): void {
     nextRoundAt: null,
     nextDrawAt: null,
     waitingForHost: false,
-    createdBy: 'h',
     youHost,
   };
   const session = {

@@ -13,7 +13,7 @@
 
 1. Client opens the socket with credentials: cookie (first-party) or `auth: { token }` (embed bearer).
 2. Server middleware verifies the session/token, checks `Origin` against the allowed origin list (own origin + `embed_origins`), checks account status and global chat/account sanctions, and attaches `socket.data.principal = { accountId, permissions, sessionId }`.
-3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately.
+3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately. Built: every socket joins the room `session:<id>`; logout, a new sign-in (which revokes the old session) and account deletion disconnect that session's sockets; a recovered connection runs the session check again (`skipMiddlewares: false`). Role changes follow with the admin app.
 4. A socket may be in at most 3 match rooms at once (watching several async matches).
 
 ## 3. Rooms

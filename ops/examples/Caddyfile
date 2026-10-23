@@ -21,6 +21,8 @@ bingo.example.org {
 # Seasonal Entertainment website): inside that site's block, before its own reverse_proxy.
 example.org {
 	redir /games/bingo /games/bingo/ 308
+	@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
+	respond @sbr_metrics 404
 	handle /games/bingo/* {
 		reverse_proxy app:3000
 	}

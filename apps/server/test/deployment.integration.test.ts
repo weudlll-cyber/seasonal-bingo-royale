@@ -35,7 +35,7 @@ afterAll(async () => {
   await stopHarness(harness);
 }, SUITE_TIMEOUT_MS);
 
-const PRODUCTION = { NODE_ENV: 'production', SBR_SEED_KEY: 'ab'.repeat(32) };
+const PRODUCTION = { NODE_ENV: 'production', SBR_DEV: '0', SBR_SEED_KEY: 'ab'.repeat(32) };
 const ORGANIZER = { email: 'organizer@example.com', password: 'correct horse battery staple' };
 
 // Signs the organizer in with the password; the session cookie and CSRF token.
@@ -101,6 +101,7 @@ describe('under a base path (website installs, 09 §1)', () => {
     const app = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       SBR_BASE_PATH: '/games/bingo/',
       SBR_WEB_DIR: web,
+      SBR_DEV: '0',
       SBR_PUBLIC_URL: 'https://site.example/games/bingo/',
     });
     const get = (url: string) => app.fastify.inject({ method: 'GET', url });

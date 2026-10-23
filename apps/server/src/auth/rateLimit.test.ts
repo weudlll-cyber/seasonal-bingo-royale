@@ -23,4 +23,14 @@ describe('RateLimiter', () => {
     expect(limiter.take('a').allowed).toBe(true);
     expect(limiter.take('a').allowed).toBe(false);
   });
+
+  it('forgets keys idle for a whole window, so the map stays small (audit S10)', () => {
+    let now = 0;
+    const limiter = new RateLimiter({ limit: 5, windowMs: 1_000 }, () => now);
+    for (let i = 0; i < 999; i += 1) limiter.take(`old-${String(i)}`);
+    expect(limiter.size).toBe(999);
+    now = 1_000;
+    limiter.take('new');
+    expect(limiter.size).toBe(1);
+  });
 });

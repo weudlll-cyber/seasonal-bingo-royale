@@ -44,10 +44,11 @@ export function registerWebClient(app: FastifyInstance, webDir: string): void {
     reply.header('content-type', 'text/html; charset=utf-8').send(ADMIN_PLACEHOLDER),
   );
   app.get('/', (_request, reply) => sendFile(reply, root, 'index.html'));
-  app.get('/*', (request, reply) => {
-    const wanted = decodeURIComponent((request.params as { '*': string })['*']);
-    return sendFile(reply, root, wanted);
-  });
+  // The router has decoded the path already (a broken %-escape is its 400); decoding it a
+  // second time turned "%25zz" into a 500 (audit S10).
+  app.get('/*', (request, reply) =>
+    sendFile(reply, root, (request.params as { '*': string })['*']),
+  );
 }
 
 async function sendFile(reply: FastifyReply, root: string, name: string): Promise<FastifyReply> {

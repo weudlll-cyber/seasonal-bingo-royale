@@ -1,15 +1,16 @@
 /**
  * @file   apps/server/src/match/retention.ts
  * @module server/match
- * @brief  Retention of per-cell marks: 90 days (decided 2026-10-20).
+ * @brief  Retention: per-cell marks 90 days (decided 2026-10-20); dead sessions.
  *
- * Responsibility: delete `marks` rows received more than 90 days ago; scores, entries,
- *                 standings and the event log stay. `startRetention` runs it once at
- *                 start and then every 24 hours.
- * Depends on:     ../db/pool
+ * Responsibility: delete `marks` rows received more than 90 days ago (scores, entries,
+ *                 standings and the event log stay) and revoked or expired sessions.
+ *                 `startRetention` runs both once at start and then every 24 hours.
+ * Depends on:     ../db/pool, ../auth/sessions
  * Used by:        ../main
  * Spec:           docs/spec/04-database-design.md §3.3; docs/spec/03-security-architecture.md §19
  */
+import { purgeDeadSessions } from '../auth/sessions.js';
 import type { DbPool } from '../db/pool.js';
 
 export const MARKS_RETENTION_DAYS = 90;
@@ -24,6 +25,9 @@ export function startRetention(pool: DbPool): () => void {
   const run = (): void => {
     purgeOldMarks(pool).catch((error: unknown) => {
       console.error('[sbr] marks retention failed:', error);
+    });
+    purgeDeadSessions(pool).catch((error: unknown) => {
+      console.error('[sbr] session retention failed:', error);
     });
   };
   run();

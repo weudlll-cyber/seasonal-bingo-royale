@@ -43,7 +43,6 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     nextDrawAt: null,
     waitingForHost: false,
     tooFewAtStart: false,
-    createdBy: 'h',
     youHost: false,
     ...over,
   };

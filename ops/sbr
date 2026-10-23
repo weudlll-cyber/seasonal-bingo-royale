@@ -66,17 +66,17 @@ cmd_status() {
   if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then check_proxy "$env"; fi
 }
 
-# Website installs trust the website's Caddy by its address; a recreated Caddy may get a new one.
+# Website installs trust the website network's range; it holds while that network exists.
 check_proxy() {
-  local env=$1 caddy now trusted
-  caddy=$(website_caddy)
-  [[ -n $caddy ]] || { warn "the website's Caddy is not running"; return 0; }
-  now=$(docker inspect -f "{{(index .NetworkSettings.Networks \"$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)\").IPAddress}}" "$caddy")
+  local env=$1 network now trusted
+  [[ -n $(website_caddy) ]] || { warn "the website's Caddy is not running"; return 0; }
+  network=$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)
+  now=$(network_subnet "$network")
   trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
   if [[ $now == "$trusted" ]]; then
-    info "proxy:       the website's Caddy ($now)"
+    info "proxy:       the website's network $network ($now)"
   else
-    warn "the website's Caddy is now at $now, the app trusts $trusted: run the installer again to update it"
+    warn "the website's network is now $now, the app trusts $trusted: run the installer again to update it"
   fi
 }
 

@@ -3,12 +3,13 @@
  * @module server/http
  * @brief  Registers helmet with the project's baseline Content Security Policy.
  *
- * Responsibility: hard-set the headers of 03 §13 for every HTML and JSON response. CSP
- *                 covers the placeholder lobby page (self scripts and styles only); later
- *                 work packages tighten it as the client bundles land.
+ * Responsibility: hard-set the headers of 03 §7 for every response: CSP (self scripts
+ *                 and styles), frame and referrer rules, nosniff and a Permissions-Policy
+ *                 that denies camera, microphone, geolocation and payment. HSTS comes from
+ *                 the TLS proxy (ops/Caddyfile).
  * Depends on:     @fastify/helmet
  * Used by:        ../app.ts
- * Spec:           docs/spec/03-security-architecture.md §13, docs/spec/05-api-design.md §1
+ * Spec:           docs/spec/03-security-architecture.md §7, docs/spec/05-api-design.md §1
  */
 import helmet from '@fastify/helmet';
 import type { FastifyInstance } from 'fastify';
@@ -31,7 +32,7 @@ export async function registerSecurityHeaders(app: FastifyInstance): Promise<voi
         'connect-src': ["'self'"],
       },
     },
-    // HSTS is only meaningful behind TLS; the install script turns it on with Caddy.
+    // HSTS is only meaningful behind TLS: the standalone Caddy sends it (ops/Caddyfile).
     strictTransportSecurity: false,
     crossOriginOpenerPolicy: { policy: 'same-origin' },
     crossOriginResourcePolicy: { policy: 'same-origin' },
@@ -39,4 +40,11 @@ export async function registerSecurityHeaders(app: FastifyInstance): Promise<voi
     xContentTypeOptions: true,
     xFrameOptions: { action: 'sameorigin' },
   });
+  // 03 §7: no camera, microphone, location or payment for the game's pages (audit S7).
+  app.addHook('onSend', (_request, reply, _payload, done) => {
+    reply.header('permissions-policy', PERMISSIONS_POLICY);
+    done();
+  });
 }
+
+const PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=(), payment=()';

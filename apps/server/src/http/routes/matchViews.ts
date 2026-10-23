@@ -52,7 +52,6 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     waitingForHost: waitingForHost(m),
     // The automatic start found fewer than 2 players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
-    createdBy: r.createdBy,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
 }

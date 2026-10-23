@@ -7,6 +7,8 @@
  *                 message on invalid or missing values, expose a typed Env object; the
  *                 deployment settings (base path, public URL, trusted proxies, client and
  *                 data directories, 09 §1) and the WebSocket origins derived from them.
+ *                 Fail closed: NODE_ENV defaults to production and development features
+ *                 need SBR_DEV=1, which is refused for a public (non-localhost) address.
  * Depends on:     zod
  * Used by:        ../main.ts, ../http/app.ts, ../db/pool.ts
  * Spec:           docs/spec/08-devops-architecture.md §5, docs/spec/08-devops-architecture.md §1.1
@@ -16,7 +18,11 @@ import { z } from 'zod';
 // The port range stays open so test runs can bind to an ephemeral port (0 → kernel picks).
 // Local dev uses the fixed project port 3900 (08 §1.1).
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  // Fail closed: without NODE_ENV the server runs as production.
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
+  // Development features (quick sign-in, Quick Test, fast test rules, bots, system-abort
+  // route, load accounts, a cookie without Secure) exist only with SBR_DEV=1 (audit S1).
+  SBR_DEV: z.stringbool().default(false),
   SBR_HOST: z.string().min(1).default('127.0.0.1'),
   SBR_PORT: z.coerce.number().int().min(0).max(65535).default(3900),
   // One libpq URL; the integration test overrides it with the Testcontainers URL.
@@ -83,9 +89,24 @@ export function allowedOrigins(env: Env): readonly string[] {
   return DEV_ORIGINS;
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+// Development features on a public address would be an open door: refuse to start.
+function checkDevSafe(env: Env): Env {
+  if (env.SBR_DEV && env.SBR_PUBLIC_URL !== undefined) {
+    const host = new URL(env.SBR_PUBLIC_URL).hostname;
+    if (!LOCAL_HOSTS.has(host)) {
+      throw new Error(
+        `SBR_DEV=1 is refused for the public address ${host}: development features stay on localhost`,
+      );
+    }
+  }
+  return env;
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const parsed = envSchema.safeParse(source);
-  if (parsed.success) return parsed.data;
+  if (parsed.success) return checkDevSafe(parsed.data);
   // Keep the message compact — users running `pnpm dev` without a .env file need the hint,
   // not a wall of zod issues.
   const issues = parsed.error.issues

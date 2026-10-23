@@ -12,6 +12,8 @@
  * Used by:        ../http/routes/auth, ../http/routes/devSignIn
  * Spec:           docs/spec/03-security-architecture.md §2.1; docs/spec/04-database-design.md §3.1
  */
+import { randomBytes } from 'node:crypto';
+
 import type { DbPool } from '../db/pool.js';
 import { hashPassword } from './password.js';
 
@@ -128,7 +130,8 @@ export async function ensureDevAccount(
   const created = await registerAccount(pool, {
     email: `${displayName}@dev.invalid`,
     displayName,
-    password: `${displayName}-dev-only-password`,
+    // Nobody knows it: the quick sign-in is the only way in (audit S2).
+    password: randomBytes(32).toString('base64url'),
     roles,
   });
   if (!created.ok) throw new Error(`could not create dev account ${displayName}`);

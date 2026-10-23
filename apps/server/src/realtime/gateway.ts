@@ -6,7 +6,9 @@
  * Responsibility: one endpoint `/ws` (under the base path), namespace `/play`, WebSocket only (06 §1). The
  *                 handshake checks the Origin against the allowed list and loads the
  *                 session from the cookie (06 §2); without a live session the socket is
- *                 refused. Committed match events go to the room `match:<id>` as one frame
+ *                 refused, also on a recovered connection. Each socket joins the room
+ *                 `session:<id>`; when its session ends (logout, account deletion, a new
+ *                 sign-in) the socket is closed (../auth/sessionEnds). Committed match events go to the room `match:<id>` as one frame
  *                 `{ s, events }` with the public event projection (the seed removed; a round
  *                 start without cards and draw order, ../view/clientEvents liveEvent) and
  *                 every account renamed to its display name, as the state endpoint does (a
@@ -31,6 +33,7 @@ import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
 import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
+import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
 import { handleIntent, type IntentContext } from './intents.js';
 
@@ -42,6 +45,8 @@ export interface GatewayDeps {
   readonly allowedOrigins: readonly string[];
   // "/ws" standalone, "/games/bingo/ws" behind the website (09 §1).
   readonly path: string;
+  // Ended sessions (logout, account deletion, rotation): their sockets are closed.
+  readonly sessionEnds: SessionEnds;
 }
 
 export interface SocketData {
@@ -57,9 +62,14 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
     maxHttpBufferSize: 16 * 1024,
     pingInterval: 20_000,
     pingTimeout: 20_000,
-    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60_000 },
+    // A recovered connection runs the session check again (audit S4).
+    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60_000, skipMiddlewares: false },
   });
   const play = io.of('/play');
+  // Every socket sits in the room of its session; an ended session closes them (06 §2.3).
+  deps.sessionEnds.onEnd((ids) => {
+    for (const id of ids) play.in(`session:${id}`).disconnectSockets(true);
+  });
   play.use((socket, next) => {
     authenticate(socket, deps)
       .then((session) => {
@@ -72,6 +82,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   });
   play.on('connection', (socket) => {
     const ctx: IntentContext = { socket, data: socket.data as SocketData, deps };
+    void socket.join(`session:${ctx.data.session.id}`);
     // One intent at a time per socket, in arrival order (./inOrder).
     const handle = inOrder(async (envelope: unknown, ack?: (answer: unknown) => void) => {
       const answer = await handleIntent(ctx, envelope).catch(() => ({

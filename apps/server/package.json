@@ -11,7 +11,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "node --env-file=dev.env --watch --import=tsx src/main.ts",
     "start": "node --import=tsx src/main.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "node build.mjs"

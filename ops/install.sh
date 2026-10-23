@@ -17,7 +17,7 @@
 # Usage: sudo bash ops/install.sh [--type standalone|website] [--env prod|staging]
 #          [--address <domain or IP>] [--email <admin e-mail>] [--age-key <age1…>]
 #          [--smtp-host h --smtp-port p --smtp-user u --smtp-password s --smtp-from f]
-#          [--website-domain <domain>] [--repo <git url or path>] [--ref <git ref>]
+#          [--website-domain <domain>] [--website-network <name>] [--repo <git url or path>] [--ref <git ref>]
 #          [--yes] [--change-type] [--dry-run] [--any-os]
 set -euo pipefail
 
@@ -47,6 +47,7 @@ parse_flags() {
       --smtp-password) SBR_SMTP_PASSWORD=$2; shift ;;
       --smtp-from) SBR_SMTP_FROM=$2; shift ;;
       --website-domain) SBR_WEBSITE_DOMAIN=$2; shift ;;
+      --website-network) SBR_WEBSITE_NETWORK=$2; shift ;;
       --repo) SBR_REPO=$2; shift ;;
       --ref) SBR_REF=$2; shift ;;
       --yes) SBR_YES=1 ;;

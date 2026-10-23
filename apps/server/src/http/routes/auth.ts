@@ -32,7 +32,8 @@ import {
   setSessionCookie,
   type CookieConfig,
 } from '../../auth/sessionPlugin.js';
-import { createSession, revokeSession } from '../../auth/sessions.js';
+import type { SessionEnds } from '../../auth/sessionEnds.js';
+import { accountSessionIds, createSession, revokeSession } from '../../auth/sessions.js';
 import type { Features } from '../../config/features.js';
 import type { DbPool } from '../../db/pool.js';
 
@@ -40,6 +41,8 @@ export interface AuthDeps {
   readonly pool: DbPool;
   readonly cookie: CookieConfig;
   readonly features: Features;
+  // Ended sessions: the gateway closes their sockets (audit S4).
+  readonly sessionEnds: SessionEnds;
 }
 
 const registerBody = z.object({
@@ -59,6 +62,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     register: new RateLimiter(RATE_RULES.register),
     loginIp: new RateLimiter(RATE_RULES.loginIp),
     loginAccountIp: new RateLimiter(RATE_RULES.loginAccountIp),
+    guest: new RateLimiter(RATE_RULES.guest),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps.features));
   app.post('/api/v1/auth/register', async (request, reply) => {
@@ -75,13 +79,17 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     return login(request, reply, deps, parsed.data);
   });
   app.post('/api/v1/auth/logout', async (request, reply) => {
-    if (request.session !== null) await revokeSession(deps.pool, request.session.id);
+    if (request.session !== null) {
+      await revokeSession(deps.pool, request.session.id);
+      deps.sessionEnds.end([request.session.id]);
+    }
     clearSessionCookie(reply, deps.cookie);
     return reply.status(204).send();
   });
   app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
   app.post('/api/v1/auth/guest', async (request, reply) => {
     if (!deps.features.guests) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!limits.guest.take(request.ip).allowed) return tooMany(reply);
     const { token } = await createSession(deps.pool, null, request.headers['user-agent'] ?? null);
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(201).send({ kind: 'guest' });
@@ -135,7 +143,10 @@ async function startSession(
   { accountId, status }: { readonly accountId: string; readonly status: number },
 ) {
   // A fresh session id on every sign-in (03 §3: rotate on login).
-  if (request.session !== null) await revokeSession(deps.pool, request.session.id);
+  if (request.session !== null) {
+    await revokeSession(deps.pool, request.session.id);
+    deps.sessionEnds.end([request.session.id]);
+  }
   const { token } = await createSession(
     deps.pool,
     accountId,
@@ -156,7 +167,9 @@ async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: Auth
   const valid =
     parsed.success && encoded !== null && (await verifyPassword(encoded, parsed.data.password));
   if (!valid) return reply.status(403).send({ code: 'PASSWORD_REQUIRED' });
+  const sessions = await accountSessionIds(deps.pool, accountId);
   await deleteAccount(deps.pool, accountId);
+  deps.sessionEnds.end(sessions);
   clearSessionCookie(reply, deps.cookie);
   return reply.status(204).send();
 }

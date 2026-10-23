@@ -34,8 +34,14 @@ is held by an earlier run of this project, stop that process first.
 Every development page shows a small fixed badge **"Bingo · dev · &lt;port&gt;"**
 in a non-intrusive corner (both clients and the server-rendered placeholder
 page). The badge is compiled out in production builds — it is tied to
-`import.meta.env.DEV` on the client and to `NODE_ENV !== 'production'` on the
-server.
+`import.meta.env.DEV` on the client and to `SBR_DEV=1` on the server.
+
+The server fails closed: without settings it runs as production (`NODE_ENV` defaults to
+`production`), and every development feature — quick sign-in, Quick Test, fast test rules,
+bot fill, the system-abort route, load accounts, the plain-http cookie, the dev badge — needs
+`SBR_DEV=1`, which the server refuses when `SBR_PUBLIC_URL` is not a localhost address.
+`pnpm dev` (apps/server/dev.env), the integration-test harness and the Playwright web
+server set it explicitly.
 
 ## 2. Branching and release flow
 

@@ -14,6 +14,7 @@
  */
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
+import { SessionEnds } from '../auth/sessionEnds.js';
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
@@ -55,9 +56,9 @@ function createFastify(env: Env): FastifyInstance {
       ? false
       : {
           level: env.SBR_LOG_LEVEL,
-          ...(env.NODE_ENV === 'production'
-            ? {}
-            : { transport: { target: 'pino-pretty', options: { singleLine: true } } }),
+          ...(env.SBR_DEV
+            ? { transport: { target: 'pino-pretty', options: { singleLine: true } } }
+            : {}),
         };
   const proxies = env.SBR_TRUSTED_PROXIES;
   return Fastify({
@@ -70,7 +71,8 @@ function createFastify(env: Env): FastifyInstance {
 
 export async function buildApp(deps: AppDeps): Promise<App> {
   const fastify = createFastify(deps.env);
-  const isDev = deps.env.NODE_ENV !== 'production';
+  // Development features only with SBR_DEV=1 (fail closed, audit S1).
+  const isDev = deps.env.SBR_DEV;
   await registerSecurityHeaders(fastify);
   if (isDev) registerDevCors(fastify);
   registerProblemDetails(fastify);
@@ -84,11 +86,17 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     registerWebClient(fastify, deps.env.SBR_WEB_DIR);
   }
   if (isDev) registerQuickTest(fastify);
-  const cookie = cookieConfig(deps.env.NODE_ENV === 'production');
+  const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
+  const sessionEnds = new SessionEnds();
   await registerSessions(fastify, deps.pool, cookie);
-  registerAuthRoutes(fastify, { pool: deps.pool, cookie, features: featuresFrom(deps.env) });
+  registerAuthRoutes(fastify, {
+    pool: deps.pool,
+    cookie,
+    features: featuresFrom(deps.env),
+    sessionEnds,
+  });
   // Development only: quick sign-in as host or player (never in a production build).
-  if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie });
+  if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
   const match = createMatchRuntime(deps.pool, seedKeyFrom(deps.env));
   registerMatchRoutes(fastify, {
     pool: deps.pool,
@@ -104,6 +112,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     cookieName: cookie.name,
     allowedOrigins: allowedOrigins(deps.env),
     path: `${deps.env.SBR_BASE_PATH}ws`,
+    sessionEnds,
   });
   fastify.addHook('onClose', async () => {
     await io.close();

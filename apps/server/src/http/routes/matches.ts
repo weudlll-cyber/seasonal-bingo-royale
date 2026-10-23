@@ -56,10 +56,14 @@ export async function matchIdByCode(pool: DbPool, code: string): Promise<string 
   return r.rows[0]?.id ?? null;
 }
 
-// Display name of every player (bots keep their id).
-export async function playerNames(pool: DbPool, matchId: string): Promise<Record<string, string>> {
+// Display name of every player; bots keep their id; a deleted account shows as "deleted
+// player" with a short tag that keeps names apart — never the account id (audit S10).
+async function playerNames(pool: DbPool, matchId: string): Promise<Record<string, string>> {
   const r = await pool.query<{ player_id: string; name: string }>(
-    `SELECT e.player_id, COALESCE(a.display_name, e.player_id) AS name
+    `SELECT e.player_id,
+            CASE WHEN a.display_name IS NOT NULL THEN a.display_name
+                 WHEN e.is_bot THEN e.player_id
+                 ELSE 'deleted player ' || substr(md5(e.player_id), 1, 4) END AS name
        FROM sbr.match_entries e LEFT JOIN sbr.accounts a ON a.id = e.account_id
       WHERE e.match_id = $1`,
     [matchId],

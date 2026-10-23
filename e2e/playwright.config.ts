@@ -60,7 +60,8 @@ export default defineConfig({
       command: 'pnpm --filter @sbr/server start',
       cwd: REPO_ROOT,
       url: `${SERVER_URL}/readyz`,
-      env: { DATABASE_URL: databaseUrl(), SBR_PORT: '3900', SBR_LOG_LEVEL: 'warn' },
+      // The specs use the development features (quick sign-in, bots, fast rules).
+      env: { DATABASE_URL: databaseUrl(), SBR_PORT: '3900', SBR_LOG_LEVEL: 'warn', SBR_DEV: '1' },
       reuseExistingServer: !CI,
       timeout: 120_000,
     },

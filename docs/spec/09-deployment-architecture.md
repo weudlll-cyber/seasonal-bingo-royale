@@ -32,7 +32,7 @@ Reference host: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS (e.g. the owner�
 - Postgres is on an internal-only network; no published port.
 - **On the Seasonal Entertainment website** the game is not a separate site: the website’s reverse proxy forwards `/games/bingo/` (HTTP and WebSocket) to the bingo app, which runs with `SBR_BASE_PATH=/games/bingo` and without its own Caddy (the installer's website type, §3). Both apps can share one VPS; they keep separate databases and containers.
 - The image (`Dockerfile`) holds the server bundle, its npm dependencies and the built player client (relative paths, so one build serves at `/` or under any base path); `/admin` answers a placeholder until the admin app exists (WP-19). It runs as uid 10001 on a read-only root filesystem with `/tmp` in memory and one writable volume at `/data`. A production build registers no development route (quick sign-in, load accounts, Quick Test, fast test rules, bot fill, system-abort route). Settings: `SBR_BASE_PATH` (`/` or `/games/bingo/`; routes, `/healthz`, `/readyz`, the client and the WebSocket `…/ws` all live under it), `SBR_PUBLIC_URL` (its origin may open the WebSocket unless `SBR_ALLOWED_ORIGINS` says otherwise), `SBR_TRUSTED_PROXIES` (the proxy whose `X-Forwarded-For` is believed), `DATABASE_URL`, `SBR_SEED_KEY`.
-- `/metrics` port is not proxied by Caddy.
+- `/metrics` is never reachable from outside: the app answers 404 to any request that came through a proxy (`X-Forwarded-For`), and the standalone Caddyfile and the website snippet answer 404 for the path themselves.
 - Optional Compose profiles: `observability` (Prometheus, Grafana, Loki), `mail` (Mailpit for staging).
 
 ## 2. Files on the server

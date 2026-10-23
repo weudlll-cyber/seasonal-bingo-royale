@@ -5,18 +5,32 @@
 #                 IP address (SBR_TLS = "tls internal", set by ops/install.sh); http is
 #                 redirected to https; pages, /api and the WebSocket /ws go to the app.
 #                 Caddy replaces any X-Forwarded-For a visitor sends; the app trusts only
-#                 this proxy (SBR_TRUSTED_PROXIES). /metrics is not forwarded.
+#                 this proxy (SBR_TRUSTED_PROXIES). /metrics is not forwarded. HSTS, a 1 MiB body
+#                 limit and a 10 s header timeout (03 §7, §13); the per-IP request rate
+#                 needs a Caddy rate-limit plugin, so the app limits per IP instead (03 §13).
 # Used by:        ops/compose.yml (service caddy, profile standalone)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3
 {
 	email {$SBR_ACME_EMAIL}
 	# Clients send no SNI to a bare IP address (browsers neither): use the site's certificate.
 	default_sni {$SBR_SITE_ADDRESS}
+	# 03 §13 layer 1: slow clients do not hold connections open.
+	servers {
+		timeouts {
+			read_header 10s
+		}
+	}
 }
 
 {$SBR_SITE_ADDRESS} {
 	{$SBR_TLS}
 	encode zstd gzip
+	# 03 §7: HSTS (browsers ignore it for a bare IP address, so it acts for domains only).
+	header Strict-Transport-Security "max-age=63072000; includeSubDomains"
+	# 03 §13 layer 1: request bodies up to 1 MiB.
+	request_body {
+		max_size 1MB
+	}
 	@metrics path /metrics /metrics/*
 	respond @metrics 404
 	reverse_proxy app:3000

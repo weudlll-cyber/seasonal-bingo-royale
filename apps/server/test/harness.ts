@@ -33,6 +33,9 @@ export async function buildOn(
 ): Promise<App> {
   const env = loadEnv({
     NODE_ENV: 'test',
+    // The suites use the development features (quick sign-in, bots); production tests
+    // pass SBR_DEV: '0'.
+    SBR_DEV: '1',
     SBR_HOST: '127.0.0.1',
     SBR_PORT: '0',
     SBR_LOG_LEVEL: 'warn',
