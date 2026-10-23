@@ -14,13 +14,13 @@
  *                 (new card, new marks); between the round end and the next round the
  *                 last number stays on screen and every tap is refused.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
- * Used by:        ./OwnerArea
+ * Used by:        ./OwnerArea; TapGrid also by the live card (../game/LiveCard)
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
 import { BingoHeader } from './BingoHeader.js';
-import { CellFace, cellBoxStyle } from './CellFace.js';
+import { CellFace, cellBoxStyle, seasonOfCell } from './CellFace.js';
 import {
   autoMarkMissed,
   feedbackText,
@@ -31,9 +31,9 @@ import {
   type ManualState,
 } from '../manualMarking.js';
 import { useReducedMotion } from '../useReducedMotion.js';
-import { ballLabel, SEASON_NAMES, type Card, type QuickTestResult } from '../types.js';
+import { ballLabel, type Card, type QuickTestResult } from '../types.js';
 
-export interface OwnerCardProps {
+interface OwnerCardProps {
   readonly accountId: string;
   readonly card: Card;
   readonly serverMarks: readonly boolean[];
@@ -67,18 +67,25 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
     );
   };
   return (
-    <div style={{ background: '#1a2130', padding: '0.5rem', borderRadius: '0.5rem' }}>
-      <strong style={{ color: '#afb84e' }}>{accountId} (you)</strong>
+    <div
+      style={{ background: 'var(--color-surface-2)', padding: '0.5rem', borderRadius: '0.5rem' }}
+    >
+      <strong style={{ color: 'var(--color-text)' }}>{accountId} (you)</strong>
       <TapGrid card={card} marks={marks} lastTapped={lastTapped} onTap={tap} />
       {manualMode ? (
-        <p style={{ margin: '0.4rem 0 0', color: '#dfe6ee' }} data-testid="owner-bonus">
+        <p style={{ margin: '0.4rem 0 0', color: 'var(--color-text)' }} data-testid="owner-bonus">
           +{String(manual.bonusEarned)} speed bonus (not counted in Quick Test cuts)
         </p>
       ) : null}
       <p
         data-testid="owner-feedback"
         role="status"
-        style={{ color: '#9aa5b2', fontSize: '0.9rem', minHeight: '1.2em', margin: 0 }}
+        style={{
+          color: 'var(--color-text-muted)',
+          fontSize: '0.9rem',
+          minHeight: '1.2em',
+          margin: 0,
+        }}
       >
         {manualMode ? feedbackText(manual.feedback) : 'Marking: numbers are marked for you'}
       </p>
@@ -130,12 +137,6 @@ function useAutoMarker({ enabled, manual, setManual, card, drawTimes, rules }: M
   }, [dueAt, setManual, card, drawTimes, rules]);
 }
 
-// The season of a season cell (Card.seasonCells is in season order), else empty.
-function seasonOfCell(card: Card, index: number): string {
-  const position = card.seasonCells?.indexOf(index) ?? -1;
-  return SEASON_NAMES[position] ?? '';
-}
-
 // Screen-reader name of a cell: "G 52", the season of a symbol cell, or "free".
 function cellName(cell: Card['cells'][number]): string {
   return cell.kind === 'free' ? 'free' : ballLabel(cell.value);
@@ -148,7 +149,7 @@ interface TapGridProps {
   readonly onTap: (index: number) => void;
 }
 
-function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement {
+export function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement {
   const reduced = useReducedMotion();
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, index: number): void => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -156,7 +157,13 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
     onTap(index);
   };
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 2.6rem)', gap: '2px' }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, var(--cell-size, 2.6rem))',
+        gap: '2px',
+      }}
+    >
       <BingoHeader />
       {card.cells.map((cell, i) => {
         const marked = marks[i] === true;
@@ -176,7 +183,7 @@ function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): ReactElement
             data-testid={`owner-cell-${String(i)}`}
             data-value={cell.kind === 'free' ? '' : String(cell.value)}
             data-marked={marked ? 'true' : 'false'}
-            data-season={seasonOfCell(card, i)}
+            data-season={seasonOfCell(card, i) ?? undefined}
             className={animate ? 'sbr-anim-mark' : undefined}
             style={cellBoxStyle(card, i, marked)}
           >

@@ -7,8 +7,11 @@
  *                 so each test file doesn't duplicate the ~50-line object. Mirrors
  *                 the four defaults in contracts/config/defaults, but keeps the
  *                 domain layer free of a cross-layer import.
- * Depends on:     @sbr/domain (types only)
- * Used by:        packages/domain/src/match/match.test.ts and sibling tests
+ * Depends on:     @sbr/domain (types only), ../src/index
+ * Used by:        packages/domain/src/match/match.test.ts and sibling tests,
+ *                 ../src/match/classicFlow.test, ../src/match/lastNumber.test,
+ *                 ../src/match/lifecycle.test, ../src/match/match.properties.test,
+ *                 ../src/match/missedNumbers.test, ../src/royale/royale.properties.test
  * Spec:           docs/spec/12-testing-strategy.md §7
  */
 import {
@@ -18,7 +21,7 @@ import {
   type StagePlanEntry,
 } from '../src/index.js';
 
-export const BUILTIN_PRIZE_POINTS: Readonly<Record<string, number>> = Object.freeze({
+const BUILTIN_PRIZE_POINTS: Readonly<Record<string, number>> = Object.freeze({
   'rows-1': 100,
   'columns-1': 100,
   'rows-2': 200,

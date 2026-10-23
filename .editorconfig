@@ -1,4 +1,5 @@
 # @file   .editorconfig
+# @module repo
 # @brief  Editor-independent whitespace rules, matching Prettier and .gitattributes.
 #
 # Responsibility: UTF-8, LF line endings, two-space indent, final newline everywhere.

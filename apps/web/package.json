@@ -4,9 +4,6 @@
   "private": true,
   "license": "AGPL-3.0-or-later",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,8 +11,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@sbr/contracts": "workspace:*",
+    "@sbr/ui": "workspace:*",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "socket.io-client": "4.8.4"
   },
   "devDependencies": {
     "@testing-library/dom": "10.4.2",

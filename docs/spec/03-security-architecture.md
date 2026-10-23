@@ -20,6 +20,7 @@ Alignment target: **OWASP ASVS 5.0 Level 2** for the whole application, Level 3 
 - Registration: e-mail + display name + password. E-mail verification required before playing ranked matches (configurable).
 - Passwords: **argon2id** (m=64 MiB, t=3, p=1; parameters stored per hash for upgrades). Minimum length 12, maximum 128, checked against a bundled top-100k breached-password list (offline, no external call). No composition rules.
 - Login responses are uniform (“invalid e-mail or password”) and constant-time to prevent account enumeration; registration and password-reset flows also never reveal whether an e-mail exists.
+- Known trade-off until e-mail verification is built: registration answers 409 `REGISTRATION_FAILED` when the e-mail **or** the display name is taken. It does not say which, but with a free display name the answer reveals that the e-mail exists. The registration limit (5 an hour per IP, §13) slows probing. With verification, registration will always answer “check your e-mail” and send the notice to the address itself.
 - Password reset: single-use token, 32 random bytes, stored as SHA-256 hash, valid 30 minutes, invalidates all sessions on success.
 - **2FA (TOTP, RFC 6238)**: optional for players; **mandatory for all admin roles** (setting `security.adminRequire2fa`, default `true`, only `super_admin` can change it). Ten single-use recovery codes, stored hashed.
 - Passkeys (WebAuthn) are planned as a later feature flag (`auth.passkeys`), not in v1.
@@ -38,7 +39,7 @@ Feature flag `auth.guests` (default on): a guest gets a temporary session to **w
   `__Host-sbr_session=<opaque 256-bit id>; Path=/; Secure; HttpOnly; SameSite=Lax` when the game runs at the root of its own host, or
   `__Secure-sbr_session=<id>; Path=<base path>; Secure; HttpOnly; SameSite=Lax` when it runs under a base path such as `/games/bingo` on a host site (the `__Host-` prefix requires `Path=/`).
   The DB stores only `sha256(id)`.
-- Idle timeout 7 days for players, 30 minutes for admin sessions; absolute lifetime 30 days / 8 hours.
+- Idle timeout 7 days for players, 30 minutes for admin sessions; absolute lifetime 30 days / 8 hours. A session is an admin session when its account holds `super_admin`, `security_admin`, `game_admin` or `moderator`. Revoked and expired sessions are deleted by the daily retention job.
 - Session ID rotates on login, privilege change and 2FA completion.
 - Admin actions require a **step-up**: re-entering TOTP if the last 2FA check is older than 10 minutes.
 - Users see and revoke their sessions (device, approximate location from IP prefix only, last seen).
@@ -88,7 +89,7 @@ Roles are bundles of permissions; code checks **permissions**, never role names.
 
 | Threat | Control |
 |---|---|
-| SQL injection | Drizzle query builder / parameterized SQL only. Raw SQL allowed only in migrations and in a reviewed `sql/` folder with tagged templates. ESLint rule forbids string-concatenated SQL. App DB role has no DDL rights. |
+| SQL injection | Parameterized SQL only (`pg` placeholders `$1…`). Raw SQL allowed only in migrations and in a reviewed `sql/` folder with tagged templates. ESLint rule forbids string-concatenated SQL. App DB role has no DDL rights. |
 | XSS | React escaping; `dangerouslySetInnerHTML` banned by lint. Chat messages are plain text with a whitelist mini-markup rendered client-side (no HTML from users ever). Strict CSP (§7). Trusted Types enabled in the admin app. |
 | Command / path injection | No shell execution from request paths. Upload storage paths are server-generated UUIDs. |
 | Deserialization | JSON only, parsed with size limits, then zod-validated; prototype pollution prevented (`Object.create(null)` maps; Fastify’s `onProtoPoisoning: 'error'`). |
@@ -108,7 +109,7 @@ Set by the app (Fastify helmet), checked in CI with a header test:
 ## 8. CSRF
 
 - Session cookies are `SameSite=Lax`.
-- Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time).
+- Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time). The calls that create the first session (register, login, guest, and the development-only quick sign-in) have no token yet; they accept only `application/json` bodies, which a cross-site form cannot send.
 - WebSocket handshakes verify `Origin` against the configured origin plus the embed allowlist.
 - Embedded clients in third-party context use bearer tokens (no cookies) and are therefore not CSRF-exposed.
 
@@ -192,7 +193,7 @@ Account lockout is **soft** (delay), never a hard lock that an attacker could us
 | RTO (max downtime) | 2 h on a fresh VPS using the install script + restore |
 
 - Nightly `pg_dump` (custom format) + uploads directory → tarball → `age`-encrypted with the operator’s public key → kept 14 daily / 8 weekly on the server and **pulled to the operator’s own machine** by a documented script (pull, not push: the server holds no credentials to the operator’s machine).
-- Restore drill script (`ops/restore-drill.sh`) restores the latest backup into a throw-away container and runs a smoke check; to be run monthly.
+- Restore drill: `sbr restore --drill <file>` restores a backup into a throw-away container and counts what came back ([09](09-deployment-architecture.md) §6); to be run monthly.
 - Running matches survive a process restart (event log). A host failure aborts running realtime matches; on restore, async matches resume from the last event and missed draws are performed in order (with a configurable max catch-up).
 - Business continuity: the operator guide lists the minimum steps — new VPS, run install script, restore backup, update DNS.
 

@@ -13,7 +13,7 @@
 
 1. Client opens the socket with credentials: cookie (first-party) or `auth: { token }` (embed bearer).
 2. Server middleware verifies the session/token, checks `Origin` against the allowed origin list (own origin + `embed_origins`), checks account status and global chat/account sanctions, and attaches `socket.data.principal = { accountId, permissions, sessionId }`.
-3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately.
+3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately. Built: every socket joins the room `session:<id>`; logout, a new sign-in (which revokes the old session) and account deletion disconnect that session's sockets; a recovered connection runs the session check again (`skipMiddlewares: false`). Role changes follow with the admin app.
 4. A socket may be in at most 3 match rooms at once (watching several async matches).
 
 ## 3. Rooms
@@ -38,6 +38,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 ```
 
 - `seq` (client) is per socket, strictly increasing; duplicates/out-of-order intents are dropped (replay protection).
+- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
 - `s` (server) is the match `event seq`; clients detect gaps (`s` jumps) and resync by calling the state endpoint.
 - Intents use Socket.IO acknowledgements: `{ ok: true, data }` or `{ ok: false, code }` with codes from the error catalogue.
 
@@ -47,14 +48,19 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 |---|---|---|
 | `match.watch` | `{ code }` | Join `match:<id>` room (permission: public match or participant). Returns state snapshot seq. |
 | `match.unwatch` | `{ code }` | |
-| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
+| `mark` | `{ code, cardIndex, cell }` (planned: `{ roundId, cardId, cell }`) | Manual mode only; rejected with `MARK_REJECTED`. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
-| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode; rate limit 2/s |
+| `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode and with `DRAW_TOO_EARLY` before the timed interval since the last draw has passed (01 §5, D13); rate limit 2/s |
+| `round.next` | `{ code }` | The host starts the next royale round while the match waits for it (01 §7.1, D14); permission `match.manage`; rejected with `NOT_WAITING_FOR_HOST` otherwise |
 | `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
+Built in the first draft: `match.watch`, `match.unwatch`, `mark`, `draw.next`, `round.next`, `draw.setMode`; an unknown `t` answers `UNKNOWN_INTENT`, a repeated or out-of-order `seq` `REPLAYED`, a fourth watched match `TOO_MANY_ROOMS`. `chat.*` and `presence.ping` follow with chat (WP-17) and asynchronous matches (WP-14).
+
 ### 4.2 Server → client events
+
+Planned message set; the first draft sends the committed events as `events` frames and record changes as `match` frames (§4), which the client folds into the same screens.
 
 | `t` | Room | Data |
 |---|---|---|
@@ -131,6 +137,8 @@ Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed windo
 | Standings broadcasts | ≤ 2/s per match, deltas only |
 | Lobby updates | batched 1/s |
 | Slow client | if Socket.IO buffer > 1 MiB, socket is disconnected; client resyncs on reconnect |
+
+Fetch load (the 200-player check, `load/drawLatency.mjs`): a frame that holds only other players' `cellMarked`, `patternScored`, `classicPrizeAwarded` or `speedWindowClosed` events, and follows the held seq without a gap, is appended by the client without a request. Any other frame, a gap included, triggers one `state?since=` fetch of the events after the held seq (only a reconnect reloads the whole log); frames that arrive while it runs are covered by one more fetch afterwards, never one per frame. Such a delta leaves out the player list unless a join, the first round's start or the finish is among its events (later rounds' cards come in their `roundStarted` events): at 200 players the list was 169 of the 175 KiB each screen fetched per draw. A round start reaches each screen with only that viewer's own cards (none for the host, spectators and room-wide frames) and without the round's draw order, which would show the numbers still to come; the first-round cards in the player list likewise only the viewer's (the Quick Test keeps every card, it shows bot cards). The server keeps one replay per live match, extended with only the new events and shared by every screen's fetch; these fetches do not wait in the match's command queue, so they never delay draws or taps.
 
 ## 9. Scale-out (step 1 in [02-software-architecture.md](02-software-architecture.md) §8)
 

@@ -15,7 +15,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { createInitialMatchState, evolve, simulateMatch, type DomainEvent } from '../index.js';
+import {
+  createInitialMatchState,
+  decide,
+  evolve,
+  simulateMatch,
+  type DomainEvent,
+} from '../index.js';
 import { classicRuleset, royaleRuleset, seed } from '../../test/builders.js';
 
 const TICKED = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'] as const;
@@ -53,6 +59,23 @@ describe('simulateMatch — royale', FULL_MATCH_BUDGET, () => {
     const replayed = replay(r.events);
     expect(replayed.finalPlacement).toEqual(r.state.finalPlacement);
     expect(replayed.phase).toBe('finished');
+  });
+});
+
+describe('a match that has ended', () => {
+  it('ignores an abort once finished or aborted (the 200-player check found one)', () => {
+    const r = simulateMatch({
+      matchId: 'r-end',
+      seed: seed(2),
+      gameType: 'royale',
+      ruleset: royaleRuleset(),
+      playerCount: 4,
+      tickedPrizes: [],
+    });
+    const abort = { type: 'abortMatch', reason: 'late', by: 'host' } as const;
+    expect(decide(r.state, abort, { now: 0 })).toEqual([]);
+    const aborted = evolve(r.state, { type: 'matchAborted', reason: 'first' });
+    expect(decide(aborted, abort, { now: 0 })).toEqual([]);
   });
 });
 

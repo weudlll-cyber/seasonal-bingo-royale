@@ -5,13 +5,12 @@
  *
  * Responsibility: one way to start a Quick Test from the browser with exact settings and
  *                 to skip to the end, so every spec drives the page the same way.
- * Depends on:     @playwright/test
- * Used by:        ./*.spec.ts
+ * Depends on:     @playwright/test, @sbr/contracts (prize list)
+ * Used by:        ./*.spec.ts, ./acceptance/acceptance.spec
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { expect, type Page } from '@playwright/test';
-
-export const DEFAULT_PRIZES = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'];
+import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
 
 export interface RunSettings {
   readonly gameType: 'royale' | 'classicSeasons' | 'classic';
@@ -30,22 +29,9 @@ export interface RunSettings {
   readonly intervalSec?: number;
 }
 
-const CATALOGUE = [
-  'rows-1',
-  'rows-2',
-  'rows-3',
-  'rows-4',
-  'rows-5',
-  'columns-1',
-  'columns-2',
-  'fourCorners',
-  'oneDiagonal',
-  'bothDiagonals',
-  'fullCard',
-];
-
 export async function startRun(page: Page, settings: RunSettings): Promise<void> {
-  await page.goto('/');
+  // The Quick Test lives at #/quicktest in the app shell (development builds).
+  await page.goto('/#/quicktest');
   await page.getByTestId('game-type').selectOption(settings.gameType);
   await page.getByTestId('seed').fill(settings.seed);
   await page.getByTestId('bot-count').fill(String(settings.bots));
@@ -57,9 +43,9 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
       await page.getByTestId('missed-delay').fill(String(settings.missedDelaySec));
     }
   }
-  const prizes = new Set(settings.prizes ?? DEFAULT_PRIZES);
-  for (const key of CATALOGUE) {
-    await page.getByLabel(key, { exact: true }).setChecked(prizes.has(key));
+  const prizes = new Set(settings.prizes ?? DEFAULT_PRIZE_SELECTION);
+  for (const key of BUILTIN_PRIZE_KEYS) {
+    await page.getByTestId(`start-prize-${key}`).setChecked(prizes.has(key));
   }
   await page.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
   if (settings.intervalSec !== undefined) {

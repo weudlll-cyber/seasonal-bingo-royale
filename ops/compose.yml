@@ -1,0 +1,119 @@
+# @file   ops/compose.yml
+# @module ops
+# @brief  The production stack on one VPS: app, PostgreSQL 17 and, standalone, Caddy.
+#
+# Responsibility: the app image (built on the server from a git ref until a release image
+#                 exists) runs as uid 10001 on a read-only root filesystem with /tmp in
+#                 memory and one writable volume for uploads and the maintenance flag;
+#                 PostgreSQL sits on an internal network without a published port.
+#                 Standalone installs add Caddy (profile "standalone") with automatic HTTPS
+#                 on 80/443. Website installs (ops/compose.website.yml on top) publish no
+#                 port: the app joins the website's network and its Caddy forwards
+#                 /games/bingo to it. Logs go to Docker's compressed `local` driver, 5 × 20 MB
+#                 per service; CPU and memory caps per spec 08 §4 (app 1 CPU / 768 MiB,
+#                 PostgreSQL 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB).
+# Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
+# Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
+# Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6
+#
+# Run from /opt/sbr:  docker compose -p sbr-<env> --env-file /etc/sbr/<env>.env up -d
+
+# Log rotation for every service (spec 08 §6): at most 5 files of 20 MB each, compressed
+# (about 300 MB for the three services, small enough for a small VPS).
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 20m
+    max-file: '5'
+
+services:
+  app:
+    image: ${SBR_IMAGE:?set SBR_IMAGE in the env file}
+    env_file: ${SBR_ENV_FILE:?set SBR_ENV_FILE in the env file}
+    environment:
+      NODE_ENV: production
+      SBR_HOST: 0.0.0.0
+      SBR_PORT: '3000'
+      SBR_DATA_DIR: /data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - uploads:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/healthz']
+      interval: 15s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    networks:
+      - data
+      - edge
+    cpus: 1
+    mem_limit: 768m
+    logging: *logging
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_USER: sbr
+      POSTGRES_DB: sbr
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the env file}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U sbr -d sbr']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - data
+    cpus: 1
+    mem_limit: 1g
+    logging: *logging
+    restart: unless-stopped
+
+  # Standalone only: automatic HTTPS for the public address (internal CA for an IP).
+  caddy:
+    profiles: ['standalone']
+    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    environment:
+      SBR_SITE_ADDRESS: ${SBR_SITE_ADDRESS:-}
+      SBR_TLS: ${SBR_TLS:-}
+      SBR_ACME_EMAIL: ${SBR_ADMIN_EMAIL:-}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      # The folder, not the file: a rewritten Caddyfile is then visible to `caddy reload`.
+      - ./caddy:/etc/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - edge
+    cpus: 0.25
+    mem_limit: 128m
+    logging: *logging
+    restart: unless-stopped
+
+networks:
+  data:
+    internal: true
+  edge: {}
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

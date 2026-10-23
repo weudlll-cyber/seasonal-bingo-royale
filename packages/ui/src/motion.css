@@ -1,0 +1,114 @@
+/**
+ * @file   packages/ui/src/motion.css
+ * @module ui
+ * @brief  Key-moment animations of the real game (01 §13), off under reduced motion.
+ *
+ * Responsibility: one class per key moment — draw (the ball rolls in), mark (the cell
+ *                 stamps), prize and pattern (a short lift), season activation (a burst in the
+ *                 season's colour, set as --burst on the element), Season Complete (the four
+ *                 colours in turn), cut (the screen settles in) and win (a calm glow). Under
+ *                 prefers-reduced-motion every animation is switched off.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+@keyframes sbr-ball-in {
+  from {
+    transform: translateY(-18%) scale(0.6) rotate(-25deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes sbr-stamp {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(0.86);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes sbr-lift {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes sbr-burst {
+  from {
+    box-shadow: 0 0 0 0 var(--burst, var(--color-accent));
+  }
+  to {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+
+@keyframes sbr-four-seasons {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px var(--color-spring);
+  }
+  25% {
+    box-shadow: 0 0 0 4px var(--color-summer);
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--color-autumn);
+  }
+  75% {
+    box-shadow: 0 0 0 4px var(--color-winter);
+  }
+}
+
+@keyframes sbr-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(249 168 37 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 32px 4px rgb(249 168 37 / 45%);
+  }
+}
+
+.sbr-anim-draw {
+  animation: sbr-ball-in var(--duration-slow) var(--ease-out);
+}
+
+.sbr-anim-stamp {
+  animation: sbr-stamp var(--duration-base) var(--ease-out);
+}
+
+.sbr-anim-lift {
+  animation: sbr-lift var(--duration-base) var(--ease-out);
+}
+
+.sbr-anim-burst {
+  animation: sbr-burst var(--duration-slow) var(--ease-out);
+}
+
+.sbr-anim-season-complete {
+  animation: sbr-four-seasons 1.6s linear 2;
+}
+
+.sbr-anim-win {
+  animation: sbr-glow 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -8,7 +8,9 @@
  *                 single round without stages and without a jackpot. Pure data — no
  *                 behaviour. State transitions live in ./evolve.ts.
  * Depends on:     ../card/cardTypes, ../seasons/effectState, ../gameType, ./lifecycleTypes
- * Used by:        ./decide, ./evolve, ./simulate, apps/server match orchestration
+ * Used by:        ./decide, ./evolve, ./simulate, apps/server match orchestration, ../index,
+ *                 ./decideAutoMark, ./decideCards, ./decideRanking, ./evolveLifecycle,
+ *                 ./evolveScoring, ./flow, ./markResolver, ./roundEnd
  * Spec:           docs/spec/01-game-design.md §3, §3a, §7, §8; docs/spec/02-software-architecture.md §5.1
  */
 import type { Card } from '../card/cardTypes.js';
@@ -101,6 +103,8 @@ export interface MatchState {
   readonly tickedPrizes: readonly string[];
   // Final placement, populated when phase === 'finished' (01 §7.5, §3a.2).
   readonly finalPlacement: readonly { readonly accountId: string; readonly place: number }[];
+  // When the next round starts during the pause after a round (epoch ms), else null.
+  readonly nextRoundAt: number | null;
 }
 
 export function initialPlayerState(

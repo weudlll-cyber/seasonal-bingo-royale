@@ -1,4 +1,5 @@
 # @file   .github/workflows/codeql.yml
+# @module ci
 # @brief  CodeQL code scanning for JavaScript and TypeScript.
 #
 # Responsibility: static security analysis on the way to master and weekly, so new

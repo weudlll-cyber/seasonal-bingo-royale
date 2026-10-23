@@ -1,5 +1,7 @@
 # Night runs
 
+**Development machine only.** Nothing here is part of an install or of running the game on a server.
+
 How to start an unattended block of work ("night run") so it finishes without stopping at an approval prompt, and how the owner reads the result in the morning. The permission rules live in `.claude/settings.json`; this page owns the launcher and the reporting rules. Modelled on the race project's recipe.
 
 ## Launch
@@ -33,13 +35,13 @@ Never pass `-r` or `-c`; use `--session-id <uuid>` if a specific id is needed. O
 
 1. **The log is not a liveness signal.** With `--output-format json` it stays empty until the run ends. To see whether the run is alive, look at the pushed branches or at the session transcript growing under `~/.claude/projects/<project folder>/`.
 2. **The channel is the pushed tree.** Commits on origin are the only thing the owner sees during and after the night.
-3. **After every finished piece:** commit, push, and append a dated line to the morning sheet (`reports/night-<YYYY-MM-DD>.md`), then push again.
+3. **After every finished piece:** commit, push, and update the morning sheet, then push again. The sheet is `reports/<task>-<YYYY-MM-DD>.md`, named after the task (`night-2026-10-22.md`, `audit-2026-10-23.md`); a second run on the same day adds a letter (`night-2026-10-23b.md`). Screenshots go to `reports/screens/latest/` (git-ignored, replaced by every run); the sheet describes what they show.
 4. **Heartbeat:** at least every 45 minutes a commit on the current branch with the clock time and one sentence of what the run is doing. A gap of more than 45 minutes means the run is stuck.
 5. **The morning sheet's OPEN section is regenerated** from the piece list every time, never appended to, so it cannot go stale.
 
 ## Desktop notifications
 
-A run reports to the owner without being asked, through `ops/notify.ps1` (Windows balloon titled "Bingo", nothing but what ships with Windows):
+A run reports to the owner without being asked, through `ops/notify.ps1` (development machine only; Windows balloon titled "Bingo", nothing but what ships with Windows):
 
 ```sh
 powershell -NoProfile -ExecutionPolicy Bypass -File ops/notify.ps1 "<text>"

@@ -6,9 +6,10 @@
  * Responsibility: the layer rules forbid domain from importing @sbr/contracts; this
  *                 file duplicates the (immutable) catalogue order so classicPlacement
  *                 can compute "most valuable prize won" without a cross-layer import.
- *                 Both lists widen together: new built-in prizes need code anyway.
+ *                 Both lists widen together: new built-in prizes need code anyway;
+ *                 packages/application/src/match/prizeOrder.test.ts fails when they differ.
  * Depends on:     nothing
- * Used by:        ./classicPlacement, future match orchestration
+ * Used by:        ../match/decideRanking, packages/application/src/match/create.ts, ../index
  * Spec:           docs/spec/01-game-design.md §3a.1
  */
 

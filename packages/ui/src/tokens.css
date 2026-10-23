@@ -1,0 +1,140 @@
+/**
+ * @file   packages/ui/src/tokens.css
+ * @module ui
+ * @brief  Design tokens of Seasonal Bingo Royale, shared by the player and admin clients.
+ *
+ * Responsibility: one source of colours, type, shape, spacing and motion timing. Names and
+ *                 values are the Seasonal Entertainment website's (its docs/DESIGN.md and
+ *                 client/src/styles/tokens.css, the SE style): light is the default set on
+ *                 :root, :root[data-theme='dark'] replaces the colours; the page is a warm
+ *                 off-white (light) or night blue (dark) under four soft token glows, and
+ *                 cards are translucent so the glow shows. data-theme is set before the first
+ *                 paint by apps/web/public/theme-init.js. The game adds its own arena tokens
+ *                 (the bingo card, the ball, the type sizes of the ball and small text, motion).
+ *                 Components use these custom properties and never hard-code colours.
+ * Spec:           docs/spec/01-game-design.md §13; assets/brand/colors.md
+ */
+
+:root {
+  /* Token colours, exactly these wherever a token is shown, in both themes */
+  --color-spring: #afb84e;
+  --color-summer: #e06e22;
+  --color-autumn: #f9a825;
+  --color-winter: #04aaf7;
+  /* Text and icons on a token colour: 5.5:1 (Summer) to 9.1:1 (Autumn) */
+  --color-on-season: #14171c;
+  /* The LIVE badge: the same red in both themes, white text 6.6:1 */
+  --color-live: #b42318;
+  --color-on-live: #ffffff;
+
+  /* The page: the four token colours as soft glows over a warm white */
+  --color-background: #fbfaf6;
+  --page-background:
+    radial-gradient(circle at 15% 0%, rgb(175 184 78 / 26%), transparent 40%),
+    radial-gradient(circle at 95% 15%, rgb(4 170 247 / 22%), transparent 45%),
+    radial-gradient(circle at 85% 100%, rgb(224 110 34 / 20%), transparent 45%),
+    radial-gradient(circle at 30% 100%, rgb(249 168 37 / 22%), transparent 40%), #fbfaf6;
+  /* The top bar: tints of the four token colours (the website's sidebar and top bar) */
+  --sidebar-background: linear-gradient(90deg, #e7edc2 0%, #f8d9c2 35%, #fce7ba 65%, #c9e9fb 100%);
+  /* Cards on the page (translucent, the glow shows through); surfaces that cover the page
+     (menus, fields) stay opaque */
+  --color-card: rgb(255 255 255 / 78%);
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f3f6;
+  /* Light controls on a card (secondary buttons, the theme toggle) */
+  --color-glass: rgb(255 255 255 / 60%);
+  --color-active-bg: rgb(20 23 28 / 6%);
+  --color-text: #14171c;
+  --color-text-muted: #4f5663;
+  --color-border: rgb(20 23 28 / 10%);
+  --color-border-strong: #a9b0ba;
+  --color-danger: #b42318;
+  --color-success: #1d7a46;
+  --color-warning-surface: #fff4d6;
+  /* The solid pill: the current navigation item and primary buttons */
+  --color-solid: #14171c;
+  --color-on-solid: #ffffff;
+  /* Accent for focus marks; text links stay in the text colour for contrast */
+  --color-accent: var(--color-winter);
+  --shadow-raised: 0 8px 24px rgb(18 22 28 / 14%);
+  --color-scrim: rgb(0 0 0 / 40%);
+  color-scheme: light;
+
+  /* Arena: the bingo card is the hero element, cream with dark ink in both themes */
+  --color-bingo-card: #f6f3ea;
+  --color-bingo-card-ink: #12161c;
+  --color-bingo-card-line: #d9d3c2;
+  --color-bingo-card-marked: #12161c;
+  --color-bingo-card-marked-ink: #f6f3ea;
+  --color-ball: #eef1f5;
+  --color-ball-ink: #12161c;
+
+  /* Typography: Bold for headings, Book for body (faces in ./fonts.css) */
+  --font-family: 'Luxora Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-weight-body: 400;
+  --font-weight-strong: 700;
+  --font-weight-heading: 700;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-lead: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
+  --font-size-title: clamp(1.8rem, 1.2rem + 1.8vw, 2.75rem);
+  --font-size-ball: clamp(3rem, 2rem + 6vw, 5.5rem);
+
+  /* Shape: fields, cards and pills (buttons, navigation items, badges) */
+  --radius: 14px;
+  --radius-card: 28px;
+  --radius-pill: 999px;
+  --hit-target: 44px;
+
+  /* Spacing */
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 1.5rem;
+  --space-4: 2.5rem;
+
+  /* Layout */
+  --content-width: 72rem;
+  --gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+
+  /* Motion (off under prefers-reduced-motion, ./motion.css) */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --duration-fast: 160ms;
+  --duration-base: 320ms;
+  --duration-slow: 700ms;
+}
+
+:root[data-theme='dark'] {
+  /* Night blue, not black, with the same glows a little stronger on the dark */
+  --color-background: #0a1233;
+  --page-background:
+    radial-gradient(circle at 15% 0%, rgb(175 184 78 / 22%), transparent 40%),
+    radial-gradient(circle at 95% 15%, rgb(4 170 247 / 24%), transparent 45%),
+    radial-gradient(circle at 85% 100%, rgb(224 110 34 / 20%), transparent 45%),
+    radial-gradient(circle at 30% 100%, rgb(249 168 37 / 16%), transparent 40%), #0a1233;
+  --sidebar-background:
+    linear-gradient(
+      90deg,
+      rgb(175 184 78 / 30%) 0%,
+      rgb(224 110 34 / 26%) 35%,
+      rgb(249 168 37 / 24%) 65%,
+      rgb(4 170 247 / 30%) 100%
+    ),
+    #0c1538;
+  --color-card: rgb(16 26 66 / 72%);
+  --color-surface: #101a42;
+  --color-surface-2: #17224f;
+  --color-glass: rgb(255 255 255 / 6%);
+  --color-active-bg: rgb(255 255 255 / 10%);
+  --color-text: #f1f4fa;
+  --color-text-muted: #b3bcd0;
+  --color-border: rgb(255 255 255 / 12%);
+  --color-border-strong: #5b6788;
+  --color-danger: #ff8a80;
+  --color-success: #4acb8a;
+  --color-warning-surface: #3a2e10;
+  --color-solid: #f1f4fa;
+  --color-on-solid: #0a1233;
+  --shadow-raised: 0 8px 28px rgb(0 0 0 / 55%);
+  /* Form controls and scrollbars follow the theme */
+  color-scheme: dark;
+}

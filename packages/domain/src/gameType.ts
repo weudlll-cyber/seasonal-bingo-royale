@@ -8,12 +8,8 @@
  *                 from importing contracts). The literal union is identical to
  *                 contracts/config/gameType and widens together with it.
  * Depends on:     nothing
- * Used by:        ./card/*, ./draw/*, ./match/*
+ * Used by:        ./card/*, ./draw/*, ./match/*, ./index
  * Spec:           docs/spec/01-game-design.md §3a
  */
 
 export type GameType = 'royale' | 'classicSeasons' | 'classic';
-
-export function isClassic(gameType: GameType): boolean {
-  return gameType !== 'royale';
-}

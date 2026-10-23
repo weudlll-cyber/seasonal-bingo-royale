@@ -1,6 +1,6 @@
 # Seasonal Bingo Royale — Specification
 
-Complete blueprint for implementation by Claude Code. No code yet.
+Complete blueprint for implementation by Claude Code. The code follows it; what is built and what is open is in [docs/OPEN.md](../OPEN.md) and [docs/BACKLOG.md](../BACKLOG.md).
 
 ## 1. Documents
 
@@ -53,6 +53,33 @@ Complete blueprint for implementation by Claude Code. No code yet.
 | D5 | Chat on the website | Inside the website the game shows one dedicated room of the website chat (room slug `bingo`, through the website’s `/embed/chat`). Standalone installations use the game’s own chat ([07](07-integration-architecture.md) §6). |
 | D6 | Address | The website already decided (2026-10-17) that games live under its main domain at `/games/<name>`. The game therefore runs at `/games/bingo` on the website’s domain; a subdomain remains possible because the build contains no address and the base path is a setting ([09](09-deployment-architecture.md) §1). |
 
+## 4a. Decisions (2026-10-20)
+
+| # | Topic | Decision |
+|---|---|---|
+| D7 | Card and ball labels | Every column ascends top to bottom in all game types, under the letters B I N G O; a drawn number shows its letter (“G 52”), a season symbol its season ([01](01-game-design.md) §4, §5). |
+| D8 | Draw control | Timed draws or host draws (“Draw next”), switchable at any time during a match; the draw sequence does not change ([01](01-game-design.md) §5). |
+| D9 | Missed numbers | When players tap, a drawn number they did not tap is marked for them after N seconds without bonus (default 3), or left open until tapped; chosen at creation ([01](01-game-design.md) §6). |
+
+## 4b. Decisions (2026-10-21)
+
+| # | Topic | Decision |
+|---|---|---|
+| D10 | Last number and classic prizes | A round's last number stays tappable inside its speed window; a classic prize is decided when the window of the draw that first completes it closes and goes to everyone who has it by then ([01](01-game-design.md) §3a.1, §6). |
+| D11 | Royale multiplier | The royale default stages use the stage multiplier 1 ([01](01-game-design.md) §7.2). |
+| D12 | Shortest timed-draw interval | 1 s longer than the match's longest tap time (speed window, or the missed-number delay when “mark after N s” is chosen); enforced in the create form, the host's live seconds field and the server ([01](01-game-design.md) §5). |
+| D13 | Host draws | Draw next stays locked for the match's timed interval since the last draw and shows the remaining seconds; the server refuses an early draw ([01](01-game-design.md) §5). |
+| D14 | Pause between royale rounds | Chosen at creation: wait N seconds (default 6, minimum 3) or the host starts the next round ([01](01-game-design.md) §7.1). |
+| D15 | Cut screen button | “Keep playing” for a survivor, “Watch” for an eliminated player ([01](01-game-design.md) §13). |
+| D16 | Start time | A set start time is an announcement; the host can always start the match. “Start automatically at the start time” (default off, switchable in the console until the start) starts it at that time with at least `minPlayers` players (2, D18); with fewer the match waits and the console says so ([01](01-game-design.md) §7.6). |
+| D17 | Match ended without a result | Its own end page for host and players: the reason in plain words and who ended it (“by the host” or “by the system”), “Back to the lobby” (everyone) and “Host another match” (host); never the live arena ([01](01-game-design.md) §13). |
+
+## 4c. Decisions (2026-10-23)
+
+| # | Topic | Decision |
+|---|---|---|
+| D18 | Players needed to start | 2, read from the ruleset's `lobby.minPlayers` by Start and by the automatic start ([01](01-game-design.md) §7.6). |
+
 ## 5. Open
 
-Nothing blocks the start. The website-side handoff endpoint (D3) and the `bingo` chat room (D5) are needed only for Phase 6.
+The open questions and work are listed in [docs/OPEN.md](../OPEN.md) (short) and [docs/BACKLOG.md](../BACKLOG.md) (full). Needed from the website repository, for Phase 6 only: the handoff endpoint (D3), the `bingo` chat room (D5) and the embeddable call view.

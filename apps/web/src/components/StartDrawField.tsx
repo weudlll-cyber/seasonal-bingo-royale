@@ -3,14 +3,14 @@
  * @module web
  * @brief  Start-form choice of draw control (D8): timed draws every N seconds, or host draws.
  *
- * Responsibility: pick the draw mode before the run — "Draws: timed (every N seconds)"
- *                 or "Draws: host presses Draw next" — and, for timed draws, the seconds
+ * Responsibility: pick the draw mode before the run — under "Draws", "Timed (every N
+ *                 seconds)" or "Host presses Draw next" — and, for timed draws, the seconds
  *                 between draws (left empty, the ruleset interval applies; clamped to
  *                 the allowed range by ../drawControl). The host can change both during
  *                 play. Labels never use the word "auto" alone, so they cannot be
  *                 confused with marking.
  * Depends on:     react, ../drawControl
- * Used by:        ./StartForm
+ * Used by:        ./StartForm, ../host/CreateMatch
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -21,7 +21,7 @@ import type { DrawControl, DrawMode } from '../drawControl.js';
 // label names it while the field is empty and the ruleset interval applies.
 const RULESET_INTERVAL_SEC = 5;
 
-export interface StartDrawFieldProps {
+interface StartDrawFieldProps {
   readonly value: DrawControl;
   readonly onChange: (next: DrawControl) => void;
 }
@@ -30,10 +30,16 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
   const seconds = value.intervalSec ?? RULESET_INTERVAL_SEC;
   return (
     <fieldset
-      style={{ border: '1px solid #223', padding: '0.5rem', display: 'grid', gap: '0.4rem' }}
+      style={{
+        border: '1px solid var(--color-border)',
+        padding: '0.5rem',
+        display: 'grid',
+        gap: '0.4rem',
+      }}
     >
       <legend>Draws</legend>
       <select
+        className="sbr-select"
         data-testid="start-draw-mode"
         aria-label="Draws"
         value={value.mode}
@@ -41,12 +47,13 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
           onChange({ ...value, mode: e.target.value as DrawMode });
         }}
       >
-        <option value="auto">Draws: timed (every {String(seconds)} seconds)</option>
-        <option value="host">Draws: host presses Draw next</option>
+        <option value="auto">Timed (every {String(seconds)} seconds)</option>
+        <option value="host">Host presses Draw next</option>
       </select>
       <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
         <span>Seconds between timed draws</span>
         <input
+          className="sbr-input"
           type="number"
           data-testid="start-draw-interval"
           min={1}

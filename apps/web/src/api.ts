@@ -3,16 +3,14 @@
  * @module web
  * @brief  Thin fetch wrapper for the dev-only Quick Test endpoint (WP-08).
  *
- * Responsibility: wrap `POST /dev/quicktest` on the server. The URL points at the
- *                 server dev port 3900; the server's dev CORS hook accepts the client
- *                 origin.
- * Depends on:     ./types
- * Used by:        ./App
+ * Responsibility: wrap `POST /dev/quicktest` on the server, relative to where the client is
+ *                 served (the Vite dev server proxies /dev to the server, like /api).
+ * Depends on:     ./types, ./shell/http (BASE_PATH)
+ * Used by:        ./App, ./components/StartForm
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
+import { BASE_PATH } from './shell/http.js';
 import type { GameType, MarkingMode, MissedNumbers, QuickTestResult } from './types.js';
-
-const SERVER_URL = 'http://127.0.0.1:3900/dev/quicktest';
 
 export interface StartQuickTestInput {
   readonly gameType: GameType;
@@ -28,7 +26,7 @@ export interface StartQuickTestInput {
 }
 
 export async function startQuickTest(input: StartQuickTestInput): Promise<QuickTestResult> {
-  const response = await fetch(SERVER_URL, {
+  const response = await fetch(`${BASE_PATH}dev/quicktest`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),

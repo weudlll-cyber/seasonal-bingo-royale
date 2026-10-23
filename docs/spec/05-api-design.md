@@ -30,6 +30,7 @@ Commands (state change) and queries (read) are separate handlers in `application
 | POST | `/auth/password/forgot` | Request reset mail (always 202) | none |
 | POST | `/auth/password/reset` | Token + new password | none |
 | POST | `/auth/guest` | Guest session (if enabled) | none |
+| POST | `/dev/sign-in` | Development builds only: `{ as }` with `host` or `player-1` … `player-3` signs in as `dev-host` (organizer) or `dev-player-N`, created on first use; absent in production | none |
 | GET | `/auth/oidc/:providerId/start` | Redirect to provider (PKCE, state, nonce) | none |
 | GET | `/auth/oidc/:providerId/callback` | Finish OIDC login | none |
 | POST | `/auth/handoff` | Exchange host-signed JWT for session or embed token | none |
@@ -52,7 +53,7 @@ Commands (state change) and queries (read) are separate handlers in `application
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/matches?status=&mode=&gameType=` | List open/running/finished public matches |
-| GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish) |
+| GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish), `youHost` (the signed-in account created the match and may run it; the same field in every match summary, e.g. the lobby list), `nextRoundAt` (when the next round starts during the pause after a round and its cut, for the countdown on the cut screen; recorded in the event log, so it survives a server restart; null outside that pause), `nextDrawAt` (when Draw next unlocks, D13; null before a round's first draw), `waitingForHost` (the match waits for its host to start the next round, D14), `startsAt` (the end of the running 10-second countdown; null before it runs), `tooFewAtStart` (the automatic start of a set time found fewer than 2 players; the match waits for its host, D16) |
 | POST | `/matches/:code/join` | Join lobby (or late join) |
 | POST | `/matches/:code/leave` | Leave (before start: removed; after start: forfeit, stays placed by elimination order) |
 | GET | `/matches/:code/state` | Full state snapshot for the caller (own cards, standings top 50 + own row, current round, last draws, active effects). Used on load and after reconnect. |
@@ -62,7 +63,30 @@ Commands (state change) and queries (read) are separate handlers in `application
 | GET | `/matches/:code/verify` | Verification bundle (seed, ruleset document, card IDs, draw list) after finish |
 | GET | `/me/matches` | Caller’s current and past matches |
 
-Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/marks` with `{ roundId, cardId, cell }` exists for clients without WS; same validation.
+Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/marks` exists for clients without WS; same validation (built with `{ cardIndex, cell }`, §2.3a).
+
+### 2.3a Matches as built (first draft)
+
+The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Token` on every write). The host's routes live under the match for now; the admin-route layout of §3 follows with the admin app (WP-19).
+
+| Method | Path | Body | Who |
+|---|---|---|---|
+| GET | `/matches` | — | anyone: open and running matches, and those ended in the last day |
+| POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }` | `match.create` |
+| GET | `/matches/:code` | — | anyone: the summary (`youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, …) |
+| GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta |
+| POST | `/matches/:code/join` | `{}` | `match.join` |
+| POST | `/matches/:code/marks` | `{ cardIndex, cell }` | `match.join`: the tap without a socket |
+| POST | `/matches/:code/start` | `{}` | the match's host (`match.manage`, created it) |
+| POST | `/matches/:code/draw-next` | `{}` | the host |
+| POST | `/matches/:code/next-round` | `{}` | the host, while the match waits for them (D14) |
+| POST | `/matches/:code/draw-mode` | `{ mode: "auto" \| "host", intervalMs? }` | the host |
+| POST | `/matches/:code/auto-start` | `{ auto }` | the host, before the start (D16) |
+| POST | `/matches/:code/abort` | `{ reason }` | the host |
+| POST | `/matches/:code/bots` · `/matches/:code/dev-system-abort` | `{ upTo }` · `{ reason }` | development builds only |
+| DELETE | `/me` | `{ password }` | the signed-in account |
+
+Answers are `{ code }` on error (problem+json follows with the contracts work): `VALIDATION_FAILED` (400), `SIGN_IN_REQUIRED` (401), `FORBIDDEN`, `NOT_YOUR_MATCH`, `CSRF_INVALID`, `PASSWORD_REQUIRED` (403), `NOT_FOUND` (404), `MATCH_NOT_IN_LOBBY`, `MATCH_FULL`, `DRAW_MODE_AUTO`, `DRAW_NOT_ALLOWED`, `DRAW_TOO_EARLY`, `NOT_WAITING_FOR_HOST`, `NO_START_TIME` (409), `NOT_ENOUGH_PLAYERS`, `START_TIME_INVALID`, `INVALID_PRIZES`, `MARK_REJECTED` (422), `JSON_REQUIRED` (415), `RATE_LIMITED` (429), `MAINTENANCE` (503, `sbr maintenance on`).
 
 ### 2.4 Leaderboards
 
@@ -83,7 +107,7 @@ Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/ma
 | GET | `/config/public` | Branding, theme tokens, public feature flags, season icon URLs |
 | GET | `/assets/:uploadId` | Serve uploaded asset |
 | GET | `/healthz` (liveness) · `/readyz` (readiness: DB, migrations) | Ops (no auth, no details) |
-| GET | `/metrics` | Prometheus; bound to the internal network only |
+| GET | `/metrics` | Prometheus, for scrapers inside the server only: a request that came through a proxy (it carries `X-Forwarded-For`) gets 404 in every install type; the standalone Caddy and the website snippet also answer 404 for the path |
 
 ## 3. Admin endpoints (`/api/v1/admin`)
 
@@ -94,7 +118,7 @@ Every route lists its permission. All writes are audited with before/after diff.
 | Dashboard | `GET /dashboard` (active matches, players online, error rate, abuse alerts) | `admin.view` |
 | Rulesets | `GET/POST /rulesets`, `GET /rulesets/:id/versions`, `POST /rulesets/:id/versions` (new draft from latest), `PUT /ruleset-versions/:id` (edit draft), `POST /ruleset-versions/:id/validate`, `POST /ruleset-versions/:id/simulate`, `POST /ruleset-versions/:id/publish`, `POST /ruleset-versions/:id/retire` | `ruleset.view` / `ruleset.edit` / `ruleset.publish` |
 | Patterns | `GET/POST /patterns`, `PUT /patterns/:id`, `POST /patterns/:id/archive` | `ruleset.edit` |
-| Matches | `GET /matches`, `POST /matches` (create from published ruleset; body carries `gameType`, `prizes[]` (classic types only), `countsForLeaderboard`, optional `hostCallRef`, `drawMode` (`auto` \| `host`) and `drawIntervalMs` (`auto` only, within the ruleset's allowed range), `missedNumbers` (`autoMarkAfter` | `noAutoMark`) and `autoMarkDelayMs` (`autoMarkAfter` only, at least the speed window) — see 01 §3a, §5, §6 and 11 §3.2), `PATCH /matches/:id` (title, schedule, prizes and `countsForLeaderboard` while `scheduled`), `POST /matches/:id/start`, `POST /matches/:id/abort`, `POST /matches/:id/kick`, `POST /matches/:id/draw-next` (host draw; 409 `DRAW_MODE_AUTO` unless `drawMode = host`), `PUT /matches/:id/draw-mode` (body `drawMode`, optional `drawIntervalMs`; allowed while the match runs; the draw sequence is unchanged) | `match.create` / `match.manage` / `match.abort` |
+| Matches | `GET /matches`, `POST /matches` (create from published ruleset; body carries `gameType`, `prizes[]` (classic types only), `countsForLeaderboard`, optional `hostCallRef`, `drawMode` (`auto` \| `host`) and `drawIntervalMs` (at least 1 s longer than the longest tap time, D12), `roundPause` (royale: `{ kind: 'wait', ms }` with at least 3 s, default 6 s, or `{ kind: 'host' }`, D14), `startRule` (`{ kind: 'host' }` default, `{ kind: 'at', at, auto }` — an announced time at least the 10 s countdown and at most a week ahead, 422 `START_TIME_INVALID` otherwise; `auto` (default false) starts the match itself then with at least 2 players, D16 —, or `{ kind: 'whenFull' }`, 01 §7.6), `missedNumbers` (`autoMarkAfter` | `noAutoMark`) and `autoMarkDelayMs` (`autoMarkAfter` only, at least the speed window) — see 01 §3a, §5, §6 and 11 §3.2), `PATCH /matches/:id` (title, schedule, prizes and `countsForLeaderboard` while `scheduled`), `POST /matches/:id/start` (always allowed in the lobby with at least 2 players, also before a set time, D16), `POST /matches/:id/auto-start` (body `auto`; switches the automatic start of a set time while the match waits to start; 409 `NO_START_TIME` without a set time, D16), `POST /matches/:id/abort`, `POST /matches/:id/kick`, `POST /matches/:id/draw-next` (host draw; 409 `DRAW_MODE_AUTO` unless `drawMode = host`, 409 `DRAW_TOO_EARLY` before the timed interval since the last draw has passed, D13), `POST /matches/:id/next-round` (409 `NOT_WAITING_FOR_HOST` unless the match waits for its host between rounds, D14), `PUT /matches/:id/draw-mode` (body `drawMode`, optional `drawIntervalMs`; allowed while the match runs; the draw sequence is unchanged) | `match.create` / `match.manage` / `match.abort` |
 | Schedules | `GET/POST /match-series`, `PUT /match-series/:id` (recurring matches, e.g. daily async at 18:00) | `match.create` |
 | Leaderboards | `GET/POST /leaderboard-periods`, `POST /leaderboard-periods/:id/close`, `POST /leaderboard-adjustments` | `leaderboard.manage` / `leaderboard.adjust` |
 | Settings | `GET /settings/:documentId`, `GET /settings/:documentId/versions`, `PUT /settings/:documentId` (new version), `POST /settings/:documentId/rollback/:version` | per document: `settings.<doc>.edit`; `security`, `rate_limits`, `integrations` need `security_admin` |

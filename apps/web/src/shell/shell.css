@@ -1,0 +1,198 @@
+/**
+ * @file   apps/web/src/shell/shell.css
+ * @module web/shell
+ * @brief  Layout of the player client: top bar and main column.
+ *
+ * Responsibility: a top bar on the website's season gradient (emblem, wordmark,
+ *                 navigation as pills with the current one solid, the round light/dark toggle,
+ *                 account and the dev sign-in menu) over a centred main column, sticky from 640 px with focus kept below
+ *                 it; on phones the bar wraps into two rows, scrolls away with the page and
+ *                 the navigation scrolls sideways. Colours come from @sbr/ui.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+/* The page column keeps its width whether or not the page needs a scrollbar. Only with
+   a mouse: touch screens overlay their scrollbars (nothing shifts), and in mobile WebKit
+   the reserved gutter made the layout unsettled (clicks never became "stable"). */
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
+.shell-bar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  padding: 0.6rem var(--gutter);
+  background: var(--sidebar-background);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Sticky from 640 px only: on a phone the bar wraps into two rows and would take a large
+   part of the screen, so it scrolls away there. Keyboard focus and in-page jumps stop
+   below the sticky bar (WCAG 2.4.11), never under it. */
+@media (min-width: 640px) {
+  html {
+    scroll-padding-top: 5.5rem;
+  }
+
+  .shell-bar {
+    position: sticky;
+    top: 0;
+  }
+}
+
+.shell-brand {
+  order: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-right: auto;
+  text-decoration: none;
+  font-weight: var(--font-weight-heading);
+  letter-spacing: 0.02em;
+}
+
+.shell-brand img {
+  width: 42px;
+  height: auto;
+}
+
+.shell-brand small {
+  display: block;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-body);
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.shell-nav {
+  order: 2;
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+}
+
+.shell-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit-target);
+  padding: 0 0.95rem;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  font-weight: var(--font-weight-strong);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.shell-nav a:hover {
+  background: var(--color-active-bg);
+}
+
+/* The current item is the solid pill (the website's navigation) */
+.shell-nav a[aria-current='page'] {
+  background: var(--color-solid);
+  color: var(--color-on-solid);
+}
+
+/* The light/dark toggle: a round glass button with a hairline */
+.theme-toggle {
+  order: 3;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--hit-target);
+  height: var(--hit-target);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-glass);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--color-active-bg);
+}
+
+.shell-account {
+  order: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shell-main {
+  width: 100%;
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--gutter) var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .shell-brand small {
+    display: none;
+  }
+
+  /* The account row keeps the chip whole: the buttons move to a second line only when
+     chip and buttons do not fit side by side (360 px with the development menu) */
+  .shell-account {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .shell-account .sbr-chip {
+    white-space: nowrap;
+  }
+
+  .shell-account .sbr-btn {
+    flex: none;
+    padding: 0 0.6rem;
+    font-size: var(--font-size-small);
+    white-space: nowrap;
+  }
+
+  /* On a phone the toggle shares the first row with the brand */
+  .theme-toggle {
+    order: 1;
+  }
+
+  /* The chip names the account and role; "Signed in as" is read out, not shown */
+  .shell-account .chip-prefix {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Development: one compact sign-in menu instead of four buttons in the bar */
+.dev-menu {
+  position: relative;
+}
+
+.dev-menu-panel {
+  /* A menu over the page stays opaque (the website's rule for covering surfaces) */
+  background: var(--color-surface);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 20;
+  display: grid;
+  gap: var(--space-1);
+  width: min(18rem, calc(100vw - 2 * var(--gutter)));
+  padding: var(--space-2);
+  box-shadow: var(--shadow-raised);
+}
+
+.dev-menu-hint {
+  margin: 0;
+  font-size: var(--font-size-small);
+}

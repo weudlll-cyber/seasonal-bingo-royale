@@ -7,7 +7,7 @@
  *                 number of prizes, then by marks on the card, then by join timestamp.
  *                 Returns a total order 1..N.
  * Depends on:     nothing
- * Used by:        ../match/decideRanking (classic final placement)
+ * Used by:        ../match/decideRanking (classic final placement), ../index
  * Spec:           docs/spec/01-game-design.md §3a.2
  */
 // The two inputs the placement needs: who played (join time is the last tie-break) and

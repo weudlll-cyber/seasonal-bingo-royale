@@ -7,7 +7,7 @@
  *                 a single mark event, applying any active multiplier and growth bonus.
  *                 Growth is applied before the multiplier, matching 01 §8.2.
  * Depends on:     ../seasons/effectState
- * Used by:        future match engine
+ * Used by:        future match engine, ../index, ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.1, §8.2
  */
 import type { EffectState } from '../seasons/effectState.js';

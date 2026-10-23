@@ -6,8 +6,11 @@
  * Responsibility: centralise the generators for seeds, player counts and the three
  *                 game types so every property file reuses the same bounds. Keeps each
  *                 property short and lets the owner tune the sampling in one place.
- * Depends on:     fast-check, @sbr/domain (types only)
- * Used by:        packages/domain/src tests ending in .properties.test.ts
+ * Depends on:     fast-check, @sbr/domain (types only), ../src/index
+ * Used by:        packages/domain/src tests ending in .properties.test.ts,
+ *                 ../src/card/card.properties.test, ../src/draw/draw.properties.test,
+ *                 ../src/match/match.properties.test, ../src/royale/royale.properties.test,
+ *                 ../src/seasons/effects.properties.test
  * Spec:           docs/spec/12-testing-strategy.md §3, §2
  */
 import fc from 'fast-check';

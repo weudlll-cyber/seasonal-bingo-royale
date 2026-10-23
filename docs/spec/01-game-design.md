@@ -158,6 +158,8 @@ flag on.
   - `host` — the next item is drawn only when the host presses **Draw next**.
 
   The host can switch between the two modes at any time during the match, and change the `auto` interval. This applies to all three game types, realtime and asynchronous. The speed window (§6) always starts when a draw becomes visible. The draw order never depends on timing or mode: it is fixed by the match seed (§9).
+- **Shortest interval (D12):** the timed-draw interval of a realtime match is at least 1 second longer than the match's longest tap time: max(speed window, the missed-number delay when “mark after N s” is chosen) + 1 s, and never below the 2 s of the table. The create form and the host's live seconds field refuse a shorter value with a plain message; the server keeps the interval in range as well.
+- **Host draws keep the timed pace (D13):** with `host` draws, Draw next stays locked until the moment the next number would have been drawn under timed draws — the match's interval since the round's last draw (so never shorter than D12). The button shows the remaining seconds. The server refuses a draw that comes too early. The round's first draw is not locked.
 - Every drawn number is shown with its column letter (e.g. “G 52”); a drawn season symbol is shown as its icon.
 
 ## 6. Marking modes
@@ -198,9 +200,13 @@ stages:
 
 With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) → final.
 
+**Pause between rounds (D14):** whoever creates a royale match chooses what happens after a round and its cut: “wait N seconds” (default 6, at least 3), after which the next round starts on its own, or “the host starts the next round”. With the host option the host console shows **Start next round** during the pause, players read “Waiting for the host to start round N”, and the server starts the next round only on the host's command.
+
 ### 7.2 Scoring carry-over
 
 Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**. The royale default rulesets use multiplier 1 in every stage; the multiplier stays configurable per ruleset.
+
+**Stage multiplier (D11, decided 2026-10-21):** every stage of the royale defaults has `stageMultiplier` 1, so a point is worth the same in every stage; a ruleset may still set another factor per stage (0.1–10).
 
 ### 7.3 Round-end conditions (one per round)
 
@@ -229,11 +235,12 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 
 | Setting | Default |
 |---|---|
-| `minPlayers` to start | 4 |
+| `minPlayers` to start | 2 (the ruleset's `lobby.minPlayers`; Start and the automatic start both read it, decided 2026-10-23) |
 | `maxPlayers` per match | 200 |
 | Lobby open before start | 10 min (realtime) / 24 h (async) |
 | Late join | Allowed until the end of round 1 of the first stage (async: until first cut); a late joiner starts with 0 points. |
-| Start rule | `scheduled` (fixed time) or `whenFull` or `either` |
+| Start rule | chosen at creation: the host starts it (default), at a set time (at least a minute and at most a week ahead), or when every place is taken; a 10-second countdown either way. A set time is an announcement (D16): the host can always start the match with “Start match”, before or after that time. “Start automatically at the start time” (default off) is set at creation and can be switched on and off in the console until the match starts. With it on, the match starts itself at the start time if at least `minPlayers` players have joined (the 10-second countdown begins at that time); with fewer it neither starts nor stops: it waits, and the console says “Not enough players at the start time — start it yourself or abort”. (`either` is not offered yet.) |
+| Registration status | the same line for the host (console) and players (waiting room, lobby card): no start time → “Registration open until the host starts the match”; a set time → “Starts at 22:25 (in 12 min)” (with the day when it is not today), counting down live, followed by “starts automatically” or “the host starts it” (D16); start when full → “N places left”. “Starting…” appears only during the real 10-second countdown. |
 
 ## 8. Scoring and seasons
 
@@ -361,9 +368,20 @@ BACKLOG; website: embeddable call view).
 ## 13. Visual and audio design
 
 - Brand: the four Seasonal Tokens seasons and their original icons; the season colours shared with the Seasonal Entertainment website (Spring `#afb84e`, Summer `#e06e22`, Autumn `#f9a825`, Winter `#04aaf7`); font Luxora Grotesk. Assets and their origin: [assets/README.md](../../assets/README.md).
-- Dark arena look, consistent with the Seasonal Entertainment website direction.
+- The Seasonal Entertainment website's look (its SE style, same token names and values): light and dark, both meeting WCAG AA. Light is a warm off-white page, dark a night-blue one, each under four soft glows of the token colours; cards are translucent so the glow shows; buttons are pills (primary solid, secondary glass); headings in Luxora Grotesk Bold (700). The top bar shows the website's round emblem beside the “Seasonal Bingo Royale” wordmark, and a light/dark toggle. Theme logic as on the website: a stored choice (`se.theme`) wins, otherwise the system setting, followed live; the theme is set before the first paint by an external script (the CSP forbids inline scripts) and `color-scheme` follows it.
+- Signed out, the top bar offers “Sign in” and “Register”: register with a display name (3–24 letters or digits), an e-mail and a password of at least 12 characters; every refusal reads as a sentence (wrong e-mail or password — the same answer for an unknown e-mail —, name or e-mail in use, weak or common password, too many tries).
+- After Create match, and in the console while the match is in the lobby: “Your match is open — players can join now from the lobby (code XXXXXX).”
 - Cards show the letters B I N G O above the columns, with each column's numbers ascending (§4). The draw ticker, banners and announcements show every number with its letter (“G 52”) and every season symbol as its icon (§5).
-- Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You survived” / “Eliminated – keep watching”), final win.
+- Key moments get a distinct animation and sound: draw, mark, pattern, season activation (per-season colour burst), Season Complete (four-colour sequence), cut (“You're through — next round in N s” / “You're out in cut N — you can keep watching”), final win.
+- Every event line (banners, the match log) is plain English, never an internal reason, event or prize key: “Round 1 over — all 40 numbers drawn”, “Round 5 over — bot-14 filled the whole card”, “bot-16 collected all four seasons”, “Cut 1: 12 go on, 8 are out (2 saved by Winter shield)”, “Full card won by bot-02 on draw 37 (G 52)”. Server error codes reach the screen as sentences too.
+- One match log per screen, newest first, hidden while empty.
+- Standings and the final placement are ranked rows: rank, name, the four season icons with the collected ones lit (royale), points; the viewer's own row highlighted; eliminated players dimmed with “out” below a divider. The final screen states the viewer's place big (“You finished #9 of 20”), then a podium for places 1–3 in season colours, then the list. An eliminated player's status panel reads “Out in cut N” instead of effects and shield.
+- The cut screen comes into view when a cut happens; its button reads “Keep playing” for a survivor and “Watch” for an eliminated player (D15). At the end of a match the final placement (with one line on how places are decided) replaces the live standings, the in-play wording goes (“Match over”), and the screen offers “Back to the lobby” (the host also “Host another match”).
+- A match ended without a result (cancelled by its host or by the system) shows its own end page to host and players (D17): the title, “This match was cancelled by the host.” or “… by the system.”, the reason in plain words, “Back to the lobby” for everyone and “Host another match” for the host. The live arena (“Waiting for the first number”, empty standings) is never shown for an ended match; the lobby lists a cancelled match as “Cancelled” with a link to that page.
+- The match header's progress line names the stage, round and draw during a round (“Battle royale · stage 1 (qualification) · round 1 · draw 12”); in the pause after a round it names the ended round with its own stage (“… · round 1 over”) and, once the next stage has begun, that stage as next (“… · stage 2 (elimination) next”). Every dropdown option of the create form is fully readable on a 390 px phone; options leave out what their legend already says (“Draws” → “Timed (every 5 seconds)”).
+- The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only, Draw next for host draws only. Draw next keeps 4.5:1 contrast enabled and disabled. The host console shows the same progress line (stage, round, draw) and LIVE badge as the players, with the match log above the standings.
+- A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby lists open and running matches and, for a day after their end, finished ones (“Finished”, opening their result) and cancelled ones (“Cancelled”, opening their end page, D17), newest first.
+- The top bar is sticky from 640 px wide; on phones it scrolls away with the page, the theme toggle sits beside the brand, and the account row wraps rather than cutting the account chip. With a mouse the page column keeps its width whether or not a scrollbar shows.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.
 

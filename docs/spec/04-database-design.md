@@ -1,7 +1,7 @@
 # 04 — Database Design
 
 > Part of the Seasonal Bingo Royale specification. Index: [README](README.md).
-> PostgreSQL 17. All tables in schema `sbr`. Migrations with drizzle-kit, one SQL file per change, never edited after merge.
+> PostgreSQL 17. All tables in schema `sbr`. Migrations are plain SQL files run by the server's own migrator, one file per change, never edited after merge (the migrator refuses a changed checksum).
 
 ## 1. Conventions
 
@@ -66,7 +66,7 @@ embed_origins
 | status | text | `active`, `suspended`, `deleted` |
 | created_at, updated_at, last_login_at | timestamptz | |
 
-**sessions** — `id uuid`, `account_id FK`, `token_hash bytea UNIQUE`, `kind` (`player`/`admin`/`guest`), `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `last_2fa_at`, `user_agent text`, `ip_prefix inet`, `revoked_at`. Index on `(account_id) WHERE revoked_at IS NULL`.
+**sessions** — `id uuid`, `account_id FK` (NULL for a guest session), `token_hash bytea UNIQUE`, `csrf_token text` (synchronizer token, 03 §8), `kind` (`player`/`admin`/`guest`), `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `last_2fa_at`, `user_agent text`, `ip_prefix inet`, `revoked_at`. Index on `(account_id) WHERE revoked_at IS NULL`.
 
 **identity_providers** — `id`, `kind` (`oidc`/`jwt_handoff`), `name`, `issuer text UNIQUE`, `client_id`, `client_secret_enc bytea NULL`, `jwks_url NULL`, `pinned_public_key NULL`, `allowed_algs text[]`, `audience text`, `claim_mapping jsonb` (display name, avatar, roles), `role_mapping jsonb`, `enabled bool`, `created_at`, `updated_at`.
 
@@ -131,7 +131,7 @@ embed_origins
 CHECK: `game_type = 'royale'` ↔ `prizes = '{}'`; a classic type requires at least
 one entry in `prizes`.
 
-**match_entries** — `match_id`, `account_id`, `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
+**match_entries** — `match_id`, `player_id text` (the account id; development bots have `bot-NN` and no account), `account_id` (NULL for bots), `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
 
 **match_events** — `match_id`, `seq bigint`, `type text`, `payload jsonb`, `occurred_at`, `actor_account_id NULL`. PK `(match_id, seq)`. Append-only (trigger). Payload schemas per event type in `contracts/events`.
 
@@ -143,13 +143,13 @@ one entry in `prizes`.
 
 **draws** — `round_id`, `draw_index smallint`, `item smallint`, `drawn_at timestamptz`; PK `(round_id, draw_index)`; UNIQUE `(round_id, item)`. CHECK: `item BETWEEN 1 AND 75` (a number) OR `item BETWEEN 101 AND 104` (a season symbol: 101 = Spring, 102 = Summer, 103 = Autumn, 104 = Winter — matches the season order used by `cards.season_cells`). The symbol range is reachable only in `classicSeasons` matches.
 
-**marks** — `card_id`, `cell smallint`, `draw_index smallint`, `received_at timestamptz`, `source` (`manual`/`auto`), `speed_bonus smallint`; PK `(card_id, cell)` (idempotent).
+**marks** — `card_id`, `cell smallint`, `draw_index smallint`, `received_at timestamptz`, `source` (`manual`/`auto`), `speed_bonus smallint`; PK `(card_id, cell)` (idempotent). Kept **90 days** after `received_at`, then deleted by a daily retention job; scores, entries, standings and the event log stay.
 
 **prize_awards** — classic types only (01 §3a.1): `match_id`, `round_id`, `prize_key text` (e.g. `rows-2`, `fullCard`, or a custom pattern key), `draw_index smallint` (the draw that first completed the prize), `account_id`, `card_id`, `points int`, `awarded_at timestamptz`; PK `(round_id, prize_key, account_id)` so a prize is awarded to a given account at most once. Index `(match_id, prize_key)`.
 
 **standings** — projection: `match_id`, `account_id`, `rank int`, `score bigint`, `patterns int`, `seasons smallint`, `updated_seq bigint`; PK `(match_id, account_id)`; index `(match_id, rank)`.
 
-**scheduled_actions** — `id`, `match_id`, `kind` (`draw`, `close_speed_window`, `start_round`, `start_match`, `lobby_close`), `due_at`, `lease_owner text NULL`, `lease_until timestamptz NULL`, `attempts int`, `done_at NULL`. Partial index `(due_at) WHERE done_at IS NULL`.
+**scheduled_actions** — `id`, `match_id`, `kind` (`draw`, `close_speed_window`, `auto_mark`, `start_round`, `start_match`, `lobby_close`), `payload jsonb` (e.g. the draw index of a window close or auto-mark), `due_at`, `lease_owner text NULL`, `lease_until timestamptz NULL`, `attempts int`, `done_at NULL`. Partial index `(due_at) WHERE done_at IS NULL`.
 
 ### 3.4 Leaderboards
 
@@ -191,6 +191,6 @@ one entry in `prizes`.
 
 ## 6. Migrations and seed
 
-- `apps/server/db/migrations/NNNN_name.sql`, generated by drizzle-kit and reviewed.
-- Migration runs as a separate container step (`sbr-migrate`) before the app starts; the app refuses to start on a schema mismatch.
+- `apps/server/src/db/migrations/NNNN_name.sql`, written by hand and reviewed; the build copies them next to the server bundle.
+- The app applies pending migrations on start, in one transaction each, and records name, SHA-256 and time in `sbr.schema_migrations`; it refuses to start when an applied migration changed. A separate migrate step (`sbr-migrate`) is not needed for one server; it may come with rolling updates.
 - Seed on first install: roles + permissions, built-in patterns, default ruleset “royale-realtime” and “royale-async” (version 1, published), settings version 1 from defaults, lobby chat room, first leaderboard period. The first super admin is created by the install script (bootstrap token flow, see [09-deployment-architecture.md](09-deployment-architecture.md) §5).

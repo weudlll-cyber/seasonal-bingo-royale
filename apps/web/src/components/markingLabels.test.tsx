@@ -11,7 +11,7 @@
  *                 the limitation is stated, a missed number follows the chosen rule and
  *                 the seasons counter comes from the server, not from local taps.
  * Depends on:     @testing-library/react, ./StartForm, ./DrawControls, ../App,
- *                 ../quickTestFixture, ../drawControl, ../api
+ *                 ../test/quickTestFixture, ../drawControl, ../api, ../types
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/11-admin-panel.md §3.2
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -20,7 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.js';
 import type { StartQuickTestInput } from '../api.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import type { MissedNumbers } from '../types.js';
 import { DrawControls } from './DrawControls.js';
 import { StartForm } from './StartForm.js';
@@ -43,18 +43,16 @@ function renderForm() {
 describe('start form labels', () => {
   it('names marking, missed numbers and draws without the word auto', () => {
     const { container } = render(<StartForm onStart={vi.fn()} busy={false} />);
-    expect(optionTexts('marking-mode')).toEqual([
-      'Marking: I tap the numbers',
-      'Marking: mark for me',
-    ]);
+    expect(optionTexts('marking-mode')).toEqual(['I tap the numbers', 'Mark for me']);
     expect(optionTexts('missed-numbers')).toEqual([
-      'Missed numbers: mark for me after 3 seconds',
-      'Missed numbers: leave open (tap later without bonus)',
+      'Mark for me after 3 seconds',
+      'Leave open (tap later, no bonus)',
     ]);
     expect(optionTexts('start-draw-mode')).toEqual([
-      'Draws: timed (every 5 seconds)',
-      'Draws: host presses Draw next',
+      'Timed (every 5 seconds)',
+      'Host presses Draw next',
     ]);
+    expect(container.textContent).toContain('Missed numbers');
     expect(container.textContent).not.toMatch(/\bauto\b/i);
   });
 
@@ -62,8 +60,8 @@ describe('start form labels', () => {
     renderForm();
     fireEvent.change(screen.getByTestId('missed-delay'), { target: { value: '5' } });
     fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '8' } });
-    expect(optionTexts('missed-numbers')[0]).toBe('Missed numbers: mark for me after 5 seconds');
-    expect(optionTexts('start-draw-mode')[0]).toBe('Draws: timed (every 8 seconds)');
+    expect(optionTexts('missed-numbers')[0]).toBe('Mark for me after 5 seconds');
+    expect(optionTexts('start-draw-mode')[0]).toBe('Timed (every 8 seconds)');
     fireEvent.change(screen.getByTestId('marking-mode'), { target: { value: 'auto' } });
     expect(screen.queryByTestId('missed-numbers')).toBeNull();
   });
@@ -98,7 +96,7 @@ describe('live draw controls', () => {
         onDrawNext={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('draw-mode-timed').textContent).toBe('Timed draws');
+    expect(screen.getByTestId('draw-mode-timed').textContent).toBe('✓ Timed draws');
     expect(screen.getByTestId('draw-mode-host').textContent).toBe('Host draws');
     expect(container.textContent).not.toMatch(/\bauto\b/i);
   });

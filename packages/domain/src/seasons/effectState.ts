@@ -9,7 +9,8 @@
  *                 the same type do not stack" is enforced by overwriting the existing
  *                 entry on refresh.
  * Depends on:     ../draw/pool (SeasonName)
- * Used by:        ./applyEffect, ./tickEffects, ../scoring/*, ./seasonComplete
+ * Used by:        ./applyEffect, ./tickEffects, ../scoring/*, ./seasonComplete, ../index,
+ *                 ../match/markResolver, ../match/matchState
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3
  */
 import type { SeasonName } from '../draw/pool.js';

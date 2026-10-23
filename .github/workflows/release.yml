@@ -1,7 +1,9 @@
 # @file   .github/workflows/release.yml
+# @module ci
 # @brief  Release skeleton: on a version tag, publish the image to GHCR with an SBOM.
 #
-# Responsibility: build the multi-arch image from the tagged commit, push it to GHCR, and
+# Responsibility: refuse a tag whose commit is not on master or has no green CI run there;
+#                 then build the multi-arch image from the tagged commit, push it to GHCR, and
 #                 create the GitHub release with a CycloneDX SBOM. Signing comes before v1.0.0.
 # Depends on:     Dockerfile
 # Spec:           docs/spec/08-devops-architecture.md §2–§3, docs/spec/03-security-architecture.md §18
@@ -20,11 +22,29 @@ jobs:
     permissions:
       contents: write # create the GitHub release
       packages: write # push to GHCR
+      actions: read # look up the CI run of the tagged commit
       # id-token: write is added together with cosign signing (keyless, GitHub OIDC).
     env:
       IMAGE: ghcr.io/weudlll-cyber/seasonal-bingo-royale
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Nothing is published from a commit that is not on master with a green CI run.
+      - name: Tag on master with green CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$GITHUB_REF_NAME is not on master"
+            exit 1
+          fi
+          green=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch master \
+            --commit "$GITHUB_SHA" --status success --json databaseId --jq length)
+          if [ "$green" -eq 0 ]; then
+            echo "::error::no green CI run on master for $GITHUB_SHA"
+            exit 1
+          fi
       # QEMU lets the amd64 runner build the arm64 variant.
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1

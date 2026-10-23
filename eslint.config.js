@@ -1,5 +1,6 @@
 /**
  * @file   eslint.config.js
+ * @module repo
  * @brief  ESLint flat config: strict typed TypeScript rules, size limits and layer rules.
  *
  * Responsibility: enforce the size and structure rules of 10 §2 and the dependency rule
@@ -66,6 +67,11 @@ export default defineConfig(
       'tmp/',
       'test-results/',
       'playwright-report/',
+      // Static files served as they are (the plain early theme script, outside the TS
+      // projects); apps/web/src/shell/theme.test.tsx runs it.
+      'apps/web/public/',
+      // The load check: a plain Node script against a running stack, outside the TS projects.
+      'load/',
     ],
   },
   js.configs.recommended,
@@ -97,7 +103,17 @@ export default defineConfig(
     },
   },
   {
-    files: ['**/*.test.ts'],
+    // The server's build script and its stub: plain JavaScript run by Node, outside the TS projects.
+    files: ['apps/server/build.mjs', 'apps/server/devStub.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      parserOptions: { projectService: false, project: false, program: null },
+      globals: { console: 'readonly', process: 'readonly' },
+    },
+  },
+  {
+    // Test files of every kind, the Playwright specs included, may run to 400 lines.
+    files: ['**/*.test.ts', '**/*.test.tsx', 'e2e/**/*.spec.ts'],
     rules: { 'max-lines': ['error', { max: 400 }] },
   },
   {

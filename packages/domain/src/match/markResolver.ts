@@ -10,9 +10,9 @@
  *                 `seasonCompleteFired` when all four seasons are now active, and
  *                 `jackpotClaimed` when a full house + Season Complete land in the same
  *                 royale round. Points are multiplied by the stage multiplier. Pure.
- * Depends on:     ../card/patterns, ../scoring/*, ../seasons/*, ../draw/pool,
- *                 ./matchState, ./events
- * Used by:        ./decide
+ * Depends on:     ../card/patterns, ../scoring/*, ../seasons/*, ../draw/pool, ./matchState,
+ *                 ./events
+ * Used by:        ./decide, ../index, ./decideAutoMark
  * Spec:           docs/spec/01-game-design.md §8.1–§8.5
  */
 import { completedPrizeKeys } from '../card/patterns.js';

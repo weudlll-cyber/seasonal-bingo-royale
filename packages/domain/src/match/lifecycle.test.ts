@@ -7,7 +7,7 @@
  *                 stage multiplier (01 §7.2), skipped elimination stages (01 §7.4) and
  *                 the jackpot claim guard (01 §8.5: Season Complete and full house in the
  *                 same round).
- * Depends on:     ./roundEnd, ./markResolver, ../index, ../../test/builders
+ * Depends on:     ./roundEnd, ./markResolver, ../index, ../../test/builders, ./matchState
  * Spec:           docs/spec/01-game-design.md §7.2–§7.4, §8.5
  */
 import { describe, expect, it } from 'vitest';

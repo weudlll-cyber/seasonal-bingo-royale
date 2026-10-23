@@ -8,7 +8,7 @@
  *                 the round-end condition "allPrizesAwarded or poolExhausted" and no
  *                 cut, so the same lifecycle code runs both game types.
  * Depends on:     ./lifecycleTypes, ../gameType
- * Used by:        ./evolve (via lobbyOpened handler), apps/server match orchestration
+ * Used by:        ./decide
  * Spec:           docs/spec/01-game-design.md §3a, §7.1
  */
 import type { GameType } from '../gameType.js';

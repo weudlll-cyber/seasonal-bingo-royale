@@ -1,23 +1,34 @@
 /**
  * @file   apps/web/src/main.tsx
  * @module web
- * @brief  React entry point: mounts <App /> onto #root.
+ * @brief  Entry point of the player client: design system, session, app shell.
  *
- * Responsibility: start the player client's React tree. All real logic lives in App.tsx
- *                 and the components it imports.
- * Depends on:     react, react-dom, ./App, ./motion.css
- * Spec:           docs/spec/15-implementation-plan.md WP-08
+ * Responsibility: load the shared design system (fonts, tokens, base styles, key-moment
+ *                 motion from @sbr/ui) and the Quick Test's motion styles, then render the
+ *                 app shell inside the session provider. Development-only parts (quick
+ *                 sign-in, Quick Test, bots) follow Vite's DEV flag, so production builds
+ *                 leave them out.
+ * Depends on:     react-dom, @sbr/ui (CSS), ./shell/*, ./motion.css
+ * Spec:           docs/spec/01-game-design.md §13; docs/spec/15-implementation-plan.md WP-12
  */
+import '@sbr/ui/fonts.css';
+import '@sbr/ui/tokens.css';
+import '@sbr/ui/base.css';
+import '@sbr/ui/motion.css';
+import './motion.css';
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { App } from './App.js';
-import './motion.css';
+import { AppShell } from './shell/AppShell.js';
+import { SessionProvider } from './shell/session.js';
 
 const rootElement = document.getElementById('root');
 if (rootElement === null) throw new Error('missing #root element');
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <SessionProvider>
+      <AppShell dev={import.meta.env.DEV} />
+    </SessionProvider>
   </StrictMode>,
 );

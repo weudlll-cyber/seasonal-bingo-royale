@@ -6,10 +6,11 @@
  * Responsibility: for every combination play one complete match with 20 bots and one
  *                 owner card on a fixed seed, checking the whole screen after every draw
  *                 (./checks) and every cut against server points (./cuts); one royale and
- *                 one classic run switch between timed and host draws mid-match. After
+ *                 one classic run switch between timed and host draws mid-match; a seed
+ *                 whose round ends on an owner number must see a D10 last-number tap. After
  *                 each match, Run Quick Test again with another seed: nothing of the last
  *                 run may remain, then a few draws are played. A full-page screenshot of
- *                 each match end and each restart goes to reports/screens/acceptance/.
+ *                 each match end and each restart goes to reports/screens/latest/acceptance/.
  *                 Runs only with SBR_ACCEPTANCE=1 (about half an hour), not in CI.
  * Depends on:     @playwright/test, ../quickTest, ../devStack, ./checks, ./cuts, ./play,
  *                 ./snapshot
@@ -36,7 +37,7 @@ interface Combo {
 const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
 // The fastest timed draws allowed: one second more than the 3 s speed window (D10).
 const TIMED_SEC = 4;
-const SCREENS = path.join(REPO_ROOT, 'reports', 'screens', 'acceptance');
+const SCREENS = path.join(REPO_ROOT, 'reports', 'screens', 'latest', 'acceptance');
 
 function combos(): Combo[] {
   const list: Combo[] = [];
@@ -79,6 +80,31 @@ async function run(page: Page, start: () => Promise<void>): Promise<ServerResult
   return result;
 }
 
+interface RoundEvent {
+  readonly type: string;
+  readonly item?: number;
+  readonly cardsByPlayer?: Readonly<
+    Record<string, readonly { readonly cells: readonly { readonly value?: number }[] }[]>
+  >;
+}
+
+// Rounds whose last number is on an owner card (fixed seed): the chances of a D10 tap.
+function lastNumberChances(result: ServerResult): number {
+  let owned = new Set<number>();
+  let last: number | undefined;
+  let chances = 0;
+  for (const e of result.events as readonly RoundEvent[]) {
+    if (e.type === 'roundStarted') {
+      const cards = Object.entries(e.cardsByPlayer ?? {}).filter(([id]) => id.startsWith('owner-'));
+      owned = new Set(
+        cards.flatMap(([, cs]) => cs.flatMap((c) => c.cells.map((x) => x.value ?? -1))),
+      );
+    } else if (e.type === 'drawMade') last = e.item;
+    else if (e.type === 'roundEnded' && last !== undefined && owned.has(last)) chances += 1;
+  }
+  return chances;
+}
+
 // Per round, the number of draws it has: its last draw is the one before its end.
 function lastDrawsOf(result: ServerResult, into: Map<number, number>): void {
   let round = -1;
@@ -114,6 +140,11 @@ for (const combo of combos()) {
       ...(switches ? { switchAt: 20 } : {}),
     });
     expect(end.finished).toBe(true);
+    // D10: with a chance in this seed, at least one last number was tapped inside its window
+    // (a screen that saw a draw late may miss one of several chances).
+    const chances = ctx.tapping ? lastNumberChances(result) : 0;
+    if (chances > 0) expect(ctx.lastNumberTaps).toBeGreaterThan(0);
+    expect(ctx.lastNumberTaps).toBeLessThanOrEqual(chances);
     await page.screenshot({ path: path.join(SCREENS, `${nameOf(combo)}.png`), fullPage: true });
 
     // Run Quick Test again with another seed: a fresh match, then a few draws.

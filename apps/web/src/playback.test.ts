@@ -6,13 +6,13 @@
  * Responsibility: each round shows that round's cards with fresh marks; a cut records
  *                 the owner's outcome and marks the owner as out while the match goes
  *                 on; the owner's status is the latest server entry at the current step.
- * Depends on:     ./playback, ./quickTestFixture
+ * Depends on:     ./playback, ./test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { describe, expect, it } from 'vitest';
 
 import { playbackAt } from './playback.js';
-import { numberCard, royaleFixture } from './quickTestFixture.js';
+import { numberCard, royaleFixture } from './test/quickTestFixture.js';
 
 const result = royaleFixture();
 

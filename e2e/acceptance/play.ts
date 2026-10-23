@@ -20,7 +20,7 @@ import { expect, type Page } from '@playwright/test';
 import { checkScreen, type RunContext } from './checks.js';
 import { snapshot, tickKey, type Snap } from './snapshot.js';
 
-export interface PlayOptions {
+interface PlayOptions {
   readonly mode: 'auto' | 'host';
   // Draw count at which to switch to host draws for four draws and back to timed draws.
   readonly switchAt?: number;

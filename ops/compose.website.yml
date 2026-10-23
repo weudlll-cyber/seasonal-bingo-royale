@@ -1,0 +1,23 @@
+# @file   ops/compose.website.yml
+# @module ops
+# @brief  Website installs: the app joins the Seasonal Entertainment website's network.
+#
+# Responsibility: on top of ops/compose.yml, without the Caddy profile: the app publishes no
+#                 host port and joins the website's Docker network (chosen by ops/install.sh:
+#                 the website project's <project>_default network of the container
+#                 seasonal-site-caddy-1, or --website-network, asking when it is ambiguous;
+#                 written to SBR_WEBSITE_NETWORK) under the name sbr-bingo-<env>,
+#                 so the website's Caddy forwards /games/bingo/* (HTTP and WebSocket) to it.
+# Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.website.yml)
+# Spec:           docs/spec/09-deployment-architecture.md §1, §8
+services:
+  app:
+    networks:
+      website:
+        aliases:
+          - sbr-bingo-${SBR_ENV:?set SBR_ENV in the env file}
+
+networks:
+  website:
+    external: true
+    name: ${SBR_WEBSITE_NETWORK:?set SBR_WEBSITE_NETWORK in the env file}

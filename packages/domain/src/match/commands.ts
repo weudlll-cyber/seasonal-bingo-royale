@@ -8,8 +8,8 @@
  *                 startRound, drawNext, markCell, autoMarkMissed, closeSpeedWindow,
  *                 endRound, applyCut,
  *                 startStage, finishMatch, abortMatch). Pure data; no behaviour.
- * Depends on:     ./lifecycleTypes, ./matchState (none runtime)
- * Used by:        ./decide, apps/server command handlers
+ * Depends on:     ./lifecycleTypes, ../gameType
+ * Used by:        ./decide, ./simulate, ../index, packages/application (match engine)
  * Spec:           docs/spec/02-software-architecture.md §5.1, docs/spec/01-game-design.md §3
  */
 import type { GameType } from '../gameType.js';
@@ -79,9 +79,17 @@ export interface ApplyCut {
 export interface FinishMatch {
   readonly type: 'finishMatch';
 }
+// The time the next round starts after a round and its cut (D14 "wait N seconds"); the
+// application computes it (the domain has no clock) and records it in the event log.
+export interface ScheduleNextRound {
+  readonly type: 'scheduleNextRound';
+  readonly at: number;
+}
 export interface AbortMatch {
   readonly type: 'abortMatch';
   readonly reason: string;
+  // Who ended the match without a result (D17).
+  readonly by: 'host' | 'system';
 }
 
 export type Command =
@@ -97,4 +105,5 @@ export type Command =
   | EndRound
   | ApplyCut
   | FinishMatch
+  | ScheduleNextRound
   | AbortMatch;

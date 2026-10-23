@@ -9,14 +9,15 @@
  *                 total order 1..N over every entrant, the Winter shield reserves a
  *                 player's shieldCharges and the event log contains the lifecycle
  *                 events the client plays back.
- * Depends on:     ./quicktest
+ * Depends on:     ./quicktest, @sbr/contracts
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
+import { DEFAULT_PRIZE_SELECTION, type QuickTestResult } from '@sbr/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { runQuickTest, type QuickTestResult } from './quicktest.js';
+import { runQuickTest } from './quicktest.js';
 
-const TICKED = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'];
+const TICKED = DEFAULT_PRIZE_SELECTION;
 
 describe('runQuickTest', () => {
   it.each(['royale', 'classicSeasons', 'classic'] as const)(
@@ -96,8 +97,9 @@ describe('runQuickTest — payload for the player client', () => {
 
   // CPU time, not wall clock, with a wide budget: alone it takes about 0.7 s, under a
   // full parallel test run up to ~2 s; an algorithmic blow-up (e.g. quadratic replay)
-  // would still pass 5 s.
-  it('builds a 200-player royale within five seconds of CPU time', () => {
+  // would still pass 5 s. The wall clock gets 30 s: under a full parallel run the default
+  // 5 s test timeout fired before the CPU check could (NIGHT-4).
+  it('builds a 200-player royale within five seconds of CPU time', { timeout: 30_000 }, () => {
     const started = process.cpuUsage();
     runQuickTest({
       gameType: 'royale',

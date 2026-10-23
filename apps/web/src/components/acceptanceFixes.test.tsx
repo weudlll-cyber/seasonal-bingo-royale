@@ -7,14 +7,14 @@
  * Responsibility: after the round of the cut, an eliminated owner's old card is gone (it
  *                 showed marks for numbers not drawn in the current round and could be
  *                 tapped).
- * Depends on:     @testing-library/react, ../App, ../quickTestFixture
+ * Depends on:     @testing-library/react, ../App, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §6, §7, §13; docs/spec/12-testing-strategy.md §8
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../App.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 
 afterEach(() => {
   cleanup();

@@ -1,7 +1,10 @@
 # @file   .github/workflows/ci.yml
-# @brief  CI: verify, security scans, browser tests and the container image.
+# @module ci
+# @brief  CI: verify, security scans, docs links, browser tests and the container image.
 #
-# Responsibility: run what "pnpm verify" runs and the dependency/secret scans on every
+# Responsibility: run what "pnpm verify" runs and the domain/application coverage, the
+#                 dependency/secret scans, the license
+#                 check of the production dependencies and the markdown link check on every
 #                 push; on the way to master also the Playwright suite in three browsers
 #                 and the image build, scan and size check. Any red job blocks merge.
 # Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/
@@ -28,6 +31,7 @@ env:
   OSV_SCANNER_IMAGE: ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
   TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+  LYCHEE_IMAGE: lycheeverse/lychee:0.24.2@sha256:e2d19e57cf6ab037026f20b8e449a1f30d9d7f81eef4194763aab2eab20bd28d
 
 jobs:
   verify:
@@ -37,6 +41,8 @@ jobs:
       - uses: ./.github/actions/setup
       # The same script developers run locally: format check, lint, typecheck, tests.
       - run: pnpm verify
+      # Domain and application coverage against the thresholds in vitest.config.ts (12 §2).
+      - run: pnpm test:coverage
 
   security:
     runs-on: ubuntu-latest
@@ -68,6 +74,27 @@ jobs:
           fi
       - name: gitleaks (full history)
         run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
+      # Licenses compatible with AGPL-3.0-or-later only (spec 03 §18); a new one fails until reviewed.
+      - name: License check (production dependencies)
+        run: |
+          allowed='["MIT","ISC","0BSD","BSD-2-Clause","BSD-3-Clause","Apache-2.0","BlueOak-1.0.0","CC0-1.0","Unlicense","MPL-2.0","LGPL-3.0-or-later","GPL-3.0-or-later","AGPL-3.0-or-later"]'
+          denied=$(pnpm -r licenses list --prod --json | jq -r --argjson ok "$allowed" \
+            'to_entries[] | select(.key as $k | $ok | index($k) | not) | "\(.key): \([.value[].name] | join(", "))"')
+          if [ -n "$denied" ]; then
+            echo "::error::licenses not on the allow list:"
+            echo "$denied"
+            exit 1
+          fi
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Links between the repository's own files (no network: external sites come and go).
+      - name: Markdown link check
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src "$LYCHEE_IMAGE" --offline --no-progress \
+            --exclude-path node_modules --exclude-path reports '**/*.md'
 
   e2e:
     # Only on the way to master: PRs to master and pushes to master.

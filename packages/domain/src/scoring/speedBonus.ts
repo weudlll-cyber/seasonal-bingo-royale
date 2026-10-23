@@ -7,7 +7,7 @@
  *                 Negative deltas and deltas past the window return 0; this matches
  *                 "a tap within speedWindowMs after the draw earns a speed bonus" (01 §6).
  * Depends on:     nothing
- * Used by:        future match engine
+ * Used by:        future match engine, ../index
  * Spec:           docs/spec/01-game-design.md §6, §8.1
  */
 

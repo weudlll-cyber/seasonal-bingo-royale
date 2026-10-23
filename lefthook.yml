@@ -1,4 +1,5 @@
 # @file   lefthook.yml
+# @module repo
 # @brief  Git hooks: format staged files before each commit.
 #
 # Responsibility: keep the pre-commit hook fast (Prettier on staged files only); every

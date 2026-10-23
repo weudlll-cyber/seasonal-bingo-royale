@@ -21,7 +21,7 @@ for (const gameType of GAME_TYPES) {
     const settings: RunSettings = { gameType, seed: 'e2e-determinism', bots: 12, marking: 'auto' };
     const first = await finalPlacement(page, settings);
     const second = await finalPlacement(page, settings);
-    expect(first).toContain('#1 ');
+    expect(first).toMatch(/You finished #\d+ of 13/);
     expect(second).toBe(first);
   });
 }

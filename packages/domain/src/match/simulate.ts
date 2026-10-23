@@ -11,14 +11,16 @@
  *                 the full event log and the final state so tests can assert both
  *                 "live state = replay" (invariant 4) and the game-wide invariants
  *                 (every ticked prize awarded, final placement 1..N, …). Pure.
- * Depends on:     ./commands, ./decide, ./evolve, ./matchState, ./lifecycleTypes
- * Used by:        tests, apps/server/src/dev/quicktest.ts
+ * Depends on:     ./commands, ./decide, ./evolve, ./flow, ./matchState, ./lifecycleTypes,
+ *                 ../gameType, ./events
+ * Used by:        tests, apps/server/src/dev/quicktest.ts, ../index
  * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 01 §6;
  *                 12 §3 inv. 4, 7, 8, 10, 12, 17, 18
  */
 import type { GameType } from '../gameType.js';
 import { decide } from './decide.js';
 import { createInitialMatchState, evolve } from './evolve.js';
+import { nextStep } from './flow.js';
 import type { Command } from './commands.js';
 import type { DomainEvent } from './events.js';
 import type { MatchRuleset } from './lifecycleTypes.js';
@@ -100,19 +102,13 @@ interface Clock {
   readonly windowMs: number;
 }
 
+// Rounds and stages in the order the live engine plays them (./flow).
 function runStages(d: Driver, clock: Clock): void {
-  while (d.state.stageIndex < d.state.stagePlan.length) {
-    const stage = d.state.stagePlan[d.state.stageIndex];
-    if (stage === undefined) break;
-    for (let r = 0; r < stage.rounds; r += 1) {
-      // Once the active field is at or below the final size, the remaining elimination
-      // rounds and stages are skipped (01 §7.4) — checked before every round.
-      if (stage.kind === 'elimination' && fieldAtFinalSize(d.state)) break;
-      runOneRound(d, clock);
-    }
-    const nextIndex = d.state.stageIndex + 1;
-    if (nextIndex < d.state.stagePlan.length) d.apply({ type: 'startStage' });
-    else break;
+  for (let safety = 0; safety < 1_000; safety += 1) {
+    const step = nextStep(d.state);
+    if (step === 'finish') return;
+    if (step === 'startStage') d.apply({ type: 'startStage' });
+    else runOneRound(d, clock);
   }
 }
 
@@ -149,17 +145,4 @@ function issueDueAutoMarks(d: Driver, pending: number, now: number, clock: Clock
     first += 1;
   }
   return first;
-}
-
-function fieldAtFinalSize(state: MatchState): boolean {
-  const finalStage = state.stagePlan[state.stagePlan.length - 1];
-  if (finalStage === undefined || finalStage.kind !== 'final') return false;
-  const active = state.playerOrder.filter(
-    (id) => state.players[id]?.eliminatedAtRound === null,
-  ).length;
-  // No explicit "final size" is defined; we approximate by: once the next stage is
-  // the final stage AND we have strictly more than the final's minimum, keep playing;
-  // otherwise skip. The spec's phrasing "already at or below the final size" means we
-  // never cut below minSurvivors, so apply-cut being a no-op naturally stops progress.
-  return active <= (finalStage.cut?.minSurvivors ?? 2);
 }

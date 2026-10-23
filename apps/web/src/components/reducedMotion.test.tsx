@@ -7,8 +7,8 @@
  * Responsibility: with `prefers-reduced-motion: reduce` no component adds an animation
  *                 class (cut screen, banners, newest draw, tapped cell); without it they
  *                 do; motion.css switches all animations off under the same query.
- * Depends on:     @testing-library/react, ./CutScreen, ./DrawTicker, ./OwnerCard,
- *                 ./Playback, ../playback, ../quickTestFixture, ../motion.css
+ * Depends on:     @testing-library/react, ./CutScreen, ./DrawTicker, ./OwnerCard, ./Playback,
+ *                 ../playback, ../test/quickTestFixture, ../motion.css, ../motion.css?raw
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -20,7 +20,7 @@ import { OwnerCard } from './OwnerCard.js';
 import { Playback } from './Playback.js';
 import motionCss from '../motion.css?raw';
 import { playbackAt } from '../playback.js';
-import { numberCard, royaleFixture } from '../quickTestFixture.js';
+import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
 
 afterEach(() => {
   cleanup();
@@ -86,6 +86,6 @@ describe('prefers-reduced-motion', () => {
     render(
       <CutScreen cut={{ number: 1, owners: [{ accountId: 'owner-01', outcome: 'survived' }] }} />,
     );
-    expect(screen.getByTestId('cut-screen').className).toBe('');
+    expect(screen.getByTestId('cut-screen').className).toBe('cut-screen');
   });
 });

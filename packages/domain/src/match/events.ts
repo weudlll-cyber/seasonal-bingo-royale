@@ -7,7 +7,8 @@
  *                 Replay (evolve folded over the full event list) must reproduce the
  *                 live state (invariant 4). Events are plain data; no behaviour.
  * Depends on:     ../card/cardTypes, ../gameType, ./lifecycleTypes
- * Used by:        ./decide, ./evolve, apps/server event log
+ * Used by:        ./decide, ./evolve, apps/server event log, ../index, ./decideAutoMark,
+ *                 ./evolveLifecycle, ./evolveScoring, ./markResolver, ./roundEnd, ./simulate
  * Spec:           docs/spec/02-software-architecture.md §5.1–§5.2
  */
 import type { Card } from '../card/cardTypes.js';
@@ -115,9 +116,16 @@ export interface MatchFinished {
   readonly type: 'matchFinished';
   readonly placement: readonly { readonly accountId: string; readonly place: number }[];
 }
+// When the next round starts (epoch ms), so the countdown survives a restart.
+export interface NextRoundScheduled {
+  readonly type: 'nextRoundScheduled';
+  readonly at: number;
+}
 export interface MatchAborted {
   readonly type: 'matchAborted';
   readonly reason: string;
+  // Who ended it (D17); absent in events logged before D17, which were the host's.
+  readonly by?: 'host' | 'system';
 }
 
 export type DomainEvent =
@@ -137,4 +145,5 @@ export type DomainEvent =
   | RoundEnded
   | CutApplied
   | MatchFinished
+  | NextRoundScheduled
   | MatchAborted;

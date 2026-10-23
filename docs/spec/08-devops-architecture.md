@@ -34,8 +34,14 @@ is held by an earlier run of this project, stop that process first.
 Every development page shows a small fixed badge **"Bingo · dev · &lt;port&gt;"**
 in a non-intrusive corner (both clients and the server-rendered placeholder
 page). The badge is compiled out in production builds — it is tied to
-`import.meta.env.DEV` on the client and to `NODE_ENV !== 'production'` on the
-server.
+`import.meta.env.DEV` on the client and to `SBR_DEV=1` on the server.
+
+The server fails closed: without settings it runs as production (`NODE_ENV` defaults to
+`production`), and every development feature — quick sign-in, Quick Test, fast test rules,
+bot fill, the system-abort route, load accounts, the plain-http cookie, the dev badge — needs
+`SBR_DEV=1`, which the server refuses when `SBR_PUBLIC_URL` is not a localhost address.
+`pnpm dev` (apps/server/dev.env), the integration-test harness and the Playwright web
+server set it explicitly.
 
 ## 2. Branching and release flow
 
@@ -83,7 +89,7 @@ Note for operators of this repo: a green local check is not a green CI — after
 
 | Signal | Tooling | Notes |
 |---|---|---|
-| Logs | Pino JSON → Docker `local` log driver with rotation (100 MB × 5) | Optional Loki + Grafana compose profile `observability` |
+| Logs | Pino JSON → Docker `local` log driver with rotation (20 MB × 5 per service, sized for small servers; decided 2026-10-23) | Optional Loki + Grafana compose profile `observability` |
 | Metrics | `/metrics` on internal port 9464 | Optional Prometheus + Grafana in the same profile; ready-made dashboard JSON in `ops/grafana/` |
 | Errors | Optional Sentry-protocol DSN (GlitchTip self-hosted recommended) | Off unless configured |
 | Uptime | External checker (Uptime Kuma on another machine, or a hosted free tier) on `/healthz` and a synthetic “list matches” call | Monitoring from outside the VPS |
@@ -96,7 +102,7 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 ## 7. Dependency and patch policy
 
 - Renovate weekly grouped PRs; security PRs immediately.
-- Major version upgrades of core building blocks (Node, React, Fastify, Socket.IO, Drizzle, Vitest) are done **before** a release goes live, not right after (same principle as the owner set for the race project on 2026-10-18).
+- Major version upgrades of core building blocks (Node, React, Fastify, Socket.IO, node-postgres, Vitest) are done **before** a release goes live, not right after (same principle as the owner set for the race project on 2026-10-18).
 - Base image rebuilt weekly even without code changes (OS patches) → patch release.
 
 ## 8. Developer experience

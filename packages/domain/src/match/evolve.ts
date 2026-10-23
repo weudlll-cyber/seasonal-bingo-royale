@@ -9,7 +9,8 @@
  *                 ./evolveLifecycle.ts and ./evolveScoring.ts; this file is only the
  *                 dispatch map and the initial-state factory. Pure.
  * Depends on:     ./matchState, ./events, ./lifecycleTypes, ./evolveLifecycle, ./evolveScoring
- * Used by:        apps/server (projection), ./decide, ./simulate, tests
+ * Used by:        apps/server (projection), ./decide, ./simulate, tests, ../index,
+ *                 ./decideAutoMark
  * Spec:           docs/spec/02-software-architecture.md §5.1, docs/spec/12-testing-strategy.md §3 inv. 4
  */
 import type { MatchState } from './matchState.js';
@@ -74,6 +75,7 @@ export function createInitialMatchState(): MatchState {
     jackpot: { unclaimedRounds: 0, claimedBy: null, claimedAtRound: null, value: 0 },
     tickedPrizes: [],
     finalPlacement: [],
+    nextRoundAt: null,
   };
 }
 
@@ -90,7 +92,8 @@ const projectors: Projectors = {
   playerJoined: onPlayerJoined,
   matchStarted: (s, _e) => ({ ...s, phase: 'running' }),
   stageStarted: (s, e) => onStageStarted(s, e.stageIndex),
-  roundStarted: onRoundStarted,
+  // A new round ends the pause before it.
+  roundStarted: (s, e) => onRoundStarted({ ...s, nextRoundAt: null }, e),
   drawMade: (s, _e) => onDrawMade(s),
   speedWindowClosed: (s, e) => onSpeedWindowClosed(s, e.drawIndex),
   cellMarked: onCellMarked,
@@ -102,6 +105,7 @@ const projectors: Projectors = {
   roundEnded: (s, _e) => onRoundEnded(s),
   cutApplied: onCutApplied,
   matchFinished: onMatchFinished,
+  nextRoundScheduled: (s, e) => ({ ...s, nextRoundAt: e.at }),
   matchAborted: (s, _e) => ({ ...s, phase: 'aborted' }),
 };
 

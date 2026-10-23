@@ -29,8 +29,8 @@ export function DevBadge(): ReactElement | null {
         pointerEvents: 'none',
         padding: '0.25rem 0.5rem',
         fontSize: '0.75rem',
-        background: '#04aaf7',
-        color: '#0f1115',
+        background: 'var(--color-winter)',
+        color: 'var(--color-on-season)',
         borderRadius: '0.25rem',
         zIndex: 1_000,
       }}

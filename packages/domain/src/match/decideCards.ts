@@ -6,7 +6,7 @@
  * Responsibility: for every active player, deterministically generate `cardsPerPlayer`
  *                 cards from the match seed and the round index. Kept out of decide.ts
  *                 to keep that file under the 300-line limit.
- * Depends on:     ../card/generateCard
+ * Depends on:     ../card/generateCard, ../card/cardTypes, ./matchState
  * Used by:        ./decide
  * Spec:           docs/spec/01-game-design.md §4, §9
  */

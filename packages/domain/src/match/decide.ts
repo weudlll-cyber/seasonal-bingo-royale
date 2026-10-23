@@ -9,10 +9,10 @@
  *                 keeps complexity at 1. All randomness comes from state.seed; ctx
  *                 carries only the clock, which the realtime engine uses for speed
  *                 bonuses outside this pure function.
- * Depends on:     ../draw/drawSequence, ../royale/cut, ../royale/finalRanking,
- *                 ./markResolver, ./evolve, ./matchState, ./commands, ./events,
- *                 ./stagePlan, ./roundEnd, ./decideCards, ./decideAutoMark, ./decideRanking
- * Used by:        apps/server (command handlers), ./simulate
+ * Depends on:     ../draw/drawSequence, ../royale/cut, ../royale/finalRanking, ./markResolver,
+ *                 ./evolve, ./matchState, ./commands, ./events, ./stagePlan, ./roundEnd,
+ *                 ./decideCards, ./decideAutoMark, ./decideRanking
+ * Used by:        ./simulate, ../index, packages/application (match engine)
  * Spec:           docs/spec/01-game-design.md §3, §6, §7, §8; docs/spec/02-software-architecture.md §5.1
  */
 import { drawSequence } from '../draw/drawSequence.js';
@@ -79,7 +79,12 @@ const dispatch: Dispatch = {
   endRound: (s, _c) => onEndRound(s),
   applyCut: (s, _c) => onApplyCut(s),
   finishMatch: (s, _c) => onFinish(s),
-  abortMatch: (_s, c) => onAbort(c),
+  // Only while the match runs and no round is in play (the pause after a round).
+  scheduleNextRound: (s, c) =>
+    s.phase === 'running' && (s.currentRound === null || s.currentRound.ended)
+      ? [{ type: 'nextRoundScheduled', at: c.at }]
+      : [],
+  abortMatch: (s, c) => (s.phase === 'finished' || s.phase === 'aborted' ? [] : onAbort(c)),
 };
 
 export function decide(
@@ -256,5 +261,5 @@ function onFinish(state: MatchState): readonly DomainEvent[] {
 }
 
 function onAbort(cmd: AbortMatch): readonly DomainEvent[] {
-  return [{ type: 'matchAborted', reason: cmd.reason }];
+  return [{ type: 'matchAborted', reason: cmd.reason, by: cmd.by }];
 }

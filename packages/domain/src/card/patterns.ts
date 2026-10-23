@@ -10,7 +10,7 @@
  *                 complete rows, so the set is a function of the set of complete rows,
  *                 columns and diagonals — matching the catalogue of 01 §3a.1.
  * Depends on:     ./cardTypes
- * Used by:        ../match/* (future), tests
+ * Used by:        ../match/* (future), tests, ../index
  * Spec:           docs/spec/01-game-design.md §3a.1, docs/spec/04-database-design.md §3.2
  */
 import { CARD_SIZE, CELL_COUNT } from './cardTypes.js';
@@ -18,11 +18,11 @@ import { CARD_SIZE, CELL_COUNT } from './cardTypes.js';
 export type Mark = boolean;
 export type MarkMask = readonly Mark[]; // length CELL_COUNT, row-major
 
-export const ROW_MASKS: readonly MarkMask[] = buildRowMasks();
-export const COLUMN_MASKS: readonly MarkMask[] = buildColumnMasks();
-export const DIAGONAL_MASKS: readonly MarkMask[] = buildDiagonalMasks();
-export const CORNERS_MASK: MarkMask = buildCornersMask();
-export const FULL_MASK: MarkMask = Array<Mark>(CELL_COUNT).fill(true);
+const ROW_MASKS: readonly MarkMask[] = buildRowMasks();
+const COLUMN_MASKS: readonly MarkMask[] = buildColumnMasks();
+const DIAGONAL_MASKS: readonly MarkMask[] = buildDiagonalMasks();
+const CORNERS_MASK: MarkMask = buildCornersMask();
+const FULL_MASK: MarkMask = Array<Mark>(CELL_COUNT).fill(true);
 
 export interface CompletedPrizes {
   readonly rows: number;

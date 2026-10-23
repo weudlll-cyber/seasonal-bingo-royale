@@ -22,6 +22,8 @@
 | Load | k6 (+ socket.io k6 extension or a Node load driver) | §5 | before every release |
 | Security | ZAP baseline, header test, authz matrix test, dependency scans | §6 | every PR (fast parts), every release (ZAP) |
 
+Built so far: CI runs `pnpm test:coverage` (domain and application, thresholds in `vitest.config.ts`): lines meet the targets (domain 99 %, application 96 %); branches are held at today's floor (domain 84 %, application 83 %) until tests close the gap (docs/BACKLOG.md). The authorization matrix (`apps/server/test/authzMatrix.integration.test.ts`) covers every HTTP route and WS intent for anonymous, guest, player, another host and the host, plus CSRF per route group; a route or intent missing from it fails the test.
+
 ## 3. Domain invariants (property tests)
 
 1. A card has 24 distinct numbers (+ free center) in the correct column ranges; season cells are in 4 distinct rows and 4 distinct columns, never the center.
@@ -44,6 +46,8 @@
 18. Bots and players in `auto` marking mode mark every drawn number on the draw; human players in `manual` mode never get a mark they did not tap except by `autoMarkAfter`.
 19. Round end (D10): no round ends before the speed window of its last draw has closed; a tap on that last number inside its window is accepted.
 
+**Case counts.** Properties over single functions (cards, draws, cuts, effects) run 1 000 cases in CI and 100 locally (`FAST_CHECK_RUNS` overrides). Properties that simulate a whole match (invariants 4, 5, 10, 12 in `packages/domain/src/match/match.properties.test.ts` and `royale/royale.properties.test.ts`) are capped at 50 cases also in CI: one case plays a complete match (up to 20 players, all rounds), about 0.1–0.5 s, so 1 000 cases would add several minutes per property to every push; 50 random seeds per push still vary across pushes, because fast-check draws a new seed each run. The draw-control property (invariant 16, `packages/application/src/match/drawControl.properties.test.ts`) plays part of a match per case and runs 30.
+
 ## 4. E2E journeys
 
 1. Register → verify e-mail (Mailpit) → login → join a realtime match → mark numbers manually → see score, season activation, pattern → survive a cut → finish → see placement and leaderboard update.
@@ -55,6 +59,10 @@
 7. Integration: OIDC login against a test provider (e.g. a containerised Keycloak or `oidc-provider` mock) → no second account; JWT handoff from a test host page → embedded iframe logs in; origin not on allowlist → rejected.
 8. Reconnect: kill the socket mid-round → client resyncs without duplicate marks.
 9. Accessibility: axe checks on lobby, match, leaderboard, admin forms; keyboard-only manual marking.
+
+**Status (2026-10-23).** Built and covered: journey 1 without e-mail verification and the leaderboard (`e2e/account.spec.ts`, `e2e/realGame.spec.ts`, the acceptance play-through below), journey 8 (`e2e/realGame.spec.ts`: offline for two draws, taps before and after, one mark per cell on the server). Waiting for unbuilt features: journey 1's e-mail verification (WP-09 remainder) and leaderboard update (WP-15); journey 2 (asynchronous matches, WP-14); journeys 3 and 4 in their chat parts (WP-17; watching and the eliminated player's screen are covered by the play-through); journey 5 (admin app, WP-19–WP-21); journey 6 (moderation, WP-18); journey 7 (OIDC and JWT handoff, WP-24/WP-25); journey 9's axe checks (with WP-29; keyboard marking is covered by `apps/web/src/components/cardView.test.tsx`).
+
+**Real-game acceptance play-through (development).** A host and three players (one at 390×844) play six matches — royale, classicSeasons with the default prizes, classic with fullCard; timed and host draws — and every screen is checked on every draw. It uses a **fast test profile** that exists only in development builds: 8 players per match, a short royale (one round per stage, 12 draws per round, a final that ends at the first completed row) and timed draws at the shortest interval D12 allows; the published default rulesets and the game rules are unchanged (a test proves it). The six matches run three at a time. The per-draw check compares each player's screen with the host's by the server's event number, not by timing.
 
 ## 5. Load test (release gate)
 
@@ -85,7 +93,8 @@ Headroom check: same scenario at 400 players must stay below 1 s p95 draw latenc
 
 - Fixed seeds for all domain tests; the seed of any failing property test is printed and turned into a regular regression test.
 - Builders (`aRuleset().withStages(…)`, `aMatch().withPlayers(50)`) in `packages/domain/test/builders` — shared, not duplicated.
-- Test accounts and data created by a test are removed by the test (Testcontainers DB per test file; E2E uses a dedicated DB reset endpoint enabled only in test builds).
+- Test accounts created by a test are removed by the test; matches it created are aborted and stay in the database, since the event log is append-only (04 §3.3) (Testcontainers DB per test file; E2E uses a dedicated DB reset endpoint enabled only in test builds).
+- Specs whose checks depend on browser timers (speed window, missed-number delay, timed draws) run in their own Playwright projects after all other specs, one test at a time and one browser after another, so no parallel browser delays their timers; their limits stay as the game defines them. Run one of them alone with `--project=<browser>-timing --no-deps`. Vitest runs on half the cores (`maxWorkers: '50%'`), so tests are not starved next to the integration tests' databases.
 - E2E tests target the project's fixed local ports: server **3900**, player client **5390**, admin client **5391** (08 §1.1). Playwright `baseURL` points at `http://127.0.0.1:5390`; the admin spec switches to `5391`.
 
 ## 8. Manual acceptance (owner)

@@ -6,22 +6,34 @@
  * Responsibility: expose the WP-05 pieces — DRBG, draw sequence, card generation,
  *                 pattern detection and the seed commitment. Later WPs add scoring,
  *                 seasons, royale structure and the match state machine.
- * Depends on:     node:crypto only (through ./draw/drbg and ./commitment)
- * Used by:        packages/application, apps/server
+ * Depends on:     node:crypto only (through ./draw/drbg and ./commitment), ./card/cardTypes,
+ *                 ./card/generateCard, ./card/patterns, ./classic/classicPlacement,
+ *                 ./classic/prizeCatalogue, ./draw/drawSequence, ./draw/pool, ./gameType,
+ *                 ./match/commands, ./match/decide, ./match/decideRanking, ./match/events,
+ *                 ./match/evolve, ./match/flow, ./match/lifecycleTypes, ./match/markResolver,
+ *                 ./match/matchState, ./match/simulate, ./royale/cut, ./royale/finalRanking,
+ *                 ./royale/jackpot, ./scoring/basePoints, ./scoring/patternScoring,
+ *                 ./scoring/speedBonus, ./seasons/applyEffect, ./seasons/effectCatalog,
+ *                 ./seasons/effectState, ./seasons/seasonComplete, ./seasons/tickEffects
+ * Used by:        packages/application, apps/server, ./card/card.properties.test,
+ *                 ./card/card.test, ./classic/classic.test, ./commitment.test,
+ *                 ./draw/draw.properties.test, ./draw/draw.test, ./match/classicFlow.test,
+ *                 ./match/lastNumber.test, ./match/lifecycle.test,
+ *                 ./match/match.properties.test, ./match/match.test,
+ *                 ./match/missedNumbers.test, ./royale/royale.properties.test,
+ *                 ./royale/royale.test, ./scoring/scoring.test,
+ *                 ./seasons/effects.properties.test, ./seasons/seasons.test,
+ *                 ../test/arbitraries, ../test/builders, ../test/drive
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §4, §5, §9
  */
 
-export const PACKAGE_NAME = '@sbr/domain';
-
-export { type GameType, isClassic } from './gameType.js';
+export { type GameType } from './gameType.js';
 export { createDrbg, SEED_BYTES, type Drbg } from './draw/drbg.js';
 export {
   NUMBER_MIN,
   NUMBER_MAX,
   SEASON_NAMES,
   SYMBOL_IDS,
-  isNumber,
-  isSymbol,
   poolItems,
   poolSize,
   type SeasonName,
@@ -39,11 +51,6 @@ export {
 } from './card/cardTypes.js';
 export { generateCard, type GenerateCardInput } from './card/generateCard.js';
 export {
-  CORNERS_MASK,
-  COLUMN_MASKS,
-  DIAGONAL_MASKS,
-  FULL_MASK,
-  ROW_MASKS,
   completedPrizeKeys,
   completedPrizes,
   type CompletedPrizes,
@@ -60,7 +67,6 @@ export {
 } from './scoring/patternScoring.js';
 export {
   INITIAL_EFFECT_STATE,
-  hasActivatedAllSeasons,
   markSeasonActivated,
   type EffectState,
   type GrowthState,
@@ -77,12 +83,7 @@ export {
 } from './seasons/seasonComplete.js';
 export { finalRanking, type Placement, type RankedPlayer } from './royale/finalRanking.js';
 export { applyCut, type Candidate, type CutResult, type CutRule } from './royale/cut.js';
-export {
-  canClaim,
-  jackpotValue,
-  type JackpotCfg,
-  type JackpotClaimInput,
-} from './royale/jackpot.js';
+export { jackpotValue, type JackpotCfg } from './royale/jackpot.js';
 export {
   classicPlacement,
   type ClassicPlacement,
@@ -147,11 +148,11 @@ export type {
 } from './match/events.js';
 export { decide, type DecideCtx } from './match/decide.js';
 export { evolve, createInitialMatchState } from './match/evolve.js';
-export { buildStagePlan } from './match/stagePlan.js';
-export { royaleEndReason, classicEndReason } from './match/roundEnd.js';
-export { buildMarkEvents, type MarkInput } from './match/markResolver.js';
+export { countBits } from './match/decideRanking.js';
+export { type MarkInput } from './match/markResolver.js';
 export {
   simulateMatch,
   type SimulateMatchInput,
   type SimulateMatchResult,
 } from './match/simulate.js';
+export { nextStep, type NextStep } from './match/flow.js';

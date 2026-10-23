@@ -26,7 +26,7 @@ import {
 } from './drawControl.js';
 import type { QuickTestResult } from './types.js';
 
-export interface DrawTicker {
+interface DrawTicker {
   readonly step: number;
   // Host mode: show the next draw now. Does nothing once the match is fully shown.
   readonly drawNext: () => void;

@@ -6,7 +6,7 @@
  * Responsibility: import the delivered SVGs from assets/seasons so Vite copies them
  *                 into the web bundle (hashed file names in a build, served from the
  *                 repository in dev). The icons are used as delivered, never redrawn.
- * Depends on:     assets/seasons/*.svg (repository root)
+ * Depends on:     assets/seasons/*.svg (repository root), ./types
  * Used by:        ./components/SeasonIcon
  * Spec:           docs/spec/01-game-design.md §13, assets/README.md
  */

@@ -16,6 +16,8 @@ logs/
 night-task.md
 # One-off scripts of a run, deleted when the step is done
 tmp/
+# Screenshots of the latest browser-test run (e2e/screens.ts and the specs write them)
+reports/screens/latest/
 # Editor and OS noise
 .DS_Store
 Thumbs.db

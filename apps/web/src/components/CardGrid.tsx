@@ -6,7 +6,7 @@
  * Responsibility: lay out a card under its B I N G O letters with season cells and
  *                 marks as the server reported them; used for bot cards when the owner plays without a card.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../types
- * Used by:        ./Playback
+ * Used by:        ./OwnerArea
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §4, §3a
  */
 import type { ReactElement } from 'react';
@@ -15,7 +15,7 @@ import { BingoHeader } from './BingoHeader.js';
 import { CellFace, cellBoxStyle } from './CellFace.js';
 import type { Card } from '../types.js';
 
-export interface CardGridProps {
+interface CardGridProps {
   readonly accountId: string;
   readonly card: Card;
   readonly marks: readonly boolean[];

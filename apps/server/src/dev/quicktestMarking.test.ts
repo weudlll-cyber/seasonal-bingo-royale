@@ -8,12 +8,12 @@
  *                 not all zero, and the owner's season activations in round 1 equal
  *                 the season cells drawn on the owner's card early enough for the
  *                 missed-number delay to pass before the round ended.
- * Depends on:     ./quicktest
+ * Depends on:     ./quicktest, @sbr/contracts
  * Spec:           docs/spec/01-game-design.md §6; docs/spec/12-testing-strategy.md §3 inv. 17, 18
  */
 import { describe, expect, it } from 'vitest';
 
-import type { Card, DomainEvent } from '@sbr/domain';
+import type { Card, DomainEventLike } from '@sbr/contracts';
 
 import { runQuickTest } from './quicktest.js';
 
@@ -32,7 +32,7 @@ const result = runQuickTest({
 });
 
 // The events of the first round: from its roundStarted up to its roundEnded.
-function firstRound(events: readonly DomainEvent[]): DomainEvent[] {
+function firstRound(events: readonly DomainEventLike[]): DomainEventLike[] {
   const start = events.findIndex((e) => e.type === 'roundStarted');
   const end = events.findIndex((e) => e.type === 'roundEnded');
   return events.slice(start, end + 1);

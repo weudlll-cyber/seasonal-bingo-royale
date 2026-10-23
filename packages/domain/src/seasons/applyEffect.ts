@@ -9,7 +9,7 @@
  *                 second multiplier/growth replaces the first and refreshes the
  *                 duration. revealNext bumps a ticket counter the UI will consume.
  * Depends on:     ./effectCatalog, ./effectState
- * Used by:        future match engine
+ * Used by:        future match engine, ../index, ../match/evolveScoring, ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.2
  */
 import type { Effect } from './effectCatalog.js';

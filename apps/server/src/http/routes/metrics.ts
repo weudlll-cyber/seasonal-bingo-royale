@@ -4,8 +4,9 @@
  * @brief  Prometheus /metrics endpoint, scoped to its own Registry.
  *
  * Responsibility: expose process metrics and placeholder sbr_* gauges in Prometheus
- *                 text format. Later work packages add the full metric catalogue of
- *                 08 §6 against the same Registry.
+ *                 text format, to scrapers inside the server only: a request that came
+ *                 through a proxy (X-Forwarded-For) gets 404, in every install type (audit
+ *                 S8). Later work packages add the full metric catalogue of 08 §6.
  * Depends on:     prom-client, fastify
  * Used by:        ../app.ts
  * Spec:           docs/spec/08-devops-architecture.md §6
@@ -31,7 +32,12 @@ export function createMetrics(): MetricsHandle {
 }
 
 export function registerMetrics(app: FastifyInstance, metrics: MetricsHandle): void {
-  app.get('/metrics', async (_request, reply) => {
+  app.get('/metrics', async (request, reply) => {
+    // Only for scrapers inside the server: every proxy of ours (Caddy, the website's Caddy,
+    // the nginx example) adds X-Forwarded-For, so a request from outside never sees it.
+    if (request.headers['x-forwarded-for'] !== undefined) {
+      return reply.status(404).send({ code: 'NOT_FOUND' });
+    }
     const body = await metrics.registry.metrics();
     return reply.header('content-type', metrics.registry.contentType).send(body);
   });

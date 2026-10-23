@@ -7,7 +7,7 @@
  *                 cadence, marking mode and lobby window change (01 §11). Everything else
  *                 lives in ./common.
  * Depends on:     ../ruleset, ./common
- * Used by:        apps/server seed
+ * Used by:        apps/server seed, ./index
  * Spec:           docs/spec/01-game-design.md §11
  */
 import { RulesetSchema, type Ruleset } from '../ruleset.js';

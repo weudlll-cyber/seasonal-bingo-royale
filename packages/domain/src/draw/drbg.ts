@@ -10,7 +10,7 @@
  *                 DRBG keyed by the seed, matching the spec's "HMAC-SHA256 counter DRBG
  *                 with domain separation per round and purpose".
  * Depends on:     node:crypto (HMAC-SHA256 — pure in/out)
- * Used by:        ./drawSequence.ts, ../card/generateCard.ts
+ * Used by:        ./drawSequence.ts, ../card/generateCard.ts, ../index
  * Spec:           docs/spec/01-game-design.md §9, docs/spec/12-testing-strategy.md §3
  */
 import { createHmac } from 'node:crypto';

@@ -8,14 +8,14 @@
  *                 Run Quick Test again and check that nothing of run A remains: no mark,
  *                 speed bonus or feedback on the owner card, and the cut screen
  *                 shows again at run B's first cut.
- * Depends on:     @testing-library/react, ./App, ./quickTestFixture
+ * Depends on:     @testing-library/react, ./App, ./test/quickTestFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from './App.js';
-import { royaleFixture } from './quickTestFixture.js';
+import { royaleFixture } from './test/quickTestFixture.js';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -85,7 +85,7 @@ describe('a new run', () => {
     await nextDraw();
     await nextDraw(); // draw 2, the round's last
     await closeWindow(); // its window closes with the first cut
-    fireEvent.click(screen.getByText('Keep watching'));
+    fireEvent.click(screen.getByText('Watch'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();
 
     await startRun(); // run B

@@ -84,8 +84,15 @@ function checkSeasons(s: Snap, ctx: RunContext): void {
     expect(s.shieldShown, 'no shield in classic types').toBe(false);
     return;
   }
-  // The counter comes from the server: it equals the owner's seasons in the standings.
   const own = s.standings.find((r) => r.id === 'owner-01');
+  // Once out, the panel says "Out in cut N" instead of effects, shield and seasons.
+  if (own?.eliminated === true) {
+    expect(s.ownerOut, 'eliminated owner: out in cut N').toMatch(/^Out in cut \d+$/);
+    expect(s.seasonsCount, 'eliminated owner: no seasons panel').toBeNull();
+    return;
+  }
+  expect(s.ownerOut, 'owner still in: not marked out').toBeNull();
+  // The counter comes from the server: it equals the owner's seasons in the standings.
   expect(s.seasonsCount, 'seasons counter = server seasons').toBe(own?.seasons);
   if (ctx.tapping) return;
   // Marked for the owner, the card shows the server's marks: the counter matches them.

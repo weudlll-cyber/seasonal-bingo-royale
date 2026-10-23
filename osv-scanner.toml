@@ -1,4 +1,5 @@
 # @file   osv-scanner.toml
+# @module repo
 # @brief  Accepted osv-scanner findings, each with a reason and an expiry date.
 #
 # Responsibility: let the CI security job pass on findings that are reviewed and not
