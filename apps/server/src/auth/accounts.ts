@@ -5,7 +5,8 @@
  *
  * Responsibility: create an account with the `player` role (and any extra roles), look an
  *                 account up by e-mail for login, and create-or-reuse the development
- *                 accounts behind the quick sign-in. E-mail and display name are unique
+ *                 accounts behind the quick sign-in (also when several browsers sign in as
+ *                 a new one at once). E-mail and display name are unique
  *                 case-insensitively; a clash is reported as one generic error so the
  *                 response never reveals which e-mail exists.
  * Depends on:     ../db/pool, ./password
@@ -121,11 +122,7 @@ export async function ensureDevAccount(
   displayName: string,
   roles: readonly string[],
 ): Promise<string> {
-  const found = await pool.query<{ id: string }>(
-    'SELECT id FROM sbr.accounts WHERE display_name_key = $1',
-    [displayName],
-  );
-  const existing = found.rows[0]?.id;
+  const existing = await devAccountId(pool, displayName);
   if (existing !== undefined) return existing;
   const created = await registerAccount(pool, {
     email: `${displayName}@dev.invalid`,
@@ -134,6 +131,18 @@ export async function ensureDevAccount(
     password: randomBytes(32).toString('base64url'),
     roles,
   });
-  if (!created.ok) throw new Error(`could not create dev account ${displayName}`);
-  return created.id;
+  if (created.ok) return created.id;
+  // Several browsers signing in as a new dev account at once: one creates it, the others
+  // find it here instead of failing.
+  const raced = await devAccountId(pool, displayName);
+  if (raced === undefined) throw new Error(`could not create dev account ${displayName}`);
+  return raced;
+}
+
+async function devAccountId(pool: DbPool, displayName: string): Promise<string | undefined> {
+  const found = await pool.query<{ id: string }>(
+    'SELECT id FROM sbr.accounts WHERE display_name_key = $1',
+    [displayName],
+  );
+  return found.rows[0]?.id;
 }
