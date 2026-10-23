@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 # @file   ops/lib/config.sh
+# @module ops
 # @brief  The install's files: env file with secrets, install record, stack files, the app image.
 #
-# Responsibility: write /etc/sbr/<env>.env (0600) — secrets made once with openssl rand
-#                 and kept on every later run, the public URL, base path and trusted proxy
-#                 for the install type, admin e-mail, optional SMTP, the operator's age key;
-#                 write the install record /etc/sbr/install.conf; copy the compose files,
-#                 Caddyfile, the sbr CLI and its library to /opt/sbr; build the app image on
-#                 the server from a git ref (until a signed release image exists), skipping
-#                 the build when the image of that commit is already there.
+# Responsibility: read the answers of an earlier run back from /etc/sbr/<env>.env, so a
+#                 re-run (also with --yes) keeps them; write that file (0600, values
+#                 single-quoted for Compose, written atomically) — secrets made once with
+#                 openssl rand and kept on every later run, the public URL, base path and
+#                 trusted proxy for the install type, admin e-mail, optional SMTP, the
+#                 operator's age key; write the install record /etc/sbr/install.conf; copy
+#                 the compose files, Caddyfile, the sbr CLI and its library to /opt/sbr;
+#                 build the app image on the server from a git ref (until a signed release
+#                 image exists), skipping it when the image of that commit is there, and
+#                 drop app images older than the current and the previous one.
+# Depends on:     ./common.sh (put_file, run, env_value), git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (update)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
-
-# The value of a key in an existing env file, or nothing (also when there is no file yet).
-env_value() {
-  [[ -f $1 ]] || return 0
-  sed -n "s/^$2=//p" "$1" | head -1
-}
 
 # secret <bytes>: hex from openssl rand (a dry run, which installs nothing, may lack it).
 secret() {
@@ -27,9 +26,24 @@ secret() {
   fi
 }
 
+# Answers of an earlier run, unless a flag gave a new one (audit O4).
+read_saved_answers() {
+  local file="$SBR_ETC/$1.env" key
+  for key in SBR_ADMIN_EMAIL SBR_AGE_RECIPIENT SBR_SMTP_HOST SBR_SMTP_PORT SBR_SMTP_USER \
+    SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_WEBSITE_NETWORK; do
+    [[ -n ${!key:-} ]] || printf -v "$key" '%s' "$(env_value "$file" "$key")"
+  done
+}
+
+# KEY='value' — Compose then takes the value literally; a single quote cannot be written so.
+quoted() {
+  [[ $2 != *"'"* ]] || die "$1 must not contain a single quote (')"
+  printf "%s='%s'\n" "$1" "$2"
+}
+
 # write_env <env>: from the answers in SBR_* variables; secrets survive a re-run.
 write_env() {
-  local env=$1 file="$SBR_ETC/$1.env" pg seed public base site tls
+  local env=$1 file="$SBR_ETC/$1.env" pg seed public base site tls key
   pg=$(env_value "$file" POSTGRES_PASSWORD)
   seed=$(env_value "$file" SBR_SEED_KEY)
   [[ -n $pg ]] || pg=$(secret 24)
@@ -42,30 +56,26 @@ write_env() {
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && tls='tls internal'
     SBR_TRUSTED_PROXIES=uniquelocal
   fi
-  put_file "$file" 0600 <<EOF
-# Seasonal Bingo Royale, environment $env (written by ops/install.sh; secrets are kept on re-runs).
-SBR_INSTALL_TYPE=$SBR_TYPE
-SBR_ENV=$env
-SBR_ENV_FILE=$file
-SBR_IMAGE=$SBR_IMAGE
-POSTGRES_PASSWORD=$pg
-DATABASE_URL=postgres://sbr:$pg@postgres:5432/sbr
-SBR_SEED_KEY=$seed
-SBR_PUBLIC_URL=$public
-SBR_BASE_PATH=$base
-SBR_TRUSTED_PROXIES=$SBR_TRUSTED_PROXIES
-SBR_SITE_ADDRESS=$site
-SBR_TLS=$tls
-SBR_WEBSITE_NETWORK=${SBR_WEBSITE_NETWORK:-}
-SBR_ADMIN_EMAIL=$SBR_ADMIN_EMAIL
-SBR_SMTP_HOST=${SBR_SMTP_HOST:-}
-SBR_SMTP_PORT=${SBR_SMTP_PORT:-}
-SBR_SMTP_USER=${SBR_SMTP_USER:-}
-SBR_SMTP_PASSWORD=${SBR_SMTP_PASSWORD:-}
-SBR_SMTP_FROM=${SBR_SMTP_FROM:-}
-SBR_AGE_RECIPIENT=$SBR_AGE_RECIPIENT
-SBR_LOG_LEVEL=info
-EOF
+  {
+    echo "# Seasonal Bingo Royale, environment $env (written by ops/install.sh; secrets are kept on re-runs)."
+    quoted SBR_INSTALL_TYPE "$SBR_TYPE"
+    quoted SBR_ENV "$env"
+    quoted SBR_ENV_FILE "$file"
+    quoted SBR_IMAGE "$SBR_IMAGE"
+    quoted POSTGRES_PASSWORD "$pg"
+    quoted DATABASE_URL "postgres://sbr:$pg@postgres:5432/sbr"
+    quoted SBR_SEED_KEY "$seed"
+    quoted SBR_PUBLIC_URL "$public"
+    quoted SBR_BASE_PATH "$base"
+    quoted SBR_TRUSTED_PROXIES "$SBR_TRUSTED_PROXIES"
+    quoted SBR_SITE_ADDRESS "$site"
+    quoted SBR_TLS "$tls"
+    for key in SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT SBR_SMTP_USER \
+      SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT; do
+      quoted "$key" "${!key:-}"
+    done
+    quoted SBR_LOG_LEVEL info
+  } | put_file "$file" 0600
 }
 
 write_record() {
@@ -97,12 +107,16 @@ install_files() {
 # build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and builds it when missing.
 build_image() {
   local repo=$1 ref=$2 src="$SBR_ROOT/src" commit
-  if [[ ! -d $src/.git ]]; then
-    run git clone --quiet "$repo" "$src"
-  fi
-  if [[ $SBR_DRY_RUN == 1 && ! -d $src/.git ]]; then
+  if [[ $SBR_DRY_RUN == 1 ]]; then
+    # A dry run touches nothing, not even the checkout (audit O11).
+    info "  would fetch $ref from $repo into $src and build sbr-app:<commit>"
     SBR_IMAGE="sbr-app:<commit of $ref>"
     return 0
+  fi
+  if [[ ! -d $src/.git ]]; then
+    git clone --quiet "$repo" "$src"
+  elif [[ $(git -C "$src" remote get-url origin) != "$repo" ]]; then
+    git -C "$src" remote set-url origin "$repo"
   fi
   git -C "$src" fetch --quiet --tags origin
   commit=$(git -C "$src" rev-parse --verify --quiet "origin/$ref^{commit}" || git -C "$src" rev-parse --verify "$ref^{commit}")
@@ -112,7 +126,15 @@ build_image() {
     return 0
   fi
   info "  building $SBR_IMAGE from $ref on this server (a few minutes)"
-  run git -C "$src" -c advice.detachedHead=false checkout --quiet --force "$commit"
-  run docker build --quiet -t "$SBR_IMAGE" "$src"
+  git -C "$src" -c advice.detachedHead=false checkout --quiet --force "$commit"
+  docker build --quiet -t "$SBR_IMAGE" "$src"
   SBR_CHANGES=$((SBR_CHANGES + 1))
+}
+
+# prune_images <keep…>: removes sbr-app images other than the ones named (current, previous).
+prune_images() {
+  local image
+  for image in $(docker image ls sbr-app --format '{{.Repository}}:{{.Tag}}'); do
+    [[ " $* " == *" $image "* ]] || docker image rm "$image" >/dev/null 2>&1 || true
+  done
 }

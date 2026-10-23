@@ -1,20 +1,27 @@
 #!/usr/bin/env bash
 # @file   ops/sbr
+# @module ops
 # @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance.
 #
 # Responsibility: one command per task of 09 §4 for the environment of the install record
 #                 (or --env): status (type, address, image, containers, health, last
 #                 backup, timer, maintenance); update <git ref> (backup, plain pre-update
 #                 dump for a rollback, image built from the ref, restart, the app migrates on
-#                 start); rollback (previous image, and the pre-update dump when the update
-#                 migrated the schema); backup; restore <file> and restore --drill <file>
-#                 (--identity <age key file> for encrypted backups); logs [service];
-#                 admin create-super (the first admin, password asked inside the app,
-#                 never echoed); maintenance on|off (a flag file the app reads: no new
-#                 matches, running ones finish).
+#                 start, app images no environment uses pruned); confirm (the update works:
+#                 the plain pre-update dump and the rollback data are deleted); rollback
+#                 (backup of the current state, confirmation, previous image and ref, and the
+#                 pre-update dump restored when the update migrated the schema — everything
+#                 since the update is then lost); backup; restore <file> and restore --drill
+#                 <file> (--identity <age key file> for encrypted backups, --force-env for
+#                 another environment's backup); logs [service]; admin create-super (the
+#                 first admin, password asked inside the app, never echoed); maintenance
+#                 on|off (a flag file the app reads: no new matches, running ones finish).
+#                 --yes skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail
+# Errors inside $(…) stop the script too (audit O1).
+shopt -s inherit_errexit
 
 HERE=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
 # shellcheck source=lib/common.sh
@@ -30,12 +37,14 @@ ROLLBACK_DIR=/var/lib/sbr
 
 usage() {
   cat <<'EOF'
-usage: sbr [--env prod|staging] <command>
+usage: sbr [--env prod|staging] [--yes] <command>
   status                         what runs, its health and the last backup
   update <git ref>               backup, build the ref, restart (migrations run on start)
-  rollback                       back to the image before the last update
+  confirm                        the update works: delete the pre-update dump and rollback data
+  rollback                       back to the image (and data) before the last update
   backup                         encrypted backup now
-  restore <file> [--identity k]  put a backup back (k: your age key file for .age files)
+  restore <file> [--identity k]  put a backup back (k: your age key file for .age files;
+          [--force-env]          --force-env: the backup is of another environment)
   restore --drill <file> [...]   restore into a throw-away database and check it
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
@@ -47,7 +56,7 @@ cmd_status() {
   local env=$1 file="$SBR_ETC/$1.env" last
   info "type:        $(env_value "$file" SBR_INSTALL_TYPE) (environment $env)"
   info "address:     $(env_value "$file" SBR_PUBLIC_URL)"
-  info "image:       $(env_value "$file" SBR_IMAGE) (ref $(sed -n 's/^SBR_REF=//p' "$SBR_ETC/install.conf"))"
+  info "image:       $(env_value "$file" SBR_IMAGE) (ref $(env_value "$SBR_ETC/install.conf" SBR_REF))"
   compose "$env" ps --format 'table {{.Service}}\t{{.Status}}'
   if compose "$env" exec -T app wget -qO- http://127.0.0.1:3000/readyz >/dev/null 2>&1; then
     info "health:      ready"
@@ -58,6 +67,7 @@ cmd_status() {
   last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' 2>/dev/null | sort | tail -1)
   info "last backup: ${last:-none yet}"
   info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
+  [[ -f $ROLLBACK_DIR/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
   if compose "$env" exec -T app test -f /data/maintenance 2>/dev/null; then
     info "maintenance: ON (no new matches)"
   else
@@ -82,52 +92,95 @@ check_proxy() {
 
 migrations() { compose "$1" exec -T postgres psql -U sbr -d sbr -tA -c 'SELECT count(*) FROM sbr.schema_migrations'; }
 
+# The images any environment runs or could roll back to; the others are pruned (audit O11).
+images_in_use() {
+  local file
+  for file in "$SBR_ETC"/*.env; do env_value "$file" SBR_IMAGE; done
+  for file in "$ROLLBACK_DIR"/*/rollback.conf; do [[ -f $file ]] && env_value "$file" PREVIOUS_IMAGE; done
+  return 0
+}
+
 cmd_update() {
-  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$ROLLBACK_DIR/$1"
+  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$ROLLBACK_DIR/$1" conf="$SBR_ETC/install.conf"
   [[ -n $ref ]] || die "usage: sbr update <git ref>"
-  info "Backup before the update: $(do_backup "$env")"
+  do_backup "$env"
+  info "Backup before the update: $BACKUP_FILE"
   install -d -m 0700 "$dir"
-  compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump"
-  chmod 0600 "$dir/pre-update.dump"
-  printf 'PREVIOUS_IMAGE=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" "$(migrations "$env")" >"$dir/rollback.conf"
-  build_image "$(sed -n 's/^SBR_REPO=//p' "$SBR_ETC/install.conf")" "$ref"
-  sed -i "s|^SBR_IMAGE=.*|SBR_IMAGE=$SBR_IMAGE|" "$file"
-  sed -i "s|^SBR_REF=.*|SBR_REF=$ref|" "$SBR_ETC/install.conf"
+  # Written whole or not at all (audit O10); deleted by sbr confirm (audit O3).
+  cleanup_path "$dir/pre-update.dump.partial"
+  (umask 077 && compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump.partial")
+  mv "$dir/pre-update.dump.partial" "$dir/pre-update.dump"
+  printf 'PREVIOUS_IMAGE=%s\nPREVIOUS_REF=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" \
+    "$(env_value "$conf" SBR_REF)" "$(migrations "$env")" | put_file "$dir/rollback.conf" 0600
+  build_image "$(env_value "$conf" SBR_REPO)" "$ref"
+  set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
+  set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d
   wait_ready "$env"
-  info "Updated to $ref ($SBR_IMAGE). sbr rollback goes back to the previous image."
+  # shellcheck disable=SC2046 # one image name per word
+  prune_images $(images_in_use)
+  info "Updated to $ref ($SBR_IMAGE)."
+  info "Check the game, then: sbr confirm (deletes the plain pre-update dump), or sbr rollback."
+}
+
+cmd_confirm() {
+  local dir="$ROLLBACK_DIR/$1"
+  [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
+  rm -f "$dir/pre-update.dump" "$dir/rollback.conf"
+  # shellcheck disable=SC2046 # one image name per word
+  prune_images $(images_in_use)
+  info "Update confirmed: the pre-update dump is deleted; a rollback is no longer possible."
 }
 
 cmd_rollback() {
-  local env=$1 dir="$ROLLBACK_DIR/$1" file="$SBR_ETC/$1.env" PREVIOUS_IMAGE MIGRATIONS_BEFORE
+  local env=$1 dir="$ROLLBACK_DIR/$1" file="$SBR_ETC/$1.env" restore=0
   [[ -f $dir/rollback.conf ]] || die "no update to roll back"
-  # shellcheck disable=SC1091
-  source "$dir/rollback.conf"
-  sed -i "s|^SBR_IMAGE=.*|SBR_IMAGE=$PREVIOUS_IMAGE|" "$file"
-  if (($(migrations "$env") > MIGRATIONS_BEFORE)); then
-    info "The update changed the database schema: restoring the dump taken before it."
+  local previous_image previous_ref before now
+  previous_image=$(env_value "$dir/rollback.conf" PREVIOUS_IMAGE)
+  previous_ref=$(env_value "$dir/rollback.conf" PREVIOUS_REF)
+  before=$(env_value "$dir/rollback.conf" MIGRATIONS_BEFORE)
+  now=$(migrations "$env")
+  ((now <= before)) || restore=1
+  if ((restore)); then
+    confirm "Roll back to $previous_image? The update changed the database schema, so the data goes back to the moment before the update: everything since then is lost (a backup is taken first)."
+  else
+    confirm "Roll back to $previous_image? The data stays as it is."
+  fi
+  do_backup "$env"
+  info "Backup of the current state: $BACKUP_FILE"
+  set_env_value "$file" SBR_IMAGE "$previous_image"
+  if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
+  if ((restore)); then
+    info "Restoring the dump taken before the update."
     compose "$env" stop app
-    compose "$env" exec -T postgres pg_restore -U sbr -d sbr --clean --if-exists --no-owner <"$dir/pre-update.dump"
+    restore_database "$env" "$dir/pre-update.dump"
   fi
   compose "$env" up -d
   wait_ready "$env"
-  rm -f "$dir/rollback.conf"
-  info "Rolled back to $PREVIOUS_IMAGE."
+  rm -f "$dir/rollback.conf" "$dir/pre-update.dump"
+  info "Rolled back to $previous_image (ref ${previous_ref:-unknown})."
+}
+
+# do_backup runs as a plain command, so set -e stops it at the first error (audit O1).
+cmd_backup() {
+  do_backup "$1"
+  info "Backup written: $BACKUP_FILE"
 }
 
 cmd_restore() {
-  local env=$1 drill=0 file='' identity=''
+  local env=$1 drill=0 file='' identity='' force_env=0
   shift
   while (($#)); do
     case $1 in
       --drill) drill=1 ;;
       --identity) identity=$2; shift ;;
+      --force-env) force_env=1 ;;
       *) file=$1 ;;
     esac
     shift
   done
-  [[ -f $file ]] || die "usage: sbr restore [--drill] <file> [--identity <age key file>]"
-  if ((drill)); then do_drill "$file" "$identity"; else do_restore "$env" "$file" "$identity"; fi
+  [[ -f $file ]] || die "usage: sbr restore [--drill] <file> [--identity <age key file>] [--force-env]"
+  if ((drill)); then do_drill "$file" "$identity"; else do_restore "$env" "$file" "$identity" "$force_env"; fi
 }
 
 cmd_admin() {
@@ -150,27 +203,30 @@ cmd_maintenance() {
 }
 
 main() {
-  local env=''
-  while [[ ${1:-} == --* ]]; do
+  local env='' args=()
+  # The global options may stand anywhere (sbr rollback --yes); the rest goes to the command.
+  while (($#)); do
     case $1 in
       --env) env=$2; shift ;;
       --email) SBR_ADMIN_EMAIL_FLAG=$2; shift ;;
       --name) SBR_ADMIN_NAME_FLAG=$2; shift ;;
       --yes) SBR_YES=1 ;;
-      *) break ;;
+      *) args+=("$1") ;;
     esac
     shift
   done
+  set -- "${args[@]}"
   [[ $EUID -eq 0 ]] || die "run as root: sudo sbr $*"
-  env=${env:-$(sed -n 's/^SBR_ENV=//p' "$SBR_ETC/install.conf" 2>/dev/null)}
+  env=${env:-$(env_value "$SBR_ETC/install.conf" SBR_ENV)}
   [[ -n $env && -f $SBR_ETC/$env.env ]] || die "no installation found (run ops/install.sh first)"
   local command=${1:-}
   shift || true
   case $command in
     status) cmd_status "$env" ;;
     update) cmd_update "$env" "$@" ;;
+    confirm) cmd_confirm "$env" ;;
     rollback) cmd_rollback "$env" ;;
-    backup) info "Backup written: $(do_backup "$env")" ;;
+    backup) cmd_backup "$env" ;;
     restore) cmd_restore "$env" "$@" ;;
     logs) compose "$env" logs -f --tail=200 "$@" ;;
     admin) cmd_admin "$env" "$@" ;;

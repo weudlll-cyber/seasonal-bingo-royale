@@ -1,9 +1,10 @@
 # @file   .github/actions/setup/action.yml
+# @module ci
 # @brief  Shared job setup: pnpm, Node and a frozen-lockfile install.
 #
 # Responsibility: one place for the toolchain setup every Node job repeats; versions come
 #                 from package.json "packageManager" and .nvmrc, never from the workflow.
-# Used by:        .github/workflows/ci.yml (jobs verify, security)
+# Used by:        .github/workflows/ci.yml (jobs verify, security, e2e)
 # Spec:           docs/spec/08-devops-architecture.md §3, docs/spec/03-security-architecture.md §18
 name: Setup
 description: Install pnpm and Node, restore the pnpm store cache and install dependencies.

@@ -55,22 +55,22 @@ Reference host: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS (e.g. the owner�
 ## 3. One-command install
 
 ```
-git clone --branch feat/vps-install https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr
+git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr
 less sbr/ops/install.sh    # operator reviews it
 sudo bash sbr/ops/install.sh [--type standalone|website]
 ```
 
-Every answer is also a flag (`--env`, `--address`, `--email`, `--age-key`, `--smtp-*`, `--repo`, `--ref`, `--yes` for unattended runs, `--dry-run` to show every step without changing anything); `docs/operator-guide.md` walks through both types.
+Every answer is also a flag (`--env`, `--address`, `--email`, `--age-key`, `--smtp-host/-port/-user/-from`, `--smtp-password-file <file|->` — a password never goes on the command line —, `--repo`, `--ref`, `--yes` for unattended runs, `--dry-run` to show every step without changing anything, not even a git fetch); `docs/operator-guide.md` walks through both types. A re-run keeps the earlier answers (read back from `/etc/sbr/<env>.env`, also with `--yes`); an empty SMTP answer keeps the saved value. Values in the env file are single-quoted, so Compose takes them literally. The default ref is `master` (the installer works from `master` once the audit branch is merged).
 
 The script (idempotent, re-runnable):
 1. Asks the install type first (standalone or website). Checks OS, CPU/RAM/disk; standalone: ports 80/443 free; website: finds the running website (compose project `seasonal-site`, its Caddy container) or stops with a plain message that the website must be installed first.
 2. Installs Docker Engine + Compose plugin from Docker’s official repository if missing.
 3. **Asks** for the environment name (`prod`/`staging`), the public address (standalone: domain or IP; website: taken from the website's `SITE_DOMAIN`), the admin e-mail, optional SMTP settings, and the operator’s `age` public key for backups.
-4. Generates secrets with `openssl rand`, writes `/etc/sbr/<env>.env`.
-5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default the checkout's branch) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
+4. Generates secrets with `openssl rand`, writes `/etc/sbr/<env>.env` (atomically: written beside it and renamed).
+5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
 6. Runs `migrate`, then starts the stack, waits for `/readyz`.
 7. The first admin is created with `sbr admin create-super` (password asked inside the app container, never echoed or logged; roles `super_admin` and `organizer`). The one-time **bootstrap token** and the page `https://<host>/admin/setup?token=…` where the first `super_admin` sets password and 2FA wait for the admin app (WP-19).
-8. Installs the backup timer (systemd) and log rotation (5 × 10 MB per service); prints the next steps (website: the snippet and how to add it to the website's Caddyfile; firewall; how to pull backups).
+8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 100 MB per service, spec 08 §6); prints the next steps (website: the snippet and how to add it to the website's Caddyfile; firewall; how to pull backups).
 
 With an IP address instead of a domain, Caddy uses its internal CA (`default_sni` set to the IP, since clients send no SNI to an IP) and the script warns that browsers will show a warning until a domain is set.
 
@@ -80,8 +80,9 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 |---|---|
 | `sbr status` | Containers, version, health, last backup |
 | `sbr update <version>` | Verify signature, take a backup, pull, migrate, rolling restart (app down < 10 s; running realtime matches resume from the event log) |
-| `sbr rollback` | Previous image + restore of the pre-update database dump (kept unencrypted, root only, in `/var/lib/sbr/<env>/`, replaced by the next update) if migrations changed the schema |
-| `sbr backup` / `sbr restore <file>` | Manual backup / restore; an encrypted backup needs the operator's age key file (`--identity <file>`), which never stays on the server |
+| `sbr confirm` | The update works: deletes the plain pre-update dump and the rollback data; app images no environment uses or can roll back to are pruned |
+| `sbr rollback` | Takes a backup of the current state, asks (`--yes` skips it), sets the previous image and ref back and, if migrations changed the schema, empties the schema (`DROP SCHEMA sbr CASCADE`) and restores the pre-update dump in one transaction that stops at the first error (dump kept unencrypted, root only, in `/var/lib/sbr/<env>/`, written whole or not at all, deleted by `sbr confirm` or the rollback). Data written since the update is then lost, except in the backup taken first |
+| `sbr backup` / `sbr restore <file>` | Manual backup / restore; an encrypted backup needs the operator's age key file (`--identity <file>`), which never stays on the server. A restore asks first and refuses another environment's backup (by file name) unless `--force-env`; database restore as in `sbr rollback` |
 | `sbr logs [service]` | Follow logs |
 | `sbr admin create-super` | Break-glass super admin (audited) |
 | `sbr maintenance on|off` | A flag file in the app's data volume (`/data/maintenance`), read at most every 2 s: creating and starting matches answer 503 `MAINTENANCE`; running ones finish. The maintenance page in the client is still open. |
@@ -93,15 +94,15 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 
 ## 6. Backups (operational detail of [03-security-architecture.md](03-security-architecture.md) §15)
 
-- systemd timer 03:30 local: `pg_dump -Fc` + tar of uploads → `age -r <operator key>` → `/var/backups/sbr/<env>/sbr-<env>-<timestamp>.tar.age`; retention 14 daily, 8 weekly.
-- Pull to the operator’s own computer: `ops/pull-backups.sh` (rsync over SSH) or `ops/pull-backups.ps1` (Windows, scp over the built-in OpenSSH), run by the operator on their machine; only files not there yet are copied. The operator holds the only private key.
+- systemd timer `sbr-backup@<env>.timer` at 03:30 local runs `sbr --env <env> backup`: `pg_dump -Fc` + tar of the uploads volume (read by a helper container) → `age -r <operator key>` → `/var/backups/sbr/<env>/sbr-<env>-<timestamp>.tar.age`, written as `.partial` and renamed when complete; the plain dump lives in a work folder removed on exit, also after an error, and any failing step fails the run. Retention: the 14 newest, plus the newest of each of the 8 weeks before them. Folders 0750 and files 0640, group `sbr-backup`.
+- Pull to the operator’s own computer: `ops/pull-backups.ps1` (Windows, scp over the built-in OpenSSH; `ops/pull-backups.sh` with rsync is planned), run by the operator on their machine as a user in the group `sbr-backup` (no root login); only files not there yet are copied, each to `<name>.part`, size-checked against the server and then renamed. The operator holds the only private key.
 - Optional WAL archiving profile for 15-minute RPO.
-- Monthly restore drill: `sbr restore --drill <file>` restores into a temporary container and runs the smoke check.
+- Monthly restore drill: `sbr restore --drill <file>` restores into a temporary container (removed on exit; readiness wait capped at 60 s) and counts migrations, accounts, matches and events.
 
-## 7. Staging on the same VPS
+## 7. Staging on the same VPS (planned)
 
-- Separate Compose project, separate volumes and env file, separate subdomain, Caddy basic-auth.
-- Resource limits keep staging from starving production (staging app 0.5 CPU / 512 MiB).
+- Planned: separate Compose project, separate volumes and env file, separate subdomain, Caddy basic-auth; resource limits keep staging from starving production (staging app 0.5 CPU / 512 MiB).
+- **Today: one environment per server.** Compose project, volumes, env file and backup timer are already per environment, but a standalone staging would need ports 80/443 held by prod's Caddy, a website staging the same `/games/bingo` route and snippet, and the install record holds one environment. The installer refuses a second environment on a server; staging runs on its own VPS.
 
 ## 8. Self-hosted and cloud variants
 
@@ -114,7 +115,7 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 
 ## 9. Hardening checklist for the operator (in `docs/operator-guide.md`)
 
-- SSH keys only, root login off, `unattended-upgrades` on, `ufw` allowing 22/80/443 only, fail2ban for SSH.
+- SSH keys only, root login off (`PermitRootLogin no`; the operator works with `sudo` and pulls backups as a user in the group `sbr-backup`), `unattended-upgrades` on, `ufw` allowing 22/80/443 only, fail2ban for SSH.
 - Docker daemon: `live-restore`, `userns-remap` optional, log rotation.
 - Domain: CAA record for the ACME CA, DNSSEC if the registrar supports it.
 - Optional: Cloudflare (proxy) in front for DDoS absorption; then `SBR_TRUSTED_PROXIES` = Cloudflare ranges.

@@ -1,4 +1,5 @@
 # @file   ops/compose.yml
+# @module ops
 # @brief  The production stack on one VPS: app, PostgreSQL 17 and, standalone, Caddy.
 #
 # Responsibility: the app image (built on the server from a git ref until a release image
@@ -8,18 +9,20 @@
 #                 Standalone installs add Caddy (profile "standalone") with automatic HTTPS
 #                 on 80/443. Website installs (ops/compose.website.yml on top) publish no
 #                 port: the app joins the website's network and its Caddy forwards
-#                 /games/bingo to it. Logs rotate at 5 × 10 MB per service.
+#                 /games/bingo to it. Logs go to Docker's compressed `local` driver, 5 × 100 MB
+#                 per service; CPU and memory caps per spec 08 §4 (app 1 CPU / 768 MiB,
+#                 PostgreSQL 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB).
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
-# Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4
+# Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6
 #
 # Run from /opt/sbr:  docker compose -p sbr-<env> --env-file /etc/sbr/<env>.env up -d
 
-# Log rotation for every service: at most 5 files of 10 MB each.
+# Log rotation for every service (spec 08 §6): at most 5 files of 100 MB each, compressed.
 x-logging: &logging
-  driver: json-file
+  driver: local
   options:
-    max-size: 10m
+    max-size: 100m
     max-file: '5'
 
 services:
@@ -52,6 +55,8 @@ services:
     networks:
       - data
       - edge
+    cpus: 1
+    mem_limit: 768m
     logging: *logging
     restart: unless-stopped
 
@@ -70,6 +75,8 @@ services:
       retries: 20
     networks:
       - data
+    cpus: 1
+    mem_limit: 1g
     logging: *logging
     restart: unless-stopped
 
@@ -94,6 +101,8 @@ services:
       - app
     networks:
       - edge
+    cpus: 0.25
+    mem_limit: 128m
     logging: *logging
     restart: unless-stopped
 

@@ -1,8 +1,10 @@
 # @file   ops/notify.ps1
-# @brief  Shows a Windows desktop notification titled "Bingo" with the given text.
+# @module ops
+# @brief  Development machine only: shows a Windows desktop notification titled "Bingo".
 #
-# Responsibility: let unattended runs report progress to the owner on this machine, using
-#                 only what ships with Windows (System.Windows.Forms balloon); no network.
+# Responsibility: let unattended runs report progress to the owner on the development PC,
+#                 using only what ships with Windows (System.Windows.Forms balloon); no
+#                 network. Not part of an install: no server or operator step uses it.
 # Used by:        unattended runs (docs/NIGHT-RUN.md, "Desktop notifications")
 # Spec:           docs/NIGHT-RUN.md
 #

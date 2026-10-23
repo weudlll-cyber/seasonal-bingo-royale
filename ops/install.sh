@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # @file   ops/install.sh
+# @module ops
 # @brief  One-command install of Seasonal Bingo Royale on Ubuntu 24.04: standalone or inside the website.
 #
 # Responsibility: ask (or take from flags) the install type — standalone with its own domain
@@ -9,17 +10,22 @@
 #                 system; install Docker when missing; build the app image from a git ref (no
 #                 release image exists yet); write /etc/sbr/<env>.env with fresh secrets;
 #                 start the stack (the app migrates the database on start) and wait for
-#                 /readyz; install the backup timer; print the next steps. Re-running changes
-#                 only what changed and never switches the type without confirmation.
+#                 /readyz; install the backup timer; print the next steps. Re-running keeps
+#                 the earlier answers (read back from /etc/sbr/<env>.env, also with --yes),
+#                 changes only what changed and never switches the type without confirmation.
+#                 The SMTP password comes from a file (--smtp-password-file, "-" for standard
+#                 input) or a hidden prompt, never from a flag visible in the process list.
 # Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8
 #
 # Usage: sudo bash ops/install.sh [--type standalone|website] [--env prod|staging]
 #          [--address <domain or IP>] [--email <admin e-mail>] [--age-key <age1…>]
-#          [--smtp-host h --smtp-port p --smtp-user u --smtp-password s --smtp-from f]
+#          [--smtp-host h --smtp-port p --smtp-user u --smtp-password-file f|- --smtp-from a]
 #          [--website-domain <domain>] [--website-network <name>] [--repo <git url or path>] [--ref <git ref>]
 #          [--yes] [--change-type] [--dry-run] [--any-os]
 set -euo pipefail
+# Errors inside $(…) stop the script too (audit O1).
+shopt -s inherit_errexit
 
 OPS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=lib/common.sh
@@ -41,10 +47,10 @@ parse_flags() {
       --address) SBR_ADDRESS=$2; shift ;;
       --email) SBR_ADMIN_EMAIL=$2; shift ;;
       --age-key) SBR_AGE_RECIPIENT=$2; shift ;;
-      --smtp-host) SBR_SMTP_HOST=$2; shift ;;
+      --smtp-host) SBR_SMTP_HOST=$2 SMTP_FLAG=1; shift ;;
       --smtp-port) SBR_SMTP_PORT=$2; shift ;;
       --smtp-user) SBR_SMTP_USER=$2; shift ;;
-      --smtp-password) SBR_SMTP_PASSWORD=$2; shift ;;
+      --smtp-password-file) SBR_SMTP_PASSWORD=$(cat -- "$2"); shift ;;
       --smtp-from) SBR_SMTP_FROM=$2; shift ;;
       --website-domain) SBR_WEBSITE_DOMAIN=$2; shift ;;
       --website-network) SBR_WEBSITE_NETWORK=$2; shift ;;
@@ -82,28 +88,38 @@ ask_common() {
   if [[ $SBR_TYPE == standalone ]]; then
     ask SBR_ADDRESS "Public address: the domain (bingo.example.org) or the server's IP"
   fi
+  # A re-run keeps what the last run wrote, unless a flag says otherwise (audit O4).
+  read_saved_answers "$SBR_ENV"
   ask SBR_ADMIN_EMAIL "Admin e-mail (certificates and notices)"
   ask SBR_AGE_RECIPIENT "Your age public key for backups (age1…)"
   [[ $SBR_AGE_RECIPIENT == age1* ]] || die "an age public key starts with age1 (age-keygen prints it)"
-  if [[ ${SBR_YES:-0} != 1 && -z ${SBR_SMTP_HOST:-} ]]; then
-    read -r -p "SMTP server for e-mail (empty: none for now): " SBR_SMTP_HOST
-    if [[ -n $SBR_SMTP_HOST ]]; then
-      ask SBR_SMTP_PORT "SMTP port" 587
-      ask SBR_SMTP_USER "SMTP user"
-      read -r -s -p "SMTP password: " SBR_SMTP_PASSWORD && echo
-      ask SBR_SMTP_FROM "Sender address" "$SBR_ADMIN_EMAIL"
-    fi
-  fi
+  [[ ${SBR_YES:-0} == 1 || -n ${SMTP_FLAG:-} ]] || ask_smtp
 }
 
-# Where the source comes from: this checkout's origin and branch, else the public repository.
+# SMTP asked with the saved values as defaults; an empty answer keeps what is saved.
+ask_smtp() {
+  local host port user from password
+  read -r -p "SMTP server for e-mail (empty: ${SBR_SMTP_HOST:-none for now}): " host
+  [[ -n $host ]] || return 0
+  port=${SBR_SMTP_PORT:-587} user=${SBR_SMTP_USER:-} from=${SBR_SMTP_FROM:-$SBR_ADMIN_EMAIL}
+  SBR_SMTP_HOST=$host SBR_SMTP_PORT='' SBR_SMTP_USER='' SBR_SMTP_FROM=''
+  ask SBR_SMTP_PORT "SMTP port" "$port"
+  ask SBR_SMTP_USER "SMTP user" "$user"
+  read -r -s -p "SMTP password${SBR_SMTP_PASSWORD:+ (empty: keep the saved one)}: " password
+  echo
+  [[ -z $password ]] || SBR_SMTP_PASSWORD=$password
+  ask SBR_SMTP_FROM "Sender address" "$from"
+}
+
+# Where the source comes from: the flag, the last install, this checkout's origin, else the
+# public repository; the ref: the flag, the last install, else master.
 default_source() {
-  local origin branch
+  local origin
   origin=$(git -C "$OPS" remote get-url origin 2>/dev/null || true)
-  branch=$(git -C "$OPS" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+  SBR_REPO=${SBR_REPO:-$(env_value "$SBR_ETC/install.conf" SBR_REPO)}
   SBR_REPO=${SBR_REPO:-${origin:-https://github.com/weudlll-cyber/seasonal-bingo-royale.git}}
-  [[ $branch == HEAD ]] && branch=''
-  SBR_REF=${SBR_REF:-${branch:-feat/vps-install}}
+  SBR_REF=${SBR_REF:-$(env_value "$SBR_ETC/install.conf" SBR_REF)}
+  SBR_REF=${SBR_REF:-master}
   info "  image source: built on this server from $SBR_REPO at $SBR_REF (no signed release image yet)"
 }
 
@@ -124,14 +140,22 @@ next_steps() {
 }
 
 main() {
+  local recorded_env
   parse_flags "$@"
   [[ $SBR_DRY_RUN == 1 || $EUID -eq 0 ]] || die "run as root: sudo bash $0"
   [[ $SBR_DRY_RUN == 1 ]] && info "DRY RUN: nothing is changed, every step is shown."
   RECORDED_TYPE=''
   if [[ -f $SBR_ETC/install.conf ]]; then
-    RECORDED_TYPE=$(sed -n 's/^SBR_TYPE=//p' "$SBR_ETC/install.conf")
-    SBR_ENV=${SBR_ENV:-$(sed -n 's/^SBR_ENV=//p' "$SBR_ETC/install.conf")}
-    SBR_ADDRESS=${SBR_ADDRESS:-$(sed -n 's/^SBR_ADDRESS=//p' "$SBR_ETC/install.conf")}
+    RECORDED_TYPE=$(env_value "$SBR_ETC/install.conf" SBR_TYPE)
+    recorded_env=$(env_value "$SBR_ETC/install.conf" SBR_ENV)
+    # One environment per server for now (spec 09 §7): a second one would take over the
+    # record, the website snippet or ports 80/443 of the first.
+    if [[ -n ${SBR_ENV:-} && $SBR_ENV != "$recorded_env" ]]; then
+      die "this server runs $recorded_env; staging and prod need separate servers for now (docs/operator-guide.md §8)"
+    fi
+    SBR_ENV=${SBR_ENV:-$recorded_env}
+    SBR_ADDRESS=${SBR_ADDRESS:-$(env_value "$SBR_ETC/install.conf" SBR_ADDRESS)}
+    SBR_WEBSITE_DOMAIN=${SBR_WEBSITE_DOMAIN:-$(env_value "$SBR_ETC/install.conf" SBR_WEBSITE_DOMAIN)}
   fi
   info "Checking the server"
   check_os

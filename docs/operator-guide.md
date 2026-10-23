@@ -32,9 +32,10 @@ There is no signed release image yet, so the installer builds the game on the se
    ```
 2. Fetch the installer and run it (the one install command):
    ```
-   git clone --branch feat/vps-install https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh
+   git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh
    ```
-3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates); your **age public key** (`age1…`); SMTP can stay empty for now.
+   (`master` holds the installer once the current work is merged into it; until then add `--ref <branch>` after `install.sh` and clone that branch.)
+3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
 4. Wait until it says **Done**. It installs Docker if needed, builds the game, starts it and checks that it answers.
 5. Create the first admin (section 4), then open `https://<your domain>/`.
 
@@ -43,7 +44,7 @@ There is no signed release image yet, so the installer builds the game on the se
 1. Log in to the VPS (`ssh root@<VPS address>`).
 2. Run the same command as above, but choose **website** as the type (or add `--type website`):
    ```
-   git clone --branch feat/vps-install https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh --type website
+   git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh --type website
    ```
    If the website is not running, the installer stops and says so — install the website first.
 3. Answer the questions (environment, e-mail, age public key). The installer finds the website's domain itself and publishes no port of its own.
@@ -65,21 +66,28 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps 14 daily and 8 weekly ones.
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off.
 
-1. Pull the new ones to your PC (only files you do not have yet are copied), in PowerShell from the folder with the game's source (or copy `ops\pull-backups.ps1` anywhere):
+1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
-   powershell -ExecutionPolicy Bypass -File ops\pull-backups.ps1 -Server root@<VPS address>
+   sudo adduser --disabled-password --gecos "" backup-pull
+   sudo usermod -aG sbr-backup backup-pull
+   sudo install -d -m 700 -o backup-pull -g backup-pull /home/backup-pull/.ssh
+   sudo cp ~/.ssh/authorized_keys /home/backup-pull/.ssh/ && sudo chown backup-pull: /home/backup-pull/.ssh/authorized_keys
+   ```
+2. Pull the new ones to your PC (only files you do not have yet are copied; a copy counts only when it is complete), in PowerShell from the folder with the game's source (or copy `ops\pull-backups.ps1` anywhere):
+   ```
+   powershell -ExecutionPolicy Bypass -File ops\pull-backups.ps1 -Server backup-pull@<VPS address>
    ```
    They land in `Documents\sbr-backups\prod`. (Optional: run it daily with Windows Task Scheduler.)
-2. A backup taken right now: `sudo sbr backup`.
-3. Check a backup can really be restored (monthly is good): copy your key up for a moment, run the drill, delete the key:
+3. A backup taken right now: `sudo sbr backup`.
+4. Check a backup can really be restored (monthly is good): copy your key up for a moment, run the drill, delete the key:
    ```
-   scp $HOME\sbr-age-key.txt root@<VPS address>:/root/sbr-age-key.txt
-   ssh root@<VPS address> "sbr restore --drill /var/backups/sbr/prod/<file> --identity /root/sbr-age-key.txt; rm /root/sbr-age-key.txt"
+   scp $HOME\sbr-age-key.txt <you>@<VPS address>:sbr-age-key.txt
+   ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
    It restores into a throw-away database and says how many accounts, matches and events came back.
-4. A real restore (replaces the live data): the same, with `sbr restore <file> --identity …` instead of `--drill`.
+5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod) unless you add `--force-env`.
 
 ## 6. Updating and rolling back
 
@@ -87,18 +95,22 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It first takes a backup, then builds and starts the new version (the game is away for a few seconds; running matches continue).
-2. Something wrong after an update?
+   It first takes a backup and a plain database dump for a rollback, then builds and starts the new version (the game is away for a few seconds; running matches continue).
+2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
+   ```
+   sudo sbr confirm
+   ```
+3. Something wrong after an update (before `sbr confirm`)?
    ```
    sudo sbr rollback
    ```
-   It goes back to the version before; if the update changed the database layout, it also puts back the database from just before the update.
-3. Before a planned update you can stop new matches: `sudo sbr maintenance on` (running matches finish), and afterwards `sudo sbr maintenance off`.
-4. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
+   It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
+4. Before a planned update you can stop new matches: `sudo sbr maintenance on` (running matches finish), and afterwards `sudo sbr maintenance off`.
+5. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
 
 ## 7. Hardening checklist
 
-1. SSH: keys only, no passwords; root login with password off (`PasswordAuthentication no`, `PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`).
+1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `sbr-backup` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
 2. Automatic security updates: `apt install unattended-upgrades` (on by default on Ubuntu 24.04).
 3. Firewall: allow only 22, 80 and 443 — `ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw enable`. (With the website installed, keep the website's own ports too, see its DEPLOYMENT.md.)
 4. fail2ban for SSH: `apt install fail2ban`.
@@ -108,6 +120,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 
 ## 8. Good to know
 
-- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again keeps the secrets and changes only what you changed; it never switches between standalone and website without asking.
+- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets and your earlier answers, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
+- One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
 - Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login, a maintenance page for players (maintenance already stops new matches).

@@ -1,5 +1,7 @@
 # Night runs
 
+**Development machine only.** Nothing here is part of an install or of running the game on a server.
+
 How to start an unattended block of work ("night run") so it finishes without stopping at an approval prompt, and how the owner reads the result in the morning. The permission rules live in `.claude/settings.json`; this page owns the launcher and the reporting rules. Modelled on the race project's recipe.
 
 ## Launch
@@ -39,7 +41,7 @@ Never pass `-r` or `-c`; use `--session-id <uuid>` if a specific id is needed. O
 
 ## Desktop notifications
 
-A run reports to the owner without being asked, through `ops/notify.ps1` (Windows balloon titled "Bingo", nothing but what ships with Windows):
+A run reports to the owner without being asked, through `ops/notify.ps1` (development machine only; Windows balloon titled "Bingo", nothing but what ships with Windows):
 
 ```sh
 powershell -NoProfile -ExecutionPolicy Bypass -File ops/notify.ps1 "<text>"

@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # @file   ops/lib/common.sh
+# @module ops
 # @brief  Shared helpers of ops/install.sh and ops/sbr: messages, questions, files, compose.
 #
 # Responsibility: plain messages (info, warn, die), a question that takes a flag value or
-#                 asks (never in --yes mode), running a command or only showing it
-#                 (--dry-run), writing a file only when its content changed (so a second
-#                 install run changes nothing and says so), reading the install record
-#                 /etc/sbr/install.conf, and running Docker Compose for one environment
-#                 with the right files and env file.
+#                 asks (never in --yes mode) and a yes/no confirmation; running a command or
+#                 only showing it (--dry-run); writing a file only when its content changed
+#                 (so a second install run changes nothing), atomically; reading a value of
+#                 an env file or replacing one value in it; removing work files and throw-away containers on exit; and
+#                 running Docker Compose for one environment with the right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
 
@@ -16,6 +17,18 @@ SBR_ETC=${SBR_ETC:-/etc/sbr}
 SBR_BACKUPS=${SBR_BACKUPS:-/var/backups/sbr}
 SBR_CHANGES=0
 SBR_DRY_RUN=${SBR_DRY_RUN:-0}
+SBR_TMP_PATHS=()
+SBR_TMP_CONTAINERS=()
+
+# Work files and throw-away containers go when the script ends, also after an error.
+sbr_cleanup() {
+  ((${#SBR_TMP_PATHS[@]})) && rm -rf "${SBR_TMP_PATHS[@]}"
+  ((${#SBR_TMP_CONTAINERS[@]})) && docker rm -f "${SBR_TMP_CONTAINERS[@]}" >/dev/null 2>&1
+  return 0
+}
+trap sbr_cleanup EXIT
+cleanup_path() { SBR_TMP_PATHS+=("$1"); }
+cleanup_container() { SBR_TMP_CONTAINERS+=("$1"); }
 
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -36,6 +49,26 @@ ask() {
   fi
   read -r -p "$question${default:+ [$default]}: " answer
   printf -v "$var" '%s' "${answer:-$default}"
+}
+
+# confirm <question>: goes on after "yes" (or --yes), stops otherwise.
+confirm() {
+  local answer
+  [[ ${SBR_YES:-0} == 1 ]] && return 0
+  read -r -p "$1 Type yes to go on: " answer
+  [[ $answer == yes ]] || die "stopped; nothing changed"
+}
+
+# The value of a key in an env file without its quotes, or nothing (also without a file).
+env_value() {
+  [[ -f $1 ]] || return 0
+  sed -n "s/^$2=//p" "$1" | head -1 | sed -E "s/^'(.*)'\$/\1/"
+}
+
+# set_env_value <file> <key> <value>: replaces one line, single-quoted, atomically.
+set_env_value() {
+  [[ $3 != *"'"* ]] || die "$2 must not contain a single quote (')"
+  { grep -v "^$2=" "$1" || true; printf "%s='%s'\n" "$2" "$3"; } | put_file "$1" 0600
 }
 
 # run <command…>: runs it, or in --dry-run mode only shows it.
@@ -60,18 +93,12 @@ put_file() {
   if [[ $SBR_DRY_RUN == 1 ]]; then
     info "  would write $target ($(wc -l <"$tmp") lines, mode $mode)"
   else
-    install -D -m "$mode" "$tmp" "$target"
+    # Written beside the target and renamed: a reader never sees half a file (audit O10).
+    install -D -m "$mode" "$tmp" "$target.new"
+    mv -f "$target.new" "$target"
     info "  wrote $target"
   fi
   rm -f "$tmp"
-}
-
-# The install record: type, environment, address and git ref of the last install run.
-load_record() {
-  local file="$SBR_ETC/install.conf"
-  [[ -f $file ]] || return 1
-  # shellcheck disable=SC1090
-  source "$file"
 }
 
 # compose <env> <args...>: Docker Compose for one environment (project sbr-<env>).
@@ -80,7 +107,7 @@ compose() {
   shift
   local files=(-f "$SBR_ROOT/compose.yml")
   local type
-  type=$(sed -n 's/^SBR_INSTALL_TYPE=//p' "$SBR_ETC/$env.env")
+  type=$(env_value "$SBR_ETC/$env.env" SBR_INSTALL_TYPE)
   if [[ $type == website ]]; then
     files+=(-f "$SBR_ROOT/compose.website.yml")
   else
