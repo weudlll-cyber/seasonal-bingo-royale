@@ -225,6 +225,14 @@ describe('development accounts', () => {
     ).toBe(401);
   });
 
+  it('signs in several browsers as the same new dev account at once (no 500)', async () => {
+    const answers = await Promise.all(
+      [1, 2, 3].map(() => post('/api/v1/dev/sign-in', { as: 'load-031' })),
+    );
+    expect(answers.map((r) => r.statusCode)).toEqual([200, 200, 200]);
+    await app().inject({ method: 'DELETE', url: '/api/v1/dev/load-accounts' });
+  });
+
   it('signs in numbered load players and removes them all afterwards', async () => {
     const r = await post('/api/v1/dev/sign-in', { as: 'load-007' });
     expect(r.json<{ displayName: string }>().displayName).toBe('dev-load-007');
