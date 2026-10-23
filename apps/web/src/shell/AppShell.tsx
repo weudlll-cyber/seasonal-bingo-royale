@@ -57,7 +57,7 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         <Account dev={dev} />
       </header>
       <main className="shell-main">
-        <Screen route={route} />
+        <Screen route={route} dev={dev} />
       </main>
     </>
   );
@@ -170,7 +170,7 @@ function DevSignIn(): ReactElement {
 
 // Keyed by match code and account: a new match, or a sign-in as someone else, mounts the
 // screen fresh, so nothing of the previous match or session survives (fresh-state rule).
-function Screen({ route }: { readonly route: Route }): ReactElement {
+function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }): ReactElement {
   const who = useSession().session?.account?.id ?? 'guest';
   switch (route.name) {
     case 'lobby':
@@ -182,7 +182,8 @@ function Screen({ route }: { readonly route: Route }): ReactElement {
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'quicktest':
-      return <QuickTest />;
+      // The Quick Test calls a development-only server route; production shows the lobby.
+      return dev ? <QuickTest /> : <Lobby />;
     case 'signIn':
       return <SignIn />;
     case 'register':

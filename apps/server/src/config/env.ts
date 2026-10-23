@@ -4,7 +4,9 @@
  * @brief  Validates runtime environment variables at startup.
  *
  * Responsibility: parse process.env with a strict zod schema, exit with a readable
- *                 message on invalid or missing values, expose a typed Env object.
+ *                 message on invalid or missing values, expose a typed Env object; the
+ *                 deployment settings (base path, public URL, trusted proxies, client and
+ *                 data directories, 09 §1) and the WebSocket origins derived from them.
  * Depends on:     zod
  * Used by:        ../main.ts, ../http/app.ts, ../db/pool.ts
  * Spec:           docs/spec/08-devops-architecture.md §5, docs/spec/08-devops-architecture.md §1.1
@@ -24,28 +26,62 @@ const envSchema = z.object({
   SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),
   SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
   SBR_FEATURE_GUESTS: z.stringbool().default(true),
-  // AES-256 key (64 hex characters) that seals match seeds at rest (04 §3.3 seed_enc);
-  // Browser origins allowed to open the WebSocket (06 §2), comma-separated; defaults to
-  // the local player and admin clients.
+  // Browser origins allowed to open the WebSocket (06 §2), comma-separated; without it the
+  // public URL's origin, else the local player and admin clients (allowedOrigins below).
   SBR_ALLOWED_ORIGINS: z
     .string()
-    .default(
-      'http://localhost:5390,http://127.0.0.1:5390,http://localhost:5391,http://127.0.0.1:5391',
-    )
+    .optional()
     .transform((v) =>
       v
-        .split(',')
+        ?.split(',')
         .map((o) => o.trim())
         .filter((o) => o.length > 0),
     ),
+  // AES-256 key (64 hex characters) that seals match seeds at rest (04 §3.3 seed_enc);
   // required in production, a fixed development key otherwise (./seedKey).
   SBR_SEED_KEY: z
     .string()
     .regex(/^[0-9a-f]{64}$/i)
     .optional(),
+  // Where the app is reachable: "/" standalone, "/games/bingo/" inside the website (09 §1).
+  SBR_BASE_PATH: z
+    .string()
+    .regex(/^\/([\w-]+\/)*$/, 'starts and ends with "/", e.g. /games/bingo/')
+    .default('/'),
+  // The public address (https://bingo.example.org/); its origin may open the WebSocket.
+  SBR_PUBLIC_URL: z.url().optional(),
+  // Proxies whose X-Forwarded-For is believed (Caddy's address); none by default.
+  SBR_TRUSTED_PROXIES: z
+    .string()
+    .default('')
+    .transform((v) =>
+      v
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0),
+    ),
+  // The built player client (index.html, assets/); the image sets it, development has none.
+  SBR_WEB_DIR: z.string().optional(),
+  // A writable directory (the uploads volume in production) for the maintenance flag.
+  SBR_DATA_DIR: z.string().default('./data'),
 });
 
 export type Env = z.infer<typeof envSchema>;
+
+const DEV_ORIGINS = [
+  'http://localhost:5390',
+  'http://127.0.0.1:5390',
+  'http://localhost:5391',
+  'http://127.0.0.1:5391',
+];
+
+// The origins allowed to open the WebSocket: the list given, else the public URL's, else
+// the local development clients.
+export function allowedOrigins(env: Env): readonly string[] {
+  if (env.SBR_ALLOWED_ORIGINS !== undefined) return env.SBR_ALLOWED_ORIGINS;
+  if (env.SBR_PUBLIC_URL !== undefined) return [new URL(env.SBR_PUBLIC_URL).origin];
+  return DEV_ORIGINS;
+}
 
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const parsed = envSchema.safeParse(source);

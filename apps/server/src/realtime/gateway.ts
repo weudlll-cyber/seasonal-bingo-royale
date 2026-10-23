@@ -3,7 +3,7 @@
  * @module server/realtime
  * @brief  Socket.IO gateway: authenticated sockets, match rooms, events out, intents in (06).
  *
- * Responsibility: one endpoint `/ws`, namespace `/play`, WebSocket only (06 §1). The
+ * Responsibility: one endpoint `/ws` (under the base path), namespace `/play`, WebSocket only (06 §1). The
  *                 handshake checks the Origin against the allowed list and loads the
  *                 session from the cookie (06 §2); without a live session the socket is
  *                 refused. Committed match events go to the room `match:<id>` as one frame
@@ -40,6 +40,8 @@ export interface GatewayDeps {
   readonly bus: LocalEventBus;
   readonly cookieName: string;
   readonly allowedOrigins: readonly string[];
+  // "/ws" standalone, "/games/bingo/ws" behind the website (09 §1).
+  readonly path: string;
 }
 
 export interface SocketData {
@@ -50,7 +52,7 @@ export interface SocketData {
 
 export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   const io = new Server(server, {
-    path: '/ws',
+    path: deps.path,
     transports: ['websocket'],
     maxHttpBufferSize: 16 * 1024,
     pingInterval: 20_000,

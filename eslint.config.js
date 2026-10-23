@@ -102,6 +102,15 @@ export default defineConfig(
     },
   },
   {
+    // The server's build script: plain JavaScript run by Node, outside the TS projects.
+    files: ['apps/server/build.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      parserOptions: { projectService: false, project: false, program: null },
+      globals: { console: 'readonly' },
+    },
+  },
+  {
     files: ['**/*.test.ts'],
     rules: { 'max-lines': ['error', { max: 400 }] },
   },

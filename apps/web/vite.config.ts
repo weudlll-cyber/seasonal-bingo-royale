@@ -20,6 +20,8 @@ const PORT = 5390;
 const SERVER = 'http://127.0.0.1:3900';
 
 export default defineConfig({
+  // Relative asset paths: one build serves at "/" or under "/games/bingo/" (09 §1).
+  base: './',
   plugins: [react()],
   server: {
     host: '127.0.0.1',

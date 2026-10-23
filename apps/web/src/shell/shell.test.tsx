@@ -84,6 +84,12 @@ describe('app shell', () => {
     await renderShell(false);
     expect(screen.queryByTestId('dev-menu')).toBeNull();
     expect(screen.queryByText('Quick Test')).toBeNull();
+    // Its address opens the lobby in a production build (its server route is dev-only).
+    cleanup();
+    window.location.hash = '#/quicktest';
+    await renderShell(false);
+    expect(screen.queryByTestId('start-run')).toBeNull();
+    window.location.hash = '';
   });
 
   it('shows "Host a match" and the host role only with match.create', async () => {

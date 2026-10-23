@@ -4,8 +4,9 @@
  * @brief  Builds the Fastify instance of the server with every plugin and route wired.
  *
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
- *                 placeholder page, sessions and auth, the live match engine and its routes
- *                 onto a fresh Fastify instance. The caller owns the lifecycle (listen,
+ *                 built client (image) or the placeholder page (development), sessions and
+ *                 auth, the live match engine and its routes onto a fresh Fastify instance,
+ *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies. The caller owns the lifecycle (listen,
  *                 scheduler, close, pool disposal).
  * Depends on:     fastify, pino, prom-client (indirectly), ../db/pool
  * Used by:        ../main.ts, test/*
@@ -14,7 +15,7 @@
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
-import type { Env } from '../config/env.js';
+import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
@@ -29,6 +30,7 @@ import { registerMatchRoutes } from './routes/matches.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
 import { registerQuickTest } from './routes/quicktest.js';
+import { registerWebClient } from './routes/webClient.js';
 
 export interface AppDeps {
   readonly env: Env;
@@ -42,24 +44,31 @@ export interface App {
   readonly match: MatchRuntime;
 }
 
-export async function buildApp(deps: AppDeps): Promise<App> {
+// Fastify with the logger, the trusted proxies (Caddy, 09 §1) and the base path: behind
+// the website the app lives under /games/bingo/ and the routes see the path without it.
+function createFastify(env: Env): FastifyInstance {
   // Fastify builds the pino logger from this options object; passing a pre-made pino
   // instance would widen generics in a way exactOptionalPropertyTypes rejects.
   const loggerOptions: FastifyServerOptions['logger'] =
-    deps.env.NODE_ENV === 'test'
+    env.NODE_ENV === 'test'
       ? false
       : {
-          level: deps.env.SBR_LOG_LEVEL,
-          ...(deps.env.NODE_ENV === 'production'
+          level: env.SBR_LOG_LEVEL,
+          ...(env.NODE_ENV === 'production'
             ? {}
             : { transport: { target: 'pino-pretty', options: { singleLine: true } } }),
         };
-  const fastify = Fastify({
+  const proxies = env.SBR_TRUSTED_PROXIES;
+  return Fastify({
     logger: loggerOptions,
-    disableRequestLogging: deps.env.NODE_ENV === 'test',
-    trustProxy: false,
+    disableRequestLogging: env.NODE_ENV === 'test',
+    trustProxy: proxies.length > 0 ? proxies : false,
+    rewriteUrl: (request) => withoutBase(request.url ?? '/', env.SBR_BASE_PATH),
   });
+}
 
+export async function buildApp(deps: AppDeps): Promise<App> {
+  const fastify = createFastify(deps.env);
   const isDev = deps.env.NODE_ENV !== 'production';
   await registerSecurityHeaders(fastify);
   if (isDev) registerDevCors(fastify);
@@ -67,7 +76,12 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
-  registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
+  // The built client in the image; the placeholder page in development (Vite serves it).
+  if (deps.env.SBR_WEB_DIR === undefined) {
+    registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
+  } else {
+    registerWebClient(fastify, deps.env.SBR_WEB_DIR);
+  }
   if (isDev) registerQuickTest(fastify);
   const cookie = cookieConfig(deps.env.NODE_ENV === 'production');
   await registerSessions(fastify, deps.pool, cookie);
@@ -86,12 +100,20 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     engine: match.engine,
     bus: match.bus,
     cookieName: cookie.name,
-    allowedOrigins: deps.env.SBR_ALLOWED_ORIGINS,
+    allowedOrigins: allowedOrigins(deps.env),
+    path: `${deps.env.SBR_BASE_PATH}ws`,
   });
   fastify.addHook('onClose', async () => {
     await io.close();
   });
   return { fastify, metrics, match };
+}
+
+// "/games/bingo/api/v1/x" → "/api/v1/x" when the base path is "/games/bingo/".
+export function withoutBase(url: string, base: string): string {
+  if (base === '/') return url;
+  if (url === base.slice(0, -1)) return '/';
+  return url.startsWith(base) ? url.slice(base.length - 1) : url;
 }
 
 // The player client (Vite on 127.0.0.1:5390) is a different origin from the server
