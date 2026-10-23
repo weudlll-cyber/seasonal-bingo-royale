@@ -17,12 +17,19 @@ import { expect, type APIResponse, type Browser, type Page } from '@playwright/t
 
 export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
 
+// The first page of a run is slow (the dev server compiles on demand): the page must have
+// its session (signed in or not) before the quick sign-in is used, and gets 20 s for it.
+const SETTLE_MS = 20_000;
+
 export async function signIn(page: Page, who: Who): Promise<void> {
   await page.goto('/#/');
+  const account = page.getByTestId('open-sign-in').or(page.getByTestId('signed-in-as'));
+  await expect(account.first()).toBeVisible({ timeout: SETTLE_MS });
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
   await expect(page.getByTestId('signed-in-as')).toContainText(
     who === 'host' ? 'dev-host (host)' : `dev-${who} (player)`,
+    { timeout: SETTLE_MS },
   );
 }
 
