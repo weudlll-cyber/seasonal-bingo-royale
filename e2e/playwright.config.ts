@@ -10,7 +10,8 @@
  *                 browser after the other, so no other browser starves their timers (NIGHT-3:
  *                 six of them failed under the full parallel run and passed alone). Locally
  *                 an already-running stack is reused. The acceptance play-through runs only
- *                 with SBR_ACCEPTANCE=1.
+ *                 with SBR_ACCEPTANCE=1. SBR_E2E_BROWSER=<name> keeps one browser and its
+ *                 timing specs (CI runs one job per browser).
  * Depends on:     @playwright/test, ./devStack, ./globalSetup
  * Spec:           docs/spec/12-testing-strategy.md §2, §4; docs/spec/15-implementation-plan.md WP-08
  */
@@ -23,11 +24,14 @@ const CI = process.env['CI'] !== undefined;
 // Specs whose checks depend on browser timers firing on time.
 const TIMING = ['missedNumbers.spec.ts', 'drawControl.spec.ts', 'manual.spec.ts', 'newRun.spec.ts'];
 const ACCEPTANCE = process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'];
-const BROWSERS = [
+const ALL_BROWSERS = [
   { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   { name: 'webkit-mobile', use: { ...devices['iPhone 13'] } },
 ] as const;
+const ONLY = process.env['SBR_E2E_BROWSER'];
+const BROWSERS = ONLY === undefined ? ALL_BROWSERS : ALL_BROWSERS.filter((b) => b.name === ONLY);
+if (BROWSERS.length === 0) throw new Error(`SBR_E2E_BROWSER=${ONLY ?? ''} names no browser`);
 
 export default defineConfig({
   testDir: '.',
