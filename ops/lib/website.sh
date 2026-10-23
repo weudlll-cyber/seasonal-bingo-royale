@@ -7,7 +7,8 @@
 #                 "caddy", as its docs/DEPLOYMENT.md sets it up in deploy/site/) and from it
 #                 the Docker network (seasonal-site_default, else its only one, else asked),
 #                 that network's subnet as the trusted proxy range and the website's domain
-#                 (SITE_DOMAIN); stop with a plain message when the website is not running.
+#                 (SITE_DOMAIN); stop with a plain message when the website is not running
+#                 (a dry run on a server without Docker yet only shows the step).
 #                 Write the snippet that routes /games/bingo/* (HTTP and WebSocket) to the
 #                 app and print how to add it to the website's Caddyfile. The installer never
 #                 edits the website's files.
@@ -17,6 +18,7 @@
 WEBSITE_PROJECT=seasonal-site
 
 website_caddy() {
+  command -v docker >/dev/null || return 0
   docker ps --filter "label=com.docker.compose.project=$WEBSITE_PROJECT" \
     --filter label=com.docker.compose.service=caddy --format '{{.Names}}' | head -1
 }
@@ -43,6 +45,14 @@ choose_network() {
 # SBR_WEBSITE_DOMAIN, or stops.
 detect_website() {
   local caddy
+  # A dry run on a server without Docker yet cannot look; it shows the step instead.
+  if [[ $SBR_DRY_RUN == 1 ]] && ! command -v docker >/dev/null; then
+    info "  would look for the website's Caddy (compose project $WEBSITE_PROJECT) once Docker is installed"
+    SBR_WEBSITE_NETWORK=${SBR_WEBSITE_NETWORK:-${WEBSITE_PROJECT}_default}
+    SBR_TRUSTED_PROXIES='<the website network range>'
+    SBR_WEBSITE_DOMAIN=${SBR_WEBSITE_DOMAIN:-<the website domain>}
+    return 0
+  fi
   caddy=$(website_caddy)
   if [[ -z $caddy ]]; then
     die "the Seasonal Entertainment website is not running on this server (no Caddy container of the compose project \"$WEBSITE_PROJECT\"). Install the website first (its docs/DEPLOYMENT.md), then run this installer again with --type website."
