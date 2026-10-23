@@ -9,12 +9,14 @@
  *                 (since the held seq); a gap fetches the new events too, never the whole
  *                 log again; a delta without the player list keeps the one held; events are
  *                 never held twice.
- * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../test/quickTestFixture
+ * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../test/matchFixture,
+ *                 ../test/quickTestFixture
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { matchSummary } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { useLiveMatch } from './useLiveMatch.js';
 
@@ -36,6 +38,8 @@ afterEach(() => {
 });
 
 const view = royaleFixture();
+// A complete summary, as the server sends with every answer.
+const SUMMARY = matchSummary();
 const HELD = view.events.length;
 const PLAYERS = view.players.length;
 const DRAW = { type: 'drawMade', drawIndex: 9, item: 9 };
@@ -58,8 +62,14 @@ function serve(): ReturnType<typeof vi.fn> {
     const { players: _players, ...slim } = view;
     const body =
       since === 0
-        ? { match: {}, seq: HELD, since, me: 'owner-01', view }
-        : { match: {}, seq: since + 1, since, me: 'owner-01', view: { ...slim, events: [DRAW] } };
+        ? { match: SUMMARY, seq: HELD, since, me: 'owner-01', view }
+        : {
+            match: SUMMARY,
+            seq: since + 1,
+            since,
+            me: 'owner-01',
+            view: { ...slim, events: [DRAW] },
+          };
     return Promise.resolve(new Response(JSON.stringify(body)));
   });
   vi.stubGlobal('fetch', fetch);

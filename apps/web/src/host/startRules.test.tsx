@@ -87,6 +87,21 @@ describe('the console with a set start time (D16)', () => {
     expect(screen.queryByTestId('host-too-few')).toBeNull();
   });
 
+  it('asks the server again once the start time has passed, without waiting for a push', async () => {
+    const soon = matchSummary({ youHost: true, players: 0 });
+    const at = Date.now() + 300;
+    const summary = {
+      ...soon,
+      settings: { ...soon.settings, startRule: { kind: 'at', at, auto: true } },
+    };
+    serveMatch(summary as MatchSummary);
+    await show(<HostConsole code="MATCH1" />);
+    expect(screen.queryByTestId('host-too-few')).toBeNull();
+    // From now on the server answers with the notice (it decides by the clock, D16).
+    Object.assign(summary, { tooFewAtStart: true });
+    expect(await screen.findByTestId('host-too-few', {}, { timeout: 4_000 })).toBeTruthy();
+  });
+
   it('says when the automatic start found too few players, and offers abort', async () => {
     const fetch = serveMatch(announced({ players: 1, tooFewAtStart: true }, true));
     await show(<HostConsole code="MATCH1" />);

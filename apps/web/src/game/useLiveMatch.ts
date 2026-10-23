@@ -8,7 +8,9 @@
  *                 append them — a gap too, since that fetch covers it; only a (re)connect
  *                 reloads everything, so nothing is lost and nothing doubled (06 §4, §5, §8).
  *                 A delta without the player list keeps the one held. Record changes (status, start time, draw control) arrive as
- *                 `match`. Fetches never overlap. The view has the Quick Test's shape, so the
+ *                 `match`; once an announced start time has passed, the summary is fetched
+ *                 once more (D16: it changes by the clock alone). Fetches never overlap. The
+ *                 view has the Quick Test's shape, so the
  *                 screens fold it with the same playback logic.
  * Depends on:     react, ../shell/http, ./socket, ../types
  * Used by:        ./MatchScreen, ../host/HostConsole, ./HostLink, ./Lobby, ./MatchCancelled,
@@ -108,6 +110,7 @@ export function useLiveMatch(code: string): {
     [code],
   );
   useEffect(() => watchRoom({ code, held, load, setLive }), [code, load]);
+  useRefreshAtStartTime(live, load);
   return {
     live,
     error,
@@ -115,6 +118,27 @@ export function useLiveMatch(code: string): {
       load(true);
     },
   };
+}
+
+// At an announced start time the server's summary changes by the clock alone (the
+// automatic start, or "too few at the start time", D16): ask once a second after it, so the
+// screen never depends on a push it may have missed. Display only; the server decides.
+function useRefreshAtStartTime(live: LiveState | null, load: (full: boolean) => void): void {
+  const m = live?.match;
+  const rule = m?.settings.startRule;
+  const at = m?.status === 'lobby' && m.startsAt === null && rule?.kind === 'at' ? rule.at : null;
+  useEffect(() => {
+    if (at === null) return undefined;
+    const id = window.setTimeout(
+      () => {
+        load(false);
+      },
+      Math.max(0, at - Date.now()) + 1_000,
+    );
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, [at, load]);
 }
 
 // Appends the new events to the held view; everything else comes fresh from the server.
