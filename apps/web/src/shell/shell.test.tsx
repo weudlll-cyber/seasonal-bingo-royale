@@ -105,3 +105,41 @@ describe('app shell', () => {
     expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (player)');
   });
 });
+
+describe('the session after a quick sign-in', () => {
+  it('keeps the sign-in when the first session answer arrives after it', async () => {
+    const anonymous = { signedIn: false, account: null, permissions: [], csrfToken: 'x' };
+    const host = {
+      signedIn: true,
+      account: { id: 'a', displayName: 'dev-host' },
+      permissions: ['match.create'],
+      csrfToken: 'y',
+    };
+    // The first GET /session (sent on load, before the sign-in) answers last.
+    let answerFirst: (r: Response) => void = () => undefined;
+    let sessionCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        if (!url.endsWith('/session')) return Promise.resolve(new Response('{}'));
+        sessionCalls += 1;
+        if (sessionCalls === 1) return new Promise<Response>((r) => (answerFirst = r));
+        return Promise.resolve(new Response(JSON.stringify(host)));
+      }),
+    );
+    vi.stubGlobal('matchMedia', () => ({
+      matches: false,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    await renderShell(true);
+    fireEvent.click(await screen.findByTestId('dev-menu'));
+    fireEvent.click(screen.getByTestId('dev-sign-in-host'));
+    expect(await screen.findByTestId('signed-in-as')).toBeTruthy();
+    await act(async () => {
+      answerFirst(new Response(JSON.stringify(anonymous)));
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (host)');
+  });
+});

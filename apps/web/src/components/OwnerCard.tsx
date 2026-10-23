@@ -112,25 +112,25 @@ interface MarkerArgs {
 }
 
 // One timer for the earliest missed number due to be marked for the owner; re-armed
-// after every state change. Never armed under noAutoMark.
+// after every state change. Never armed under noAutoMark. A timer can fire a moment
+// before Date.now() reaches dueAt (Firefox rounds the clock); marking then would change
+// nothing and nothing would re-arm it, so it waits the rest first.
 function useAutoMarker({ enabled, manual, setManual, card, drawTimes, rules }: MarkerArgs): void {
   const dueAt = enabled ? nextAutoMark(manual, card.cells, drawTimes.current, rules) : null;
   useEffect(() => {
     if (dueAt === null) return undefined;
-    const id = window.setTimeout(
-      () => {
-        setManual((state) =>
-          autoMarkMissed({
-            state,
-            cells: card.cells,
-            drawTimes: drawTimes.current,
-            now: Date.now(),
-            rules,
-          }),
-        );
-      },
-      Math.max(0, dueAt - Date.now()),
-    );
+    let id = 0;
+    const fire = (): void => {
+      const now = Date.now();
+      if (now < dueAt) {
+        id = window.setTimeout(fire, dueAt - now);
+        return;
+      }
+      setManual((state) =>
+        autoMarkMissed({ state, cells: card.cells, drawTimes: drawTimes.current, now, rules }),
+      );
+    };
+    id = window.setTimeout(fire, Math.max(0, dueAt - Date.now()));
     return () => {
       window.clearTimeout(id);
     };

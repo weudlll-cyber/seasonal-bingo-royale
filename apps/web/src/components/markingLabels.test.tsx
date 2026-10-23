@@ -29,6 +29,7 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 const optionTexts = (testId: string): string[] =>
@@ -140,6 +141,16 @@ describe('the owner taps (Quick Test)', () => {
     await startHostRun({ kind: 'autoMarkAfter', delayMs: 5000 });
     await wait(4_900);
     expect(cell0()).toBe('false');
+    await wait(100);
+    expect(cell0()).toBe('true');
+  });
+
+  it('still marks when the timer fires a moment before the clock reaches the due time', async () => {
+    await startHostRun({ kind: 'autoMarkAfter', delayMs: 5000 });
+    // The wall clock lags the timer by 20 ms (as Firefox's rounded Date.now can).
+    const timerClock = Date.now.bind(Date);
+    vi.spyOn(Date, 'now').mockImplementation(() => timerClock() - 20);
+    await wait(5_000);
     await wait(100);
     expect(cell0()).toBe('true');
   });

@@ -5,7 +5,8 @@
  *
  * Responsibility: load GET /session on start, keep its CSRF token for ./http, and offer
  *                 the development quick sign-in (host or player 1–3, 05 §2.1) and sign-out.
- *                 Screens read it through `useSession`.
+ *                 Only the newest refresh sets the session (an older answer arriving late
+ *                 never undoes a sign-in). Screens read it through `useSession`.
  * Depends on:     react, ./http, ../game/socket
  * Used by:        ./AppShell and every screen that needs the account, ../account/Register,
  *                 ../account/SignIn, ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools
@@ -17,6 +18,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -55,14 +57,23 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }): ReactElement {
   const [session, setSession] = useState<SessionInfo | null>(null);
+  // Only the latest refresh counts: the answer to an older one (e.g. the first load, still
+  // on its way when a sign-in finished) must not undo a newer session.
+  const latest = useRef(0);
   const refresh = useCallback(async () => {
+    latest.current += 1;
+    const mine = latest.current;
     const next = await api<SessionInfo>('/session');
+    if (mine !== latest.current) return;
     setCsrfToken(next.csrfToken);
     setSession(next);
   }, []);
   useEffect(() => {
+    // A failed first load shows "signed out", unless a newer refresh has answered meanwhile.
     refresh().catch(() => {
-      setSession({ signedIn: false, account: null, permissions: [], csrfToken: null });
+      setSession(
+        (now) => now ?? { signedIn: false, account: null, permissions: [], csrfToken: null },
+      );
     });
   }, [refresh]);
   const value = useMemo<SessionContextValue>(
