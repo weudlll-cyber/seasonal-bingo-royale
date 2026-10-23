@@ -46,6 +46,22 @@ describe('applyCut', () => {
     expect(result.eliminated).toEqual(['c', 'd']);
   });
 
+  // D18: a percentage cut rounds the number of survivors up.
+  it.each([
+    { players: 10, percent: 33, min: 2, survivors: 4 },
+    { players: 25, percent: 50, min: 2, survivors: 13 },
+    { players: 7, percent: 50, min: 2, survivors: 4 },
+    { players: 100, percent: 50, min: 2, survivors: 50 },
+    { players: 10, percent: 70, min: 2, survivors: 7 },
+    { players: 5, percent: 10, min: 3, survivors: 3 },
+  ])('keeps $survivors of $players at $percent % (min $min, D18)', (c) => {
+    const candidates = Array.from({ length: c.players }, (_v, i) =>
+      makeCandidate({ accountId: `p${String(i)}`, points: 1_000 - i }),
+    );
+    const result = applyCut(candidates, { keep: 'percent', value: c.percent, minSurvivors: c.min });
+    expect(result.survivors).toHaveLength(c.survivors);
+  });
+
   it('never drops below minSurvivors', () => {
     const candidates = Array.from({ length: 4 }, (_v, i) =>
       makeCandidate({ accountId: `p${String(i)}`, points: 100 - i * 10 }),

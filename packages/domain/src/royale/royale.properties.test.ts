@@ -57,7 +57,7 @@ function uniqueCandidates(min = 2, max = 50): fc.Arbitrary<readonly Candidate[]>
 }
 
 describe('cut invariant 7', () => {
-  it('survivors never below minSurvivors; shield saves only add', () => {
+  it('survivors are the rounded-up percentage (D18), never below minSurvivors; shield saves only add', () => {
     fc.assert(
       fc.property(
         uniqueCandidates(2, 30),
@@ -72,6 +72,13 @@ describe('cut invariant 7', () => {
           for (const id of result.shieldSaves) expect(result.survivors).toContain(id);
           // Survivors + eliminated = total.
           expect(result.survivors.length + result.eliminated.length).toBe(total);
+          // Survivors = the rule's result (rounded up, D18; never below the minimum)
+          // plus the shield saves.
+          const ruled = Math.min(
+            total,
+            Math.max(minSurvivors, Math.ceil((keepPercent * total) / 100)),
+          );
+          expect(result.survivors.length - result.shieldSaves.length).toBe(ruled);
         },
       ),
       { numRuns },

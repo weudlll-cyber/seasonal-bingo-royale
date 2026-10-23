@@ -61,7 +61,9 @@ export function applyCut(active: readonly Candidate[], rule: CutRule): CutResult
 function resolveKeep(rule: CutRule, ranked: readonly Candidate[]): number {
   const totalCount = ranked.length;
   let computed: number;
-  if (rule.keep === 'percent') computed = Math.round((rule.value / 100) * totalCount);
+  // D18: a percentage keeps the number of survivors rounded up (25 × 50 % → 13); value ×
+  // count is an integer, so the division is exact where it should be (10 × 70 % → 7).
+  if (rule.keep === 'percent') computed = Math.ceil((rule.value * totalCount) / 100);
   else if (rule.keep === 'count') computed = Math.min(rule.value, totalCount);
   else computed = ranked.filter((p) => p.points >= rule.value).length;
   return Math.max(rule.minSurvivors, Math.min(computed, totalCount));

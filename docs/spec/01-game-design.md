@@ -221,6 +221,7 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 ### 7.4 Cuts (elimination)
 
 - `keep: percent | count | scoreThreshold`.
+- A percentage keeps the number of survivors rounded up (D18): 50 % of 25 keeps 13, 33 % of 10 keeps 4.
 - Ranking for the cut uses the tie-break chain in §8.4.
 - Minimum survivors: `max(cut result, minSurvivors)` (default 2).
 - If the active field is already at or below the final size, remaining elimination stages are skipped.
