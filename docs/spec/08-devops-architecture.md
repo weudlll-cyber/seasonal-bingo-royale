@@ -89,7 +89,7 @@ Note for operators of this repo: a green local check is not a green CI — after
 
 | Signal | Tooling | Notes |
 |---|---|---|
-| Logs | Pino JSON → Docker `local` log driver with rotation (100 MB × 5) | Optional Loki + Grafana compose profile `observability` |
+| Logs | Pino JSON → Docker `local` log driver with rotation (20 MB × 5 per service, sized for small servers; decided 2026-10-23) | Optional Loki + Grafana compose profile `observability` |
 | Metrics | `/metrics` on internal port 9464 | Optional Prometheus + Grafana in the same profile; ready-made dashboard JSON in `ops/grafana/` |
 | Errors | Optional Sentry-protocol DSN (GlitchTip self-hosted recommended) | Off unless configured |
 | Uptime | External checker (Uptime Kuma on another machine, or a hosted free tier) on `/healthz` and a synthetic “list matches” call | Monitoring from outside the VPS |

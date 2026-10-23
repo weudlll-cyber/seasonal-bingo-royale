@@ -70,7 +70,7 @@ The script (idempotent, re-runnable):
 5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
 6. Starts the stack and waits for `/readyz`; there is no separate migrate step: the app applies pending migrations on start (checksummed, `apps/server/src/db/migrator.ts`) and does not answer ready before.
 7. The first admin is created with `sbr admin create-super` (password asked inside the app container, never echoed or logged; roles `super_admin` and `organizer`). The one-time **bootstrap token** and the page `https://<host>/admin/setup?token=…` where the first `super_admin` sets password and 2FA wait for the admin app (WP-19).
-8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 100 MB per service, spec 08 §6); prints the next steps (website: the snippet and how to add it to the website's Caddyfile; firewall; how to pull backups).
+8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 20 MB per service, spec 08 §6); prints the next steps (website: the snippet and how to add it to the website's Caddyfile; firewall; how to pull backups).
 
 With an IP address instead of a domain, Caddy uses its internal CA (`default_sni` set to the IP, since clients send no SNI to an IP) and the script warns that browsers will show a warning until a domain is set.
 

@@ -9,7 +9,7 @@
 #                 Standalone installs add Caddy (profile "standalone") with automatic HTTPS
 #                 on 80/443. Website installs (ops/compose.website.yml on top) publish no
 #                 port: the app joins the website's network and its Caddy forwards
-#                 /games/bingo to it. Logs go to Docker's compressed `local` driver, 5 × 100 MB
+#                 /games/bingo to it. Logs go to Docker's compressed `local` driver, 5 × 20 MB
 #                 per service; CPU and memory caps per spec 08 §4 (app 1 CPU / 768 MiB,
 #                 PostgreSQL 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB).
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
@@ -18,11 +18,12 @@
 #
 # Run from /opt/sbr:  docker compose -p sbr-<env> --env-file /etc/sbr/<env>.env up -d
 
-# Log rotation for every service (spec 08 §6): at most 5 files of 100 MB each, compressed.
+# Log rotation for every service (spec 08 §6): at most 5 files of 20 MB each, compressed
+# (about 300 MB for the three services, small enough for a small VPS).
 x-logging: &logging
   driver: local
   options:
-    max-size: 100m
+    max-size: 20m
     max-file: '5'
 
 services:
