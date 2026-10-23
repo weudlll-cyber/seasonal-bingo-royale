@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+# @file   ops/sbr
+# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance.
+#
+# Responsibility: one command per task of 09 §4 for the environment of the install record
+#                 (or --env): status (type, address, image, containers, health, last
+#                 backup, timer, maintenance); update <git ref> (backup, plain pre-update
+#                 dump for a rollback, image built from the ref, restart, the app migrates on
+#                 start); rollback (previous image, and the pre-update dump when the update
+#                 migrated the schema); backup; restore <file> and restore --drill <file>
+#                 (--identity <age key file> for encrypted backups); logs [service];
+#                 admin create-super (the first admin, password asked inside the app,
+#                 never echoed); maintenance on|off (a flag file the app reads: no new
+#                 matches, running ones finish).
+# Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
+# Spec:           docs/spec/09-deployment-architecture.md §4–§6
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+# shellcheck source=lib/common.sh
+source "$HERE/lib/common.sh"
+# shellcheck source=lib/config.sh
+source "$HERE/lib/config.sh"
+# shellcheck source=lib/website.sh
+source "$HERE/lib/website.sh"
+# shellcheck source=lib/backup.sh
+source "$HERE/lib/backup.sh"
+
+ROLLBACK_DIR=/var/lib/sbr
+
+usage() {
+  cat <<'EOF'
+usage: sbr [--env prod|staging] <command>
+  status                         what runs, its health and the last backup
+  update <git ref>               backup, build the ref, restart (migrations run on start)
+  rollback                       back to the image before the last update
+  backup                         encrypted backup now
+  restore <file> [--identity k]  put a backup back (k: your age key file for .age files)
+  restore --drill <file> [...]   restore into a throw-away database and check it
+  logs [service]                 follow the logs (app, postgres, caddy)
+  admin create-super             create the first admin account
+  maintenance on|off             no new matches while on; running ones finish
+EOF
+}
+
+cmd_status() {
+  local env=$1 file="$SBR_ETC/$1.env" last
+  info "type:        $(env_value "$file" SBR_INSTALL_TYPE) (environment $env)"
+  info "address:     $(env_value "$file" SBR_PUBLIC_URL)"
+  info "image:       $(env_value "$file" SBR_IMAGE) (ref $(sed -n 's/^SBR_REF=//p' "$SBR_ETC/install.conf"))"
+  compose "$env" ps --format 'table {{.Service}}\t{{.Status}}'
+  if compose "$env" exec -T app wget -qO- http://127.0.0.1:3000/readyz >/dev/null 2>&1; then
+    info "health:      ready"
+  else
+    info "health:      NOT READY (sbr logs app)"
+  fi
+  # The names carry the time, so the last in name order is the newest.
+  last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' 2>/dev/null | sort | tail -1)
+  info "last backup: ${last:-none yet}"
+  info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
+  if compose "$env" exec -T app test -f /data/maintenance 2>/dev/null; then
+    info "maintenance: ON (no new matches)"
+  else
+    info "maintenance: off"
+  fi
+  if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then check_proxy "$env"; fi
+}
+
+# Website installs trust the website's Caddy by its address; a recreated Caddy may get a new one.
+check_proxy() {
+  local env=$1 caddy now trusted
+  caddy=$(website_caddy)
+  [[ -n $caddy ]] || { warn "the website's Caddy is not running"; return 0; }
+  now=$(docker inspect -f "{{(index .NetworkSettings.Networks \"$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)\").IPAddress}}" "$caddy")
+  trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
+  if [[ $now == "$trusted" ]]; then
+    info "proxy:       the website's Caddy ($now)"
+  else
+    warn "the website's Caddy is now at $now, the app trusts $trusted: run the installer again to update it"
+  fi
+}
+
+migrations() { compose "$1" exec -T postgres psql -U sbr -d sbr -tA -c 'SELECT count(*) FROM sbr.schema_migrations'; }
+
+cmd_update() {
+  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$ROLLBACK_DIR/$1"
+  [[ -n $ref ]] || die "usage: sbr update <git ref>"
+  info "Backup before the update: $(do_backup "$env")"
+  install -d -m 0700 "$dir"
+  compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump"
+  chmod 0600 "$dir/pre-update.dump"
+  printf 'PREVIOUS_IMAGE=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" "$(migrations "$env")" >"$dir/rollback.conf"
+  build_image "$(sed -n 's/^SBR_REPO=//p' "$SBR_ETC/install.conf")" "$ref"
+  sed -i "s|^SBR_IMAGE=.*|SBR_IMAGE=$SBR_IMAGE|" "$file"
+  sed -i "s|^SBR_REF=.*|SBR_REF=$ref|" "$SBR_ETC/install.conf"
+  compose "$env" up -d
+  wait_ready "$env"
+  info "Updated to $ref ($SBR_IMAGE). sbr rollback goes back to the previous image."
+}
+
+cmd_rollback() {
+  local env=$1 dir="$ROLLBACK_DIR/$1" file="$SBR_ETC/$1.env" PREVIOUS_IMAGE MIGRATIONS_BEFORE
+  [[ -f $dir/rollback.conf ]] || die "no update to roll back"
+  # shellcheck disable=SC1091
+  source "$dir/rollback.conf"
+  sed -i "s|^SBR_IMAGE=.*|SBR_IMAGE=$PREVIOUS_IMAGE|" "$file"
+  if (($(migrations "$env") > MIGRATIONS_BEFORE)); then
+    info "The update changed the database schema: restoring the dump taken before it."
+    compose "$env" stop app
+    compose "$env" exec -T postgres pg_restore -U sbr -d sbr --clean --if-exists --no-owner <"$dir/pre-update.dump"
+  fi
+  compose "$env" up -d
+  wait_ready "$env"
+  rm -f "$dir/rollback.conf"
+  info "Rolled back to $PREVIOUS_IMAGE."
+}
+
+cmd_restore() {
+  local env=$1 drill=0 file='' identity=''
+  shift
+  while (($#)); do
+    case $1 in
+      --drill) drill=1 ;;
+      --identity) identity=$2; shift ;;
+      *) file=$1 ;;
+    esac
+    shift
+  done
+  [[ -f $file ]] || die "usage: sbr restore [--drill] <file> [--identity <age key file>]"
+  if ((drill)); then do_drill "$file" "$identity"; else do_restore "$env" "$file" "$identity"; fi
+}
+
+cmd_admin() {
+  local env=$1 email name tty=()
+  [[ ${2:-} == create-super ]] || die "usage: sbr admin create-super"
+  email=${SBR_ADMIN_EMAIL_FLAG:-}
+  name=${SBR_ADMIN_NAME_FLAG:-}
+  ask email "Admin e-mail" "$(env_value "$SBR_ETC/$env.env" SBR_ADMIN_EMAIL)"
+  ask name "Admin display name (3–24 letters or digits)" admin
+  [[ -t 0 ]] || tty=(-T)
+  compose "$env" exec "${tty[@]}" app node dist/cli.js create-super --email "$email" --name "$name"
+}
+
+cmd_maintenance() {
+  case ${2:-} in
+    on) compose "$1" exec -T app touch /data/maintenance && info "maintenance on: no new matches; running ones finish" ;;
+    off) compose "$1" exec -T app rm -f /data/maintenance && info "maintenance off" ;;
+    *) die "usage: sbr maintenance on|off" ;;
+  esac
+}
+
+main() {
+  local env=''
+  while [[ ${1:-} == --* ]]; do
+    case $1 in
+      --env) env=$2; shift ;;
+      --email) SBR_ADMIN_EMAIL_FLAG=$2; shift ;;
+      --name) SBR_ADMIN_NAME_FLAG=$2; shift ;;
+      --yes) SBR_YES=1 ;;
+      *) break ;;
+    esac
+    shift
+  done
+  [[ $EUID -eq 0 ]] || die "run as root: sudo sbr $*"
+  env=${env:-$(sed -n 's/^SBR_ENV=//p' "$SBR_ETC/install.conf" 2>/dev/null)}
+  [[ -n $env && -f $SBR_ETC/$env.env ]] || die "no installation found (run ops/install.sh first)"
+  local command=${1:-}
+  shift || true
+  case $command in
+    status) cmd_status "$env" ;;
+    update) cmd_update "$env" "$@" ;;
+    rollback) cmd_rollback "$env" ;;
+    backup) info "Backup written: $(do_backup "$env")" ;;
+    restore) cmd_restore "$env" "$@" ;;
+    logs) compose "$env" logs -f --tail=200 "$@" ;;
+    admin) cmd_admin "$env" "$@" ;;
+    maintenance) cmd_maintenance "$env" "$@" ;;
+    *) usage; exit 2 ;;
+  esac
+}
+
+main "$@"

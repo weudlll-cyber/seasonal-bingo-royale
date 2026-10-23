@@ -21,6 +21,9 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 - Chat room `bingo` created by a website admin (§6)
 - Embeddable call view at a predictable URL per call, so the game can render it next to a match when the match carries `host_call_ref` (docs/spec/01-game-design.md §12a, docs/spec/07-integration-architecture.md §6a; consumed by WP-25b)
 
+- Import the bingo route into the website's Caddy: in deploy/site/Caddyfile, inside the `{$SITE_DOMAIN}` block, `import /etc/caddy/routes/*.caddy`, and mount `deploy/site/routes` into the caddy service at `/etc/caddy/routes` (the bingo installer writes `routes/bingo.caddy`'s content to `/opt/sbr/website-bingo.caddy`; ops/install.sh `--type website`)
+- Shared website login (jwt-handoff, docs/spec/07-integration-architecture.md §4) is still open: in website installs players use bingo's own accounts for now
+
 ### Optional inputs
 
 - App icon (PNG 512×512) and sounds (assets/README.md)

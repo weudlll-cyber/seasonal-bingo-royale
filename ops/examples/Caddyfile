@@ -1,0 +1,28 @@
+# @file   ops/examples/Caddyfile
+# @brief  Example: Seasonal Bingo Royale behind a Caddy you already run (no Caddy of its own).
+#
+# Responsibility: two ways to place the app — on its own (sub)domain, or under a path of an
+#                 existing site. reverse_proxy carries the WebSocket upgrade by itself. The
+#                 app must trust this Caddy (SBR_TRUSTED_PROXIES) and know its address
+#                 (SBR_PUBLIC_URL; SBR_BASE_PATH=/games/bingo/ for the path variant).
+#                 "app:3000" is the app's name on a shared Docker network; use 127.0.0.1:3000
+#                 when the app's port is published to the host instead.
+# Spec:           docs/spec/09-deployment-architecture.md §8
+
+# Own (sub)domain:
+bingo.example.org {
+	encode zstd gzip
+	@metrics path /metrics /metrics/*
+	respond @metrics 404
+	reverse_proxy app:3000
+}
+
+# Under a path of an existing site (what ops/install.sh --type website writes for the
+# Seasonal Entertainment website): inside that site's block, before its own reverse_proxy.
+example.org {
+	redir /games/bingo /games/bingo/ 308
+	handle /games/bingo/* {
+		reverse_proxy app:3000
+	}
+	reverse_proxy site:3800
+}
