@@ -9,7 +9,8 @@
  *                 intents a second overall, marks 4 a second, draw.next 2 a second (03 §13).
  *                 Intents: match.watch / match.unwatch (at most 3 match rooms), mark (players,
  *                 manual marking), draw.next, round.next (D14) and draw.setMode (the
- *                 match's creator with match.manage, D8).
+ *                 match's creator with match.manage, D8); `INTENT_TYPES` lists them all and
+ *                 any other `t` answers UNKNOWN_INTENT.
  * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ./gateway (types)
  * Used by:        ./gateway
  * Spec:           docs/spec/06-realtime-architecture.md §4.1, §8; docs/spec/03-security-architecture.md §13
@@ -45,6 +46,19 @@ const modeData = codeData.extend({
   intervalMs: z.number().int().min(1).max(3_600_000).optional(),
 });
 
+// Every intent the gateway takes; the authorization matrix test covers each of them.
+export const INTENT_TYPES = [
+  'match.watch',
+  'match.unwatch',
+  'mark',
+  'draw.next',
+  'round.next',
+  'draw.setMode',
+] as const;
+type IntentType = (typeof INTENT_TYPES)[number];
+const isIntentType = (t: string): t is IntentType =>
+  (INTENT_TYPES as readonly string[]).includes(t);
+
 const MAX_ROOMS = 3;
 const limits = new WeakMap<Socket, { all: RateLimiter; mark: RateLimiter; draw: RateLimiter }>();
 
@@ -61,17 +75,21 @@ function limiterFor(socket: Socket) {
   return l;
 }
 
+// 10 intents a second per socket; marks and host draws also have their own limit.
+function withinLimits(socket: Socket, t: string): boolean {
+  const l = limiterFor(socket);
+  const special = t === 'mark' ? l.mark : t === 'draw.next' ? l.draw : null;
+  return l.all.take('x').allowed && (special === null || special.take('x').allowed);
+}
+
 export async function handleIntent(ctx: IntentContext, raw: unknown): Promise<Answer> {
   const parsed = envelope.safeParse(raw);
   if (!parsed.success) return { ok: false, code: 'VALIDATION_FAILED' };
   const { t, seq, data } = parsed.data;
   if (seq <= ctx.data.lastSeq) return { ok: false, code: 'REPLAYED' };
   ctx.data.lastSeq = seq;
-  const l = limiterFor(ctx.socket);
-  const special = t === 'mark' ? l.mark : t === 'draw.next' ? l.draw : null;
-  if (!l.all.take('x').allowed || (special !== null && !special.take('x').allowed)) {
-    return { ok: false, code: 'RATE_LIMITED' };
-  }
+  if (!withinLimits(ctx.socket, t)) return { ok: false, code: 'RATE_LIMITED' };
+  if (!isIntentType(t)) return { ok: false, code: 'UNKNOWN_INTENT' };
   try {
     return await dispatch(ctx, t, data);
   } catch (error) {
@@ -82,7 +100,7 @@ export async function handleIntent(ctx: IntentContext, raw: unknown): Promise<An
   }
 }
 
-async function dispatch(ctx: IntentContext, t: string, data: unknown): Promise<Answer> {
+async function dispatch(ctx: IntentContext, t: IntentType, data: unknown): Promise<Answer> {
   switch (t) {
     case 'match.watch':
       return watch(ctx, codeData.parse(data).code);
@@ -110,8 +128,6 @@ async function dispatch(ctx: IntentContext, t: string, data: unknown): Promise<A
       const record = await ctx.deps.engine.setDrawControl(id, body.mode, body.intervalMs);
       return { ok: true, data: { settings: record.settings } };
     }
-    default:
-      return { ok: false, code: 'UNKNOWN_INTENT' };
   }
 }
 

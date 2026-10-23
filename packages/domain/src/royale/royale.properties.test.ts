@@ -4,7 +4,8 @@
  * @brief  Property tests for cuts and final ranking (12 §3 inv. 5, 7, 8).
  *
  * Responsibility: cuts never fall below `minSurvivors`, shield saves only add, no
- *                 eliminated player ever ranks above a survivor (invariant 7).
+ *                 eliminated player ever ranks above a survivor, under the count and the
+ *                 percent rule (invariant 7).
  *                 finalRanking is a total order 1..N over all entrants (invariant 8).
  *                 A pattern scores at most once per card per round (invariant 5): we
  *                 drive a classic round and look for duplicate (round, prize, account).
@@ -77,13 +78,14 @@ describe('cut invariant 7', () => {
     );
   });
 
-  it('no eliminated player is ranked above a non-shielded survivor', () => {
+  it('no eliminated player is ranked above a non-shielded survivor (count and percent rules)', () => {
     fc.assert(
       fc.property(
         uniqueCandidates(3, 30),
         fc.integer({ min: 1, max: 30 }),
-        (candidates, keepCount) => {
-          const rule = { keep: 'count' as const, value: keepCount, minSurvivors: 2 };
+        fc.constantFrom('count' as const, 'percent' as const),
+        (candidates, value, keep) => {
+          const rule = { keep, value: keep === 'percent' ? value * 3 : value, minSurvivors: 2 };
           const result = applyCut(candidates, rule);
           const ranked = [...candidates].sort(byTieBreakChain);
           const nonShieldSurvivors = result.survivors.filter(

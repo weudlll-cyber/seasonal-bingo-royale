@@ -21,12 +21,13 @@ import { captureLook, SHOTS_DIR } from './screens.js';
 
 const PASSWORD = 'correct horse battery staple';
 
-// Teardown: deletes the test account; nothing to do when it was never created.
+// Teardown: deletes the test account the test registered; a failed sign-in or deletion fails
+// the test, so no account is left behind unnoticed.
 async function deleteAccount(page: Page, email: string): Promise<void> {
   const login = await page.request.post('/api/v1/auth/login', {
     data: { email, password: PASSWORD },
   });
-  if (login.status() !== 200) return;
+  expect(login.status(), 'teardown signs in as the test account').toBe(200);
   const session = (await (await page.request.get('/api/v1/session')).json()) as {
     csrfToken: string | null;
   };
@@ -64,6 +65,7 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     missed: 'noAutoMark',
     maxPlayers: 6,
   });
+  let registered = false;
   try {
     await page.goto('/#/');
     await page.getByTestId('open-register').click();
@@ -73,6 +75,7 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     if (shots) await captureLook(page, SHOTS_DIR, 'register');
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
+    registered = true;
     await page.getByTestId('sign-out').click();
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
     if (shots) {
@@ -87,7 +90,7 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
   } finally {
     await stopMatch(host, code);
-    await deleteAccount(page, email);
+    if (registered) await deleteAccount(page, email);
   }
 });
 

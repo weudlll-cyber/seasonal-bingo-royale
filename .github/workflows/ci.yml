@@ -2,7 +2,8 @@
 # @module ci
 # @brief  CI: verify, security scans, docs links, browser tests and the container image.
 #
-# Responsibility: run what "pnpm verify" runs, the dependency/secret scans, the license
+# Responsibility: run what "pnpm verify" runs and the domain/application coverage, the
+#                 dependency/secret scans, the license
 #                 check of the production dependencies and the markdown link check on every
 #                 push; on the way to master also the Playwright suite in three browsers
 #                 and the image build, scan and size check. Any red job blocks merge.
@@ -40,6 +41,8 @@ jobs:
       - uses: ./.github/actions/setup
       # The same script developers run locally: format check, lint, typecheck, tests.
       - run: pnpm verify
+      # Domain and application coverage against the thresholds in vitest.config.ts (12 §2).
+      - run: pnpm test:coverage
 
   security:
     runs-on: ubuntu-latest

@@ -173,9 +173,15 @@ describe('draw control and limits', () => {
 });
 
 describe('teardown (LOOK-1)', () => {
-  it('aborts every match the suite left in the lobby or running', async () => {
+  it('aborts every match left in the lobby or running', async () => {
+    // A match of its own, so the test does not depend on what ran before it.
+    const code = await kit.createMatch('host');
+    const own = await kit.harness.pool.query<{ id: string }>(
+      'SELECT id FROM sbr.matches WHERE code = $1',
+      [code],
+    );
     const stopped = await stopOpenMatches(kit.harness);
-    expect(stopped.length).toBeGreaterThan(0);
+    expect(stopped).toContain(own.rows[0]?.id);
     const open = await kit.harness.pool.query(
       `SELECT 1 FROM sbr.matches WHERE status IN ('lobby', 'running')`,
     );

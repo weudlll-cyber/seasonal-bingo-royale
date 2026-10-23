@@ -9,13 +9,15 @@
  *                 the session; login is rate-limited per account+IP; guests get watch-only
  *                 permissions; the dev quick sign-in gives dev-host `match.create` and reuses
  *                 accounts; a production build has no dev sign-in; with e-mail verification
- *                 on, unverified accounts cannot sign in.
- * Depends on:     vitest, ./harness, fastify
+ *                 on, unverified accounts cannot sign in. Each test creates the accounts it
+ *                 needs (any order works) and they are removed at the end.
+ * Depends on:     vitest, ./harness, fastify, ../src/auth/accounts
  * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
 
 let harness: Harness;
@@ -25,6 +27,11 @@ beforeAll(async () => {
   harness = await startHarness();
 }, SUITE_TIMEOUT_MS);
 afterAll(async () => {
+  // Every account a test registered goes again (the dev accounts stay).
+  const made = await harness.pool.query<{ id: string }>(
+    "SELECT id FROM sbr.accounts WHERE email LIKE '%@example.com'",
+  );
+  for (const row of made.rows) await deleteAccount(harness.pool, row.id);
   await stopHarness(harness);
 }, SUITE_TIMEOUT_MS);
 
@@ -49,6 +56,17 @@ async function session(cookie: string) {
 
 const strong = 'correct horse battery staple';
 
+// An account of this test's own (registered directly, past the per-address limit); its
+// e-mail is <name>@example.com.
+async function account(name: string): Promise<string> {
+  await registerAccount(harness.pool, {
+    email: `${name}@example.com`,
+    displayName: name,
+    password: strong,
+  });
+  return `${name}@example.com`;
+}
+
 describe('local accounts and sessions', () => {
   it('registers, sets the session cookie and reports the session with a CSRF token', async () => {
     const r = await post('/api/v1/auth/register', {
@@ -66,6 +84,7 @@ describe('local accounts and sessions', () => {
   });
 
   it('refuses weak passwords and a taken e-mail or name with one generic answer', async () => {
+    await account('cara');
     const weak = await post('/api/v1/auth/register', {
       email: 'bob@example.com',
       displayName: 'bob',
@@ -79,13 +98,13 @@ describe('local accounts and sessions', () => {
     });
     expect(common.json()).toMatchObject({ reason: 'tooCommon' });
     const sameMail = await post('/api/v1/auth/register', {
-      email: 'ANN@example.com',
-      displayName: 'ann2',
+      email: 'CARA@example.com',
+      displayName: 'cara2',
       password: strong,
     });
     const sameName = await post('/api/v1/auth/register', {
-      email: 'ann2@example.com',
-      displayName: 'ANN',
+      email: 'cara2@example.com',
+      displayName: 'CARA',
       password: strong,
     });
     expect(sameMail.statusCode).toBe(409);
@@ -95,8 +114,9 @@ describe('local accounts and sessions', () => {
 
 describe('login, CSRF and limits', () => {
   it('answers a wrong password and an unknown e-mail alike', async () => {
+    const email = await account('dora');
     const wrong = await post('/api/v1/auth/login', {
-      email: 'ann@example.com',
+      email,
       password: 'not the password',
     });
     const unknown = await post('/api/v1/auth/login', {
@@ -106,12 +126,13 @@ describe('login, CSRF and limits', () => {
     expect(wrong.statusCode).toBe(401);
     expect(unknown.statusCode).toBe(401);
     expect(unknown.json()).toEqual(wrong.json());
-    const ok = await post('/api/v1/auth/login', { email: 'ann@example.com', password: strong });
+    const ok = await post('/api/v1/auth/login', { email, password: strong });
     expect(ok.statusCode).toBe(200);
   });
 
   it('requires the CSRF token for logout, then ends the session', async () => {
-    const login = await post('/api/v1/auth/login', { email: 'ann@example.com', password: strong });
+    const email = await account('erin');
+    const login = await post('/api/v1/auth/login', { email, password: strong });
     const cookie = cookieOf(login);
     expect((await post('/api/v1/auth/logout', {}, { cookie })).statusCode).toBe(403);
     const { csrfToken } = await session(cookie);
@@ -230,13 +251,14 @@ describe('development accounts', () => {
   });
 
   it('refuses unverified accounts when e-mail verification is switched on', async () => {
+    const email = await account('finn');
     const flagged = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       SBR_FEATURE_EMAIL_VERIFICATION: 'true',
     });
     const r = await flagged.fastify.inject({
       method: 'POST',
       url: '/api/v1/auth/login',
-      payload: { email: 'ann@example.com', password: strong },
+      payload: { email, password: strong },
     });
     expect(r.json()).toEqual({ code: 'EMAIL_NOT_VERIFIED' });
     await flagged.fastify.close();

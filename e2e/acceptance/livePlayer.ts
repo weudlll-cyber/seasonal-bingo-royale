@@ -5,11 +5,12 @@
  *
  * Responsibility: each number drawn on the player's card is in turn tapped at once (inside
  *                 the speed window), tapped late, or missed on purpose. A late tap under
- *                 "leave open" comes after the window and must mark without bonus (or be
- *                 refused once the round is over); under "mark after 3 s" it comes at 2 s. A
- *                 missed number must stay open under "leave open" for as long as its round
- *                 runs, and be marked for the player within a few seconds under "mark after
- *                 3 s". The server decides every mark; the screen shows the server's marks.
+ *                 "leave open" comes after the window, under "mark after 3 s" at 2 s; either
+ *                 way it must mark (only a round that ended meanwhile excuses it). A missed
+ *                 number must stay open under "leave open" for as long as its round runs;
+ *                 under "mark after 3 s" it is marked for the player, not before about 3 s
+ *                 and within a few seconds. The server decides every mark; the screen shows
+ *                 the server's marks.
  * Depends on:     @playwright/test, ./liveSnap
  * Used by:        ./realGame.spec.ts, ./ownerRules
  * Spec:           docs/spec/01-game-design.md §6 (D9, D10)
@@ -36,18 +37,30 @@ export interface LivePlayer {
   hits: number;
   pending: Pending[];
   readonly missTimings: number[];
+  // Numbers tapped inside their window, with the round (index in the server's log); a
+  // round's last number among them is a D10 tap.
+  readonly insideTaps: { readonly value: number; readonly round: number }[];
   // The draw already planned (ticker length and number): a later check of the same draw,
   // e.g. while the match waits for its host after a cut, must not tap it again.
   lastDraw: string | null;
 }
 
 export function newPlayer(page: Page, who: string, missed: LivePlayer['missed']): LivePlayer {
-  return { page, who, missed, hits: 0, pending: [], missTimings: [], lastDraw: null };
+  return {
+    page,
+    who,
+    missed,
+    hits: 0,
+    pending: [],
+    missTimings: [],
+    insideTaps: [],
+    lastDraw: null,
+  };
 }
 
 // A new number is on screen: plan what this player does with it, if it is on the card
-// (once per draw).
-export async function onNewDraw(p: LivePlayer, s: LiveSnap): Promise<void> {
+// (once per draw). `round` is the round's index in the server's log.
+export async function onNewDraw(p: LivePlayer, s: LiveSnap, round: number): Promise<void> {
   const draw = `${String(s.ticker.length)}:${String(s.item)}`;
   if (draw === p.lastDraw) return;
   p.lastDraw = draw;
@@ -61,6 +74,7 @@ export async function onNewDraw(p: LivePlayer, s: LiveSnap): Promise<void> {
       p.page.getByTestId(cell.testId),
       `${p.who} tapped ${String(s.item)}`,
     ).toHaveAttribute('data-marked', 'true', { timeout: 4_000 });
+    p.insideTaps.push({ value: s.item, round });
     return;
   }
   p.pending.push({ testId: cell.testId, value: s.item, drawnAt: s.at, plan, done: false });
@@ -94,20 +108,23 @@ async function lateTap(
   if (marked) return;
   await p.page.getByTestId(item.testId).click();
   const feedback = p.page.getByTestId('card-feedback');
+  const outcome = async (): Promise<string> => {
+    const text = await feedback.innerText().catch(() => '');
+    if (text.startsWith('Round over')) return 'round over';
+    const now = await p.page
+      .getByTestId(item.testId)
+      .getAttribute('data-marked')
+      .catch(() => null);
+    return now === 'true' ? 'marked' : 'open';
+  };
+  // A late tap marks (without bonus); only a round that ended meanwhile refuses it.
   await expect
-    .poll(
-      async () => {
-        const text = await feedback.innerText().catch(() => '');
-        const now = await p.page
-          .getByTestId(item.testId)
-          .getAttribute('data-marked')
-          .catch(() => null);
-        return now === 'true' || text.startsWith('Round over') || text.startsWith('Not marked');
-      },
-      { timeout: 4_000 },
-    )
-    .toBe(true);
+    .poll(outcome, { timeout: 4_000, message: `${p.who}: late tap on ${String(item.value)}` })
+    .not.toBe('open');
 }
+
+// How much later than the server's draw a screen may notice it (poll and render).
+const SEEN_LATE_MS = 1_500;
 
 function checkMiss(p: LivePlayer, item: Pending, elapsed: number, marked: boolean): void {
   if (p.missed === 'noAutoMark') {
@@ -115,6 +132,11 @@ function checkMiss(p: LivePlayer, item: Pending, elapsed: number, marked: boolea
     return;
   }
   if (marked) {
+    // Not before the 3 s (less the time this screen may have seen the draw late).
+    expect(
+      elapsed,
+      `${p.who}: missed ${String(item.value)} not marked early`,
+    ).toBeGreaterThanOrEqual(3_000 - SEEN_LATE_MS);
     p.missTimings.push(elapsed);
     item.done = true;
   } else {
