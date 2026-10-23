@@ -17,6 +17,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
+import { maintenanceFlag } from '../config/maintenance.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
@@ -94,6 +95,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     engine: match.engine,
     store: match.store,
     dev: isDev,
+    maintenance: maintenanceFlag(deps.env.SBR_DATA_DIR),
   });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,

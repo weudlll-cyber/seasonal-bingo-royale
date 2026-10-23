@@ -72,11 +72,11 @@ With an IP address instead of a domain, Caddy uses an internal CA / self-signed 
 |---|---|
 | `sbr status` | Containers, version, health, last backup |
 | `sbr update <version>` | Verify signature, take a backup, pull, migrate, rolling restart (app down < 10 s; running realtime matches resume from the event log) |
-| `sbr rollback` | Previous image + restore of the pre-update backup if migrations changed the schema |
-| `sbr backup` / `sbr restore <file>` | Manual backup / restore |
+| `sbr rollback` | Previous image + restore of the pre-update database dump (kept unencrypted, root only, in `/var/lib/sbr/<env>/`, replaced by the next update) if migrations changed the schema |
+| `sbr backup` / `sbr restore <file>` | Manual backup / restore; an encrypted backup needs the operator's age key file (`--identity <file>`), which never stays on the server |
 | `sbr logs [service]` | Follow logs |
 | `sbr admin create-super` | Break-glass super admin (audited) |
-| `sbr maintenance on|off` | Maintenance page; no new matches start, running ones finish |
+| `sbr maintenance on|off` | A flag file in the app's data volume (`/data/maintenance`), read at most every 2 s: creating and starting matches answer 503 `MAINTENANCE`; running ones finish. The maintenance page in the client is still open. |
 
 ## 5. Bootstrap and first start
 

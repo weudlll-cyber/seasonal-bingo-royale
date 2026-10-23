@@ -4,7 +4,7 @@
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
  * Responsibility: GET /matches (open, running and recent matches), POST /matches
- *                 (match.create), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews),
+ *                 (match.create; 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews),
  *                 POST /matches/:code/join (match.join), and for the match's creator with
  *                 match.manage: /start (countdown), /draw-next, PUT /draw-mode, /abort;
  *                 POST /matches/:code/marks is the fallback for clients without a socket.
@@ -14,6 +14,7 @@
  * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
+import type { MaintenanceCheck } from '../../config/maintenance.js';
 import type { MatchEngine } from '@sbr/application';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -29,6 +30,8 @@ export interface MatchRouteDeps {
   readonly engine: MatchEngine;
   readonly store: PgMatchStore;
   readonly dev: boolean;
+  // `sbr maintenance on`: no new match is created or started (../../config/maintenance).
+  readonly maintenance: MaintenanceCheck;
 }
 
 export function requirePermission(
@@ -90,6 +93,7 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (accountId === null) return reply;
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
+    if (deps.maintenance()) return reply.status(503).send({ code: 'MAINTENANCE' });
     // The fast test profile exists in development builds only.
     if (parsed.data.testProfile !== undefined && !deps.dev) {
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });

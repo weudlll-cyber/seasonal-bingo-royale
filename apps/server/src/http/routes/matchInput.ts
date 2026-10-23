@@ -7,7 +7,7 @@
  *                 prizes, draw mode and seconds, missed numbers, leaderboard switch, max
  *                 players, pause between royale rounds, and in development the fast test
  *                 profile), its mapping to the engine's CreateMatchInput, and the status
- *                 code for each MatchError (404 unknown match, 409 wrong phase, 422 the rest).
+ *                 code for each MatchError (404 unknown match, 409 wrong phase, 503 maintenance, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application
  * Used by:        ./matches, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §5; docs/spec/11-admin-panel.md §3.2
@@ -71,6 +71,8 @@ export function sendEngineError(reply: FastifyReply, error: unknown): FastifyRep
   if (error instanceof z.ZodError) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
   if (error instanceof MatchNotFound) return reply.status(404).send({ code: 'NOT_FOUND' });
   if (error instanceof MatchError) {
+    // `sbr maintenance on`: try again later.
+    if (error.code === 'MAINTENANCE') return reply.status(503).send({ code: error.code });
     return reply.status(CONFLICT.has(error.code) ? 409 : 422).send({ code: error.code });
   }
   throw error;

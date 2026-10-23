@@ -8,7 +8,8 @@
  *                 the bot fill and the system-abort route all answer 404 (or refuse the fast
  *                 profile); an organizer signs in with a password. An app under
  *                 /games/bingo/ answers /healthz, /readyz and the client's index.html there
- *                 and opens the WebSocket on /games/bingo/ws for its public origin.
+ *                 and opens the WebSocket on /games/bingo/ws for its public origin. While the
+ *                 maintenance flag file exists, no match is created or started (503).
  * Depends on:     vitest, socket.io-client, node:fs, ./harness, ../src/auth/accounts
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/08-devops-architecture.md §4
  */
@@ -23,6 +24,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { App } from '../src/index.js';
 import { registerAccount } from '../src/auth/accounts.js';
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { signIn } from './session.js';
 
 let harness: Harness;
 
@@ -128,5 +130,33 @@ describe('under a base path (website installs, 09 §1)', () => {
     expect(await handshake('/ws')).not.toBe('UNAUTHORIZED');
     await app.fastify.close();
     rmSync(web, { recursive: true, force: true });
+  }, 60_000);
+});
+
+describe('maintenance (sbr maintenance on, 09 §4)', () => {
+  it('refuses a new match and a start while the flag file exists', async () => {
+    const data = mkdtempSync(path.join(tmpdir(), 'sbr-data-'));
+    const app = await buildOn(harness.pool, harness.container.getConnectionUri(), {
+      SBR_DATA_DIR: data,
+    });
+    const host = await signIn(app.fastify, 'host');
+    const match = {
+      title: 'm',
+      gameType: 'royale',
+      drawMode: 'host',
+      missedNumbers: { kind: 'noAutoMark' },
+      maxPlayers: 8,
+    };
+    const { code } = (await host.post('/api/v1/matches', match)).json<{ code: string }>();
+    await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
+    writeFileSync(path.join(data, 'maintenance'), '');
+    // The app looks at the file at most every 2 seconds.
+    await new Promise((resolve) => setTimeout(resolve, 2_100));
+    expect((await host.post('/api/v1/matches', match)).json()).toEqual({ code: 'MAINTENANCE' });
+    const start = await host.post(`/api/v1/matches/${code}/start`, {});
+    expect([start.statusCode, start.json()]).toEqual([503, { code: 'MAINTENANCE' }]);
+    await host.post(`/api/v1/matches/${code}/abort`, { reason: 'test cleanup' });
+    await app.fastify.close();
+    rmSync(data, { recursive: true, force: true });
   }, 60_000);
 });

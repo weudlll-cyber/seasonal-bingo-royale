@@ -4,7 +4,7 @@
  * @brief  Host routes of a match: start, draw next, draw mode, abort, bots; the mark fallback.
  *
  * Responsibility: only the match's creator with `match.manage` runs it (05 §3, 06 §4.1):
- *                 POST /start (10-second countdown), /draw-next (host mode, D8, D13),
+ *                 POST /start (10-second countdown; 503 MAINTENANCE while the flag is on), /draw-next (host mode, D8, D13),
  *                 /next-round (when the match waits for the host, D14), PUT
  *                 /draw-mode { mode, intervalMs } at any time, POST /auto-start { auto }
  *                 while the match waits to start (D16), POST /abort { reason }.
@@ -16,6 +16,7 @@
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/06-realtime-architecture.md §4.1; docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { MatchError } from '@sbr/application';
 import { START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
@@ -70,9 +71,10 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
       }
     });
   };
-  host('/api/v1/matches/:code/start', async (id) => ({
-    startsAt: await deps.engine.start(id, START_COUNTDOWN_MS),
-  }));
+  host('/api/v1/matches/:code/start', async (id) => {
+    if (deps.maintenance()) throw new MatchError('MAINTENANCE');
+    return { startsAt: await deps.engine.start(id, START_COUNTDOWN_MS) };
+  });
   host('/api/v1/matches/:code/draw-next', (id) => deps.engine.drawNext(id));
   host('/api/v1/matches/:code/next-round', (id) => deps.engine.startNextRound(id));
   host('/api/v1/matches/:code/draw-mode', async (id, request) => {
