@@ -60,7 +60,7 @@ Triggers: push on every branch, pull requests to `master`, tags.
 | `lint` | ESLint (incl. boundaries, max-lines, unused variables), Prettier check, `tsc --noEmit` (all packages) | yes |
 | `unit` | Vitest for `domain`, `application`, `contracts`, clients; coverage thresholds (§ [12-testing-strategy.md](12-testing-strategy.md)) | yes |
 | `integration` | Vitest + Testcontainers Postgres for `server` | yes |
-| `e2e` | Build, start stack in Compose, Playwright smoke suite (Chromium + Firefox + WebKit mobile viewport) | yes on PR to `master` |
+| `e2e` | Build, start stack in Compose, Playwright smoke suite (Chromium + Firefox + WebKit mobile viewport); runs on every push and pull request, so a branch is green in the browser before it is merged (decided 2026-10-23); traces of failed tests are kept as an artifact for a week | yes |
 | `security` | `pnpm audit --prod`, osv-scanner, gitleaks, CodeQL (scheduled + PR), license check | yes (high/critical) |
 | `image` | Docker build, Trivy scan, size budget (≤ 250 MB) | yes on PR to `master` |
 | `docs` | Markdown link check, OpenAPI generation succeeds, file-header check in docs index | yes |
