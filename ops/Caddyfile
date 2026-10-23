@@ -10,6 +10,8 @@
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3
 {
 	email {$SBR_ACME_EMAIL}
+	# Clients send no SNI to a bare IP address (browsers neither): use the site's certificate.
+	default_sni {$SBR_SITE_ADDRESS}
 }
 
 {$SBR_SITE_ADDRESS} {

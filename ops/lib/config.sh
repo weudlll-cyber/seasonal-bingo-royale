@@ -83,9 +83,10 @@ EOF
 # install_files <source dir of ops/>: the stack files and the CLI into /opt/sbr.
 install_files() {
   local from=$1 name
-  for name in compose.yml compose.website.yml Caddyfile; do
+  for name in compose.yml compose.website.yml; do
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
+  put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
   for name in common.sh host.sh website.sh config.sh backup.sh; do
     put_file "$SBR_ROOT/lib/$name" 0644 <"$from/lib/$name"
   done

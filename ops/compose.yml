@@ -9,7 +9,7 @@
 #                 on 80/443. Website installs (ops/compose.website.yml on top) publish no
 #                 port: the app joins the website's network and its Caddy forwards
 #                 /games/bingo to it. Logs rotate at 5 × 10 MB per service.
-# Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile
+# Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4
 #
@@ -86,7 +86,8 @@ services:
       - '443:443'
       - '443:443/udp'
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The folder, not the file: a rewritten Caddyfile is then visible to `caddy reload`.
+      - ./caddy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

@@ -150,6 +150,10 @@ main() {
   info "Starting the stack"
   run compose "$SBR_ENV" up -d --remove-orphans
   [[ $SBR_DRY_RUN == 1 ]] || wait_ready "$SBR_ENV"
+  # A changed Caddyfile takes effect without a restart; an unchanged one changes nothing.
+  if [[ $SBR_TYPE == standalone ]]; then
+    run compose "$SBR_ENV" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+  fi
   install_backup_units "$SBR_ENV"
   next_steps
 }

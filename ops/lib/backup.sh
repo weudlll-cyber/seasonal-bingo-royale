@@ -81,7 +81,9 @@ do_drill() {
   work=$(mktemp -d)
   unpack "$1" "$2" "$work"
   docker run -d --rm --name "$name" -e POSTGRES_USER=sbr -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=sbr "$PG_IMAGE" >/dev/null
-  trap 'docker rm -f "$name" >/dev/null 2>&1; rm -rf "$work"' RETURN
+  # Values expanded now: the trap runs after this function's locals are gone.
+  # shellcheck disable=SC2064
+  trap "docker rm -f '$name' >/dev/null 2>&1; rm -rf '$work'" RETURN
   until docker exec "$name" pg_isready -U sbr -d sbr >/dev/null 2>&1; do sleep 1; done
   sleep 2
   docker exec -i "$name" pg_restore -U sbr -d sbr --no-owner <"$work/db.dump"

@@ -56,13 +56,13 @@ snippet_steps() {
   local target="$SBR_ROOT/website-bingo.caddy"
   cat <<EOF
 Add bingo to the website's Caddy (once, on this server):
-  1. In the website checkout, create deploy/site/routes/ and copy $target into it as bingo.caddy.
-  2. In deploy/site/Caddyfile, inside the {\$SITE_DOMAIN} { … } block, add the line:
-       import /etc/caddy/routes/*.caddy
-  3. In deploy/site/docker-compose.yml, give the caddy service the volume:
-       - ./routes:/etc/caddy/routes:ro
-  4. Apply it:  cd <website checkout>/deploy/site && docker compose up -d caddy
-     (a later change to bingo.caddy only needs:  docker exec $(website_caddy) caddy reload --config /etc/caddy/Caddyfile)
-  Then open https://$SBR_WEBSITE_DOMAIN/games/bingo/
+     a. In the website checkout, create deploy/site/routes/ and copy $target into it as bingo.caddy.
+     b. In deploy/site/Caddyfile, inside the {\$SITE_DOMAIN} { … } block, add the line:
+          import /etc/caddy/routes/*.caddy
+     c. In deploy/site/docker-compose.yml, give the caddy service the volume:
+          - ./routes:/etc/caddy/routes:ro
+     d. Apply it:  cd <website checkout>/deploy/site && docker compose up -d caddy
+        (a later change to bingo.caddy only needs:  docker exec $(website_caddy) caddy reload --config /etc/caddy/Caddyfile)
+     Then open https://$SBR_WEBSITE_DOMAIN/games/bingo/
 EOF
 }
