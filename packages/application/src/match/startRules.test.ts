@@ -127,7 +127,8 @@ describe('start when full and the time limits (01 §7.6)', () => {
       ...base,
       startRule: { kind: 'at' as const, at: clock.t + ms, auto: false },
     });
-    await expect(engine.create(at(5_000), null)).rejects.toEqual(
+    // One minimum for form and server (01 §7.6): at least a minute ahead.
+    await expect(engine.create(at(30_000), null)).rejects.toEqual(
       new MatchError('START_TIME_INVALID'),
     );
     await expect(engine.create(at(8 * 24 * 3_600_000), null)).rejects.toEqual(

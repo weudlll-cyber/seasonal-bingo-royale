@@ -26,7 +26,7 @@ Spec: 08 §3–§4, 03 §18. `ci.yml` (lint, unit, integration placeholder, secu
 Accept: CI green on push; image < 250 MB; Trivy clean. Owner sees: —
 
 **WP-03 Server skeleton and database**
-Spec: 02 §3, §7; 04 §1, §6; 05 §1; 08 §1.1. Fastify server bound to **127.0.0.1:3900** with env validation, Pino, problem-details, helmet headers, `/healthz`, `/readyz`, `/metrics`; Drizzle setup, migration runner, migrations for roles/permissions/settings tables; serves a placeholder lobby page that shows the dev badge "Bingo · dev · 3900" (badge compiled out in production).
+Spec: 02 §3, §7; 04 §1, §6; 05 §1; 08 §1.1. Fastify server bound to **127.0.0.1:3900** with env validation, Pino, problem-details, helmet headers, `/healthz`, `/readyz`, `/metrics`; node-postgres and an own migration runner (built instead of the planned Drizzle setup), migrations for roles/permissions/settings tables; serves a placeholder lobby page that shows the dev badge "Bingo · dev · 3900" (badge compiled out in production).
 Accept: integration test boots against Testcontainers Postgres; header test passes. Owner sees: placeholder lobby page at `http://localhost:3900`.
 
 ### Phase 1 — Game rules

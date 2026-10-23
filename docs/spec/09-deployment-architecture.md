@@ -33,7 +33,7 @@ Reference host: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS (e.g. the owner�
 - **On the Seasonal Entertainment website** the game is not a separate site: the website’s reverse proxy forwards `/games/bingo/` (HTTP and WebSocket) to the bingo app, which runs with `SBR_BASE_PATH=/games/bingo` and without its own Caddy (the installer's website type, §3). Both apps can share one VPS; they keep separate databases and containers.
 - The image (`Dockerfile`) holds the server bundle, its npm dependencies and the built player client (relative paths, so one build serves at `/` or under any base path); `/admin` answers a placeholder until the admin app exists (WP-19). It runs as uid 10001 on a read-only root filesystem with `/tmp` in memory and one writable volume at `/data`. A production build registers no development route (quick sign-in, load accounts, Quick Test, fast test rules, bot fill, system-abort route). The development code itself stays out of the shipped bundles: the server build replaces `src/dev/*` and the Quick Test and dev sign-in routes with a stub (`apps/server/build.mjs`), and the client loads the Quick Test and the dev sign-in menu only behind Vite's DEV flag; `apps/server/test/productionBundle.test.ts` builds both and fails on any development marker. Settings: `SBR_BASE_PATH` (`/` or `/games/bingo/`; routes, `/healthz`, `/readyz`, the client and the WebSocket `…/ws` all live under it), `SBR_PUBLIC_URL` (its origin may open the WebSocket unless `SBR_ALLOWED_ORIGINS` says otherwise), `SBR_TRUSTED_PROXIES` (the proxy whose `X-Forwarded-For` is believed), `DATABASE_URL`, `SBR_SEED_KEY`.
 - `/metrics` is never reachable from outside: the app answers 404 to any request that came through a proxy (`X-Forwarded-For`), and the standalone Caddyfile and the website snippet answer 404 for the path themselves.
-- Optional Compose profiles: `observability` (Prometheus, Grafana, Loki), `mail` (Mailpit for staging).
+- Optional Compose profiles (planned, not in `ops/compose.yml` yet): `observability` (Prometheus, Grafana, Loki), `mail` (Mailpit for staging). Built: `standalone` (Caddy).
 
 ## 2. Files on the server
 
@@ -68,7 +68,7 @@ The script (idempotent, re-runnable):
 3. **Asks** for the environment name (`prod`/`staging`), the public address (standalone: domain or IP; website: taken from the website's `SITE_DOMAIN`), the admin e-mail, optional SMTP settings, and the operator’s `age` public key for backups.
 4. Generates secrets with `openssl rand`, writes `/etc/sbr/<env>.env` (atomically: written beside it and renamed).
 5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
-6. Runs `migrate`, then starts the stack, waits for `/readyz`.
+6. Starts the stack and waits for `/readyz`; there is no separate migrate step: the app applies pending migrations on start (checksummed, `apps/server/src/db/migrator.ts`) and does not answer ready before.
 7. The first admin is created with `sbr admin create-super` (password asked inside the app container, never echoed or logged; roles `super_admin` and `organizer`). The one-time **bootstrap token** and the page `https://<host>/admin/setup?token=…` where the first `super_admin` sets password and 2FA wait for the admin app (WP-19).
 8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 100 MB per service, spec 08 §6); prints the next steps (website: the snippet and how to add it to the website's Caddyfile; firewall; how to pull backups).
 
@@ -79,12 +79,12 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 | Command | Does |
 |---|---|
 | `sbr status` | Containers, version, health, last backup |
-| `sbr update <version>` | Verify signature, take a backup, pull, migrate, rolling restart (app down < 10 s; running realtime matches resume from the event log) |
+| `sbr update <version>` | Planned with release images: verify signature, take a backup, pull, migrate, rolling restart (app down < 10 s; running realtime matches resume from the event log). Built today: `sbr update <git ref>` takes a backup and a plain pre-update dump, builds the image from the ref on the server, restarts (the app migrates on start) and prunes images nothing uses |
 | `sbr confirm` | The update works: deletes the plain pre-update dump and the rollback data; app images no environment uses or can roll back to are pruned |
 | `sbr rollback` | Takes a backup of the current state, asks (`--yes` skips it), sets the previous image and ref back and, if migrations changed the schema, empties the schema (`DROP SCHEMA sbr CASCADE`) and restores the pre-update dump in one transaction that stops at the first error (dump kept unencrypted, root only, in `/var/lib/sbr/<env>/`, written whole or not at all, deleted by `sbr confirm` or the rollback). Data written since the update is then lost, except in the backup taken first |
 | `sbr backup` / `sbr restore <file>` | Manual backup / restore; an encrypted backup needs the operator's age key file (`--identity <file>`), which never stays on the server. A restore asks first and refuses another environment's backup (by file name) unless `--force-env`; database restore as in `sbr rollback` |
 | `sbr logs [service]` | Follow logs |
-| `sbr admin create-super` | Break-glass super admin (audited) |
+| `sbr admin create-super` | Break-glass super admin; the audit entry follows with the `audit_log` table (WP-19), not written yet |
 | `sbr maintenance on|off` | A flag file in the app's data volume (`/data/maintenance`), read at most every 2 s: creating and starting matches answer 503 `MAINTENANCE`; running ones finish. The maintenance page in the client is still open. |
 
 ## 5. Bootstrap and first start
@@ -96,7 +96,7 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 
 - systemd timer `sbr-backup@<env>.timer` at 03:30 local runs `sbr --env <env> backup`: `pg_dump -Fc` + tar of the uploads volume (read by a helper container) → `age -r <operator key>` → `/var/backups/sbr/<env>/sbr-<env>-<timestamp>.tar.age`, written as `.partial` and renamed when complete; the plain dump lives in a work folder removed on exit, also after an error, and any failing step fails the run. Retention: the 14 newest, plus the newest of each of the 8 weeks before them. Folders 0750 and files 0640, group `sbr-backup`.
 - Pull to the operator’s own computer: `ops/pull-backups.sh` (Linux and macOS, rsync over SSH: each file under a temporary name, renamed when complete) or `ops/pull-backups.ps1` (Windows, scp over the built-in OpenSSH: each file to `<name>.part`, size-checked against the server, then renamed), run by the operator on their machine as a user in the group `sbr-backup` (no root login); only files not there yet are copied; no backup yet is a plain message. The operator holds the only private key.
-- Optional WAL archiving profile for 15-minute RPO.
+- Optional WAL archiving profile for 15-minute RPO (planned).
 - Monthly restore drill: `sbr restore --drill <file>` restores into a temporary container (removed on exit; readiness wait capped at 60 s) and counts migrations, accounts, matches and events.
 
 ## 7. Staging on the same VPS (planned)
@@ -110,7 +110,7 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 |---|---|
 | Any Linux server with Docker | Same install script. |
 | Behind an existing reverse proxy (nginx, Traefik) | The website install type is this case for the Seasonal Entertainment website; for any other proxy the operator proxies `/` and `/ws` with WebSocket upgrade and sets `SBR_TRUSTED_PROXIES` (and `SBR_BASE_PATH` under a path). Example configs in `ops/examples/` (nginx, an existing Caddy). |
-| Managed Postgres (cloud) | Set `DATABASE_URL`; disable the `postgres` service with the `external-db` profile. |
+| Managed Postgres (cloud) | Planned: set `DATABASE_URL` and disable the `postgres` service with an `external-db` profile (not in `ops/compose.yml` yet). |
 | Kubernetes (future) | `ops/k8s/` Helm chart planned at scale step 2: Deployment (app, HPA on CPU), Job (migrate), Ingress with WebSocket support, Secret from external secret store, Redis, managed Postgres, S3-compatible bucket for uploads. The image and env contract are already identical, so no app change is needed beyond the Redis adapters. |
 
 ## 9. Hardening checklist for the operator (in `docs/operator-guide.md`)

@@ -89,7 +89,7 @@ Roles are bundles of permissions; code checks **permissions**, never role names.
 
 | Threat | Control |
 |---|---|
-| SQL injection | Drizzle query builder / parameterized SQL only. Raw SQL allowed only in migrations and in a reviewed `sql/` folder with tagged templates. ESLint rule forbids string-concatenated SQL. App DB role has no DDL rights. |
+| SQL injection | Parameterized SQL only (`pg` placeholders `$1…`). Raw SQL allowed only in migrations and in a reviewed `sql/` folder with tagged templates. ESLint rule forbids string-concatenated SQL. App DB role has no DDL rights. |
 | XSS | React escaping; `dangerouslySetInnerHTML` banned by lint. Chat messages are plain text with a whitelist mini-markup rendered client-side (no HTML from users ever). Strict CSP (§7). Trusted Types enabled in the admin app. |
 | Command / path injection | No shell execution from request paths. Upload storage paths are server-generated UUIDs. |
 | Deserialization | JSON only, parsed with size limits, then zod-validated; prototype pollution prevented (`Object.create(null)` maps; Fastify’s `onProtoPoisoning: 'error'`). |
@@ -193,7 +193,7 @@ Account lockout is **soft** (delay), never a hard lock that an attacker could us
 | RTO (max downtime) | 2 h on a fresh VPS using the install script + restore |
 
 - Nightly `pg_dump` (custom format) + uploads directory → tarball → `age`-encrypted with the operator’s public key → kept 14 daily / 8 weekly on the server and **pulled to the operator’s own machine** by a documented script (pull, not push: the server holds no credentials to the operator’s machine).
-- Restore drill script (`ops/restore-drill.sh`) restores the latest backup into a throw-away container and runs a smoke check; to be run monthly.
+- Restore drill: `sbr restore --drill <file>` restores a backup into a throw-away container and counts what came back ([09](09-deployment-architecture.md) §6); to be run monthly.
 - Running matches survive a process restart (event log). A host failure aborts running realtime matches; on restore, async matches resume from the last event and missed draws are performed in order (with a configurable max catch-up).
 - Business continuity: the operator guide lists the minimum steps — new VPS, run install script, restore backup, update DNS.
 

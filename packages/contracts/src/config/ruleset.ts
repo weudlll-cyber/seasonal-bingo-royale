@@ -52,8 +52,9 @@ export const DEFAULT_ROUND_PAUSE_MS = 6_000;
 export const MIN_ROUND_PAUSE_MS = 3_000;
 
 // Start rules (01 §7.6): the countdown the players see before the first round, and how far
-// ahead a set start time may lie.
+// ahead a set start time may lie (at least a minute, at most a week; form and server alike).
 export const START_COUNTDOWN_MS = 10_000;
+export const MIN_START_AHEAD_MS = 60_000;
 export const MAX_START_AHEAD_MS = 7 * 24 * 60 * 60_000;
 
 const DrawsSchema = z.object({

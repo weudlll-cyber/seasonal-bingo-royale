@@ -206,6 +206,8 @@ With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) →
 
 Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**. The royale default rulesets use multiplier 1 in every stage; the multiplier stays configurable per ruleset.
 
+**Stage multiplier (D11, decided 2026-10-21):** every stage of the royale defaults has `stageMultiplier` 1, so a point is worth the same in every stage; a ruleset may still set another factor per stage (0.1–10).
+
 ### 7.3 Round-end conditions (one per round)
 
 | Condition | Round ends when … |
@@ -378,7 +380,7 @@ BACKLOG; website: embeddable call view).
 - A match ended without a result (cancelled by its host or by the system) shows its own end page to host and players (D17): the title, “This match was cancelled by the host.” or “… by the system.”, the reason in plain words, “Back to the lobby” for everyone and “Host another match” for the host. The live arena (“Waiting for the first number”, empty standings) is never shown for an ended match; the lobby lists a cancelled match as “Cancelled” with a link to that page.
 - The match header's progress line names the stage, round and draw during a round (“Battle royale · stage 1 (qualification) · round 1 · draw 12”); in the pause after a round it names the ended round with its own stage (“… · round 1 over”) and, once the next stage has begun, that stage as next (“… · stage 2 (elimination) next”). Every dropdown option of the create form is fully readable on a 390 px phone; options leave out what their legend already says (“Draws” → “Timed (every 5 seconds)”).
 - The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only, Draw next for host draws only. Draw next keeps 4.5:1 contrast enabled and disabled. The host console shows the same progress line (stage, round, draw) and LIVE badge as the players, with the match log above the standings.
-- A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby leaves stopped matches out.
+- A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby lists open and running matches and, for a day after their end, finished ones (“Finished”, opening their result) and cancelled ones (“Cancelled”, opening their end page, D17), newest first.
 - The top bar is sticky from 640 px wide; on phones it scrolls away with the page, the theme toggle sits beside the brand, and the account row wraps rather than cutting the account chip. With a mouse the page column keeps its width whether or not a scrollbar shows.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.

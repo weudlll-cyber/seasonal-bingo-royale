@@ -63,7 +63,30 @@ Commands (state change) and queries (read) are separate handlers in `application
 | GET | `/matches/:code/verify` | Verification bundle (seed, ruleset document, card IDs, draw list) after finish |
 | GET | `/me/matches` | Caller’s current and past matches |
 
-Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/marks` with `{ roundId, cardId, cell }` exists for clients without WS; same validation.
+Manual marks go over WebSocket (low latency). A fallback `POST /matches/:code/marks` exists for clients without WS; same validation (built with `{ cardIndex, cell }`, §2.3a).
+
+### 2.3a Matches as built (first draft)
+
+The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Token` on every write). The host's routes live under the match for now; the admin-route layout of §3 follows with the admin app (WP-19).
+
+| Method | Path | Body | Who |
+|---|---|---|---|
+| GET | `/matches` | — | anyone: open and running matches, and those ended in the last day |
+| POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }` | `match.create` |
+| GET | `/matches/:code` | — | anyone: the summary (`youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, …) |
+| GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta |
+| POST | `/matches/:code/join` | `{}` | `match.join` |
+| POST | `/matches/:code/marks` | `{ cardIndex, cell }` | `match.join`: the tap without a socket |
+| POST | `/matches/:code/start` | `{}` | the match's host (`match.manage`, created it) |
+| POST | `/matches/:code/draw-next` | `{}` | the host |
+| POST | `/matches/:code/next-round` | `{}` | the host, while the match waits for them (D14) |
+| POST | `/matches/:code/draw-mode` | `{ mode: "auto" \| "host", intervalMs? }` | the host |
+| POST | `/matches/:code/auto-start` | `{ auto }` | the host, before the start (D16) |
+| POST | `/matches/:code/abort` | `{ reason }` | the host |
+| POST | `/matches/:code/bots` · `/matches/:code/dev-system-abort` | `{ upTo }` · `{ reason }` | development builds only |
+| DELETE | `/me` | `{ password }` | the signed-in account |
+
+Answers are `{ code }` on error (problem+json follows with the contracts work): `VALIDATION_FAILED` (400), `SIGN_IN_REQUIRED` (401), `FORBIDDEN`, `NOT_YOUR_MATCH`, `CSRF_INVALID`, `PASSWORD_REQUIRED` (403), `NOT_FOUND` (404), `MATCH_NOT_IN_LOBBY`, `MATCH_FULL`, `DRAW_MODE_AUTO`, `DRAW_NOT_ALLOWED`, `DRAW_TOO_EARLY`, `NOT_WAITING_FOR_HOST`, `NO_START_TIME` (409), `NOT_ENOUGH_PLAYERS`, `START_TIME_INVALID`, `INVALID_PRIZES`, `MARK_REJECTED` (422), `JSON_REQUIRED` (415), `RATE_LIMITED` (429), `MAINTENANCE` (503, `sbr maintenance on`).
 
 ### 2.4 Leaderboards
 

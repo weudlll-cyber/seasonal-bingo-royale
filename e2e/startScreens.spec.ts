@@ -82,14 +82,15 @@ async function shoot(shots: boolean, pages: [Page, string, string?][]): Promise<
   }
 }
 
-// An automatic start 12 s ahead with nobody in: the match waits and the console says so.
+// An automatic start a minute ahead (the shortest allowed) with nobody in: the match waits
+// and the console says so.
 async function checkTooFew(host: Page, player: Page, shots: boolean): Promise<string> {
-  const rule = { kind: 'at', at: Date.now() + 12_000, auto: true } as const;
+  const rule = { kind: 'at', at: Date.now() + 62_000, auto: true } as const;
   const code = await openMatch(host, player, rule, false);
   await host.goto(`/#/host/${code}`);
   await expect(host.getByTestId('host-too-few')).toHaveText(
     'Not enough players at the start time — start it yourself or abort.',
-    { timeout: 20_000 },
+    { timeout: 90_000 },
   );
   await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'lobby');
   await player.goto(`/#/match/${code}`);

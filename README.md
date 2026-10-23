@@ -2,7 +2,7 @@
 
 Multiplayer Bingo with battle-royale elimination and the four Seasonal Tokens seasons as a core mechanic. Realtime and asynchronous play, standalone or embedded in a host website.
 
-**Status:** specification complete; Quick Test on master; a first draft of the real game and a one-command VPS installer on branches (`feat/real-game-draft`, `feat/vps-install`), not merged yet.
+**Status:** specification complete; Quick Test on master; a first draft of the real game, a one-command VPS installer and the fixes of the 2026-10-23 audit on branches (`feat/real-game-draft`, `feat/vps-install`, `chore/audit-1`), not merged yet.
 
 Quick start: Node 22+ and pnpm, then `pnpm install` and `pnpm verify`. Details: [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -13,3 +13,7 @@ Quick start: Node 22+ and pnpm, then `pnpm install` and `pnpm verify`. Details: 
 - Working rules for Claude Code: [CLAUDE.md](CLAUDE.md) · unattended runs on the development machine (not for servers): [docs/NIGHT-RUN.md](docs/NIGHT-RUN.md)
 
 No prizes of monetary value exist in this game — players compete for placements and leaderboard rank.
+
+## License
+
+Copyright (C) 2026 weudlll-cyber. Licensed under the GNU Affero General Public License v3.0 or later ([LICENSE](LICENSE)). The Seasonal Tokens icons, logo and font come from the Seasonal Entertainment website project ([assets/README.md](assets/README.md)).

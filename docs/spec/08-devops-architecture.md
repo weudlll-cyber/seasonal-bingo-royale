@@ -102,7 +102,7 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 ## 7. Dependency and patch policy
 
 - Renovate weekly grouped PRs; security PRs immediately.
-- Major version upgrades of core building blocks (Node, React, Fastify, Socket.IO, Drizzle, Vitest) are done **before** a release goes live, not right after (same principle as the owner set for the race project on 2026-10-18).
+- Major version upgrades of core building blocks (Node, React, Fastify, Socket.IO, node-postgres, Vitest) are done **before** a release goes live, not right after (same principle as the owner set for the race project on 2026-10-18).
 - Base image rebuilt weekly even without code changes (OS patches) → patch release.
 
 ## 8. Developer experience

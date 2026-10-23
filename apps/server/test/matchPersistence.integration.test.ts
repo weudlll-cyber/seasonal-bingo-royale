@@ -214,7 +214,8 @@ describe('start at a set time across a restart', () => {
   it('starts the match itself at its time on a server that came up after it was set', async () => {
     const a = harness.built;
     const host = await signIn(a.fastify, 'host');
-    const at = Date.now() + 11_000;
+    // At least a minute ahead (01 §7.6).
+    const at = Date.now() + 61_000;
     const created = await host.post('/api/v1/matches', {
       title: 'Set time',
       gameType: 'classic',
@@ -247,7 +248,7 @@ describe('start at a set time across a restart', () => {
       at,
       auto: true,
     });
-    const until = Date.now() + 40_000;
+    const until = Date.now() + 90_000;
     while ((await status()) !== 'running' && Date.now() < until) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -255,5 +256,5 @@ describe('start at a set time across a restart', () => {
     await b.fastify.close();
     expect(await status()).toBe('running');
     expect(Date.now()).toBeGreaterThanOrEqual(at);
-  }, 120_000);
+  }, 180_000);
 });

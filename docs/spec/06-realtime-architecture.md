@@ -48,7 +48,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 |---|---|---|
 | `match.watch` | `{ code }` | Join `match:<id>` room (permission: public match or participant). Returns state snapshot seq. |
 | `match.unwatch` | `{ code }` | |
-| `mark` | `{ roundId, cardId, cell }` | Manual mode only. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
+| `mark` | `{ code, cardIndex, cell }` (planned: `{ roundId, cardId, cell }`) | Manual mode only; rejected with `MARK_REJECTED`. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
@@ -56,7 +56,11 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `round.next` | `{ code }` | The host starts the next royale round while the match waits for it (01 §7.1, D14); permission `match.manage`; rejected with `NOT_WAITING_FOR_HOST` otherwise |
 | `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
+Built in the first draft: `match.watch`, `match.unwatch`, `mark`, `draw.next`, `round.next`, `draw.setMode`; an unknown `t` answers `UNKNOWN_INTENT`, a repeated or out-of-order `seq` `REPLAYED`, a fourth watched match `TOO_MANY_ROOMS`. `chat.*` and `presence.ping` follow with chat (WP-17) and asynchronous matches (WP-14).
+
 ### 4.2 Server → client events
+
+Planned message set; the first draft sends the committed events as `events` frames and record changes as `match` frames (§4), which the client folds into the same screens.
 
 | `t` | Room | Data |
 |---|---|---|

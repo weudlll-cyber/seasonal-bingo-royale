@@ -3,17 +3,19 @@
  * @module server/http
  * @brief  Host routes of a match: start, draw next, draw mode, abort, bots; the mark fallback.
  *
- * Responsibility: only the match's creator with `match.manage` runs it (05 §3, 06 §4.1):
- *                 POST /start (10-second countdown; 503 MAINTENANCE while the flag is on), /draw-next (host mode, D8, D13),
- *                 /next-round (when the match waits for the host, D14), PUT
- *                 /draw-mode { mode, intervalMs } at any time, POST /auto-start { auto }
- *                 while the match waits to start (D16), POST /abort { reason }.
+ * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1),
+ *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 503 MAINTENANCE
+ *                 while the flag is on), POST /draw-next (host mode, D8, D13), POST
+ *                 /next-round (when the match waits for the host, D14), POST /draw-mode
+ *                 { mode, intervalMs } at any time, POST /auto-start { auto } while the
+ *                 match waits to start (D16), POST /abort { reason }.
  *                 Development builds add POST /bots { upTo } to fill the lobby with bots and
  *                 POST /dev-system-abort { reason } to end a match as the system (D17).
  *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
  * Depends on:     fastify, zod, ./matches, ./matchInput, @sbr/application, @sbr/contracts
  * Used by:        ./matches
- * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/06-realtime-architecture.md §4.1; docs/spec/11-admin-panel.md §3.2
+ * Spec:           docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1;
+ *                 docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MatchError } from '@sbr/application';

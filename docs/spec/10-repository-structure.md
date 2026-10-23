@@ -4,6 +4,8 @@
 
 ## 1. Layout
 
+Paths marked *(planned)* do not exist yet; they arrive with the work package that needs them.
+
 ```
 seasonal-bingo-royale/
 ├─ README.md                    What it is, quick start, links
@@ -18,63 +20,68 @@ seasonal-bingo-royale/
 ├─ .vscode/                     extensions.json, launch.json, settings.json
 ├─ .github/
 │  ├─ workflows/                ci.yml, release.yml, codeql.yml
-│  ├─ ISSUE_TEMPLATE/  PULL_REQUEST_TEMPLATE.md (contains the review checklist)
-│  └─ CODEOWNERS
+│  ├─ actions/setup/            shared job setup (pnpm, Node, install)
+│  ├─ PULL_REQUEST_TEMPLATE.md  (contains the review checklist)
+│  └─ ISSUE_TEMPLATE/  CODEOWNERS (planned)
 ├─ assets/                      Source brand assets as delivered (see assets/README.md)
 │  ├─ README.md                 Asset manifest: file → purpose → size → licence note
 │  ├─ seasons/                  spring.svg, summer.svg, autumn.svg, winter.svg (+ PNG fallbacks)
 │  ├─ brand/                    logo, wordmark, favicon sources
 │  ├─ fonts/                    Luxora Grotesk (WOFF2)
-│  └─ sounds/
+│  └─ sounds/                   (planned)
 ├─ packages/
 │  ├─ domain/                   Pure game rules — no I/O
 │  │  └─ src/
 │  │     ├─ card/               generateCard.ts, cardTypes.ts, patterns.ts
-│  │     ├─ draw/               drbg.ts, drawSequence.ts
+│  │     ├─ draw/               drbg.ts, drawSequence.ts, pool.ts
 │  │     ├─ scoring/            basePoints.ts, speedBonus.ts, patternScoring.ts
 │  │     ├─ seasons/            effectCatalog.ts, applyEffect.ts, seasonComplete.ts
-│  │     ├─ royale/             stagePlan.ts, cut.ts, tieBreak.ts, jackpot.ts, finalRanking.ts
-│  │     ├─ match/              matchState.ts, commands.ts, events.ts, decide.ts, evolve.ts
+│  │     ├─ royale/             cut.ts, jackpot.ts, finalRanking.ts (stage plan in match/stagePlan.ts)
+│  │     ├─ classic/            classicPlacement.ts, prizeCatalogue.ts
+│  │     ├─ match/              matchState.ts, commands.ts, events.ts, decide.ts, evolve.ts, simulate.ts, …
 │  │     └─ index.ts
 │  ├─ application/              Use cases + ports
 │  │  └─ src/
-│  │     ├─ ports/              Clock, Drbg, EventBus, MatchRepository, IdentityProvider, …
-│  │     ├─ match/              commands/*.ts, queries/*.ts
-│  │     ├─ identity/  config/  leaderboard/  chat/  notification/  audit/
+│  │     ├─ match/              engine.ts, flow.ts, runner.ts, create.ts, startRules.ts, ports.ts (Clock,
+│  │     │                      MatchStore, Scheduler, EventBus), fakes.ts
+│  │     ├─ identity/  config/  leaderboard/  chat/  notification/  audit/  (planned)
 │  │     └─ index.ts
 │  ├─ contracts/                Zod schemas shared by server and clients
-│  │  └─ src/  http/  ws/  config/ (ruleset + settings schemas, defaults/)  events/  errors.ts
+│  │  └─ src/  config/ (ruleset schema, prizes, defaults/)  view/ (the client view)
+│  │           http/  ws/  events/  errors.ts  (planned)
 │  └─ ui/                       Shared React components + design tokens (web + admin)
 ├─ apps/
 │  ├─ server/
 │  │  ├─ src/
-│  │  │  ├─ main.ts             composition root (wires adapters to ports)
-│  │  │  ├─ config/             env.ts
-│  │  │  ├─ http/               routes/<context>/*.ts, plugins/ (auth, csrf, rateLimit, problem)
-│  │  │  ├─ ws/                 gateway.ts, handlers/*.ts, rooms.ts
-│  │  │  ├─ db/                 schema/*.ts, repositories/*.ts, migrations/ (SQL)
-│  │  │  ├─ identity/           local/, oidc/, jwtHandoff/, sessions/
-│  │  │  ├─ scheduler/          pgScheduler.ts
-│  │  │  ├─ security/           crypto.ts, safeHttpClient.ts, uploads/, audit/
-│  │  │  ├─ notify/             mailer.ts, webPush.ts
-│  │  │  └─ cli/                createSuperAdmin.ts, …
+│  │  │  ├─ main.ts  cli.ts     composition root; operator commands (create-super)
+│  │  │  ├─ config/             env.ts, features.ts, seedKey.ts, maintenance.ts
+│  │  │  ├─ http/               app.ts, routes/*.ts, plugins/ (problem, security headers)
+│  │  │  ├─ auth/               accounts, passwords, sessions, session cookie, rate limits
+│  │  │  ├─ realtime/           gateway.ts, intents.ts, inOrder.ts
+│  │  │  ├─ match/              runtime, pgMatchStore, pgScheduler, codec, projections, retention
+│  │  │  ├─ view/               the client view built from the event log
+│  │  │  ├─ db/                 pool.ts, migrator.ts, migrations/ (SQL)
+│  │  │  ├─ dev/                Quick Test runner, fast test rulesets (development only)
+│  │  │  └─ identity/  security/  notify/  (planned: OIDC, JWT handoff, uploads, mail, push)
 │  │  └─ test/                  integration tests (Testcontainers)
 │  ├─ web/                      Player client (also the embed target)
-│  │  └─ src/  routes/  features/(lobby, match, leaderboard, profile, chat, auth)  embed/  strings.ts
-│  ├─ admin/                    Admin client
-│  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)
-│  └─ embed-loader/             embed.js (tiny, no deps)
+│  │  └─ src/  shell/ (frame, router, session)  game/ (lobby, match)  host/  account/
+│  │           components/ (Quick Test and shared views)  test/ (fixtures)
+│  │           leaderboard/  profile/  chat/  embed/  strings.ts  (planned)
+│  ├─ admin/                    Admin client (empty shell until WP-19)
+│  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)  (planned)
+│  └─ embed-loader/             embed.js (tiny, no deps; empty shell until WP-25)
 ├─ e2e/                         Playwright specs + fixtures
-├─ load/                        k6 scenarios
+├─ load/                        drawLatency.mjs (200-player check); k6 scenarios (planned)
 ├─ ops/
-│  ├─ install.sh  sbr  compose.yml  compose.dev.yml  Caddyfile
-│  ├─ backup/  restore-drill.sh  pull-backups.sh  pull-backups.ps1
-│  ├─ grafana/  prometheus/  examples/(nginx, traefik)
-│  └─ k8s/                      (placeholder README only until scale step 2)
+│  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.dev.yml  Caddyfile
+│  ├─ pull-backups.sh  pull-backups.ps1  (the restore drill is `sbr restore --drill`)
+│  ├─ examples/ (nginx, an existing Caddy)  notify.ps1 (development machine only)
+│  └─ grafana/  prometheus/  k8s/  (planned)
 └─ docs/
    ├─ spec/                     This specification (01–15)
-   ├─ adr/                      Architecture Decision Records (0001-modular-monolith.md, …)
-   ├─ onboarding.md             Developer onboarding
+   ├─ adr/  onboarding.md       (planned; CONTRIBUTING.md covers local work today)
+   ├─ NIGHT-RUN.md              Unattended runs on the development machine
    ├─ operator-guide.md         Install, update, backup, hardening
    ├─ code-review-checklist.md
    ├─ BACKLOG.md                Part one: open · Part two: closed (with what closed it)

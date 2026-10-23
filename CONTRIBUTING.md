@@ -11,6 +11,15 @@ pnpm install   # also installs the git hooks (lefthook)
 pnpm verify    # format check, lint, typecheck, tests
 ```
 
+## Run the game locally
+
+```sh
+docker compose --env-file ops/.env.dev.example -f ops/compose.dev.yml up -d   # PostgreSQL 5490, Mailpit 8490
+pnpm dev                                                                       # server 3900, player client 5390
+```
+
+Open http://localhost:5390. Development builds have a "Dev sign-in" menu (host, players 1–3; one sign-in per browser window, use a private window for a second person) and the Quick Test (play against bots). The server's development features need `SBR_DEV=1`, which `apps/server/dev.env` sets; it refuses to run with a public address. Browser tests: `pnpm e2e` uses a running `pnpm dev` or starts its own server and client on the same ports (restart `pnpm dev` after pulling server changes, or the tests run against the old code).
+
 ## Branching
 
 - `master` is always releasable.

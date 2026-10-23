@@ -20,6 +20,7 @@ import {
   classicSeasonsRealtimeDefault,
   DEFAULT_ROUND_PAUSE_MS,
   MIN_ROUND_PAUSE_MS,
+  MIN_START_AHEAD_MS,
   royaleRealtimeDefault,
   shortestDrawIntervalMs,
 } from '@sbr/contracts';
@@ -120,7 +121,7 @@ export type StartRuleChoice =
 export function toStartRule(c: StartRuleChoice, now: number) {
   if (c.kind !== 'at') return { kind: c.kind };
   const at = new Date(c.local).getTime();
-  return Number.isFinite(at) && at >= now + 60_000
+  return Number.isFinite(at) && at >= now + MIN_START_AHEAD_MS
     ? { kind: 'at' as const, at, auto: c.auto }
     : null;
 }

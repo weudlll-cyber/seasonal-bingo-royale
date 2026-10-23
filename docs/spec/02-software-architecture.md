@@ -44,7 +44,7 @@ packages/application   Use cases (commands + queries), ports (interfaces), DTOs.
                        Orchestrates domain + ports. No framework imports.
 packages/contracts     Zod schemas + inferred types shared by server and clients:
                        HTTP DTOs, WS messages, ruleset schema. The single source of truth for shapes.
-apps/server            Adapters: HTTP (Fastify), WS gateway (Socket.IO), Postgres repositories (Drizzle),
+apps/server            Adapters: HTTP (Fastify), WS gateway (Socket.IO), Postgres repositories (node-postgres `pg`, parameterized SQL),
                        identity adapters, scheduler, mailer, file storage, composition root.
 apps/web               Player client (React). Talks only through contracts.
 apps/admin             Admin client (React). Separate bundle, separate origin path, separate CSP.
@@ -135,7 +135,7 @@ Every v1 port that holds in-process state names its future Redis adapter in its 
 | HTTP framework | **Fastify 5** | Schema-first, fast, first-class TS, built-in hooks for auth and rate limit, good security plugins (helmet, cookie, csrf). | Express (no schema layer, slower), NestJS (heavy, decorators hide flow). |
 | Realtime | **Socket.IO 4** | Rooms, acknowledgements, reconnection with state recovery, Redis adapter for scale-out, works through restrictive networks. | Raw `ws` (would need to rebuild rooms/reconnect), SSE (one-directional). |
 | Database | **PostgreSQL 17** | Transactions + `SKIP LOCKED` scheduling, JSONB for rulesets, row-level safety, standard on every host and every managed cloud — needed for the Kubernetes/cloud requirement. | SQLite (single-node only; would force a migration later), MongoDB (weaker transactional guarantees for scoring). |
-| Data access | **Drizzle ORM + drizzle-kit migrations** | Typed SQL, parameterized by construction, plain SQL migrations reviewable in PRs. | Prisma (heavy engine binary, weaker raw SQL), raw `pg` (no types). |
+| Data access | **node-postgres (`pg`) with parameterized SQL, and an own migration runner** (built; replaced the planned Drizzle ORM + drizzle-kit) | Parameterized by construction, plain SQL migrations reviewable in PRs, checksummed so an applied migration cannot change (`apps/server/src/db/migrator.ts`); no ORM layer to learn or upgrade. | Prisma (heavy engine binary, weaker raw SQL), raw `pg` (no types). |
 | Cache | **In-process LRU** (v1), Redis 7 (scale step 1) | At 200 players a second service adds operations without benefit. | Redis from day one. |
 | Frontend | **React 19 + Vite + TypeScript**, **TanStack Query**, **Zustand** for live match state, **CSS Modules** + design tokens, **Motion** for animation | Same family as the owner’s other projects, fast builds, small runtime. | Next.js (SSR not needed for a game client, more server surface). |
 | Admin panel | **Separate React app** (same stack) with **React Hook Form + zod** forms generated from config schemas | Isolated bundle and CSP; forms derive from the same schemas the server validates. | Off-the-shelf admin (React-Admin/AdminJS: generic, harder to secure, another dependency tree). |

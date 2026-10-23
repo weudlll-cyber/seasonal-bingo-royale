@@ -3,7 +3,7 @@
  * @module application/match
  * @brief  How a match starts: the host's Start, a set time, or when every place is taken (01 §7.6).
  *
- * Responsibility: check a set start time (at least the countdown ahead, at most a week).
+ * Responsibility: check a set start time (at least a minute ahead, at most a week).
  *                 A set time is an announcement (D16): the host can always start; with the
  *                 automatic start on, the persistent scheduler (so a restart keeps it) runs
  *                 `auto_start` at the time, which begins the countdown when the ruleset's
@@ -14,7 +14,7 @@
  * Used by:        ./engine, ./flow, apps/server (summary), ../index
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
-import { MAX_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
+import { MAX_START_AHEAD_MS, MIN_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 
 import type { FlowDeps } from './flow.js';
 import type { LoadedMatch, StartRule } from './ports.js';
@@ -22,7 +22,7 @@ import type { LoadedMatch, StartRule } from './ports.js';
 // A set start time must leave room for the countdown and lie within a week.
 export function startTimeValid(rule: StartRule | undefined, now: number): boolean {
   if (rule?.kind !== 'at') return true;
-  return rule.at >= now + START_COUNTDOWN_MS && rule.at <= now + MAX_START_AHEAD_MS;
+  return rule.at >= now + MIN_START_AHEAD_MS && rule.at <= now + MAX_START_AHEAD_MS;
 }
 
 // Shows the countdown to `startsAt` and schedules the start then; a pending automatic
