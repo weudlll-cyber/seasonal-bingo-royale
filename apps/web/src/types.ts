@@ -38,7 +38,8 @@ export interface Card {
 export interface PlayerSummary {
   readonly accountId: string;
   readonly isOwner: boolean;
-  readonly card: Card;
+  // First-round card; null in a live match for every player but the viewer.
+  readonly card: Card | null;
   readonly place: number;
   readonly points: number;
   readonly seasonsActivated: number;

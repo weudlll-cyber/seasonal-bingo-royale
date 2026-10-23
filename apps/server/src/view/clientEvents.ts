@@ -47,6 +47,20 @@ export function renameAccounts(
   return mapAccounts(events, (id) => idMap.get(id) ?? id);
 }
 
+// What a live screen receives of an event (NIGHT-5): a round start without the round's
+// draw order (it would show the numbers still to come) and with the viewer's own cards
+// only — none for the host, spectators and room-wide frames (`viewer` null). Live screens
+// show no other player's card; the Quick Test keeps the whole event.
+export function liveEvent(event: DomainEvent, viewer: string | null): DomainEvent {
+  if (event.type !== 'roundStarted') return event;
+  const own = viewer === null ? undefined : event.cardsByPlayer[viewer];
+  return {
+    ...event,
+    drawSequence: [],
+    cardsByPlayer: viewer === null || own === undefined ? {} : { [viewer]: own },
+  };
+}
+
 // Every account id the events name (the gateway looks up their display names).
 export function accountIdsIn(events: readonly DomainEvent[]): Set<string> {
   const ids = new Set<string>();

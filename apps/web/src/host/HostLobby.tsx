@@ -10,9 +10,10 @@
  *                 automatically at the start time" (until the countdown runs) and, when the
  *                 automatic start found fewer than 2 players, "Not enough players at the
  *                 start time — start it yourself or abort"; Start match, which the host can
- *                 always press, or the countdown once it runs.
+ *                 always press, or the countdown once it runs; "Abort match" with a reason
+ *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).
  * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback, ../shell/http,
- *                 ./TimingFields
+ *                 ./TimingFields, ./AbortMatch
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3, §3
  */
@@ -23,6 +24,7 @@ import { RegistrationStatus } from '../game/Registration.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
+import { AbortMatch } from './AbortMatch.js';
 import { AutoStartBox } from './TimingFields.js';
 
 export function HostLobby({
@@ -62,6 +64,7 @@ export function HostLobby({
       ) : null}
       <StartControls match={live.match} call={call} />
       {message !== null ? <p className="lobby-error">{message}</p> : null}
+      <AbortMatch code={live.match.code} />
     </section>
   );
 }

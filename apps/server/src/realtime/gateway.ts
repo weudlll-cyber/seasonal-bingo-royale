@@ -7,7 +7,8 @@
  *                 handshake checks the Origin against the allowed list and loads the
  *                 session from the cookie (06 §2); without a live session the socket is
  *                 refused. Committed match events go to the room `match:<id>` as one frame
- *                 `{ s, events }` with the public event projection (the seed removed) and
+ *                 `{ s, events }` with the public event projection (the seed removed; a round
+ *                 start without cards and draw order, ../view/clientEvents liveEvent) and
  *                 every account renamed to its display name, as the state endpoint does (a
  *                 screen appends such events without fetching); record changes (status, start time,
  *                 draw control) go out as `match`. Intents arrive on `intent` and are
@@ -29,7 +30,7 @@ import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
-import { accountIdsIn, renameAccounts } from '../view/clientEvents.js';
+import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
 import { inOrder } from './inOrder.js';
 import { handleIntent, type IntentContext } from './intents.js';
 
@@ -83,7 +84,8 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   });
   const names = nameBook(deps.pool);
   deps.bus.subscribe((matchId, events) => {
-    const plain = events.map((e) => publicEvent(e.event));
+    // Room-wide frames carry no cards and no draw order; screens fetch their own view.
+    const plain = events.map((e) => liveEvent(publicEvent(e.event), null));
     void names(plain).then((book) => {
       const renamed = renameAccounts(plain, book);
       play.to(`match:${matchId}`).emit('events', {

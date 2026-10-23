@@ -5,7 +5,9 @@
  *
  * Responsibility: in a simulated 200-player royale, the full view and a delta with the
  *                 first round's start carry every player; a delta of draws and taps, or of a
- *                 later round start, carries no player list and stays small (the list was 169 of 175 KiB per screen and draw).
+ *                 later round start, carries no player list and stays small; a round start
+ *                 carries only the viewer's own cards (none for the host) and no draw order,
+ *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
  * Depends on:     vitest, @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/05-api-design.md §2.3
  */
@@ -19,7 +21,7 @@ import { simulateMatch } from '@sbr/domain';
 import { describe, expect, it } from 'vitest';
 
 import { LiveViews } from '../../view/liveViews.js';
-import { liveView } from './matchViews.js';
+import { liveView, matchSummary } from './matchViews.js';
 
 const sim = simulateMatch({
   matchId: 'm',
@@ -48,14 +50,15 @@ const record = {
   startsAt: null,
 };
 
-// The view of `me` with the events after `since`, the match at `seq`.
-async function viewSince(since: number, seq = stored.length) {
+// The view of `viewer` (a player, or the host who plays not) with the events after
+// `since`, the match at `seq`.
+async function viewSince(since: number, seq = stored.length, viewer: string | null = me) {
   const match = { record, state: sim.state, seq } as unknown as LoadedMatch;
   const views = new LiveViews({
     events: (_id, after) => Promise.resolve(stored.filter((e) => e.seq > after)),
     names: () => Promise.resolve({}),
   });
-  return liveView({ match, entry: await views.entryFor(match), me, since }).view;
+  return liveView({ match, entry: await views.entryFor(match), me: viewer, since }).view;
 }
 
 // How many players the view lists; null when it leaves the list out.
@@ -87,5 +90,45 @@ describe('the live view delta', () => {
     expect(view.events.length).toBeGreaterThan(0);
     expect('players' in view).toBe(false);
     expect(JSON.stringify(view).length).toBeLessThan(20_000);
+  });
+});
+
+describe('cards in a live view (NIGHT-5)', () => {
+  // The round start in a view: whose cards it carries and how many draws it announces.
+  async function roundStart(viewer: string | null) {
+    const second = seqOf('roundStarted', 2);
+    const view = await viewSince(second - 1, second, viewer);
+    const event = view.events.find((e) => e.type === 'roundStarted');
+    if (event?.type !== 'roundStarted') throw new Error('no round start');
+    return { owners: Object.keys(event.cardsByPlayer), draws: event.drawSequence.length, view };
+  }
+
+  it("gives a player only their own cards and not the round's draw order", async () => {
+    // A player still in the match in round 2.
+    const dealt = stored.find((e) => e.seq === seqOf('roundStarted', 2))?.event;
+    const survivor = dealt?.type === 'roundStarted' ? Object.keys(dealt.cardsByPlayer)[0] : '';
+    const { owners, draws, view } = await roundStart(survivor ?? '');
+    expect(owners).toEqual([survivor]);
+    expect(draws).toBe(0);
+    expect(JSON.stringify(view).length).toBeLessThan(10_000);
+  });
+
+  it('gives the host and spectators no cards', async () => {
+    expect((await roundStart(null)).owners).toEqual([]);
+  });
+
+  it("lists only the viewer's own first-round card", async () => {
+    const view = await viewSince(0);
+    if (!('players' in view)) throw new Error('no player list');
+    const withCard = view.players.filter((p) => p.card !== null).map((p) => p.accountId);
+    expect(withCard).toEqual([me]);
+  });
+});
+
+describe('the summary of an ended match (NIGHT-5)', () => {
+  it('says finished as soon as the event log has the finish, before the record follows', () => {
+    // The simulated match has finished; its record still says running.
+    const m = { record: { ...record, status: 'running' }, state: sim.state, seq: 1 };
+    expect(matchSummary(m as unknown as LoadedMatch, null).status).toBe('finished');
   });
 });

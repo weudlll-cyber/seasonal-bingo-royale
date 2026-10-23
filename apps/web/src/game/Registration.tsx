@@ -7,7 +7,8 @@
  *                 a start time "Registration open until the host starts the match"; with a
  *                 set time "Starts at 22:25 (in 12 min)" (with the day when it is not today),
  *                 counting down live, plus "starts automatically" or "the host starts it"
- *                 (D16); under "start when full" "N places left"; "Starting…" only while
+ *                 (D16), or once the automatic start found too few players "Waiting for
+ *                 players — at least 2 are needed to start"; under "start when full" "N places left"; "Starting…" only while
  *                 the real 10-second countdown runs. Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
  * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby
@@ -46,6 +47,8 @@ function whenText(at: number, now: number): string {
 
 export function registrationText(match: MatchSummary, now: number): string {
   if (match.startsAt !== null) return 'Starting…';
+  // The automatic start came and found too few players (D16): the match waits.
+  if (match.tooFewAtStart) return 'Waiting for players — at least 2 are needed to start';
   const rule = match.settings.startRule;
   if (rule.kind === 'at') {
     const seconds = Math.max(0, Math.ceil((rule.at - now) / 1000));

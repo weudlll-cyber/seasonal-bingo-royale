@@ -11,9 +11,9 @@
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
  *                 while the match waits for the host between rounds (D14), standings with active
  *                 players first, prizes awarded, the match log (newest first) with cut
- *                 results, and abort with a reason; at the end the final placement on top. Pause applies to asynchronous
+ *                 results, and abort with a reason (./AbortMatch); at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
- * Depends on:     react, ../playback, ../components/*, ../game/*, ../shell/http, ./HostDrawControls,
+ * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch, ./HostDrawControls,
  *                 ./HostLobby
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
@@ -33,8 +33,8 @@ import { gameTypeName, problemText, progressText, rulesLine, statusName } from '
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
-import { api } from '../shell/http.js';
 import { HostDrawControls } from './HostDrawControls.js';
+import { AbortMatch } from './AbortMatch.js';
 import { HostLobby } from './HostLobby.js';
 
 export function HostConsole({ code }: { readonly code: string }): ReactElement {
@@ -106,7 +106,7 @@ function HostLive({
         ) : null}
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
-        {running ? <Abort code={live.match.code} /> : null}
+        {running ? <AbortMatch code={live.match.code} /> : null}
       </section>
       {/* The log first, so a cut and its result are in view; at the end the final
           placement replaces the live standings. */}
@@ -146,35 +146,6 @@ function StartNextRound({
       </button>
       {note !== null ? <p className="lobby-error">{note}</p> : null}
     </section>
-  );
-}
-
-function Abort({ code }: { readonly code: string }): ReactElement {
-  const [reason, setReason] = useState('');
-  return (
-    <form
-      className="sbr-row"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void api(`/matches/${code}/abort`, { method: 'POST', body: { reason } });
-      }}
-    >
-      <input
-        className="sbr-input"
-        style={{ flex: '1 1 12rem' }}
-        placeholder="Reason (shown to players)"
-        value={reason}
-        minLength={3}
-        required
-        onChange={(e) => {
-          setReason(e.target.value);
-        }}
-        data-testid="abort-reason"
-      />
-      <button type="submit" className="sbr-btn sbr-btn--danger" data-testid="abort-match">
-        Abort match
-      </button>
-    </form>
   );
 }
 

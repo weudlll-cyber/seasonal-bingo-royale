@@ -3,7 +3,8 @@
  * @module server/http
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
- * Responsibility: the summary (code, title, game type, status, settings, player count,
+ * Responsibility: the summary (code, title, game type, status — finished or aborted as soon
+ *                 as the event log says so —, settings, player count,
  *                 prizes, countdown end, next round's start, when Draw next unlocks, whether
  *                 the match waits for its host or for players at its start time (D16),
  *                 creator, whether the viewer hosts it) and the live
@@ -14,7 +15,9 @@
  *                 `since` limits the events to those after a seq, so a client that already
  *                 holds the start of the log fetches only the rest; such a delta leaves out
  *                 the player list unless a join, the first round's start or the finish is
- *                 among its events (the client keeps the list it holds).
+ *                 among its events (the client keeps the list it holds). Round starts carry
+ *                 only the viewer's own cards and no draw order; the player list only the
+ *                 viewer's first-round card (NIGHT-5).
  * Depends on:     @sbr/application, ../../view/clientView, ../../view/liveViews (types)
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
@@ -22,6 +25,7 @@
 import { nextDrawAt, tooFewAtStart, waitingForHost, type LoadedMatch } from '@sbr/application';
 import type { DomainEvent } from '@sbr/domain';
 
+import { liveEvent } from '../../view/clientEvents.js';
 import { buildClientView } from '../../view/clientView.js';
 import type { LiveEntry } from '../../view/liveViews.js';
 
@@ -34,7 +38,7 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     code: r.code,
     title: r.title,
     gameType: r.gameType,
-    status: r.status,
+    status: statusOf(m),
     players: m.state.playerOrder.length,
     maxPlayers: r.maxPlayers,
     prizes: r.prizes,
@@ -51,6 +55,13 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     createdBy: r.createdBy,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
+}
+
+// The event log ends a match before the record's status follows (NIGHT-5: a fetch that
+// carried matchFinished still said "running" and put the console back to running).
+function statusOf(m: LoadedMatch): LoadedMatch['record']['status'] {
+  if (m.state.phase === 'finished' || m.state.phase === 'aborted') return m.state.phase;
+  return m.record.status;
 }
 
 export interface LiveViewInput {
@@ -92,15 +103,18 @@ export function liveView({ match: m, entry, me, since }: LiveViewInput) {
     idMap,
     owners,
     replay,
+    ownCardsOnly: true,
   });
-  const events = view.events.slice(since);
+  // The viewer's own cards and no draw order in round starts (../../view/clientEvents).
+  const viewer = owner === null ? null : (idMap.get(owner) ?? owner);
+  const events = view.events.slice(since).map((e) => liveEvent(e, viewer));
   const withPlayers = since === 0 || events.some(changesPlayers);
   const { players, ...rest } = view;
   return {
     match: matchSummary(m, me),
     seq: replay.length,
     since,
-    me: owner === null ? null : (idMap.get(owner) ?? owner),
+    me: viewer,
     view: withPlayers ? { ...rest, players, events } : { ...rest, events },
   };
 }

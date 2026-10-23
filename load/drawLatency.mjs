@@ -6,7 +6,8 @@
                 load players (dev sign-in `load-NNN`), let them join one royale match with
                 timed draws (fast test profile, 4 s), connect N sockets that watch the match
                 and, like the player screen, append other players' taps and fetch the new
-                events for everything else (one fetch at a time); every
+                events for everything else (one fetch at a time; a round start brings the
+                player's own cards and the size of that fetch is recorded); every
                 fifth player taps its drawn numbers. For every draw and socket it records
                 the time from the server's draw event (`at` in the frame) to its arrival,
                 and to the end of that screen's fetch; it samples the server's CPU, memory
@@ -158,7 +159,15 @@ function connectPlayer(player, code, record) {
         const covered = waiting;
         waiting = [];
         const fetched = await call(player, 'GET', `/matches/${code}/state?since=${String(since)}`);
-        if (fetched !== null) since = Math.max(since, fetched.seq);
+        if (fetched !== null) {
+          since = Math.max(since, fetched.seq);
+          // The player's own cards come with its view of a round start (frames carry none).
+          const start = fetched.view.events.findLast((e) => e.type === 'roundStarted');
+          if (start !== undefined) {
+            card = start.cardsByPlayer[player.name]?.[0] ?? null;
+            record.roundStartBytes.push(JSON.stringify(fetched).length);
+          }
+        }
         const now = Date.now();
         for (const d of covered) record.fetch.push(now - d.at);
       } while (waiting.length > 0);
@@ -170,9 +179,6 @@ function connectPlayer(player, code, record) {
   socket.on('events', async (frame) => {
     const arrived = Date.now();
     const draws = frame.events.filter((e) => e.event.type === 'drawMade');
-    for (const e of frame.events) {
-      if (e.event.type === 'roundStarted') card = e.event.cardsByPlayer[player.name]?.[0] ?? null;
-    }
     for (const d of draws) record.frame.push(arrived - d.at);
     if (frame.events[0]?.s === since + 1 && appendable(frame, player.name)) since = frame.s;
     else fetchNew(draws);
@@ -214,7 +220,7 @@ async function main() {
   const players = await inBatches(ids, 20, signIn);
   players.forEach((p, i) => (p.tapper = i % TAPPER_EVERY === 0));
   await inBatches(players, 20, (p) => call(p, 'POST', `/matches/${code}/join`, {}));
-  const record = { frame: [], fetch: [], rounds: 0, finished: false };
+  const record = { frame: [], fetch: [], roundStartBytes: [], rounds: 0, finished: false };
   const sockets = await inBatches(players, 25, (p) => connectPlayer(p, code, record));
   const server = watchServer();
   await call(host, 'POST', `/matches/${code}/start`, {});
@@ -236,6 +242,8 @@ async function main() {
         finished: record.finished,
         frameLatencyMs: summary(record.frame),
         screenReadyMs: summary(record.fetch),
+        // The size of a screen's fetch that brought a round start (its own cards).
+        roundStartFetchBytes: summary(record.roundStartBytes),
         serverCpuPercent: {
           avg: cpu.reduce((a, b) => a + b, 0) / Math.max(1, cpu.length),
           max: Math.max(...cpu),

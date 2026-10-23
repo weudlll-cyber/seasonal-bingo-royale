@@ -8,7 +8,8 @@
  *                 time" (off unless ticked) and refuses one less than a minute ahead; the
  *                 console of a match with a set time offers Start match and the switch,
  *                 which sends the change; it shows "Not enough players at the start time —
- *                 start it yourself or abort" when the automatic start found too few.
+ *                 start it yourself or abort" when the automatic start found too few, with
+ *                 the line "Waiting for players …" and "Abort match" in the lobby.
  * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./createForm, ./HostConsole,
  *                 ./TimingFields, ../matchFixture
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
@@ -86,12 +87,20 @@ describe('the console with a set start time (D16)', () => {
     expect(screen.queryByTestId('host-too-few')).toBeNull();
   });
 
-  it('says when the automatic start found too few players', async () => {
-    serveMatch(announced({ players: 1, tooFewAtStart: true }, true));
+  it('says when the automatic start found too few players, and offers abort', async () => {
+    const fetch = serveMatch(announced({ players: 1, tooFewAtStart: true }, true));
     await show(<HostConsole code="MATCH1" />);
     expect(screen.getByTestId('host-too-few').textContent).toBe(
       'Not enough players at the start time — start it yourself or abort.',
     );
+    expect(screen.getByTestId('host-start-rule').textContent).toBe(
+      'Waiting for players — at least 2 are needed to start',
+    );
     expect(screen.getByTestId('start-match')).toBeTruthy();
+    fireEvent.change(screen.getByTestId('abort-reason'), { target: { value: 'Nobody came' } });
+    fireEvent.click(screen.getByTestId('abort-match'));
+    const calls = fetch.mock.calls as [string, RequestInit | undefined][];
+    const sent = calls.find(([url]) => url.endsWith('/matches/MATCH1/abort'));
+    expect(sent?.[1]?.body).toBe(JSON.stringify({ reason: 'Nobody came' }));
   });
 });

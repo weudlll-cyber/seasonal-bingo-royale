@@ -77,8 +77,9 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
         {
           accountId: p.accountId,
           isOwner: p.isOwner,
-          cards: [p.card],
-          marks: [freeMarks(p.card)],
+          // Live screens get only their own cards; other players start with none.
+          cards: p.card === null ? [] : [p.card],
+          marks: p.card === null ? [] : [freeMarks(p.card)],
           points: 0,
           seasonsActivated: 0,
           seasons: [],

@@ -71,7 +71,10 @@ export async function fillAndStart(host: Page, upTo: number): Promise<void> {
   await expect(host.getByTestId('bots-up-to')).toBeVisible();
   await host.getByTestId('bots-up-to').fill(String(upTo));
   await host.getByTestId('fill-bots').click();
-  await expect(host.getByTestId('host-players').locator('li')).toHaveCount(upTo);
+  // Each bot joins on its own; under a full run 8 of them can take longer than 5 s.
+  await expect(host.getByTestId('host-players').locator('li')).toHaveCount(upTo, {
+    timeout: 20_000,
+  });
   await host.getByTestId('start-match').click();
   await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'running', {
     timeout: 20_000,

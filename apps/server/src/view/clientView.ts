@@ -36,8 +36,9 @@ import {
 export interface ClientPlayer {
   readonly accountId: string;
   readonly isOwner: boolean;
-  // First-round card; the client follows later rounds through roundStarted events.
-  readonly card: Card;
+  // First-round card; the client follows later rounds through roundStarted events. Null in
+  // a live view for every player but the viewer (live screens show only their own cards).
+  readonly card: Card | null;
   readonly place: number;
   readonly points: number;
   readonly seasonsActivated: number;
@@ -81,6 +82,8 @@ export interface ClientViewInput {
   // The live view passes its per-match replay (all players, already extended); otherwise
   // one is built from `events` for the owners.
   readonly replay?: LiveReplay;
+  // Live views: only the owners' first-round cards (the Quick Test shows bots' cards too).
+  readonly ownCardsOnly?: boolean;
 }
 
 export function buildClientView(input: ClientViewInput): ClientView {
@@ -95,7 +98,10 @@ export function buildClientView(input: ClientViewInput): ClientView {
     return {
       accountId: idMap.get(accountId) ?? accountId,
       isOwner: owners.has(accountId),
-      card: replay.firstCards.get(accountId) ?? EMPTY_CARD,
+      card:
+        input.ownCardsOnly === true && !owners.has(accountId)
+          ? null
+          : (replay.firstCards.get(accountId) ?? EMPTY_CARD),
       place: placeByAccount.get(accountId) ?? 0,
       points: p?.points ?? 0,
       seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
