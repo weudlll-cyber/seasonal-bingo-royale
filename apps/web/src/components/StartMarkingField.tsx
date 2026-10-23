@@ -10,7 +10,7 @@
  *                 Labels never use the word "auto" alone, so they cannot be confused
  *                 with the draw control.
  * Depends on:     react, ../types
- * Used by:        ./StartForm; MissedField also by ../host/CreateMatch
+ * Used by:        ./StartForm; MissedField also by ../host/CreateMatch, ../host/createForm
  * Spec:           docs/spec/01-game-design.md §6, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -40,7 +40,7 @@ export function toMissedNumbers(choice: MarkingChoice): MissedNumbers {
   };
 }
 
-export interface StartMarkingFieldProps {
+interface StartMarkingFieldProps {
   readonly value: MarkingChoice;
   readonly onChange: (next: MarkingChoice) => void;
 }

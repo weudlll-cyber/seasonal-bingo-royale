@@ -11,7 +11,8 @@
  *                 eliminated owner's cards disappear after the round of the cut. Without an
  *                 owner card, shows the first bot cards read-only.
  * Depends on:     react, ./CardGrid, ./OwnerCard, ./OwnerStatusPanel, ../playback, ../types
- * Used by:        ./Playback; ownerRank and inPlay also by the live match screen
+ * Used by:        ./Playback; ownerRank and inPlay also by the live match screen,
+ *                 ../game/MatchScreen
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -22,7 +23,7 @@ import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import type { PlaybackView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 
-export interface OwnerAreaProps {
+interface OwnerAreaProps {
   readonly result: QuickTestResult;
   readonly view: PlaybackView;
 }

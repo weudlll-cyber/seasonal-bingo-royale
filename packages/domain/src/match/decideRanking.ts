@@ -8,7 +8,7 @@
  *                 to stay under the file-size limit.
  * Depends on:     ../royale/cut, ../royale/finalRanking, ../classic/classicPlacement,
  *                 ../classic/prizeCatalogue, ./matchState
- * Used by:        ./decide
+ * Used by:        ./decide, ../index
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §8.4
  */
 import { classicPlacement } from '../classic/classicPlacement.js';

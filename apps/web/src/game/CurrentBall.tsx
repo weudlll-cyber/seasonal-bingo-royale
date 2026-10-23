@@ -17,7 +17,7 @@ import { SeasonIcon } from '../components/SeasonIcon.js';
 import { ballLabel, seasonOfSymbol } from '../types.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 
-export interface CurrentBallProps {
+interface CurrentBallProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
   readonly roundOver: boolean;

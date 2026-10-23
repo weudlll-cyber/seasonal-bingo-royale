@@ -13,7 +13,7 @@
  *                 marks older than 90 days are purged, the next round's start time during
  *                 the pause between rounds survives a restart (event log), and a match set
  *                 to start at a time starts then on a server that came up after it was set.
- * Depends on:     vitest, ./harness, ./session, @sbr/domain, ../src/match/*
+ * Depends on:     vitest, ./harness, ./session, @sbr/domain, ../src/match/*, ../src/index
  * Spec:           docs/spec/02-software-architecture.md §5.2–§5.4; docs/spec/04-database-design.md §3.3
  */
 import { createInitialMatchState, evolve, type DomainEvent } from '@sbr/domain';

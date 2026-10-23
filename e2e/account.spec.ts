@@ -10,7 +10,7 @@
  *                 under the per-address login limit). The test deletes its account
  *                 (DELETE /me) and stops its match, also when a step fails. In Chromium it
  *                 saves the register and sign-in forms (both sizes and themes) to
- *                 reports/screens/night-4/.
+ *                 reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §13
  */

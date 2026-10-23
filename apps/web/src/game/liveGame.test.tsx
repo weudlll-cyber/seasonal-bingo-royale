@@ -9,7 +9,9 @@
  *                 refuses undrawn numbers and taps after the round end without asking the
  *                 server, and sends a tap on a drawn number as a `mark` intent; Draw next is
  *                 disabled right after a press until the new draw has arrived.
- * Depends on:     @testing-library/react, vitest, ./LiveCard, ./labels, ../host/HostDrawControls
+ * Depends on:     @testing-library/react, vitest, ./LiveCard, ./labels,
+ *                 ../host/HostDrawControls, ./useLiveMatch, ../playback, ../test/quickTestFixture,
+ *                 ../types
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/06-realtime-architecture.md §4.1
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -17,7 +19,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HostDrawControls, windowOpen } from '../host/HostDrawControls.js';
 import type { PlaybackView } from '../playback.js';
-import { numberCard, royaleFixture } from '../quickTestFixture.js';
+import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
 import type { DomainEventLike } from '../types.js';
 import { drawLine, missedLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';

@@ -13,7 +13,7 @@
  *                 per address. Cookie name, path and Secure flag follow 03 §3
  *                 (`__Host-` at the root, `__Secure-` with the base path, plain in development).
  * Depends on:     fastify, @fastify/cookie, node:crypto, ./sessions, ./rateLimit, ../db/pool
- * Used by:        ../http/app
+ * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn
  * Spec:           docs/spec/03-security-architecture.md §3, §8, §13
  */
 import { timingSafeEqual } from 'node:crypto';

@@ -41,7 +41,7 @@ export interface ManualState {
 }
 
 // Draw item → time (ms) the draw became visible to the owner.
-export type DrawTimes = ReadonlyMap<number, number>;
+type DrawTimes = ReadonlyMap<number, number>;
 
 export function initialManualState(cells: readonly Cell[]): ManualState {
   return { marks: cells.map((c) => c.kind === 'free'), bonusEarned: 0, feedback: null };
@@ -54,7 +54,7 @@ export function speedBonus(rules: ManualRules, deltaMs: number): number {
   return Math.round(rules.maxSpeedBonus * (1 - deltaMs / rules.speedWindowMs));
 }
 
-export interface TapInput {
+interface TapInput {
   readonly state: ManualState;
   readonly cells: readonly Cell[];
   readonly index: number;
@@ -80,7 +80,7 @@ export function tapCell({ state, cells, index, drawTimes, now, rules }: TapInput
   };
 }
 
-export interface AutoMarkInput {
+interface AutoMarkInput {
   readonly state: ManualState;
   readonly cells: readonly Cell[];
   readonly drawTimes: DrawTimes;

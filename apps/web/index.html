@@ -1,4 +1,14 @@
 <!doctype html>
+<!--
+  @file   apps/web/index.html
+  @module web
+  @brief  The player client's page: the root element, the early theme script, the entry module.
+
+  Responsibility: load public/theme-init.js before the first paint (an external file: the
+                  CSP forbids inline scripts), then the React entry ./src/main.tsx into #root.
+  Depends on:     public/theme-init.js, src/main.tsx
+  Spec:           docs/spec/01-game-design.md §13; docs/spec/03-security-architecture.md §7
+-->
 <html lang="en">
   <head>
     <meta charset="utf-8" />

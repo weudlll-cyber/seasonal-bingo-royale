@@ -8,7 +8,7 @@
  *                 season icon with its name. The newest draw fades in
  *                 unless the viewer prefers reduced motion.
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
- * Used by:        ./Playback
+ * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';
@@ -17,7 +17,7 @@ import { SeasonIcon } from './SeasonIcon.js';
 import { ballLabel, seasonOfSymbol } from '../types.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 
-export interface DrawTickerProps {
+interface DrawTickerProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
   // The speed-window line; hidden once the match is over.

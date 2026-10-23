@@ -14,9 +14,9 @@
  *                 seconds at any time (D8, never below D12); a tap is scored with the
  *                 speed bonus from the time since its draw (01 §6). Every command for a
  *                 match runs serialized through ./runner.
- * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./rulesets, ./timing,
- *                 ./startRules (set time, start when full)
- * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler)
+ * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./timing,
+ *                 ./startRules (set time, start when full), ./create
+ * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes
  * Spec:           docs/spec/01-game-design.md §3–§8; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§5
  */
 import { speedBonus, type Command } from '@sbr/domain';
@@ -41,7 +41,13 @@ import type {
   Scheduler,
 } from './ports.js';
 import { MatchRunner } from './runner.js';
-import { planAutoStart, scheduleStart, startIfFull, startTimeValid } from './startRules.js';
+import {
+  minPlayersOf,
+  planAutoStart,
+  scheduleStart,
+  startIfFull,
+  startTimeValid,
+} from './startRules.js';
 import { withinDrawRange } from './timing.js';
 
 export class MatchError extends Error {
@@ -50,7 +56,7 @@ export class MatchError extends Error {
   }
 }
 
-export interface EngineDeps {
+interface EngineDeps {
   readonly store: MatchStore;
   readonly scheduler: Scheduler;
   readonly bus: MatchEventBus;
@@ -141,7 +147,7 @@ export class MatchEngine {
     return this.runner.serial(matchId, async () => {
       const m = await this.runner.current(matchId);
       if (m.record.status !== 'lobby') throw new MatchError('MATCH_NOT_IN_LOBBY');
-      if (m.state.playerOrder.length < 2) throw new MatchError('NOT_ENOUGH_PLAYERS');
+      if (m.state.playerOrder.length < minPlayersOf(m)) throw new MatchError('NOT_ENOUGH_PLAYERS');
       const startsAt = this.deps.clock.now() + countdownMs;
       await scheduleStart(this.flow, matchId, startsAt);
       return startsAt;

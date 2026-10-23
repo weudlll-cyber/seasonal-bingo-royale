@@ -8,7 +8,7 @@
  *                 players, pause between royale rounds, and in development the fast test
  *                 profile), its mapping to the engine's CreateMatchInput, and the status
  *                 code for each MatchError (404 unknown match, 409 wrong phase, 503 maintenance, 422 the rest).
- * Depends on:     fastify, zod, @sbr/application
+ * Depends on:     fastify, zod, @sbr/application, ../../dev/fastRulesets
  * Used by:        ./matches, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §5; docs/spec/11-admin-panel.md §3.2
  */

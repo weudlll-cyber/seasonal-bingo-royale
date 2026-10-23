@@ -1,12 +1,13 @@
-/* ============================================================
-   File:        packages/ui/src/fonts.css
-   Module:      ui
-   Brief:       Luxora Grotesk faces, served from assets/fonts (01 §13).
-   Responsibility: Book (400) for body text and Bold (700) for headings and strong text,
-                as woff2 with swap, so text shows at once in the fallback font. The files
-                are used as delivered.
-   Spec:        docs/spec/01-game-design.md §13; assets/README.md
-   ============================================================ */
+/**
+ * @file   packages/ui/src/fonts.css
+ * @module ui
+ * @brief  Luxora Grotesk faces, served from assets/fonts (01 §13).
+ *
+ * Responsibility: Book (400) for body text and Bold (700) for headings and strong text,
+ *                 as woff2 with swap, so text shows at once in the fallback font. The files
+ *                 are used as delivered.
+ * Spec:           docs/spec/01-game-design.md §13; assets/README.md
+ */
 
 @font-face {
   font-family: 'Luxora Grotesk';

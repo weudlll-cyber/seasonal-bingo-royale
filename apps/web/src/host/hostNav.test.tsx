@@ -10,8 +10,9 @@
  *                 when there are none; "Open host console" shows only for the host; the
  *                 console in the lobby says the match is open and gives its code (LOOK-1);
  *                 a player on #/host/<code> sees no controls.
- * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink, ./YourMatches,
- *                 ./HostConsole, ../matchFixture
+ * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink,
+ *                 ./YourMatches, ./HostConsole, ../test/matchFixture, ../game/useLiveMatch,
+ *                 ../test/quickTestFixture, ../shell/session
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
@@ -20,8 +21,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HostLink } from '../game/HostLink.js';
 import { Lobby } from '../game/Lobby.js';
 import type { MatchSummary } from '../game/useLiveMatch.js';
-import { matchSummary } from '../matchFixture.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { matchSummary } from '../test/matchFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 import { HostConsole } from './HostConsole.js';
 import { YourMatches } from './YourMatches.js';

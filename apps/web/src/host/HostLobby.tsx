@@ -8,7 +8,7 @@
  *                 players; "Fill with N
  *                 bots" (development only); for a set start time the switch "Start
  *                 automatically at the start time" (until the countdown runs) and, when the
- *                 automatic start found fewer than 2 players, "Not enough players at the
+ *                 automatic start found too few players, "Not enough players at the
  *                 start time — start it yourself or abort"; Start match, which the host can
  *                 always press, or the countdown once it runs; "Abort match" with a reason
  *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).

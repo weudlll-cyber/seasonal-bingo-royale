@@ -11,8 +11,8 @@
  *                 the royale pause choice "Wait a few seconds" (N, at least 3) or "I start
  *                 each round myself". The server enforces both as well. Every option fits a
  *                 390 px phone.
- * Depends on:     react, @sbr/contracts
- * Used by:        ./CreateMatch
+ * Depends on:     react, @sbr/contracts, ../types
+ * Used by:        ./CreateMatch, ./HostDrawControls, ./HostLobby, ./createForm
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D14)
  */
 import {

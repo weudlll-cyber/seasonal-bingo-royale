@@ -12,7 +12,7 @@
  */
 import type { FastifyInstance } from 'fastify';
 
-export interface PlaceholderOptions {
+interface PlaceholderOptions {
   readonly dev: boolean;
   readonly port: number;
 }

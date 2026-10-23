@@ -1,15 +1,16 @@
-/* ============================================================
-   File:        apps/web/src/game/game.css
-   Module:      web/game
-   Brief:       The live match screens: lobby, waiting room, arena, ball, card, host console.
-   Responsibility: the arena layout (play column beside the side column from 960 px,
-                stacked on phones), the current number as a large ball with a draining
-                speed-window bar, the player's card as the hero element in card colours
-                with large, thumb-sized cells (at least 44 px on a 360 px phone), and the
-                host console with its big Draw next (readable when disabled) and the
-                segmented draw-mode switch. Colours and sizes from @sbr/ui tokens.
-   Spec:        docs/spec/01-game-design.md §13
-   ============================================================ */
+/**
+ * @file   apps/web/src/game/game.css
+ * @module web/game
+ * @brief  The live match screens: lobby, waiting room, arena, ball, card.
+ *
+ * Responsibility: the lobby list and waiting room, the arena layout (play column beside
+ *                 the side column from 960 px, stacked on phones), the current number as a
+ *                 large ball with a draining speed-window bar, the player's card as the hero
+ *                 element in card colours with large, thumb-sized cells (at least 44 px on a
+ *                 360 px phone). The host's screens are in ../host/host.css. Colours and
+ *                 sizes from @sbr/ui tokens.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
 
 .lobby-head h1,
 .arena-head h1,
@@ -226,124 +227,4 @@
   min-height: 1.4em;
   color: var(--color-bingo-card-ink);
   font-weight: var(--font-weight-strong);
-}
-
-/* Host console */
-.host-grid {
-  display: grid;
-  gap: var(--space-3);
-}
-
-@media (min-width: 960px) {
-  .host-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
-    align-items: start;
-  }
-}
-
-.open-notice {
-  margin: 0;
-  padding: var(--space-1) var(--space-2);
-  border-left: 4px solid var(--color-success);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
-  font-weight: var(--font-weight-strong);
-}
-
-.host-end {
-  grid-column: 1 / -1;
-}
-
-.host-draw {
-  width: 100%;
-  min-height: 5.5rem;
-  font-size: var(--font-size-title);
-}
-
-/* Disabled Draw next stays readable (muted text on surface-2, 4.5:1 in both themes,
-   checked by ../designTokens.test.ts) instead of fading out. */
-.host-draw:disabled {
-  opacity: 1;
-  border-color: var(--color-border-strong);
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-}
-
-/* Segmented switch: the active option is filled in the accent colour */
-.segmented {
-  display: inline-flex;
-  padding: 3px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-}
-
-.segmented-option {
-  min-height: var(--hit-target);
-  padding: 0 1.1rem;
-  border: 0;
-  border-radius: calc(var(--radius) - 3px);
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-weight: var(--font-weight-strong);
-  cursor: pointer;
-}
-
-.segmented-option[aria-pressed='true'] {
-  background: var(--color-winter);
-  color: var(--color-on-season);
-}
-
-.create-form {
-  display: grid;
-  gap: var(--space-2);
-  max-width: 40rem;
-}
-
-.create-form fieldset {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-}
-
-.prize-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
-  gap: 0.35rem;
-}
-
-.prize-grid label {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-height: var(--hit-target);
-}
-
-/* The host's matches above the create form */
-.create-page {
-  display: grid;
-  gap: var(--space-3);
-  max-width: 40rem;
-}
-
-.your-matches {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.your-match {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
-  padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-border);
 }

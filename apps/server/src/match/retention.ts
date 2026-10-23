@@ -13,7 +13,7 @@
 import { purgeDeadSessions } from '../auth/sessions.js';
 import type { DbPool } from '../db/pool.js';
 
-export const MARKS_RETENTION_DAYS = 90;
+const MARKS_RETENTION_DAYS = 90;
 
 export async function purgeOldMarks(pool: DbPool, now: Date = new Date()): Promise<number> {
   const cutoff = new Date(now.getTime() - MARKS_RETENTION_DAYS * 24 * 3600_000);

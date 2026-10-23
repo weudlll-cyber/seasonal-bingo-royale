@@ -7,13 +7,13 @@
  *                 after it, the ended round with its own stage ("round 1 over"), and once
  *                 the next stage has begun, that stage as next — never the new stage with
  *                 the old round's draw count (seen by the owner in NIGHT-3).
- * Depends on:     vitest, ./labels, ../playback, ../quickTestFixture
+ * Depends on:     vitest, ./labels, ../playback, ../test/quickTestFixture, ./useLiveMatch
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { describe, expect, it } from 'vitest';
 
 import { playbackAt } from '../playback.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { progressText } from './labels.js';
 import type { LiveState } from './useLiveMatch.js';
 

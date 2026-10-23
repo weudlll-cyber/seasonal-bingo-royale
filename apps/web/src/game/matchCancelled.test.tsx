@@ -10,15 +10,15 @@
  *                 "Host another match" — never the arena; the lobby lists the cancelled match
  *                 with a link to that page.
  * Depends on:     @testing-library/react, vitest, ./MatchScreen, ./Lobby, ../host/HostConsole,
- *                 ../matchFixture, ../quickTestFixture
+ *                 ../test/matchFixture, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HostConsole } from '../host/HostConsole.js';
-import { matchSummary, serveMatch, show } from '../matchFixture.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { Lobby } from './Lobby.js';
 import { MatchScreen } from './MatchScreen.js';
 

@@ -11,7 +11,7 @@
  *                 the limitation is stated, a missed number follows the chosen rule and
  *                 the seasons counter comes from the server, not from local taps.
  * Depends on:     @testing-library/react, ./StartForm, ./DrawControls, ../App,
- *                 ../quickTestFixture, ../drawControl, ../api
+ *                 ../test/quickTestFixture, ../drawControl, ../api, ../types
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/11-admin-panel.md §3.2
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -20,7 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.js';
 import type { StartQuickTestInput } from '../api.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import type { MissedNumbers } from '../types.js';
 import { DrawControls } from './DrawControls.js';
 import { StartForm } from './StartForm.js';
@@ -96,7 +96,7 @@ describe('live draw controls', () => {
         onDrawNext={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('draw-mode-timed').textContent).toBe('Timed draws');
+    expect(screen.getByTestId('draw-mode-timed').textContent).toBe('✓ Timed draws');
     expect(screen.getByTestId('draw-mode-host').textContent).toBe('Host draws');
     expect(container.textContent).not.toMatch(/\bauto\b/i);
   });

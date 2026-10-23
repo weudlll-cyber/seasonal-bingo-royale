@@ -9,8 +9,9 @@
  *                 matches row (optimistic concurrency), events with consecutive seq, the
  *                 projections, and a snapshot every 25 events (the last 3 are kept); set
  *                 the status, the draw control and the start rule (D16) on the row.
- * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records
- * Used by:        ../http/app, ./scheduler
+ * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records,
+ *                 ../db/pool
+ * Used by:        ../http/routes/matches, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §5.2; docs/spec/04-database-design.md §3.3
  */
 import type {
@@ -23,10 +24,16 @@ import type {
   StartRule,
   StoredEvent,
 } from '@sbr/application';
-import { createInitialMatchState, evolve, type DomainEvent, type MatchState } from '@sbr/domain';
+import {
+  commitSeed,
+  createInitialMatchState,
+  evolve,
+  type DomainEvent,
+  type MatchState,
+} from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
-import { encryptSeed, fromJson, seedCommitment, toJson } from './codec.js';
+import { encryptSeed, fromJson, toJson } from './codec.js';
 import { project } from './projections.js';
 import { recordFrom, type MatchRow } from './records.js';
 
@@ -56,7 +63,7 @@ export class PgMatchStore implements MatchStore {
         r.rulesetName,
         JSON.stringify(r.ruleset),
         r.maxPlayers,
-        seedCommitment(r.seed),
+        Buffer.from(commitSeed(r.seed)),
         encryptSeed(r.seed, this.seedKey),
         r.prizes,
         r.countsForLeaderboard,

@@ -1,4 +1,5 @@
 # @file   ops/examples/Caddyfile
+# @module ops
 # @brief  Example: Seasonal Bingo Royale behind a Caddy you already run (no Caddy of its own).
 #
 # Responsibility: two ways to place the app — on its own (sub)domain, or under a path of an

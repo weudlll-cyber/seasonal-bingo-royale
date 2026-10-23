@@ -14,31 +14,19 @@
  *                 every player's points after each stage start (score carry) and first-
  *                 round card, so the client renders them and never computes them
  *                 (CLAUDE.md: the server decides, the client renders).
- * Depends on:     @sbr/domain
- * Used by:        ./clientView, ./liveViews, ../realtime/gateway, ../dev/quicktest.ts
+ * Depends on:     @sbr/domain, @sbr/contracts (view types)
+ * Used by:        ./clientView, ./liveViews, ../realtime/gateway, ../http/routes/matchViews
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
+import type { EffectKind, OwnerStatus, Season } from '@sbr/contracts';
 import {
   createInitialMatchState,
   evolve,
+  SEASON_NAMES,
   type Card,
   type DomainEvent,
   type MatchState,
 } from '@sbr/domain';
-
-export type SeasonName = 'spring' | 'summer' | 'autumn' | 'winter';
-export type EffectKind = 'multiplier' | 'growth' | 'harvest' | 'shield' | 'revealNext';
-
-export interface OwnerStatus {
-  // Number of events consumed when this status became current (client playback step).
-  readonly step: number;
-  readonly multiplier: { readonly factor: number; readonly remainingDraws: number } | null;
-  readonly growth: { readonly pointsPerMark: number; readonly remainingDraws: number } | null;
-  readonly shieldCharges: number;
-  readonly seasons: readonly SeasonName[];
-}
-
-const SEASONS: readonly SeasonName[] = ['spring', 'summer', 'autumn', 'winter'];
 
 export function renameAccounts(
   events: readonly DomainEvent[],
@@ -114,7 +102,7 @@ function renameEvent(ev: DomainEvent, rename: (id: string) => string): DomainEve
 
 // Every player's points right after a stage start, when the stage's score carry
 // (keep / reset / scaled) has been applied; the client takes them as the new baseline.
-export interface StagePoints {
+interface StagePoints {
   readonly step: number;
   readonly points: Readonly<Record<string, number>>;
 }
@@ -201,7 +189,7 @@ function statusOf(state: MatchState, accountId: string, step: number): OwnerStat
           },
     shieldCharges: effects.shieldCharges,
     // Bit order spring=1, summer=2, autumn=4, winter=8 (domain effectState.ts).
-    seasons: SEASONS.filter((_s, bit) => (effects.seasonsActivated & (1 << bit)) !== 0),
+    seasons: SEASON_NAMES.filter((_s, bit) => (effects.seasonsActivated & (1 << bit)) !== 0),
   };
 }
 
@@ -217,10 +205,10 @@ function sameStatus(a: OwnerStatus, b: OwnerStatus): boolean {
 
 // Which season's effect is of which kind, so the client can colour each effect badge.
 export function effectSeasons(
-  seasons: Readonly<Record<SeasonName, { readonly effect: { readonly type: string } }>>,
-): Partial<Record<EffectKind, SeasonName>> {
-  const map: Partial<Record<EffectKind, SeasonName>> = {};
-  for (const season of SEASONS) {
+  seasons: Readonly<Record<Season, { readonly effect: { readonly type: string } }>>,
+): Partial<Record<EffectKind, Season>> {
+  const map: Partial<Record<EffectKind, Season>> = {};
+  for (const season of SEASON_NAMES) {
     const kind = seasons[season].effect.type as EffectKind;
     map[kind] ??= season;
   }

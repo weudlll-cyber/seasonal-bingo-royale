@@ -1,4 +1,5 @@
 # @file   ops/Caddyfile
+# @module ops
 # @brief  Standalone installs: HTTPS for the public address, everything forwarded to the app.
 #
 # Responsibility: automatic HTTPS (Let's Encrypt) for a domain, Caddy's internal CA for an

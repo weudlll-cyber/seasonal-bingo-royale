@@ -10,7 +10,7 @@
  *                 permissions; the dev quick sign-in gives dev-host `match.create` and reuses
  *                 accounts; a production build has no dev sign-in; with e-mail verification
  *                 on, unverified accounts cannot sign in.
- * Depends on:     vitest, ./harness
+ * Depends on:     vitest, ./harness, fastify
  * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';

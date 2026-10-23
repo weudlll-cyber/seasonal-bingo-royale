@@ -7,7 +7,11 @@
  *                 /readyz. The pool is kept small for dev (max 10) and left to the
  *                 operator to tune for production via DATABASE_URL's `max=` query.
  * Depends on:     pg
- * Used by:        ../main.ts, ../http/app.ts, ../http/routes/health.ts, ./migrator.ts
+ * Used by:        ../main.ts, ../http/app.ts, ../http/routes/health.ts, ./migrator.ts,
+ *                 ../auth/accounts, ../auth/sessionPlugin, ../auth/sessions, ../cli,
+ *                 ../http/routes/auth, ../http/routes/devSignIn, ../http/routes/matches,
+ *                 ../index, ../match/pgMatchStore, ../match/pgScheduler, ../match/retention,
+ *                 ../match/runtime, ../realtime/gateway
  * Spec:           docs/spec/04-database-design.md §1, docs/spec/02-software-architecture.md §7
  */
 import pg from 'pg';

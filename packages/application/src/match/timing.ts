@@ -11,7 +11,7 @@
  *                 default delay), and the timed-draw gap kept inside the allowed range,
  *                 which starts 1 s after the longest tap time (D10, D12).
  * Depends on:     @sbr/contracts, @sbr/domain (types)
- * Used by:        ./engine, apps/server/src/dev/quicktest.ts
+ * Used by:        ./engine, apps/server/src/dev/quicktest.ts, ../index, ./create
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import {

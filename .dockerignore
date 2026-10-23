@@ -1,4 +1,5 @@
 # @file   .dockerignore
+# @module repo
 # @brief  Keeps the Docker build context small and free of secrets.
 #
 # Responsibility: exclude dependencies, git data, docs, source artwork, build and test

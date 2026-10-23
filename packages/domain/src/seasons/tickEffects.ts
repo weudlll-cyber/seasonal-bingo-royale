@@ -9,7 +9,8 @@
  *                 companion the match engine calls after each mark during a growth
  *                 window.
  * Depends on:     ./effectState
- * Used by:        future match engine
+ * Used by:        future match engine, ../index, ../match/evolveLifecycle,
+ *                 ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.2 (durations never negative; non-stacking)
  */
 import type { EffectState, GrowthState, MultiplierState } from './effectState.js';

@@ -20,7 +20,7 @@ import type { CutOutcome, CutView } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 
-export interface CutScreenProps {
+interface CutScreenProps {
   readonly cut: CutView | null;
   // When the next round starts (live matches); null shows no countdown.
   readonly nextRoundAt?: number | null;

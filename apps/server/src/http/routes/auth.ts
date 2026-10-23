@@ -37,7 +37,7 @@ import { accountSessionIds, createSession, revokeSession } from '../../auth/sess
 import type { Features } from '../../config/features.js';
 import type { DbPool } from '../../db/pool.js';
 
-export interface AuthDeps {
+interface AuthDeps {
   readonly pool: DbPool;
   readonly cookie: CookieConfig;
   readonly features: Features;

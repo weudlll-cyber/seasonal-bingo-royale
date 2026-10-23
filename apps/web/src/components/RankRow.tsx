@@ -9,7 +9,7 @@
  *                 with "out"; and the divider between players still in and those out.
  *                 Season icons have shapes and names, so colour never carries meaning alone.
  * Depends on:     react, ./SeasonIcon, ../types, ./results.css
- * Used by:        ./Standings, ./Playback
+ * Used by:        ./Standings, ./FinalPlacement
  * Spec:           docs/spec/01-game-design.md §7.5, §8.4, §13
  */
 import type { ReactElement } from 'react';
@@ -18,7 +18,7 @@ import { SeasonIcon } from './SeasonIcon.js';
 import { SEASON_NAMES, type Season } from '../types.js';
 import './results.css';
 
-export interface RankRowProps {
+interface RankRowProps {
   readonly rank: number;
   readonly name: string;
   // Points ("120 pts") or, in classic types, the prizes won.

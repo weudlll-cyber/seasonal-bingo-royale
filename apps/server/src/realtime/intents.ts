@@ -27,7 +27,7 @@ export interface IntentContext {
   readonly deps: GatewayDeps;
 }
 
-export type Answer =
+type Answer =
   { readonly ok: true; readonly data?: unknown } | { readonly ok: false; readonly code: string };
 
 const envelope = z.object({

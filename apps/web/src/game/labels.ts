@@ -9,8 +9,9 @@
  *                 (every N seconds)" …), never the word "auto" alone, and every event line
  *                 the banners and the match log show ("Round 1 over — all 40 numbers
  *                 drawn", "Cut 1: 12 go on, 8 are out" …), never an internal identifier.
- * Depends on:     ../types, ./useLiveMatch (types)
- * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*
+ * Depends on:     ../types, ./useLiveMatch (types), ../playback
+ * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*, ./LiveCard,
+ *                 ./WaitingRoom, ../playbackScoring
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
 import { ballLabel, type GameType } from '../types.js';
@@ -70,7 +71,7 @@ export function prizeName(key: string): string {
 /* Event lines for banners and the match log (01 §7.3, §7.4, §8.3): plain English, never
    an internal reason or event name. The round-end line names the player who ended it
    when one did (the last pattern of the round). */
-export interface RoundEndFacts {
+interface RoundEndFacts {
   readonly roundIndex: number;
   readonly reason: string;
   readonly draws: number;
@@ -92,7 +93,7 @@ export function roundEndLine(f: RoundEndFacts): string {
   return reason === undefined ? head : `${head} — ${reason}`;
 }
 
-export interface CutFacts {
+interface CutFacts {
   readonly number: number;
   readonly survivors: number;
   readonly eliminated: number;
@@ -156,7 +157,7 @@ export function problemText(code: string): string {
     NOT_YOUR_MATCH: 'Only the host can do that.',
     MATCH_FULL: 'The match is full.',
     MATCH_NOT_IN_LOBBY: 'The match has already started.',
-    NOT_ENOUGH_PLAYERS: 'At least 2 players are needed to start.',
+    NOT_ENOUGH_PLAYERS: 'Not enough players have joined to start yet.',
     RATE_LIMITED: 'Too many presses — wait a moment.',
     MARK_REJECTED: 'the tap was not accepted.',
     DRAW_TOO_EARLY: 'Not yet — the next number comes when the timed interval has passed.',

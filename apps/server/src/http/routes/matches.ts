@@ -10,8 +10,10 @@
  *                 POST /matches/:code/marks is the fallback for clients without a socket.
  *                 Development builds also have POST /matches/:code/bots. Errors of the
  *                 engine become 4xx with their code.
- * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool
- * Used by:        ../app
+ * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
+ *                 ../../config/maintenance, ./matchHost, ./matchInput, ./matchViews,
+ *                 ../../view/liveViews
+ * Used by:        ../app, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
 import type { MaintenanceCheck } from '../../config/maintenance.js';

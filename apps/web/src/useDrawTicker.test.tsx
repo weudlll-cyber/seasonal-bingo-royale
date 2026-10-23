@@ -12,7 +12,7 @@
  *                 switching mid-match takes effect from the current draw; skip jumps to
  *                 the end.
  * Depends on:     @testing-library/react, ./useDrawTicker, ./drawControl, ./playback,
- *                 ./quickTestFixture
+ *                 ./test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import { act, cleanup, renderHook } from '@testing-library/react';
@@ -20,7 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { INITIAL_CONTROL, type DrawControl } from './drawControl.js';
 import { playbackAt } from './playback.js';
-import { royaleFixture } from './quickTestFixture.js';
+import { royaleFixture } from './test/quickTestFixture.js';
 import { useDrawTicker } from './useDrawTicker.js';
 
 // The fixture: drawIntervalMs 1000 (allowed 500–60000), speed window 500; draws at event

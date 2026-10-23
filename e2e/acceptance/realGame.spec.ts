@@ -17,7 +17,7 @@
  *                 then one more match right away must start fresh. Every match the test
  *                 created is stopped in teardown. Screenshots of royale with host draws and
  *                 classic with seasons (mid-match, cut, pause, end; light and dark) go to
- *                 reports/screens/night-4/. Runs only with SBR_ACCEPTANCE=1.
+ *                 reports/screens/latest/. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../realGame, ../screens, ./combos, ./liveSnap,
  *                 ./livePlayer, ./cuts, ./ownerRules
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13

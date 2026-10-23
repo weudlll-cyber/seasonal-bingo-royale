@@ -10,7 +10,7 @@
  *                 net: on a conflict the cache is dropped and the error rises) and then
  *                 published on the event bus. Keeps the draw times of the current round.
  * Depends on:     @sbr/domain, ./ports
- * Used by:        ./engine
+ * Used by:        ./engine, ../index, ./flow
  * Spec:           docs/spec/02-software-architecture.md §5.2, §5.4
  */
 import { decide, evolve, type Command, type DomainEvent } from '@sbr/domain';
@@ -23,7 +23,7 @@ export class MatchNotFound extends Error {
   }
 }
 
-export interface ApplyOptions {
+interface ApplyOptions {
   readonly actorAccountId?: string | null;
   readonly mark?: MarkContext | null;
 }

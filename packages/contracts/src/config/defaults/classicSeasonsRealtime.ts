@@ -7,7 +7,7 @@
  *                 no jackpot, no Season Complete bonus (01 §3a). `defaultPrizes` carries
  *                 the owner-decided ticked set (01 §3a.1).
  * Depends on:     ../ruleset, ./common, ../prizes
- * Used by:        apps/server seed
+ * Used by:        apps/server seed, ./index
  * Spec:           docs/spec/01-game-design.md §3a
  */
 import { DEFAULT_PRIZE_SELECTION } from '../prizes.js';

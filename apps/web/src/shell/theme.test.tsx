@@ -8,7 +8,8 @@
  *                 same theme for a stored choice, no choice with a dark or light system, and
  *                 blocked storage; the toggle flips and stores the choice; a change of the
  *                 system setting is followed only while nothing is stored.
- * Depends on:     @testing-library/react, vitest, ./theme, ./ThemeToggle, ../../public/theme-init.js (raw)
+ * Depends on:     @testing-library/react, vitest, ./theme, ./ThemeToggle,
+ *                 ../../public/theme-init.js (raw), ../../public/theme-init.js?raw
  * Spec:           docs/spec/01-game-design.md §13; Seasonal Entertainment docs/DESIGN.md "Theme logic"
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';

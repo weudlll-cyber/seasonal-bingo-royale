@@ -8,7 +8,7 @@
  *                 import contracts) is safe because the catalogue is immutable: new
  *                 effect types require code anyway (01 §8.2).
  * Depends on:     nothing
- * Used by:        ./applyEffect, ../scoring/*
+ * Used by:        ./applyEffect, ../index, ../match/lifecycleTypes
  * Spec:           docs/spec/01-game-design.md §8.2
  */
 

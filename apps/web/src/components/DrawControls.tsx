@@ -8,15 +8,16 @@
  *                 mode and skip to the end. Labels never use the word "auto" alone, so
  *                 they cannot be confused with marking. Purely controls; the rules live
  *                 in ../drawControl.
- * Depends on:     react, ../drawControl
+ * Depends on:     react, ../drawControl, ./DrawModeSwitch
  * Used by:        ../App
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
 
-import type { DrawControl, DrawMode } from '../drawControl.js';
+import type { DrawControl } from '../drawControl.js';
+import { DrawModeSwitch } from './DrawModeSwitch.js';
 
-export interface DrawControlsProps {
+interface DrawControlsProps {
   readonly control: DrawControl;
   // The interval actually in use, in seconds (the ruleset's when none was set).
   readonly effectiveSec: number;
@@ -33,8 +34,9 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
       aria-label="Draw control"
       style={{ marginTop: '0.75rem', display: 'grid', gap: '0.4rem' }}
     >
-      <ModeSwitch
+      <DrawModeSwitch
         mode={control.mode}
+        testIdPrefix="draw-mode"
         onMode={(mode) => {
           onChange({ ...control, mode });
         }}
@@ -74,33 +76,6 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
           skip to end
         </button>
       </div>
-    </div>
-  );
-}
-
-function ModeSwitch({
-  mode,
-  onMode,
-}: {
-  mode: DrawMode;
-  onMode: (next: DrawMode) => void;
-}): ReactElement {
-  return (
-    <div>
-      {(['auto', 'host'] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          data-testid={`draw-mode-${option === 'auto' ? 'timed' : 'host'}`}
-          aria-pressed={mode === option}
-          onClick={() => {
-            onMode(option);
-          }}
-          style={buttonStyle(mode === option)}
-        >
-          {option === 'auto' ? 'Timed draws' : 'Host draws'}
-        </button>
-      ))}
     </div>
   );
 }

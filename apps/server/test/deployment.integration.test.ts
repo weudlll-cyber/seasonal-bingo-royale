@@ -10,7 +10,8 @@
  *                 /games/bingo/ answers /healthz, /readyz and the client's index.html there
  *                 and opens the WebSocket on /games/bingo/ws for its public origin. While the
  *                 maintenance flag file exists, no match is created or started (503).
- * Depends on:     vitest, socket.io-client, node:fs, ./harness, ../src/auth/accounts
+ * Depends on:     vitest, socket.io-client, node:fs, ./harness, ../src/auth/accounts,
+ *                 ../src/index, ./session, fastify
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/08-devops-architecture.md §4
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

@@ -7,7 +7,7 @@
  *                 ruleset document, the starter's settings (marking, missed numbers, draw
  *                 mode and seconds, pause between rounds, start rule) and the status. The seed never leaves the database here.
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types)
- * Used by:        ./pgMatchStore, ../http/routes/matches
+ * Used by:        ./pgMatchStore
  * Spec:           docs/spec/04-database-design.md §3.3
  */
 import type { DrawMode, MatchRecord, MatchStatus } from '@sbr/application';

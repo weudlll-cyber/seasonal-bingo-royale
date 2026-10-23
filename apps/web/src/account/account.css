@@ -1,11 +1,12 @@
-/* ============================================================
-   File:        apps/web/src/account/account.css
-   Module:      web/account
-   Brief:       The sign-in and register forms.
-   Responsibility: a narrow card centred in the column, fields stacked with their hints;
-                colours and spacing from @sbr/ui tokens.
-   Spec:        docs/spec/01-game-design.md §13
-   ============================================================ */
+/**
+ * @file   apps/web/src/account/account.css
+ * @module web/account
+ * @brief  The sign-in and register forms.
+ *
+ * Responsibility: a narrow card centred in the column, fields stacked with their hints;
+ *                 colours and spacing from @sbr/ui tokens.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
 
 .account-form {
   display: grid;

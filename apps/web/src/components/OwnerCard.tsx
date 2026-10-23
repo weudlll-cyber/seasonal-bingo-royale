@@ -20,7 +20,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from 'react';
 
 import { BingoHeader } from './BingoHeader.js';
-import { CellFace, cellBoxStyle } from './CellFace.js';
+import { CellFace, cellBoxStyle, seasonOfCell } from './CellFace.js';
 import {
   autoMarkMissed,
   feedbackText,
@@ -31,9 +31,9 @@ import {
   type ManualState,
 } from '../manualMarking.js';
 import { useReducedMotion } from '../useReducedMotion.js';
-import { ballLabel, SEASON_NAMES, type Card, type QuickTestResult } from '../types.js';
+import { ballLabel, type Card, type QuickTestResult } from '../types.js';
 
-export interface OwnerCardProps {
+interface OwnerCardProps {
   readonly accountId: string;
   readonly card: Card;
   readonly serverMarks: readonly boolean[];
@@ -137,18 +137,12 @@ function useAutoMarker({ enabled, manual, setManual, card, drawTimes, rules }: M
   }, [dueAt, setManual, card, drawTimes, rules]);
 }
 
-// The season of a season cell (Card.seasonCells is in season order), else empty.
-function seasonOfCell(card: Card, index: number): string {
-  const position = card.seasonCells?.indexOf(index) ?? -1;
-  return SEASON_NAMES[position] ?? '';
-}
-
 // Screen-reader name of a cell: "G 52", the season of a symbol cell, or "free".
 function cellName(cell: Card['cells'][number]): string {
   return cell.kind === 'free' ? 'free' : ballLabel(cell.value);
 }
 
-export interface TapGridProps {
+interface TapGridProps {
   readonly card: Card;
   readonly marks: readonly boolean[];
   readonly lastTapped: number | null;
@@ -189,7 +183,7 @@ export function TapGrid({ card, marks, lastTapped, onTap }: TapGridProps): React
             data-testid={`owner-cell-${String(i)}`}
             data-value={cell.kind === 'free' ? '' : String(cell.value)}
             data-marked={marked ? 'true' : 'false'}
-            data-season={seasonOfCell(card, i)}
+            data-season={seasonOfCell(card, i) ?? undefined}
             className={animate ? 'sbr-anim-mark' : undefined}
             style={cellBoxStyle(card, i, marked)}
           >

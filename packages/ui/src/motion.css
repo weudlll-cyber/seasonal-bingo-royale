@@ -1,14 +1,15 @@
-/* ============================================================
-   File:        packages/ui/src/motion.css
-   Module:      ui
-   Brief:       Key-moment animations of the real game (01 §13), off under reduced motion.
-   Responsibility: one class per key moment — draw (the ball rolls in), mark (the cell
-                stamps), prize and pattern (a short lift), season activation (a burst in the
-                season's colour, set as --burst on the element), Season Complete (the four
-                colours in turn), cut (the screen settles in) and win (a calm glow). Under
-                prefers-reduced-motion every animation is switched off.
-   Spec:        docs/spec/01-game-design.md §13
-   ============================================================ */
+/**
+ * @file   packages/ui/src/motion.css
+ * @module ui
+ * @brief  Key-moment animations of the real game (01 §13), off under reduced motion.
+ *
+ * Responsibility: one class per key moment — draw (the ball rolls in), mark (the cell
+ *                 stamps), prize and pattern (a short lift), season activation (a burst in the
+ *                 season's colour, set as --burst on the element), Season Complete (the four
+ *                 colours in turn), cut (the screen settles in) and win (a calm glow). Under
+ *                 prefers-reduced-motion every animation is switched off.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
 
 @keyframes sbr-ball-in {
   from {

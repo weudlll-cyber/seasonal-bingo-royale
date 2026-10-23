@@ -10,8 +10,8 @@
  *                 the view-model in ../playback.ts.
  * Depends on:     react, ./CutScreen, ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
  *                 ../game/labels, ../playback, ../types, ../useReducedMotion, ./results.css
- * Used by:        ../App; MatchLog and PrizeList also by the live match screens (../game,
- *                 ../host)
+ * Used by:        ../App, ./FinalPlacement; MatchLog and PrizeList also by the live screens
+ *                 ../game/MatchScreen and ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -118,7 +118,7 @@ export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   );
 }
 
-export function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
+function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
   const reduced = useReducedMotion();
   return (
     <ul

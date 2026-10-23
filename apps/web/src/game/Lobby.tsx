@@ -11,9 +11,9 @@
  *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
  *                 POST /matches/:code/join and opens the match. Without a session it points
  *                 to the sign-in buttons.
- * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./useLiveMatch (types), ./labels,
- *                 ./Registration
- * Used by:        ../shell/AppShell
+ * Depends on:     react, ../shell/http, ../shell/router, ../shell/session,
+ *                 ./useLiveMatch (types), ./labels, ./Registration, ./game.css
+ * Used by:        ../shell/AppShell, ../host/YourMatches
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13
  */
 import { useEffect, useState, type ReactElement } from 'react';

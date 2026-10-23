@@ -1,21 +1,24 @@
-/* ============================================================
-   File:        load/drawLatency.mjs
-   Module:      load
-   Brief:       200-player check: draw latency at every socket, server CPU and memory.
-   Responsibility: against a running development stack (server 3900): sign in N numbered
-                load players (dev sign-in `load-NNN`), let them join one royale match with
-                timed draws (fast test profile, 4 s), connect N sockets that watch the match
-                and, like the player screen, append other players' taps and fetch the new
-                events for everything else (one fetch at a time; a round start brings the
-                player's own cards and the size of that fetch is recorded); every
-                fifth player taps its drawn numbers. For every draw and socket it records
-                the time from the server's draw event (`at` in the frame) to its arrival,
-                and to the end of that screen's fetch; it samples the server's CPU, memory
-                and event-loop lag from /metrics. Then it aborts the match (it stays in the
-                database: the event log is append-only) and deletes the load accounts. Usage: node load/drawLatency.mjs [players=200]
-   Spec:        docs/spec/02-software-architecture.md; docs/spec/06-realtime-architecture.md §8;
-                docs/spec/08-devops-architecture.md §6 (draw latency p95 under 1 s)
-   ============================================================ */
+/**
+ * @file   load/drawLatency.mjs
+ * @module load
+ * @brief  200-player check: draw latency at every socket, server CPU and memory.
+ *
+ * Responsibility: against a running development stack (server 3900): sign in N numbered
+ *                 load players (dev sign-in `load-NNN`), let them join one royale match with
+ *                 timed draws (fast test profile, 4 s), connect N sockets that watch the match
+ *                 and, like the player screen, append other players' taps and fetch the new
+ *                 events for everything else (one fetch at a time; a round start brings the
+ *                 player's own cards and the size of that fetch is recorded); every
+ *                 fifth player taps its drawn numbers. For every draw and socket it records
+ *                 the time from the server's draw event (`at` in the frame) to its arrival,
+ *                 and to the end of that screen's fetch; it samples the server's CPU, memory
+ *                 and event-loop lag from /metrics. Then it aborts the match (it stays in the
+ *                 database: the event log is append-only) and deletes the load accounts.
+ *                 Usage: node load/drawLatency.mjs [players=200]
+ * Depends on:     socket.io-client
+ * Spec:           docs/spec/02-software-architecture.md; docs/spec/06-realtime-architecture.md §8;
+ *                 docs/spec/08-devops-architecture.md §6 (draw latency p95 under 1 s)
+ */
 import { io } from 'socket.io-client';
 
 const BASE = 'http://127.0.0.1:3900';

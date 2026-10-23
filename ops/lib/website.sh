@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # @file   ops/lib/website.sh
+# @module ops
 # @brief  Website installs: find the running Seasonal Entertainment website, write the Caddy snippet.
 #
 # Responsibility: find the website's Caddy (compose project "seasonal-site", service

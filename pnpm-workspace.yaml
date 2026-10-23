@@ -1,4 +1,5 @@
 # @file   pnpm-workspace.yaml
+# @module repo
 # @brief  Declares the workspace packages and the pnpm settings of the monorepo.
 #
 # Responsibility: list where pnpm finds the shared packages and the apps; hold pnpm's own

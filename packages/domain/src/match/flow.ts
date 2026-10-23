@@ -8,7 +8,7 @@
  *                 stage finds the field already at final size (01 §7.4); otherwise start
  *                 the next stage, or finish the match after the last one. Pure.
  * Depends on:     ./matchState
- * Used by:        ./simulate, packages/application (match engine)
+ * Used by:        ./simulate, packages/application (match engine), ../index
  * Spec:           docs/spec/01-game-design.md §7.1, §7.4
  */
 import type { MatchState } from './matchState.js';

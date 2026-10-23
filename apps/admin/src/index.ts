@@ -6,7 +6,7 @@
  * Responsibility: admin client with its own bundle and CSP.
  *                 Shell only until its work package fills it (docs/spec/15-implementation-plan.md).
  * Depends on:     nothing yet
- * Used by:        src/index.test.ts
+ * Used by:        src/index.test.ts, ./index.test
  * Spec:           docs/spec/02-software-architecture.md §3
  */
 

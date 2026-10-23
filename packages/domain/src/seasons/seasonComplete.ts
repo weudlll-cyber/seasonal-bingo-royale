@@ -8,7 +8,7 @@
  *                 one that triggers Season Complete. Invariant 6 of 12 §3 is enforced
  *                 by the caller tracking that flag.
  * Depends on:     ./effectState
- * Used by:        future match engine
+ * Used by:        future match engine, ../index, ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.3
  */
 import { hasActivatedAllSeasons, type EffectState } from './effectState.js';

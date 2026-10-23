@@ -7,7 +7,7 @@
  *                 predicate for the "classic family" (`classicSeasons` and
  *                 `classic`) that governs prize handling and the lack of stages.
  * Depends on:     zod
- * Used by:        ./ruleset.ts, apps/server, apps/web, apps/admin
+ * Used by:        ./ruleset.ts, apps/server, apps/web, apps/admin, ../index, ../view/clientView
  * Spec:           docs/spec/01-game-design.md §3a
  */
 import { z } from 'zod';

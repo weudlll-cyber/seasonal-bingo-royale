@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # @file   ops/lib/host.sh
+# @module ops
 # @brief  The server itself: OS, CPU/RAM/disk, free ports, Docker Engine with Compose.
 #
 # Responsibility: refuse anything but Ubuntu 24.04 (unless --any-os), warn below the

@@ -21,7 +21,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Events after which every player's row may have changed (cut, stage carry, finish).
 const ALL_PLAYERS = new Set(['cutApplied', 'stageStarted', 'matchFinished', 'roundEnded']);
 
-export interface ProjectionInput {
+interface ProjectionInput {
   readonly matchId: string;
   readonly events: readonly DomainEvent[];
   readonly state: MatchState;

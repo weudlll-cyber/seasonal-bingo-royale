@@ -9,7 +9,7 @@
  *                 case-insensitively; a clash is reported as one generic error so the
  *                 response never reveals which e-mail exists.
  * Depends on:     ../db/pool, ./password
- * Used by:        ../http/routes/auth, ../http/routes/devSignIn
+ * Used by:        ../http/routes/auth, ../http/routes/devSignIn, ../cli
  * Spec:           docs/spec/03-security-architecture.md §2.1; docs/spec/04-database-design.md §3.1
  */
 import { randomBytes } from 'node:crypto';
@@ -17,14 +17,14 @@ import { randomBytes } from 'node:crypto';
 import type { DbPool } from '../db/pool.js';
 import { hashPassword } from './password.js';
 
-export interface NewAccount {
+interface NewAccount {
   readonly email: string;
   readonly displayName: string;
   readonly password: string;
   readonly roles?: readonly string[];
 }
 
-export type RegisterResult = { readonly ok: true; readonly id: string } | { readonly ok: false };
+type RegisterResult = { readonly ok: true; readonly id: string } | { readonly ok: false };
 
 export async function registerAccount(pool: DbPool, input: NewAccount): Promise<RegisterResult> {
   const passwordHash = await hashPassword(input.password);
@@ -57,7 +57,7 @@ export async function registerAccount(pool: DbPool, input: NewAccount): Promise<
   }
 }
 
-export interface LoginAccount {
+interface LoginAccount {
   readonly id: string;
   readonly passwordHash: string | null;
   readonly emailVerified: boolean;

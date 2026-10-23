@@ -1,5 +1,6 @@
 /**
  * @file   prettier.config.js
+ * @module repo
  * @brief  Prettier formatting options for the whole repository.
  *
  * Responsibility: the one source of formatting; ESLint stays out of formatting

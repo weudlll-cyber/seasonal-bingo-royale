@@ -5,7 +5,7 @@
  *
  * Responsibility: play each showcase seed with its exact settings to the end, assert the
  *                 promised moment on the page and save a full-page screenshot to
- *                 reports/screens/run-4/<seed>.png (Chromium only, one file per seed).
+ *                 reports/screens/latest/showcase/<seed>.png (Chromium only, one file per seed).
  *                 The seeds were searched again after the sorted cards (D7) and the stage
  *                 multiplier changed every card and royale score.
  * Depends on:     @playwright/test, ./devStack, ./quickTest
@@ -21,7 +21,7 @@ const ROYALE: Omit<RunSettings, 'seed'> = { gameType: 'royale', bots: 20, markin
 async function screenshot(page: Page, testInfo: TestInfo, seed: string): Promise<void> {
   if (testInfo.project.name !== 'chromium') return;
   await page.screenshot({
-    path: `${REPO_ROOT}reports/screens/run-4/${seed}.png`,
+    path: `${REPO_ROOT}reports/screens/latest/showcase/${seed}.png`,
     fullPage: true,
   });
 }

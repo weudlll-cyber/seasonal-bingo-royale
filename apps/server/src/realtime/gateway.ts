@@ -17,8 +17,9 @@
  *                 handled by ./intents. Payloads are capped at 16 KiB; a dropped connection
  *                 recovers missed frames for 2 minutes, longer gaps resync over HTTP.
  * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ../view/clientEvents,
- *                 ./intents, ./inOrder
- * Used by:        ../http/app
+ *                 ./intents, ./inOrder, @sbr/application, @sbr/domain, ../auth/sessionEnds,
+ *                 ../db/pool, ../http/routes/matchViews
+ * Used by:        ../http/app, ./intents
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */
 import type { Server as HttpServer } from 'node:http';

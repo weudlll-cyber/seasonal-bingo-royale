@@ -6,7 +6,7 @@
  * Responsibility: shared React components and design tokens for web and admin.
  *                 Shell only until its work package fills it (docs/spec/15-implementation-plan.md).
  * Depends on:     nothing yet
- * Used by:        src/index.test.ts
+ * Used by:        src/index.test.ts, ./index.test
  * Spec:           docs/spec/10-repository-structure.md §1
  */
 

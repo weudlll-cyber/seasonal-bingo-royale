@@ -9,7 +9,8 @@
  *                 match-create form (11 §3.2). Custom library patterns extend
  *                 this catalogue through the pattern document, below `fullCard`.
  * Depends on:     zod
- * Used by:        ./ruleset.ts, future match-create contracts
+ * Used by:        ./ruleset.ts, future match-create contracts, ./defaults/classicRealtime,
+ *                 ./defaults/classicSeasonsRealtime, ../index
  * Spec:           docs/spec/01-game-design.md §3a.1, §3a.2
  */
 import { z } from 'zod';
@@ -33,7 +34,7 @@ export const BUILTIN_PRIZE_KEYS = [
   'fullCard',
 ] as const;
 
-export type BuiltinPrizeKey = (typeof BUILTIN_PRIZE_KEYS)[number];
+type BuiltinPrizeKey = (typeof BUILTIN_PRIZE_KEYS)[number];
 
 export const BuiltinPrizeKeySchema = z.enum(BUILTIN_PRIZE_KEYS);
 
@@ -74,5 +75,3 @@ export const PrizeListSchema = z
   .refine((list) => new Set(list).size === list.length, {
     error: 'prize keys must be unique',
   });
-
-export type PrizeList = z.infer<typeof PrizeListSchema>;

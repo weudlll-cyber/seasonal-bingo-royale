@@ -11,7 +11,7 @@
  *                 runs, and be marked for the player within a few seconds under "mark after
  *                 3 s". The server decides every mark; the screen shows the server's marks.
  * Depends on:     @playwright/test, ./liveSnap
- * Used by:        ./realGame.spec.ts
+ * Used by:        ./realGame.spec.ts, ./ownerRules
  * Spec:           docs/spec/01-game-design.md §6 (D9, D10)
  */
 import { expect, type Page } from '@playwright/test';

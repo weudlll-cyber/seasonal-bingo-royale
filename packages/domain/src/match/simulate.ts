@@ -11,8 +11,9 @@
  *                 the full event log and the final state so tests can assert both
  *                 "live state = replay" (invariant 4) and the game-wide invariants
  *                 (every ticked prize awarded, final placement 1..N, …). Pure.
- * Depends on:     ./commands, ./decide, ./evolve, ./flow, ./matchState, ./lifecycleTypes
- * Used by:        tests, apps/server/src/dev/quicktest.ts
+ * Depends on:     ./commands, ./decide, ./evolve, ./flow, ./matchState, ./lifecycleTypes,
+ *                 ../gameType, ./events
+ * Used by:        tests, apps/server/src/dev/quicktest.ts, ../index
  * Spec:           docs/spec/15-implementation-plan.md WP-07 Accept; 01 §6;
  *                 12 §3 inv. 4, 7, 8, 10, 12, 17, 18
  */

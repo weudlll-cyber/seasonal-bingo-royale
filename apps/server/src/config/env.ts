@@ -10,7 +10,7 @@
  *                 Fail closed: NODE_ENV defaults to production and development features
  *                 need SBR_DEV=1, which is refused for a public (non-localhost) address.
  * Depends on:     zod
- * Used by:        ../main.ts, ../http/app.ts, ../db/pool.ts
+ * Used by:        ../main.ts, ../http/app.ts, ../cli, ./features, ./seedKey, ../index
  * Spec:           docs/spec/08-devops-architecture.md §5, docs/spec/08-devops-architecture.md §1.1
  */
 import { z } from 'zod';

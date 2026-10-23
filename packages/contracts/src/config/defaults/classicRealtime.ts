@@ -7,7 +7,7 @@
  *                 prize set as classicSeasons; no season symbols in the pool (WP-05
  *                 enforces the game-type-specific pool).
  * Depends on:     ../ruleset, ./common, ../prizes
- * Used by:        apps/server seed
+ * Used by:        apps/server seed, ./index
  * Spec:           docs/spec/01-game-design.md §3a
  */
 import { DEFAULT_PRIZE_SELECTION } from '../prizes.js';

@@ -7,7 +7,8 @@
  *                 steps (half the log, then all of it) and gives the same renamed events,
  *                 status timelines, stage baselines and first-round cards as one full
  *                 replay; two fetches at the same time add every event once.
- * Depends on:     vitest, @sbr/application, @sbr/domain, ./liveViews, ./clientEvents
+ * Depends on:     vitest, @sbr/application, @sbr/domain, ./liveViews, ./clientEvents,
+ *                 ../match/codec
  * Spec:           docs/spec/06-realtime-architecture.md §8
  */
 import {

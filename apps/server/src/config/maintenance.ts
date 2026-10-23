@@ -7,7 +7,7 @@
  *                 started; running matches go on to their end (09 §4). The file is checked
  *                 at most every 2 seconds, so the flag needs no restart.
  * Depends on:     node:fs, node:path
- * Used by:        ../http/routes/matches, ../http/routes/matchHost
+ * Used by:        ../http/routes/matches, ../http/app
  * Spec:           docs/spec/09-deployment-architecture.md §4
  */
 import { existsSync } from 'node:fs';

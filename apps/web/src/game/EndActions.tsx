@@ -6,7 +6,7 @@
  * Responsibility: under the final placement, a player gets "Back to the lobby"; the host
  *                 also gets "Host another match". Links only, through the router.
  * Depends on:     react, ../shell/router
- * Used by:        ./MatchScreen, ../host/HostConsole
+ * Used by:        ./MatchScreen, ../host/HostConsole, ./MatchCancelled
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';

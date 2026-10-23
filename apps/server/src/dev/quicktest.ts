@@ -17,7 +17,8 @@
  *                 later taps are unknown here: those cards are computed as never tapping
  *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
  *                 delay), measured in draws of the chosen interval.
- * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ../view/clientView
+ * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ../view/clientView,
+ *                 @sbr/contracts
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §6, §13
  */
@@ -30,7 +31,7 @@ import {
   toMatchRuleset,
   withinDrawRange,
 } from '@sbr/application';
-import type { Ruleset } from '@sbr/contracts';
+import type { QuickTestResult, Ruleset } from '@sbr/contracts';
 import {
   SEED_BYTES,
   simulateMatch,
@@ -40,9 +41,9 @@ import {
   type MissedNumbers,
 } from '@sbr/domain';
 
-import { buildClientView, type ClientPlayer, type ClientView } from '../view/clientView.js';
+import { buildClientView } from '../view/clientView.js';
 
-export interface QuickTestInput {
+interface QuickTestInput {
   readonly gameType: GameType;
   readonly playerCount: number;
   readonly ownerCards: number;
@@ -55,9 +56,6 @@ export interface QuickTestInput {
   // Seconds between timed draws the client plays back with; default the ruleset value.
   readonly drawIntervalMs?: number | undefined;
 }
-
-export type QuickTestPlayer = ClientPlayer;
-export type QuickTestResult = ClientView;
 
 const OWNER_PREFIX = 'owner-';
 const BOT_PREFIX = 'bot-';

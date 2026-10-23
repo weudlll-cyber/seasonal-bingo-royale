@@ -18,11 +18,18 @@
  *                 among its events (the client keeps the list it holds). Round starts carry
  *                 only the viewer's own cards and no draw order; the player list only the
  *                 viewer's first-round card (NIGHT-5).
- * Depends on:     @sbr/application, ../../view/clientView, ../../view/liveViews (types)
+ * Depends on:     @sbr/application, ../../view/clientView, ../../view/liveViews (types),
+ *                 @sbr/domain, ../../view/clientEvents
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
  */
-import { nextDrawAt, tooFewAtStart, waitingForHost, type LoadedMatch } from '@sbr/application';
+import {
+  minPlayersOf,
+  nextDrawAt,
+  tooFewAtStart,
+  waitingForHost,
+  type LoadedMatch,
+} from '@sbr/application';
 import type { DomainEvent } from '@sbr/domain';
 
 import { liveEvent } from '../../view/clientEvents.js';
@@ -50,7 +57,9 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     // When Draw next unlocks (D13) and whether the match waits for its host (D14).
     nextDrawAt: nextDrawAt(m),
     waitingForHost: waitingForHost(m),
-    // The automatic start found fewer than 2 players: the match waits for its host (D16).
+    // Players needed to start (the ruleset's lobby.minPlayers, 01 §7.6).
+    minPlayers: minPlayersOf(m),
+    // The automatic start found too few players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
@@ -63,7 +72,7 @@ function statusOf(m: LoadedMatch): LoadedMatch['record']['status'] {
   return m.record.status;
 }
 
-export interface LiveViewInput {
+interface LiveViewInput {
   readonly match: LoadedMatch;
   // The match's shared replay (../../view/liveViews), extended to its current seq.
   readonly entry: LiveEntry;
@@ -106,7 +115,8 @@ export function liveView({ match: m, entry, me, since }: LiveViewInput) {
   });
   // The viewer's own cards and no draw order in round starts (../../view/clientEvents).
   const viewer = owner === null ? null : (idMap.get(owner) ?? owner);
-  const events = view.events.slice(since).map((e) => liveEvent(e, viewer));
+  // The view's events are the replay's (typed as the domain's events there).
+  const events = replay.renamed.slice(since).map((e) => liveEvent(e, viewer));
   const withPlayers = since === 0 || events.some(changesPlayers);
   const { players, ...rest } = view;
   return {

@@ -11,6 +11,7 @@
  *                 prefers-reduced-motion (handled per component).
  * Depends on:     react, ./api, ./types, ./playback, ./drawControl, ./useDrawTicker,
  *                 ./components/*
+ * Used by:        ./shell/AppShell
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §5, §13
  */
 import { useMemo, useState, type ReactElement } from 'react';

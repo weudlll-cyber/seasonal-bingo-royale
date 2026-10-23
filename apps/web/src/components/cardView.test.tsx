@@ -8,8 +8,8 @@
  *                 ticker shows every number with its letter and symbols as icons; owner
  *                 cells carry the same label for screen readers and still mark with the
  *                 keyboard; prize banners name the deciding ball.
- * Depends on:     @testing-library/react, ./CardGrid, ./DrawTicker, ./OwnerCard,
- *                 ../playback, ../quickTestFixture
+ * Depends on:     @testing-library/react, ./CardGrid, ./DrawTicker, ./OwnerCard, ../playback,
+ *                 ../test/quickTestFixture, ../types
  * Spec:           docs/spec/01-game-design.md §4, §5, §13
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -19,7 +19,7 @@ import { CardGrid } from './CardGrid.js';
 import { DrawTicker } from './DrawTicker.js';
 import { OwnerCard } from './OwnerCard.js';
 import { playbackAt } from '../playback.js';
-import { numberCard, royaleFixture } from '../quickTestFixture.js';
+import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
 import type { DomainEventLike } from '../types.js';
 
 afterEach(cleanup);

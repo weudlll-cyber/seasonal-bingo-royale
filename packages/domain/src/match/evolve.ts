@@ -9,7 +9,8 @@
  *                 ./evolveLifecycle.ts and ./evolveScoring.ts; this file is only the
  *                 dispatch map and the initial-state factory. Pure.
  * Depends on:     ./matchState, ./events, ./lifecycleTypes, ./evolveLifecycle, ./evolveScoring
- * Used by:        apps/server (projection), ./decide, ./simulate, tests
+ * Used by:        apps/server (projection), ./decide, ./simulate, tests, ../index,
+ *                 ./decideAutoMark
  * Spec:           docs/spec/02-software-architecture.md §5.1, docs/spec/12-testing-strategy.md §3 inv. 4
  */
 import type { MatchState } from './matchState.js';

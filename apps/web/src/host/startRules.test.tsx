@@ -11,14 +11,14 @@
  *                 start it yourself or abort" when the automatic start found too few, with
  *                 the line "Waiting for players …" and "Abort match" in the lobby.
  * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./createForm, ./HostConsole,
- *                 ./TimingFields, ../matchFixture
+ *                 ./TimingFields, ../test/matchFixture, ../game/useLiveMatch
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { MatchSummary } from '../game/useLiveMatch.js';
-import { matchSummary, serveMatch, show } from '../matchFixture.js';
+import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { CreateMatch } from './CreateMatch.js';
 import { createBody, INITIAL } from './createForm.js';
 import { HostConsole } from './HostConsole.js';

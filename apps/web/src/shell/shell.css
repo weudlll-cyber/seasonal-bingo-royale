@@ -1,14 +1,15 @@
-/* ============================================================
-   File:        apps/web/src/shell/shell.css
-   Module:      web/shell
-   Brief:       Layout of the player client: top bar and main column.
-   Responsibility: a top bar on the website's season gradient (emblem, wordmark,
-                navigation as pills with the current one solid, the round light/dark toggle,
-                account and the dev sign-in menu) over a centred main column, sticky from 640 px with focus kept below
-                it; on phones the bar wraps into two rows, scrolls away with the page and
-                the navigation scrolls sideways. Colours come from @sbr/ui.
-   Spec:        docs/spec/01-game-design.md §13
-   ============================================================ */
+/**
+ * @file   apps/web/src/shell/shell.css
+ * @module web/shell
+ * @brief  Layout of the player client: top bar and main column.
+ *
+ * Responsibility: a top bar on the website's season gradient (emblem, wordmark,
+ *                 navigation as pills with the current one solid, the round light/dark toggle,
+ *                 account and the dev sign-in menu) over a centred main column, sticky from 640 px with focus kept below
+ *                 it; on phones the bar wraps into two rows, scrolls away with the page and
+ *                 the navigation scrolls sideways. Colours come from @sbr/ui.
+ * Spec:           docs/spec/01-game-design.md §13
+ */
 
 /* The page column keeps its width whether or not the page needs a scrollbar. Only with
    a mouse: touch screens overlay their scrollbars (nothing shifts), and in mobile WebKit

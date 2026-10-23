@@ -8,17 +8,19 @@
  *                 profile), the starting values, the message for seconds below the shortest
  *                 interval (D12), and the request body (05 §2.3; the server clamps seconds
  *                 and delays into range as well).
- * Depends on:     ../components/StartMarkingField, ../drawControl, ../prizes, ../types, ./TimingFields
+ * Depends on:     @sbr/contracts (prize list), ../components/StartMarkingField, ../drawControl,
+ *                 ../types, ./TimingFields
  * Used by:        ./CreateMatch
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §7.1
  */
+import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
+
 import {
   INITIAL_MARKING,
   toMissedNumbers,
   type MarkingChoice,
 } from '../components/StartMarkingField.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
-import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import type { GameType } from '../types.js';
 import {
   INITIAL_PAUSE,
@@ -51,7 +53,7 @@ export interface FormValues {
 export const INITIAL: FormValues = {
   title: 'Bingo night',
   gameType: 'royale',
-  prizes: new Set(DEFAULT_PRIZES),
+  prizes: new Set<string>(DEFAULT_PRIZE_SELECTION),
   draw: INITIAL_CONTROL,
   missed: INITIAL_MARKING,
   leaderboard: null,
@@ -73,7 +75,9 @@ export function createBody(v: FormValues) {
   return {
     title: v.title,
     gameType: v.gameType,
-    ...(v.gameType === 'royale' ? {} : { prizes: PRIZE_CATALOGUE.filter((p) => v.prizes.has(p)) }),
+    ...(v.gameType === 'royale'
+      ? {}
+      : { prizes: BUILTIN_PRIZE_KEYS.filter((p) => v.prizes.has(p)) }),
     drawMode: v.draw.mode,
     ...(v.draw.intervalSec === null
       ? {}

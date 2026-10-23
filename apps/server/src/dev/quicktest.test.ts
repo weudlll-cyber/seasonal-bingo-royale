@@ -9,14 +9,15 @@
  *                 total order 1..N over every entrant, the Winter shield reserves a
  *                 player's shieldCharges and the event log contains the lifecycle
  *                 events the client plays back.
- * Depends on:     ./quicktest
+ * Depends on:     ./quicktest, @sbr/contracts
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
+import { DEFAULT_PRIZE_SELECTION, type QuickTestResult } from '@sbr/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { runQuickTest, type QuickTestResult } from './quicktest.js';
+import { runQuickTest } from './quicktest.js';
 
-const TICKED = ['rows-1', 'rows-2', 'fourCorners', 'oneDiagonal', 'fullCard'];
+const TICKED = DEFAULT_PRIZE_SELECTION;
 
 describe('runQuickTest', () => {
   it.each(['royale', 'classicSeasons', 'classic'] as const)(

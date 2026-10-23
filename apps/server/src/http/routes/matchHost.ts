@@ -11,7 +11,7 @@
  *                 Development builds add POST /bots { upTo } to fill the lobby with bots and
  *                 POST /dev-system-abort { reason } to end a match as the system (D17).
  *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
- * Depends on:     fastify, zod, ./matches, ./matchInput
+ * Depends on:     fastify, zod, ./matches, ./matchInput, @sbr/application, @sbr/contracts
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/06-realtime-architecture.md §4.1; docs/spec/11-admin-panel.md §3.2
  */

@@ -10,7 +10,7 @@
  *                 play. Labels never use the word "auto" alone, so they cannot be
  *                 confused with marking.
  * Depends on:     react, ../drawControl
- * Used by:        ./StartForm
+ * Used by:        ./StartForm, ../host/CreateMatch
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -21,7 +21,7 @@ import type { DrawControl, DrawMode } from '../drawControl.js';
 // label names it while the field is empty and the ruleset interval applies.
 const RULESET_INTERVAL_SEC = 5;
 
-export interface StartDrawFieldProps {
+interface StartDrawFieldProps {
   readonly value: DrawControl;
   readonly onChange: (next: DrawControl) => void;
 }

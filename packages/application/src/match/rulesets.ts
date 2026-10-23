@@ -9,7 +9,7 @@
  *                 have no stages; the domain gets a single placeholder stage. Shared by the
  *                 live match engine and the dev Quick Test.
  * Depends on:     @sbr/contracts, @sbr/domain (types)
- * Used by:        ./engine, apps/server/src/dev/quicktest.ts
+ * Used by:        apps/server/src/dev/quicktest.ts, ../index, ./create
  * Spec:           docs/spec/01-game-design.md §3a, §6; docs/spec/02-software-architecture.md §6
  */
 import {

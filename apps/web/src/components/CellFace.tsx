@@ -15,7 +15,7 @@
 import type { CSSProperties, ReactElement } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
-import { SEASON_COLORS, SEASON_NAMES, seasonOfSymbol, type Card, type Season } from '../types.js';
+import { SEASON_NAMES, seasonColor, seasonOfSymbol, type Card, type Season } from '../types.js';
 
 export function seasonOfCell(card: Card, index: number): Season | null {
   const cell = card.cells[index];
@@ -55,7 +55,7 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
     fontSize: 'var(--cell-font, 0.9rem)',
     fontWeight: 'var(--cell-weight, 400)',
     borderRadius: 'var(--cell-radius, 0.25rem)',
-    border: season === null ? '2px solid transparent' : `2px solid ${SEASON_COLORS[season]}`,
+    border: season === null ? '2px solid transparent' : `2px solid ${seasonColor(season)}`,
     // Marked cells get a filled tone and a check outline, not only a colour change.
     background: marked ? 'var(--cell-marked-bg, var(--color-solid))' : background,
     // The live card sets --cell-*; the Quick Test's cards fall back to the theme tokens.

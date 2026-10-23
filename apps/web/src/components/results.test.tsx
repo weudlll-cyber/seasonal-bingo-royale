@@ -10,7 +10,8 @@
  *                 match log is hidden while empty; the host's draw-mode switch marks the
  *                 active mode and shows the seconds field for timed draws only.
  * Depends on:     @testing-library/react, vitest, ./Standings, ./FinalPlacement, ./Playback,
- *                 ../host/HostDrawControls, ../playback, ../quickTestFixture
+ *                 ../host/HostDrawControls, ../playback, ../test/quickTestFixture, ./DrawTicker,
+ *                 ../game/useLiveMatch
  * Spec:           docs/spec/01-game-design.md §5, §7.5, §13
  */
 import { cleanup, render, screen, within } from '@testing-library/react';
@@ -23,7 +24,7 @@ import { Standings } from './Standings.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import { HostDrawControls } from '../host/HostDrawControls.js';
 import { playbackAt } from '../playback.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 
 vi.mock('../game/socket.js', () => ({ intent: () => Promise.resolve({ ok: true }) }));
 

@@ -34,7 +34,7 @@ export interface Session {
   readonly permissions: readonly string[];
 }
 
-export function tokenHash(token: string): Buffer {
+function tokenHash(token: string): Buffer {
   return createHash('sha256').update(token).digest();
 }
 

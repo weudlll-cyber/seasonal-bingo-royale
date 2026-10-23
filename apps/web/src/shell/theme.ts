@@ -15,12 +15,12 @@
  */
 import { useEffect, useState } from 'react';
 
-export type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark';
 
 const KEY = 'se.theme';
 const QUERY = '(prefers-color-scheme: dark)';
 
-export function storedTheme(): Theme | null {
+function storedTheme(): Theme | null {
   try {
     const value = window.localStorage.getItem(KEY);
     return value === 'light' || value === 'dark' ? value : null;

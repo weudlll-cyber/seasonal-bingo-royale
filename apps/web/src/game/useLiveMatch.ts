@@ -11,7 +11,9 @@
  *                 `match`. Fetches never overlap. The view has the Quick Test's shape, so the
  *                 screens fold it with the same playback logic.
  * Depends on:     react, ../shell/http, ./socket, ../types
- * Used by:        ./MatchScreen, ../host/HostConsole
+ * Used by:        ./MatchScreen, ../host/HostConsole, ./HostLink, ./Lobby, ./MatchCancelled,
+ *                 ./Registration, ./WaitingRoom, ./labels, ../host/HostDrawControls,
+ *                 ../host/HostLobby
  * Spec:           docs/spec/06-realtime-architecture.md §1, §4, §5; docs/spec/05-api-design.md §2.3
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -51,7 +53,9 @@ export interface MatchSummary {
   readonly nextDrawAt: number | null;
   // The match waits for its host to start the next round (D14).
   readonly waitingForHost: boolean;
-  // The automatic start found fewer than 2 players; the match waits for its host (D16).
+  // Players needed to start (the ruleset's lobby.minPlayers, 01 §7.6).
+  readonly minPlayers: number;
+  // The automatic start found too few players; the match waits for its host (D16).
   readonly tooFewAtStart: boolean;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.

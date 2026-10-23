@@ -9,10 +9,10 @@
  *                 keeps complexity at 1. All randomness comes from state.seed; ctx
  *                 carries only the clock, which the realtime engine uses for speed
  *                 bonuses outside this pure function.
- * Depends on:     ../draw/drawSequence, ../royale/cut, ../royale/finalRanking,
- *                 ./markResolver, ./evolve, ./matchState, ./commands, ./events,
- *                 ./stagePlan, ./roundEnd, ./decideCards, ./decideAutoMark, ./decideRanking
- * Used by:        apps/server (command handlers), ./simulate
+ * Depends on:     ../draw/drawSequence, ../royale/cut, ../royale/finalRanking, ./markResolver,
+ *                 ./evolve, ./matchState, ./commands, ./events, ./stagePlan, ./roundEnd,
+ *                 ./decideCards, ./decideAutoMark, ./decideRanking
+ * Used by:        ./simulate, ../index, packages/application (match engine)
  * Spec:           docs/spec/01-game-design.md §3, §6, §7, §8; docs/spec/02-software-architecture.md §5.1
  */
 import { drawSequence } from '../draw/drawSequence.js';

@@ -8,7 +8,8 @@
  *                 seed against it. The verify helper uses crypto.timingSafeEqual so a
  *                 later verification endpoint cannot leak byte-by-byte comparison.
  * Depends on:     node:crypto
- * Used by:        apps/server (match lifecycle), WP-16 verification page
+ * Used by:        ./index, apps/server/src/match/pgMatchStore (commitSeed); verifyCommitment
+ *                 waits for the verification page (WP-16)
  * Spec:           docs/spec/01-game-design.md §9
  */
 import { createHash, timingSafeEqual } from 'node:crypto';

@@ -1,5 +1,6 @@
 /**
  * @file   eslint.config.js
+ * @module repo
  * @brief  ESLint flat config: strict typed TypeScript rules, size limits and layer rules.
  *
  * Responsibility: enforce the size and structure rules of 10 §2 and the dependency rule
@@ -111,7 +112,8 @@ export default defineConfig(
     },
   },
   {
-    files: ['**/*.test.ts'],
+    // Test files of every kind, the Playwright specs included, may run to 400 lines.
+    files: ['**/*.test.ts', '**/*.test.tsx', 'e2e/**/*.spec.ts'],
     rules: { 'max-lines': ['error', { max: 400 }] },
   },
   {

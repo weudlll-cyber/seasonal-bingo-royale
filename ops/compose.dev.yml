@@ -1,4 +1,5 @@
 # @file   ops/compose.dev.yml
+# @module ops
 # @brief  Local development services: PostgreSQL 17 and Mailpit.
 #
 # Responsibility: the backing services "pnpm dev" needs, reachable from this machine only

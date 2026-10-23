@@ -9,13 +9,13 @@
  *                 (since the held seq); a gap fetches the new events too, never the whole
  *                 log again; a delta without the player list keeps the one held; events are
  *                 never held twice.
- * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../quickTestFixture
+ * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../test/quickTestFixture
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { useLiveMatch } from './useLiveMatch.js';
 
 type Handler = (frame: unknown) => void;

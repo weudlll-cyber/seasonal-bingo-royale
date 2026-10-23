@@ -15,7 +15,7 @@ import { useState, type ReactElement, type SyntheticEvent } from 'react';
 import { navigate } from '../shell/router.js';
 import { accountError } from './accountText.js';
 
-export interface AccountFieldProps {
+interface AccountFieldProps {
   readonly label: string;
   readonly type: 'text' | 'email' | 'password';
   readonly autoComplete: string;

@@ -8,7 +8,7 @@
  *                 total order 1..N (invariant 8 of 12 §3). Eliminated players carry
  *                 their elimination order so they rank below every finalist.
  * Depends on:     nothing
- * Used by:        apps/server match end, future tests, WP-08
+ * Used by:        ../index, ../match/decide, ../match/decideRanking
  * Spec:           docs/spec/01-game-design.md §8.4, §7.5, docs/spec/12-testing-strategy.md §3 inv. 8
  */
 

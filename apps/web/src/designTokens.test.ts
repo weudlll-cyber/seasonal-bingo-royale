@@ -11,7 +11,7 @@
  *                 keeps 7:1 (the hero element); the host's Draw next keeps 4.5:1 enabled and
  *                 disabled; and the motion file turns every animation off under
  *                 prefers-reduced-motion.
- * Depends on:     node:fs, vitest, @sbr/ui/tokens.css, @sbr/ui/motion.css (raw), ./game/game.css
+ * Depends on:     node:fs, vitest, @sbr/ui/tokens.css, @sbr/ui/motion.css (raw), ./host/host.css
  * Spec:           docs/spec/01-game-design.md §13 (WCAG 2.2 AA)
  */
 import { readFileSync } from 'node:fs';
@@ -163,9 +163,9 @@ describe('token contrast (WCAG AA), arena and controls', () => {
   });
 
   it("keeps the host's Draw next at 4.5:1 enabled and disabled, in both themes", () => {
-    const gameCss = readFileSync(new URL('./game/game.css', import.meta.url), 'utf8');
-    const start = gameCss.indexOf('.host-draw:disabled {');
-    const disabled = gameCss.slice(start, gameCss.indexOf('}', start));
+    const hostCss = readFileSync(new URL('./host/host.css', import.meta.url), 'utf8');
+    const start = hostCss.indexOf('.host-draw:disabled {');
+    const disabled = hostCss.slice(start, hostCss.indexOf('}', start));
     // Disabled: no fading; muted text on surface-2.
     expect(disabled).toContain('opacity: 1;');
     expect(disabled).toContain('color: var(--color-text-muted);');

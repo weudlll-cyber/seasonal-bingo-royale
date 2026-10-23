@@ -17,15 +17,14 @@ import type { ReactElement } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
 import {
-  ON_SEASON_COLOR,
-  SEASON_COLORS,
+  seasonColor,
   SEASON_NAMES,
   type EffectKind,
   type OwnerStatus,
   type Season,
 } from '../types.js';
 
-export interface OwnerStatusPanelProps {
+interface OwnerStatusPanelProps {
   readonly accountId: string;
   readonly points: number;
   readonly rank: number;
@@ -113,8 +112,8 @@ function EffectBadge({ season, testId, children }: BadgeProps): ReactElement {
         gap: '0.25rem',
         padding: '0.1rem 0.45rem',
         borderRadius: '999px',
-        background: season === undefined ? 'var(--color-surface-2)' : SEASON_COLORS[season],
-        color: season === undefined ? 'var(--color-text)' : ON_SEASON_COLOR,
+        background: season === undefined ? 'var(--color-surface-2)' : seasonColor(season),
+        color: season === undefined ? 'var(--color-text)' : 'var(--color-on-season)',
         fontSize: '0.85rem',
       }}
     >

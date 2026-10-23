@@ -11,7 +11,7 @@
  * Spec:           docs/spec/06-realtime-architecture.md §2.3; docs/spec/03-security-architecture.md §3
  */
 
-export type SessionEndsListener = (sessionIds: readonly string[]) => void;
+type SessionEndsListener = (sessionIds: readonly string[]) => void;
 
 export class SessionEnds {
   private readonly listeners: SessionEndsListener[] = [];

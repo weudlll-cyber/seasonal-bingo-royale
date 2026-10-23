@@ -93,7 +93,7 @@ function addPrizeWinner(state: FoldState, prizeKey: string, id: string, decided:
   };
 }
 
-export function addPoints(state: FoldState, id: string, points: number): void {
+function addPoints(state: FoldState, id: string, points: number): void {
   update(state, id, (p) => ({ ...p, points: p.points + points }));
 }
 

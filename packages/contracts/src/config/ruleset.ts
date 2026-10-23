@@ -9,7 +9,7 @@
  *                 requires `defaultPrizes`; royale forbids `defaultPrizes`).
  * Depends on:     zod, ./gameType, ./prizes
  * Used by:        apps/server (match creation, validation), apps/admin (editor),
- *                 defaults in ./defaults/*, future packages that persist the document
+ *                 defaults in ./defaults/*, future packages that persist the document, ../index
  * Spec:           docs/spec/01-game-design.md §3a, §4–§9; docs/spec/11-admin-panel.md §4
  */
 import { z } from 'zod';

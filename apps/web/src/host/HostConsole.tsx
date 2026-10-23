@@ -13,8 +13,8 @@
  *                 players first, prizes awarded, the match log (newest first) with cut
  *                 results, and abort with a reason (./AbortMatch); at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
- * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch, ./HostDrawControls,
- *                 ./HostLobby
+ * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
+ *                 ./HostDrawControls, ./HostLobby, ./host.css, ../shell/router
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
  */
@@ -29,6 +29,7 @@ import { EndActions } from '../game/EndActions.js';
 import { MatchCancelled } from '../game/MatchCancelled.js';
 import { intent } from '../game/socket.js';
 import '../game/game.css';
+import './host.css';
 import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';

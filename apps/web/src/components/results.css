@@ -1,14 +1,15 @@
-/* ============================================================
-   File:        apps/web/src/components/results.css
-   Module:      web
-   Brief:       Cut screen, ranked rows, podium, prize rows and the match log.
-   Responsibility: the shared look of everything that ranks or reports: rows with rank,
-                name, season icons and points (own row highlighted, out rows dimmed below
-                a divider), the final podium in season colours, the prize rows and the
-                match log, newest first, in a scrolling panel. Colours, spacing and radii
-                from @sbr/ui tokens only.
-   Spec:        docs/spec/01-game-design.md §7.4, §7.5, §13
-   ============================================================ */
+/**
+ * @file   apps/web/src/components/results.css
+ * @module web
+ * @brief  Cut screen, ranked rows, podium, prize rows and the match log.
+ *
+ * Responsibility: the shared look of everything that ranks or reports: rows with rank,
+ *                 name, season icons and points (own row highlighted, out rows dimmed below
+ *                 a divider), the final podium in season colours, the prize rows and the
+ *                 match log, newest first, in a scrolling panel. Colours, spacing and radii
+ *                 from @sbr/ui tokens only.
+ * Spec:           docs/spec/01-game-design.md §7.4, §7.5, §13
+ */
 
 /* The cut screen */
 .cut-screen {

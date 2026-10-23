@@ -7,7 +7,10 @@
  *                 hash changes. Hash routing keeps every screen reachable from the dev
  *                 server and from a static host without server rewrites.
  * Depends on:     react
- * Used by:        ./AppShell, the screens that link to each other
+ * Used by:        ./AppShell, the screens that link to each other, ../account/Register,
+ *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
+ *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
+ *                 ../host/YourMatches, ./DevTools
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/15-implementation-plan.md WP-12
  */
 import { useEffect, useState } from 'react';

@@ -14,18 +14,20 @@
  *                 Seconds between draws below the shortest interval (D12) show a plain
  *                 message and keep the form from being sent. POST /matches, then the console.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
- *                 ../shell/http, ../shell/router, ../prizes, ../game/labels, ./createForm
- *                 (values, defaults, D12 check, request body), ./TimingFields
+ *                 ../shell/http, ../shell/router, @sbr/contracts (prize list), ../game/labels,
+ *                 ./createForm (values, defaults, D12 check, request body), ./TimingFields,
+ *                 ../game/game.css, ./host.css, ./YourMatches, ../types
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6
  */
+import { BUILTIN_PRIZE_KEYS } from '@sbr/contracts';
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
 import { MissedField } from '../components/StartMarkingField.js';
 import { gameTypeName, prizeName, problemText } from '../game/labels.js';
 import '../game/game.css';
-import { PRIZE_CATALOGUE } from '../prizes.js';
+import './host.css';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
 import { createBody, INITIAL, intervalMessage, type FormValues } from './createForm.js';
@@ -166,7 +168,7 @@ function PrizeField({
     <fieldset data-testid="create-prizes">
       <legend>Prizes</legend>
       <div className="prize-grid">
-        {PRIZE_CATALOGUE.map((key) => (
+        {BUILTIN_PRIZE_KEYS.map((key) => (
           <label key={key}>
             <input
               type="checkbox"

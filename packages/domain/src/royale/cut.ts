@@ -8,8 +8,8 @@
  *                 charges + rank margin cover them. Never falls below `minSurvivors`
  *                 (invariant 7 of 12 §3). Rescues only add; no one ranked above a
  *                 survivor can be removed except by the cut rule itself.
- * Depends on:     ./finalRanking (for the shared comparator shape)
- * Used by:        apps/server match orchestration, WP-08
+ * Depends on:     nothing
+ * Used by:        ../index, ../match/decide, ../match/decideRanking
  * Spec:           docs/spec/01-game-design.md §7.4, docs/spec/12-testing-strategy.md §3 inv. 7
  */
 

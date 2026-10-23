@@ -4,14 +4,16 @@
  * @brief  How a match starts (01 §7.6, D16): Start, a set time with or without auto start, when full.
  *
  * Responsibility: the host starts a match with a set time before that time; with the
- *                 automatic start on, the countdown begins at the set time when at least 2
+ *                 automatic start on, the countdown begins at the set time when enough
  *                 players have joined; with fewer the match waits (not aborted) and the
  *                 host can still start it; the console's switch takes effect both ways, also
  *                 after the time has passed; "start when full" begins the countdown with the
- *                 last place; a start time too soon or more than a week ahead is refused.
- * Depends on:     vitest, ./engine, ./fakes, ./startRules
+ *                 last place; a start time too soon or more than a week ahead is refused;
+ *                 the start minimum is the ruleset's lobby.minPlayers (default 2).
+ * Depends on:     vitest, @sbr/contracts, ./engine, ./fakes, ./startRules
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
+import { classicRealtimeDefault } from '@sbr/contracts';
 import { describe, expect, it } from 'vitest';
 
 import { MatchError } from './engine.js';
@@ -131,5 +133,37 @@ describe('start when full and the time limits (01 §7.6)', () => {
     await expect(engine.create(at(8 * 24 * 3_600_000), null)).rejects.toEqual(
       new MatchError('START_TIME_INVALID'),
     );
+  });
+});
+
+describe("the ruleset's start minimum (01 §7.6)", () => {
+  // The published default needs 2; a ruleset may ask for more.
+  const three = {
+    name: 'three to start',
+    ruleset: {
+      ...classicRealtimeDefault,
+      lobby: { ...classicRealtimeDefault.lobby, minPlayers: 3 },
+    },
+  };
+
+  it('needs 2 players by default', () => {
+    expect(classicRealtimeDefault.lobby.minPlayers).toBe(2);
+  });
+
+  it('refuses Start below lobby.minPlayers and lets the automatic start wait', async () => {
+    const { store, scheduler, clock, engine } = fakeEngine();
+    const at = clock.t + 60_000;
+    const m = await engine.create(
+      { ...base, ruleset: three, startRule: { kind: 'at', at, auto: true } },
+      null,
+    );
+    await engine.fillWithBots(m.id, 2);
+    await expect(engine.start(m.id, 10_000)).rejects.toEqual(new MatchError('NOT_ENOUGH_PLAYERS'));
+    await scheduler.runUntil(engine, clock, at + 1_000);
+    expect(store.records.get(m.id)?.startsAt).toBeNull();
+    expect(tooFewAtStart(await engine.runner.current(m.id), clock.t)).toBe(true);
+    await engine.fillWithBots(m.id, 3);
+    await engine.start(m.id, 10_000);
+    expect(store.records.get(m.id)?.startsAt).toBe(clock.t + 10_000);
   });
 });

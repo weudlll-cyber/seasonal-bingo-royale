@@ -14,7 +14,7 @@
  *                 with timed draws, schedules the next draw one interval after this one.
  *                 Host draws follow the same path from the host's Draw next (D8, D10).
  * Depends on:     @sbr/domain, ./ports, ./runner, ./startRules
- * Used by:        ./engine
+ * Used by:        ./engine, ../index, ./startRules
  * Spec:           docs/spec/01-game-design.md §5, §6, §7; docs/spec/06-realtime-architecture.md §5
  */
 import { nextStep } from '@sbr/domain';

@@ -8,7 +8,7 @@
  *                 `classicSeasons`) a season-symbol cell. The row-major layout matches
  *                 `cards.marked bit(25)` in 04 §3.3 so projection to the DB is trivial.
  * Depends on:     ../draw/pool (SymbolId)
- * Used by:        ./generateCard.ts, ./patterns.ts, ../match/*
+ * Used by:        ./generateCard.ts, ./patterns.ts, ../match/*, ../index
  * Spec:           docs/spec/01-game-design.md §4, §3a, docs/spec/04-database-design.md §3.3
  */
 import type { SymbolId } from '../draw/pool.js';

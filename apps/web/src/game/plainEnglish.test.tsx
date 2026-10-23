@@ -11,17 +11,18 @@
  *                 shows in the DOM text, and check the plain lines themselves; the player
  *                 screen holds one match log, newest first.
  * Depends on:     @testing-library/react, vitest, ./MatchScreen, ../host/HostConsole,
- *                 ../components/Playback, ../playback, ../prizes, ../quickTestFixture
+ *                 ../components/Playback, ../playback, @sbr/contracts (prize list),
+ *                 ../test/quickTestFixture, ../shell/session, ../types
  * Spec:           docs/spec/01-game-design.md §7.3, §7.4, §8.3, §13
  */
+import { BUILTIN_PRIZE_KEYS } from '@sbr/contracts';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Playback } from '../components/Playback.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { playbackAt } from '../playback.js';
-import { PRIZE_CATALOGUE } from '../prizes.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 import type { DomainEventLike, QuickTestResult } from '../types.js';
 import { MatchScreen } from './MatchScreen.js';
@@ -63,7 +64,7 @@ const EVENT_TYPES = [
   'matchAborted',
 ];
 
-const RAW = [...REASONS, ...EVENT_TYPES, ...PRIZE_CATALOGUE, 'classicSeasons', 'shield save'];
+const RAW = [...REASONS, ...EVENT_TYPES, ...BUILTIN_PRIZE_KEYS, 'classicSeasons', 'shield save'];
 
 // The fixture's match plus every event that makes a line: all reasons, a shield save,
 // Season Complete, the jackpot, every prize and an abort.
@@ -88,7 +89,7 @@ function everyLine(gameType: QuickTestResult['gameType']): QuickTestResult {
     },
     { type: 'seasonCompleteFired', accountId: 'bot-02', points: 100 },
     { type: 'jackpotClaimed', accountId: 'bot-03', roundIndex: 1, value: 250 },
-    ...PRIZE_CATALOGUE.map((prizeKey) => ({
+    ...BUILTIN_PRIZE_KEYS.map((prizeKey) => ({
       type: 'classicPrizeAwarded' as const,
       accountId: 'bot-02',
       prizeKey,
@@ -97,7 +98,7 @@ function everyLine(gameType: QuickTestResult['gameType']): QuickTestResult {
     { type: 'matchAborted', reason: 'Power cut in the hall' },
   ];
   const events = [...base.events.slice(0, -1), ...extra, ...base.events.slice(-1)];
-  return { ...base, gameType, tickedPrizes: PRIZE_CATALOGUE, events };
+  return { ...base, gameType, tickedPrizes: BUILTIN_PRIZE_KEYS, events };
 }
 
 function expectPlain(text: string): void {

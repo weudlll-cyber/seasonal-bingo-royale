@@ -11,7 +11,7 @@
  *                 exists), name or e-mail in use (one answer), weak password, too many tries,
  *                 e-mail not confirmed.
  * Depends on:     ../shell/http (types)
- * Used by:        ./SignIn, ./Register
+ * Used by:        ./Register, ./formParts
  * Spec:           docs/spec/03-security-architecture.md §2.1, §13; docs/spec/05-api-design.md §2.1
  */
 import { ApiError } from '../shell/http.js';

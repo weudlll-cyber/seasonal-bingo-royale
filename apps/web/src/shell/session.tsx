@@ -7,7 +7,8 @@
  *                 the development quick sign-in (host or player 1–3, 05 §2.1) and sign-out.
  *                 Screens read it through `useSession`.
  * Depends on:     react, ./http, ../game/socket
- * Used by:        ./AppShell and every screen that needs the account
+ * Used by:        ./AppShell and every screen that needs the account, ../account/Register,
+ *                 ../account/SignIn, ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §3, §8
  */
 import {
@@ -24,7 +25,7 @@ import {
 import { resetSocket } from '../game/socket.js';
 import { api, setCsrfToken } from './http.js';
 
-export interface SessionInfo {
+interface SessionInfo {
   readonly signedIn: boolean;
   readonly account: { readonly id: string; readonly displayName: string } | null;
   readonly permissions: readonly string[];
@@ -44,7 +45,7 @@ interface SessionContextValue {
   readonly can: (permission: string) => boolean;
 }
 
-export interface NewAccount {
+interface NewAccount {
   readonly displayName: string;
   readonly email: string;
   readonly password: string;

@@ -6,12 +6,12 @@
  * Responsibility: check a set start time (at least the countdown ahead, at most a week).
  *                 A set time is an announcement (D16): the host can always start; with the
  *                 automatic start on, the persistent scheduler (so a restart keeps it) runs
- *                 `auto_start` at the time, which begins the countdown
- *                 when at least 2 players have joined and otherwise leaves the match waiting
- *                 in the lobby (`tooFewAtStart`). Under "start when full" the last place
+ *                 `auto_start` at the time, which begins the countdown when the ruleset's
+ *                 minimum (lobby.minPlayers, `minPlayersOf`) has joined and otherwise leaves
+ *                 the match waiting in the lobby (`tooFewAtStart`). Under "start when full" the last place
  *                 taken begins the countdown. Every start runs the same countdown.
  * Depends on:     @sbr/contracts, ./flow (types), ./ports
- * Used by:        ./engine, ./flow, apps/server (summary)
+ * Used by:        ./engine, ./flow, apps/server (summary), ../index
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
 import { MAX_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
@@ -55,15 +55,20 @@ export async function planAutoStart(deps: FlowDeps, m: LoadedMatch): Promise<voi
   await deps.scheduler.schedule({ matchId: m.record.id, kind: 'auto_start', dueAt: rule.at });
 }
 
-// The automatic start is due (at the set time, or later when switched on late): with at
-// least 2 players the countdown begins; with fewer the match waits for its host, who sees
-// why.
+// Players a match needs to start: the frozen ruleset's lobby.minPlayers (default 2, 01 §7.6).
+export function minPlayersOf(m: LoadedMatch): number {
+  return m.record.ruleset.lobby.minPlayers;
+}
+
+// The automatic start is due (at the set time, or later when switched on late): with
+// enough players (minPlayersOf) the countdown begins; with fewer the match waits for its
+// host, who sees why.
 export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> {
   const m = await deps.runner.current(matchId);
   const rule = m.record.settings.startRule;
   if (m.record.status !== 'lobby' || m.record.startsAt !== null) return;
   if (rule.kind !== 'at' || !rule.auto) return;
-  if (m.state.playerOrder.length < 2) {
+  if (m.state.playerOrder.length < minPlayersOf(m)) {
     // Nothing changes but the time: the screens hear of it and show the notice.
     deps.runner.update(matchId, (x) => x);
     return;
@@ -71,7 +76,7 @@ export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> 
   await scheduleStart(deps, matchId, deps.clock.now() + START_COUNTDOWN_MS);
 }
 
-// The automatic start came and found fewer than 2 players: the match waits (D16).
+// The automatic start came and found too few players: the match waits (D16).
 export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
   const rule = m.record.settings.startRule;
   return (

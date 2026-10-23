@@ -7,18 +7,20 @@
  *                 has focus; it is usable only while the round runs, the previous number's
  *                 speed window has closed (D10) and the timed interval since the last draw
  *                 has passed — it counts down the seconds until then (D13). A
- *                 segmented switch "Host draws" / "Timed draws" (the active one filled and
- *                 checked) and the seconds between timed draws (shown for timed draws only)
+ *                 segmented switch "Host draws" / "Timed draws" (../components/DrawModeSwitch)
+ *                 and the seconds between timed draws (shown for timed draws only)
  *                 change at any time over the socket (draw.setMode); the server keeps the
  *                 seconds in the allowed range; seconds below the shortest interval are not sent,
  *                 a plain message says why (D12).
- * Depends on:     react, ../game/labels, ../game/socket, ../game/useLiveMatch (types),
- *                 ../playback (types), ../types, ../useSecondsUntil, ./TimingFields
+ * Depends on:     react, ../components/DrawModeSwitch, ../game/labels, ../game/socket,
+ *                 ../game/useLiveMatch (types), ../playback (types), ../types,
+ *                 ../useSecondsUntil, ./TimingFields
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13); docs/spec/06-realtime-architecture.md §4.1
  */
 import { useEffect, useState, type ReactElement } from 'react';
 
+import { DrawModeSwitch } from '../components/DrawModeSwitch.js';
 import { problemText } from '../game/labels.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 import { intervalProblem } from './TimingFields.js';
@@ -164,34 +166,17 @@ function ModeSwitch({ code, settings, shortestMs, onAnswer }: ModeSwitchProps): 
       onAnswer(a.ok ? null : problemText(a.code));
     });
   };
-  // A segmented switch: the active mode is filled and marked with a check; the seconds
-  // field belongs to timed draws and shows only for them.
+  // The seconds field belongs to timed draws and shows only for them.
   return (
     <div className="sbr-stack">
-      <div className="segmented" role="group" aria-label="Draw mode">
-        <button
-          type="button"
-          className="segmented-option"
-          aria-pressed={hostMode}
-          data-testid="host-mode-host"
-          onClick={() => {
-            setMode('host');
-          }}
-        >
-          {hostMode ? '✓ ' : ''}Host draws
-        </button>
-        <button
-          type="button"
-          className="segmented-option"
-          aria-pressed={!hostMode}
-          data-testid="host-mode-timed"
-          onClick={() => {
-            setMode('auto', Math.round(seconds * 1000));
-          }}
-        >
-          {hostMode ? '' : '✓ '}Timed draws
-        </button>
-      </div>
+      <DrawModeSwitch
+        mode={hostMode ? 'host' : 'auto'}
+        testIdPrefix="host-mode"
+        onMode={(next) => {
+          if (next === 'host') setMode('host');
+          else setMode('auto', Math.round(seconds * 1000));
+        }}
+      />
       {hostMode ? null : (
         <SecondsField
           seconds={seconds}

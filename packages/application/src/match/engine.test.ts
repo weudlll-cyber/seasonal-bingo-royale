@@ -9,7 +9,7 @@
  *                 open; switching to timed draws schedules the next draw one interval after
  *                 the switch (D8); a tap inside the window earns the speed bonus, a later
  *                 tap does not (01 §6).
- * Depends on:     vitest, ./engine, ./fakes
+ * Depends on:     vitest, ./engine, ./fakes, @sbr/domain, ./flow
  * Spec:           docs/spec/01-game-design.md §5–§7; docs/spec/06-realtime-architecture.md §4–§5
  */
 import type { MissedNumbers } from '@sbr/domain';

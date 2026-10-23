@@ -1,5 +1,6 @@
 /**
  * @file   vitest.config.ts
+ * @module repo
  * @brief  Root Vitest config: every workspace package and app is one test project.
  *
  * Responsibility: let "pnpm test" run all projects in one Vitest process, on half the

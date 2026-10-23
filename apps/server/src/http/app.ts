@@ -8,8 +8,13 @@
  *                 auth, the live match engine and its routes onto a fresh Fastify instance,
  *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies. The caller owns the lifecycle (listen,
  *                 scheduler, close, pool disposal).
- * Depends on:     fastify, pino, prom-client (indirectly), ../db/pool
- * Used by:        ../main.ts, test/*
+ * Depends on:     fastify, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
+ *                 ../auth/sessionPlugin, ../config/env, ../config/features,
+ *                 ../config/maintenance, ../config/seedKey, ./plugins/problem,
+ *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
+ *                 ./routes/health, ./routes/matches, ./routes/metrics, ./routes/placeholder,
+ *                 ./routes/quicktest, ./routes/webClient, ../match/runtime, ../realtime/gateway
+ * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
@@ -34,7 +39,7 @@ import { registerPlaceholder } from './routes/placeholder.js';
 import { registerQuickTest } from './routes/quicktest.js';
 import { registerWebClient } from './routes/webClient.js';
 
-export interface AppDeps {
+interface AppDeps {
   readonly env: Env;
   readonly pool: DbPool;
 }
@@ -120,7 +125,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
 }
 
 // "/games/bingo/api/v1/x" → "/api/v1/x" when the base path is "/games/bingo/".
-export function withoutBase(url: string, base: string): string {
+function withoutBase(url: string, base: string): string {
   if (base === '/') return url;
   if (url === base.slice(0, -1)) return '/';
   return url.startsWith(base) ? url.slice(base.length - 1) : url;

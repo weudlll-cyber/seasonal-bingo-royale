@@ -8,7 +8,7 @@
  *                 scores at most once per card per round (invariant 5 of 12 §3) — tracking
  *                 that is the caller's job; this helper just does the arithmetic.
  * Depends on:     ../seasons/effectState
- * Used by:        future match engine
+ * Used by:        future match engine, ../index, ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.1, docs/spec/12-testing-strategy.md §3 invariant 5
  */
 import type { EffectState } from '../seasons/effectState.js';

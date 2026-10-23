@@ -21,14 +21,7 @@ import { applyScoring, pushBanner, update, type FoldState } from './playbackScor
 import { standingsOrder } from './standingsOrder.js';
 import type { Card, DomainEventLike, OwnerStatus, QuickTestResult } from './types.js';
 
-export type {
-  Banner,
-  CutOutcome,
-  CutView,
-  PlaybackView,
-  PlayerView,
-  PrizeWin,
-} from './playbackTypes.js';
+export type { Banner, CutOutcome, CutView, PlaybackView, PlayerView } from './playbackTypes.js';
 
 export function playbackAt(result: QuickTestResult, step: number): PlaybackView {
   const consumed = Math.min(step, result.events.length);

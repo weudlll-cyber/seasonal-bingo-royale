@@ -10,10 +10,11 @@
  *                 D9) and draw control (./StartDrawField, D8). Timed draws send their
  *                 gap so the server measures the missed-number delay in the same draws.
  * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField,
- *                 ./StartMarkingField, ../prizes, ../game/labels (prize names)
+ *                 ./StartMarkingField, @sbr/contracts (prize list), ../game/labels (prize names)
  * Used by:        ../App
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §5, §6
  */
+import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import type { StartQuickTestInput } from '../api.js';
@@ -26,10 +27,9 @@ import {
   type MarkingChoice,
 } from './StartMarkingField.js';
 import { prizeName } from '../game/labels.js';
-import { DEFAULT_PRIZES, PRIZE_CATALOGUE } from '../prizes.js';
 import type { GameType } from '../types.js';
 
-export interface StartFormProps {
+interface StartFormProps {
   // The server input, and the draw control the playback starts with (D8).
   readonly onStart: (input: StartQuickTestInput, draw: DrawControl) => void;
   readonly busy: boolean;
@@ -51,7 +51,7 @@ const INITIAL: FormState = {
 
 export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   const [state, setState] = useState<FormState>(INITIAL);
-  const [prizes, setPrizes] = useState<Set<string>>(new Set<string>(DEFAULT_PRIZES));
+  const [prizes, setPrizes] = useState<Set<string>>(new Set<string>(DEFAULT_PRIZE_SELECTION));
   const [marking, setMarking] = useState<MarkingChoice>(INITIAL_MARKING);
   const [draw, setDraw] = useState<DrawControl>(INITIAL_CONTROL);
   const bind =
@@ -216,7 +216,7 @@ function PrizeChecklist({
     <fieldset style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>
       <legend>Prizes ticked (classic only; royale ignores the list)</legend>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '0.25rem' }}>
-        {PRIZE_CATALOGUE.map((key) => (
+        {BUILTIN_PRIZE_KEYS.map((key) => (
           <label key={key}>
             <input
               type="checkbox"

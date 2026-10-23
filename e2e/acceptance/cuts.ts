@@ -9,7 +9,7 @@
  *                 did not save. Equal points are decided by the tie-break of 01 §7.5 and
  *                 are counted, so the report can name them.
  * Depends on:     @playwright/test
- * Used by:        ./acceptance.spec.ts
+ * Used by:        ./acceptance.spec.ts, ./realGame.spec
  * Spec:           docs/spec/01-game-design.md §7.5, §8.2; docs/spec/12-testing-strategy.md §3 inv. 7
  */
 import { expect } from '@playwright/test';

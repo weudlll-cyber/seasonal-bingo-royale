@@ -1,16 +1,17 @@
-/* ============================================================
-   File:        packages/ui/src/base.css
-   Module:      ui
-   Brief:       Base styles and the small set of shared components (buttons, panels, fields).
-   Responsibility: the Seasonal Entertainment website's look on the tokens of ./tokens.css:
-                the page background with its four token glows (fixed while the page
-                scrolls), type, a visible accent focus ring on every control, buttons as
-                pills (primary solid, secondary glass with a hairline) and fields at least
-                44 px high (--hit-target), panels as translucent cards with the card radius,
-                chips and the LIVE badge. Layout works from 360 px phone width up; nothing
-                here sets colours of its own.
-   Spec:        docs/spec/01-game-design.md §13; Seasonal Entertainment docs/DESIGN.md
-   ============================================================ */
+/**
+ * @file   packages/ui/src/base.css
+ * @module ui
+ * @brief  Base styles and the small set of shared components (buttons, panels, fields).
+ *
+ * Responsibility: the Seasonal Entertainment website's look on the tokens of ./tokens.css:
+ *                 the page background with its four token glows (fixed while the page
+ *                 scrolls), type, a visible accent focus ring on every control, buttons as
+ *                 pills (primary solid, secondary glass with a hairline) and fields at least
+ *                 44 px high (--hit-target), panels as translucent cards with the card radius,
+ *                 chips and the LIVE badge. Layout works from 360 px phone width up; nothing
+ *                 here sets colours of its own.
+ * Spec:           docs/spec/01-game-design.md §13; Seasonal Entertainment docs/DESIGN.md
+ */
 
 *,
 *::before,

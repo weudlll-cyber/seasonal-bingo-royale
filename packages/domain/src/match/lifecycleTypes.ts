@@ -8,8 +8,9 @@
  *                 Mirrors the structure of RulesetSchema in contracts/config but keeps
  *                 only what the engine needs. Both widen together: a new engine input
  *                 adds a key here and the application maps it from the contract.
- * Depends on:     ../seasons/effectCatalog (Effect union)
- * Used by:        ./matchState, ./decide, ./evolve, apps/server application layer
+ * Depends on:     ../seasons/effectCatalog (Effect union), ../draw/pool
+ * Used by:        ./matchState, ./evolve, apps/server application layer, ../index, ./commands,
+ *                 ./events, ./evolveLifecycle, ./roundEnd, ./simulate, ./stagePlan
  * Spec:           docs/spec/01-game-design.md §3a, §4–§9 (§6 missed numbers)
  */
 import type { Effect } from '../seasons/effectCatalog.js';

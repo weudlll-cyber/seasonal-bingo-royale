@@ -7,15 +7,15 @@
  *                 subscribes and fans it out to the match room. One process for now; the
  *                 Redis pub/sub adapter is the scale-out step (06 §9).
  * Depends on:     node:events, @sbr/application (types)
- * Used by:        ../http/app, ../realtime/gateway
+ * Used by:        ../realtime/gateway, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §3; docs/spec/06-realtime-architecture.md §5, §9
  */
 import { EventEmitter } from 'node:events';
 
 import type { MatchEventBus, MatchRecord, StoredEvent } from '@sbr/application';
 
-export type MatchEventListener = (matchId: string, events: readonly StoredEvent[]) => void;
-export type MatchChangeListener = (record: MatchRecord) => void;
+type MatchEventListener = (matchId: string, events: readonly StoredEvent[]) => void;
+type MatchChangeListener = (record: MatchRecord) => void;
 
 export class LocalEventBus implements MatchEventBus {
   private readonly emitter = new EventEmitter();

@@ -10,7 +10,8 @@
  *                 is locked; the console offers "Start next round" and players read
  *                 "Waiting for the host to start round N" while the match waits for the host.
  * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./HostDrawControls,
- *                 ./HostConsole, ../game/MatchScreen, ../matchFixture, ../quickTestFixture
+ *                 ./HostConsole, ../game/MatchScreen, ../test/matchFixture, ../test/quickTestFixture,
+ *                 ../game/useLiveMatch, ./createForm, ../playback
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D13, D14)
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -18,9 +19,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MatchScreen } from '../game/MatchScreen.js';
 import type { LiveState, MatchSummary } from '../game/useLiveMatch.js';
-import { matchSummary, serveMatch, show } from '../matchFixture.js';
+import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { playbackAt } from '../playback.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 import { CreateMatch } from './CreateMatch.js';
 import { createBody } from './createForm.js';
 import { HostConsole } from './HostConsole.js';

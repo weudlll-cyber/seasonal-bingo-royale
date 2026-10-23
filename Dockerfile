@@ -1,4 +1,5 @@
 # @file   Dockerfile
+# @module repo
 # @brief  Multi-stage image of the app: deps -> build -> runtime (server, player client, admin placeholder).
 #
 # Responsibility: fetch dependencies from the lockfile only; build the player client (Vite,

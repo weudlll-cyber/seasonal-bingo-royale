@@ -12,7 +12,7 @@
  *                 fetches never hold up draws and taps. The names are read again, and the
  *                 replay rebuilt, when the player list changed (lobby joins).
  * Depends on:     @sbr/application (types), ../match/codec, ./clientEvents
- * Used by:        ../http/routes/matches
+ * Used by:        ../http/routes/matches, ../http/routes/matchViews
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/02-software-architecture.md §5
  */
 import type { LoadedMatch, StoredEvent } from '@sbr/application';
@@ -20,7 +20,7 @@ import type { LoadedMatch, StoredEvent } from '@sbr/application';
 import { publicEvent } from '../match/codec.js';
 import { LiveReplay } from './clientEvents.js';
 
-export interface LiveViewSources {
+interface LiveViewSources {
   // Logged events with a seq above `afterSeq`.
   readonly events: (matchId: string, afterSeq: number) => Promise<readonly StoredEvent[]>;
   // Player id → display name.

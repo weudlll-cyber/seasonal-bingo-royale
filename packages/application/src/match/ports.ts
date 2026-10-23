@@ -7,7 +7,8 @@
  *                 them to PostgreSQL (event log, projections, scheduled_actions) and to the
  *                 WebSocket gateway; tests can use in-memory fakes. No I/O here.
  * Depends on:     @sbr/contracts, @sbr/domain (types)
- * Used by:        ./engine, apps/server/src/match/*
+ * Used by:        ./engine, apps/server/src/match/*, ../index, ./create, ./fakes, ./flow,
+ *                 ./runner, ./startRules
  * Spec:           docs/spec/02-software-architecture.md §3, §5.2–§5.4
  */
 import type { Ruleset } from '@sbr/contracts';

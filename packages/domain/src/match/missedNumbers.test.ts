@@ -8,7 +8,7 @@
  *                 speed window earns the bonus and a later tap does not, autoMarkAfter
  *                 marks an open cell exactly at the delay, noAutoMark leaves it open and
  *                 it counts for nothing until tapped, and the round end closes all taps.
- * Depends on:     ../index, ../../test/builders
+ * Depends on:     ../index, ../../test/builders, ../../test/drive
  * Spec:           docs/spec/01-game-design.md §6; docs/spec/12-testing-strategy.md §3
  */
 import { describe, expect, it } from 'vitest';

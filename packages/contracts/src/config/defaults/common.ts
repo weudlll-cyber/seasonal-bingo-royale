@@ -45,7 +45,7 @@ export const DEFAULT_GENERAL = Object.freeze({
 });
 
 export const DEFAULT_LOBBY_SHAPE = Object.freeze({
-  minPlayers: 4,
+  minPlayers: 2,
   maxPlayers: 200,
   startRule: 'either' as const,
   lateJoin: true,

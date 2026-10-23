@@ -7,14 +7,14 @@
  *                 the session cookie goes along) once per page; send intents as `{ t, seq,
  *                 data }` with a strictly growing seq and wait for the answer (06 §4.1).
  * Depends on:     socket.io-client, ../shell/http
- * Used by:        ./useLiveMatch, ./LiveCard, ../host/*
+ * Used by:        ./useLiveMatch, ./LiveCard, ../host/*, ../shell/session
  * Spec:           docs/spec/06-realtime-architecture.md §1, §4
  */
 import { io, type Socket } from 'socket.io-client';
 
 import { BASE_PATH } from '../shell/http.js';
 
-export type IntentAnswer =
+type IntentAnswer =
   { readonly ok: true; readonly data?: unknown } | { readonly ok: false; readonly code: string };
 
 let socket: Socket | null = null;

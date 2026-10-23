@@ -12,7 +12,7 @@
  *                 shows the open-match notice with the code. In Chromium it also saves the
  *                 create form (start rule "At a set time"), the console in the lobby, the
  *                 lobby and the waiting room at desktop and phone size, light and dark, to
- *                 reports/screens/night-4/.
+ *                 reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */

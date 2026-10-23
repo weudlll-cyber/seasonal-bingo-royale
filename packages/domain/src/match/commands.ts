@@ -8,8 +8,8 @@
  *                 startRound, drawNext, markCell, autoMarkMissed, closeSpeedWindow,
  *                 endRound, applyCut,
  *                 startStage, finishMatch, abortMatch). Pure data; no behaviour.
- * Depends on:     ./lifecycleTypes, ./matchState (none runtime)
- * Used by:        ./decide, apps/server command handlers
+ * Depends on:     ./lifecycleTypes, ../gameType
+ * Used by:        ./decide, ./simulate, ../index, packages/application (match engine)
  * Spec:           docs/spec/02-software-architecture.md §5.1, docs/spec/01-game-design.md §3
  */
 import type { GameType } from '../gameType.js';

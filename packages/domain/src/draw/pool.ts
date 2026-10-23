@@ -8,7 +8,8 @@
  *                 101–104 (04 §3.3). Pure helpers used by the draw sequence and the
  *                 card generator.
  * Depends on:     ../gameType
- * Used by:        ./drawSequence.ts, ../card/generateCard.ts
+ * Used by:        ./drawSequence.ts, ../card/generateCard.ts, ../card/cardTypes, ../index,
+ *                 ../match/lifecycleTypes, ../match/markResolver, ../seasons/effectState
  * Spec:           docs/spec/01-game-design.md §3a, §5, docs/spec/04-database-design.md §3.3
  */
 import type { GameType } from '../gameType.js';
@@ -22,14 +23,6 @@ export const SYMBOL_IDS = [101, 102, 103, 104] as const;
 export type SymbolId = (typeof SYMBOL_IDS)[number];
 export const SEASON_NAMES = ['spring', 'summer', 'autumn', 'winter'] as const;
 export type SeasonName = (typeof SEASON_NAMES)[number];
-
-export function isNumber(item: number): boolean {
-  return item >= NUMBER_MIN && item <= NUMBER_MAX;
-}
-
-export function isSymbol(item: number): item is SymbolId {
-  return item >= 101 && item <= 104;
-}
 
 export function poolSize(gameType: GameType): number {
   return gameType === 'classicSeasons' ? NUMBER_MAX + SYMBOL_IDS.length : NUMBER_MAX;

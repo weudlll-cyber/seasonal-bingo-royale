@@ -8,7 +8,7 @@
  *                 check length 12–128 and a small bundled list of common passwords. No
  *                 composition rules. The full offline top-100k breached list is backlog.
  * Depends on:     @node-rs/argon2
- * Used by:        ./accounts, ../http/routes/auth
+ * Used by:        ./accounts, ../http/routes/auth, ../cli
  * Spec:           docs/spec/03-security-architecture.md §2.1
  */
 import { hash, verify } from '@node-rs/argon2';
@@ -35,7 +35,7 @@ const COMMON = new Set([
   'administrator',
 ]);
 
-export type PasswordProblem = 'tooShort' | 'tooLong' | 'tooCommon';
+type PasswordProblem = 'tooShort' | 'tooLong' | 'tooCommon';
 
 export function passwordProblem(password: string): PasswordProblem | null {
   if (password.length < 12) return 'tooShort';

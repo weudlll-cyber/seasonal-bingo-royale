@@ -10,7 +10,7 @@
  *                 five times with a growing delay. Because pending work lives in the
  *                 database, a restarted server continues every match where it stopped.
  * Depends on:     @sbr/application (types), ../db/pool
- * Used by:        ../http/app, ../main
+ * Used by:        ./runtime
  * Spec:           docs/spec/02-software-architecture.md §5.3; docs/spec/04-database-design.md §3.3
  */
 import { randomUUID } from 'node:crypto';

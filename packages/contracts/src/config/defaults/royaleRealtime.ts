@@ -6,7 +6,7 @@
  * Responsibility: the ruleset the install script publishes as version 1 for the realtime
  *                 royale game type (01 §7, §11; 04 §6). Admins clone it to build their own.
  * Depends on:     ../ruleset, ./common
- * Used by:        apps/server seed, admin ruleset library
+ * Used by:        apps/server seed, admin ruleset library, ./index
  * Spec:           docs/spec/01-game-design.md §7, §11, docs/spec/04-database-design.md §6
  */
 import { RulesetSchema, type Ruleset } from '../ruleset.js';

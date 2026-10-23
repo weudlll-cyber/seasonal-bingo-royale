@@ -1,0 +1,35 @@
+/**
+ * @file   apps/web/src/components/segmented.css
+ * @module web/components
+ * @brief  The segmented switch: options in one frame, the active one filled.
+ *
+ * Responsibility: the frame and its options at the touch-target height; the pressed
+ *                 option in the Winter colour with its on-season text. Tokens from @sbr/ui.
+ * Used by:        ./DrawModeSwitch
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.segmented-option {
+  min-height: var(--hit-target);
+  padding: 0 1.1rem;
+  border: 0;
+  border-radius: calc(var(--radius) - 3px);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-weight: var(--font-weight-strong);
+  cursor: pointer;
+}
+
+.segmented-option[aria-pressed='true'] {
+  background: var(--color-winter);
+  color: var(--color-on-season);
+}

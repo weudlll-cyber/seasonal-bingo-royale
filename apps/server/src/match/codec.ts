@@ -6,14 +6,16 @@
  * Responsibility: events and snapshots are stored as jsonb; the only non-JSON value they
  *                 hold is the seed (Uint8Array), written as { "$bytes": base64 } and read
  *                 back. The seed itself is stored AES-256-GCM encrypted with the server's
- *                 seed key (04 §3.3 `seed_enc`) and its SHA-256 as the public commitment.
+ *                 seed key (04 §3.3 `seed_enc`); its public commitment is the domain's
+ *                 commitSeed (SHA-256).
  *                 The public projection of the event log drops the seed (01 §9: revealed
  *                 only after the match).
  * Depends on:     node:crypto, @sbr/domain
- * Used by:        ./pgMatchStore, ../http/routes/matches
+ * Used by:        ./pgMatchStore, ../realtime/gateway, ../view/liveViews; decryptSeed waits
+ *                 for the seed reveal after a match (WP-10 remainder), tested by ./codec.test
  * Spec:           docs/spec/04-database-design.md §3.3; docs/spec/01-game-design.md §9; docs/spec/03-security-architecture.md §9
  */
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 
 import type { DomainEvent } from '@sbr/domain';
 
@@ -38,10 +40,6 @@ export function fromJson(json: unknown): unknown {
 export function publicEvent(event: DomainEvent): DomainEvent {
   if (event.type !== 'lobbyOpened') return event;
   return { ...event, seed: new Uint8Array(0) };
-}
-
-export function seedCommitment(seed: Uint8Array): Buffer {
-  return createHash('sha256').update(seed).digest();
 }
 
 // AES-256-GCM: 12-byte IV, 16-byte tag, then the ciphertext.

@@ -8,8 +8,8 @@
  *                 (./Registration: the host, a set time with a live countdown, or places
  *                 left), and the 10-second countdown to the first round once it runs. A signed-in player who has not joined yet
  *                 gets a Join button.
- * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil, ../playback (types),
- *                 ./useLiveMatch, ./labels, ./Registration
+ * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil,
+ *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration, ./HostLink
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */

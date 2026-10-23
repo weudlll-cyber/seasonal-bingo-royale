@@ -7,7 +7,8 @@
  *                 5390) and the DATABASE_URL built from the dev env file, so the e2e
  *                 config never repeats credentials.
  * Depends on:     ops/.env.dev.example
- * Used by:        ./playwright.config.ts, ./globalSetup.ts
+ * Used by:        ./playwright.config.ts, ./globalSetup.ts, ./acceptance/acceptance.spec,
+ *                 ./screens, ./showcase.spec
  * Spec:           docs/spec/08-devops-architecture.md §1, §8
  */
 import { readFileSync } from 'node:fs';

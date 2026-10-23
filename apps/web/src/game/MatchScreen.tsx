@@ -14,8 +14,9 @@
  *                 end the final placement on top; a match ended without a result shows its
  *                 own end page (./MatchCancelled, D17). Remounted per match code, so nothing
  *                 of a previous match survives.
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./CurrentBall,
- *                 ./HostLink, ./WaitingRoom, ./MatchCancelled, ./labels
+ * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
+ *                 ./CurrentBall, ./HostLink, ./WaitingRoom, ./MatchCancelled, ./labels,
+ *                 ./EndActions, ./game.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */

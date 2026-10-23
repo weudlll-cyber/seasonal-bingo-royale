@@ -27,14 +27,14 @@ import type {
   StoredEvent,
 } from './ports.js';
 
-export class ManualClock {
+class ManualClock {
   constructor(public t = 1_000_000) {}
   now(): number {
     return this.t;
   }
 }
 
-export class MemoryStore implements MatchStore {
+class MemoryStore implements MatchStore {
   readonly records = new Map<string, MatchRecord>();
   readonly events = new Map<string, StoredEvent[]>();
 
@@ -103,7 +103,7 @@ export class MemoryStore implements MatchStore {
   }
 }
 
-export class MemoryScheduler implements Scheduler {
+class MemoryScheduler implements Scheduler {
   pending: ScheduledAction[] = [];
 
   schedule(action: ScheduledAction): Promise<void> {

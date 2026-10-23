@@ -7,7 +7,7 @@
  *                 Fastify app, and check that /healthz, /readyz, /metrics, the placeholder
  *                 page and a 404 all behave as the specification says — including the
  *                 security headers (03 §13, 12 §6) and the problem+json content type.
- * Depends on:     vitest, ./harness
+ * Depends on:     vitest, ./harness, ../src/index, fastify
  * Spec:           docs/spec/12-testing-strategy.md §2, docs/spec/15-implementation-plan.md WP-03
  */
 import type { FastifyInstance } from 'fastify';

@@ -9,7 +9,7 @@
  *                 one classic run switch between timed and host draws mid-match. After
  *                 each match, Run Quick Test again with another seed: nothing of the last
  *                 run may remain, then a few draws are played. A full-page screenshot of
- *                 each match end and each restart goes to reports/screens/acceptance/.
+ *                 each match end and each restart goes to reports/screens/latest/acceptance/.
  *                 Runs only with SBR_ACCEPTANCE=1 (about half an hour), not in CI.
  * Depends on:     @playwright/test, ../quickTest, ../devStack, ./checks, ./cuts, ./play,
  *                 ./snapshot
@@ -36,7 +36,7 @@ interface Combo {
 const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
 // The fastest timed draws allowed: one second more than the 3 s speed window (D10).
 const TIMED_SEC = 4;
-const SCREENS = path.join(REPO_ROOT, 'reports', 'screens', 'acceptance');
+const SCREENS = path.join(REPO_ROOT, 'reports', 'screens', 'latest', 'acceptance');
 
 function combos(): Combo[] {
   const list: Combo[] = [];

@@ -9,7 +9,7 @@
  *                 remaining draws, shield charges and seasons collected; the spectator
  *                 view continuing after elimination.
  * Depends on:     @testing-library/react, ./CardGrid, ./CutScreen, ./OwnerStatusPanel,
- *                 ./Playback, ../playback, ../quickTestFixture
+ *                 ./Playback, ../playback, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7, §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
@@ -20,19 +20,19 @@ import { CutScreen } from './CutScreen.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
-import { numberCard, royaleFixture } from '../quickTestFixture.js';
+import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
 
 afterEach(cleanup);
 
-const SPRING_RGB = 'rgb(175, 184, 78)'; // #afb84e
-const WINTER_RGB = 'rgb(4, 170, 247)'; // #04aaf7
+const SPRING = 'var(--color-spring)';
+const WINTER = 'var(--color-winter)';
 
 describe('season cells', () => {
   it('show the original season icon file and a frame in the season colour', () => {
     render(<CardGrid accountId="bot-02" card={numberCard(0)} marks={[]} />);
     const icon = screen.getAllByAltText('spring')[0];
     expect(icon?.getAttribute('src')).toMatch(/assets\/seasons\/spring\.svg/);
-    expect(icon?.parentElement?.parentElement?.style.border).toContain(SPRING_RGB);
+    expect(icon?.parentElement?.parentElement?.style.border).toContain(SPRING);
     const winter = screen.getAllByAltText('winter');
     expect(winter).toHaveLength(1);
     expect(winter[0]?.getAttribute('src')).toMatch(/assets\/seasons\/winter\.svg/);
@@ -47,7 +47,7 @@ describe('season cells', () => {
     // The icon has its own season colour, so the cell keeps the card colour behind it.
     const box = screen.getByAltText('winter').parentElement;
     expect(box?.style.background).toBe('var(--cell-bg, var(--color-surface-2))');
-    expect(box?.style.border).toBe(`2px solid ${WINTER_RGB}`);
+    expect(box?.style.border).toBe(`2px solid ${WINTER}`);
   });
 });
 
@@ -73,7 +73,7 @@ describe('OwnerStatusPanel', () => {
     expect(screen.getByTestId('effect-multiplier').textContent).toContain('×1.5 · 6 draws left');
     expect(screen.getByTestId('effect-growth').textContent).toContain('4 draws left');
     expect(screen.getByTestId('effect-shield').textContent).toContain('shield ×1');
-    expect(screen.getByTestId('effect-shield').style.background).toBe(WINTER_RGB);
+    expect(screen.getByTestId('effect-shield').style.background).toBe(WINTER);
     expect(screen.getByTestId('seasons-collected').textContent).toContain('2/4');
     expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
   });

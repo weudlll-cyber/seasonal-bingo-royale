@@ -9,7 +9,8 @@
  *                 `captureLook` adds the desktop (1280×800) and phone (390×844) size, and can
  *                 bring one element into view first.
  * Depends on:     @playwright/test, node:path, ./devStack
- * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts
+ * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts, ./account.spec,
+ *                 ./createFormPhone.spec, ./startScreens.spec
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';
@@ -18,8 +19,8 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 import { REPO_ROOT } from './devStack.js';
 
-// Where this run's report screenshots go (one folder per night's report).
-export const SHOTS_DIR = path.join(REPO_ROOT, 'reports', 'screens', 'night-4');
+// Where the latest run's screenshots go (git-ignored; every run replaces them).
+export const SHOTS_DIR = path.join(REPO_ROOT, 'reports', 'screens', 'latest');
 
 export const DESKTOP = { width: 1280, height: 800 };
 export const PHONE = { width: 390, height: 844 };

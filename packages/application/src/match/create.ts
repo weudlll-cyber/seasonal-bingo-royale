@@ -9,7 +9,7 @@
  *                 keep the pause between royale rounds at its minimum or above (D14), and build the match record plus the `openLobby` command that
  *                 freezes the ruleset and the seed (01 §3a, §5, §6, §9).
  * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./rulesets, ./timing
- * Used by:        ./engine
+ * Used by:        ./engine, ../index
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §3a.1, §5, §6
  */
 import {
@@ -51,7 +51,7 @@ export interface CreateMatchInput {
 
 // The pause between royale rounds (D14): the chosen one, a wait never shorter than the
 // minimum; 6 s by default.
-export function chosenRoundPause(chosen: RoundPause | undefined): RoundPause {
+function chosenRoundPause(chosen: RoundPause | undefined): RoundPause {
   if (chosen?.kind === 'host') return chosen;
   return { kind: 'wait', ms: Math.max(MIN_ROUND_PAUSE_MS, chosen?.ms ?? DEFAULT_ROUND_PAUSE_MS) };
 }
@@ -65,7 +65,7 @@ export function prizesFor(input: CreateMatchInput): readonly string[] | null {
   return BUILTIN_PRIZE_CATALOGUE_ORDER.filter((key) => wanted.has(key));
 }
 
-export interface NewMatchIds {
+interface NewMatchIds {
   readonly id: string;
   readonly code: string;
   readonly seed: Uint8Array;

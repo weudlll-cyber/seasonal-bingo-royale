@@ -14,12 +14,12 @@
  * Spec:           docs/spec/03-security-architecture.md §13
  */
 
-export interface RateRule {
+interface RateRule {
   readonly limit: number;
   readonly windowMs: number;
 }
 
-export interface RateDecision {
+interface RateDecision {
   readonly allowed: boolean;
   readonly retryAfterMs: number;
 }

@@ -1,18 +1,19 @@
-/* ============================================================
-   File:        packages/ui/src/tokens.css
-   Module:      ui
-   Brief:       Design tokens of Seasonal Bingo Royale, shared by the player and admin clients.
-   Responsibility: one source of colours, type, shape, spacing and motion timing. Names and
-                values are the Seasonal Entertainment website's (its docs/DESIGN.md and
-                client/src/styles/tokens.css, the SE style): light is the default set on
-                :root, :root[data-theme='dark'] replaces the colours; the page is a warm
-                off-white (light) or night blue (dark) under four soft token glows, and
-                cards are translucent so the glow shows. data-theme is set before the first
-                paint by apps/web/public/theme-init.js. The game adds its own arena tokens
-                (the bingo card, the ball, the type sizes of the ball and small text, motion).
-                Components use these custom properties and never hard-code colours.
-   Spec:        docs/spec/01-game-design.md §13; assets/brand/colors.md
-   ============================================================ */
+/**
+ * @file   packages/ui/src/tokens.css
+ * @module ui
+ * @brief  Design tokens of Seasonal Bingo Royale, shared by the player and admin clients.
+ *
+ * Responsibility: one source of colours, type, shape, spacing and motion timing. Names and
+ *                 values are the Seasonal Entertainment website's (its docs/DESIGN.md and
+ *                 client/src/styles/tokens.css, the SE style): light is the default set on
+ *                 :root, :root[data-theme='dark'] replaces the colours; the page is a warm
+ *                 off-white (light) or night blue (dark) under four soft token glows, and
+ *                 cards are translucent so the glow shows. data-theme is set before the first
+ *                 paint by apps/web/public/theme-init.js. The game adds its own arena tokens
+ *                 (the bingo card, the ball, the type sizes of the ball and small text, motion).
+ *                 Components use these custom properties and never hard-code colours.
+ * Spec:           docs/spec/01-game-design.md §13; assets/brand/colors.md
+ */
 
 :root {
   /* Token colours, exactly these wherever a token is shown, in both themes */

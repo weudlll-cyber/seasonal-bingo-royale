@@ -8,7 +8,7 @@
  *                 finalRanking is a total order 1..N over all entrants (invariant 8).
  *                 A pattern scores at most once per card per round (invariant 5): we
  *                 drive a classic round and look for duplicate (round, prize, account).
- * Depends on:     fast-check, ../index, ../../test/arbitraries
+ * Depends on:     fast-check, ../index, ../../test/arbitraries, ../../test/builders
  * Spec:           docs/spec/12-testing-strategy.md §3 invariants 5, 7, 8
  */
 import { describe, expect, it } from 'vitest';

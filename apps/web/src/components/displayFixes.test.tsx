@@ -9,7 +9,7 @@
  *                 once the match is finished; classic types show no seasons, shield or
  *                 effects panel.
  * Depends on:     @testing-library/react, ./DevBadge, ./Playback, ../playback,
- *                 ../quickTestFixture
+ *                 ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §3a, §7.5, §13
  */
 import { cleanup, render, screen } from '@testing-library/react';
@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { DevBadge } from './DevBadge.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
-import { royaleFixture } from '../quickTestFixture.js';
+import { royaleFixture } from '../test/quickTestFixture.js';
 
 afterEach(cleanup);
 
