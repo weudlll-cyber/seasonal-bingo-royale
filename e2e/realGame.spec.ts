@@ -131,7 +131,15 @@ async function reconnectAndTap(host: Page, player: Page, code: string): Promise<
 
   // Taps after the reconnect: until one of the card's numbers is drawn, the host draws on;
   // a second tap on a marked cell must not add a mark (12 §4 journey 8).
-  for (let i = 0; i < 15 && (await openDrawn(player)).length === 0; i += 1) await drawNext(host);
+  // Each draw is looked for on the player's screen only once it shows the host's numbers.
+  const playerTicker = () => player.getByTestId('draw-ticker').locator(':scope > *').count();
+  for (let i = 0; i < 15 && (await openDrawn(player)).length === 0; i += 1) {
+    await drawNext(host);
+    const drawn = await hostTicker();
+    await expect
+      .poll(playerTicker, { timeout: 15_000, message: 'the player follows the host' })
+      .toBe(drawn);
+  }
   const tapped = await tapOpen(player);
   expect(tapped.length, 'a drawn number on the card to tap').toBeGreaterThan(0);
   // The same cell once more, straight to the server (the screen never sends a second tap).

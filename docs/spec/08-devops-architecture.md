@@ -60,7 +60,7 @@ Triggers: push on every branch, pull requests to `master`, tags.
 | `lint` | ESLint (incl. boundaries, max-lines, unused variables), Prettier check, `tsc --noEmit` (all packages) | yes |
 | `unit` | Vitest for `domain`, `application`, `contracts`, clients; coverage thresholds (§ [12-testing-strategy.md](12-testing-strategy.md)) | yes |
 | `integration` | Vitest + Testcontainers Postgres for `server` | yes |
-| `e2e` | Build, start stack in Compose, Playwright smoke suite (Chromium + Firefox + WebKit mobile viewport); runs on every push and pull request, so a branch is green in the browser before it is merged (decided 2026-10-23); traces of failed tests are kept as an artifact for a week | yes |
+| `e2e` | Playwright suite, one job per browser side by side (Chromium, Firefox, WebKit mobile viewport), each in the Playwright container image (browsers and their system libraries included: no apt step) with PostgreSQL as a job service; each browser runs its timing-sensitive specs after its other specs, alone on its runner; runs on every push and pull request; traces of failed tests are kept as an artifact for a week | yes |
 | `security` | `pnpm audit --prod`, osv-scanner, gitleaks, CodeQL (scheduled + PR), license check | yes (high/critical) |
 | `image` | Docker build, Trivy scan, size budget (≤ 250 MB) | yes on PR to `master` |
 | `docs` | Markdown link check, OpenAPI generation succeeds, file-header check in docs index | yes |
@@ -68,6 +68,8 @@ Triggers: push on every branch, pull requests to `master`, tags.
 | `load` | k6 scenario (§ testing) against an ephemeral stack | manual / before release |
 
 Actions pinned by SHA, `permissions: contents: read` default, no secrets available to PRs from forks.
+
+As built (2026-10-24): `lint`, `unit` and `integration` run as one job `verify` (`pnpm verify`) followed by the coverage step, about 3 minutes; `security` and `docs` well under a minute; `e2e` about 4 minutes per browser, the three in parallel. A full run on a branch push takes about 4 minutes (before: 10–47 minutes, of which up to 38 were spent installing browser libraries with apt, and the browsers ran one after another on one runner). There is no build to reuse between jobs: the e2e jobs run the development server and client, `image` builds the container on the way to master only.
 
 Note for operators of this repo: a green local check is not a green CI — after every merge to `master` the CI run for the merge commit is checked (`gh run list --branch master`).
 
