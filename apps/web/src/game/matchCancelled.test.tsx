@@ -6,7 +6,8 @@
  *
  * Responsibility: after the host's abort and after a system abort, the player's match
  *                 screen and the host's console show "This match was cancelled by the host."
- *                 or "… by the system.", the reason, "Back to the lobby", and for the host
+ *                 or "… by the system.", the reason, "Back to the lobby", "Verify this match"
+ *                 (01 §9), and for the host
  *                 "Host another match" — never the arena; the lobby lists the cancelled match
  *                 with a link to that page.
  * Depends on:     @testing-library/react, vitest, ./MatchScreen, ./Lobby, ../host/HostConsole,
@@ -61,9 +62,10 @@ describe('the cancelled-match page (D17)', () => {
     expect(page()).toEqual({
       by: `This match was cancelled by the ${by}.`,
       reason: 'Reason: Power cut in the hall',
-      actions: 'Back to the lobby',
+      actions: 'Back to the lobbyVerify this match',
     });
     expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('Friday bingo');
+    expect(screen.getByTestId('verify-link').getAttribute('href')).toBe('#/verify/MATCH1');
     expect(screen.queryByTestId('arena')).toBeNull();
     expect(screen.queryByText(/Waiting for the first number/)).toBeNull();
   });
@@ -74,7 +76,7 @@ describe('the cancelled-match page (D17)', () => {
     expect(page()).toEqual({
       by: `This match was cancelled by the ${by}.`,
       reason: 'Reason: Power cut in the hall',
-      actions: 'Host another matchBack to the lobby',
+      actions: 'Host another matchBack to the lobbyVerify this match',
     });
     expect(screen.getByTestId('host-status').textContent).toBe('Cancelled');
     expect(screen.queryByTestId('standings')).toBeNull();

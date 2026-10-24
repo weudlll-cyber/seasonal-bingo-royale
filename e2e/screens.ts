@@ -10,7 +10,7 @@
  *                 bring one element into view first.
  * Depends on:     @playwright/test, node:path, ./devStack
  * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts, ./account.spec,
- *                 ./createFormPhone.spec, ./startScreens.spec
+ *                 ./createFormPhone.spec, ./startScreens.spec, ./maintenance.spec, ./verifyMatch.spec
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';

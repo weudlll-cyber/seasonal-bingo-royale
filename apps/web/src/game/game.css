@@ -228,3 +228,52 @@
   color: var(--color-bingo-card-ink);
   font-weight: var(--font-weight-strong);
 }
+
+/* "Verify this match" (./VerifyMatch): the verdict, the long hex values wrapping on a phone,
+   the per-round table. */
+.verify-verdict {
+  margin: 0;
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  font-weight: var(--font-weight-strong);
+}
+
+.verify-verdict--ok {
+  border-left: 4px solid var(--color-success);
+}
+
+.verify-verdict--bad {
+  border-left: 4px solid var(--color-danger);
+}
+
+.verify-facts {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.verify-facts dt {
+  color: var(--color-text-muted);
+}
+
+.verify-facts dd {
+  margin: 0;
+}
+
+.verify-facts code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.verify-rounds {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.verify-rounds th,
+.verify-rounds td {
+  padding: var(--space-1);
+  border-bottom: 1px solid var(--color-surface-2);
+}

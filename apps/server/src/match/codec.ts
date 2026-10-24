@@ -11,8 +11,9 @@
  *                 The public projection of the event log drops the seed (01 §9: revealed
  *                 only after the match).
  * Depends on:     node:crypto, @sbr/domain
- * Used by:        ./pgMatchStore, ../realtime/gateway, ../view/liveViews; decryptSeed waits
- *                 for the seed reveal after a match (WP-10 remainder), tested by ./codec.test
+ * Used by:        ./pgMatchStore, ../realtime/gateway, ../view/liveViews,
+ *                 ../http/routes/matchVerify (decryptSeed, the seed reveal after a match),
+ *                 ./codec.test
  * Spec:           docs/spec/04-database-design.md §3.3; docs/spec/01-game-design.md §9; docs/spec/03-security-architecture.md §9
  */
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';

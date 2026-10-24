@@ -117,7 +117,7 @@ function ArenaNotice({
     return (
       <>
         <FinalPlacement result={live.view} view={view} />
-        <EndActions host={false} />
+        <EndActions host={false} code={live.match.code} />
       </>
     );
   }

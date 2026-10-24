@@ -9,7 +9,8 @@
  *                 (host|player)") or, signed out, "Sign in" and "Register" (../account).
  *                 Below the bar, the screen of the current route; while maintenance is on
  *                 (./useMaintenance) the lobby and the create form show the maintenance page
- *                 and the host console a banner (09 §4). In development also the
+ *                 and the host console a banner (09 §4); "Verify this match" after a match
+ *                 (../game/VerifyMatch). In development also the
  *                 Quick Test link and page and the "Dev sign-in" menu (./DevTools), loaded on
  *                 demand: a production build (Vite's DEV false) leaves them out of the bundle,
  *                 and `dev` (false in production) decides whether they show.
@@ -27,6 +28,7 @@ import { Register } from '../account/Register.js';
 import { SignIn } from '../account/SignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
+import { VerifyMatch } from '../game/VerifyMatch.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { hrefOf, useRoute, type Route } from './router.js';
@@ -82,7 +84,11 @@ function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): 
   );
   return (
     <nav className="shell-nav" aria-label="Main">
-      {link({ name: 'lobby' }, 'Play', route.name === 'lobby' || route.name === 'match')}
+      {link(
+        { name: 'lobby' },
+        'Play',
+        route.name === 'lobby' || route.name === 'match' || route.name === 'verify',
+      )}
       {can('match.create')
         ? link(
             { name: 'hostNew' },
@@ -176,6 +182,8 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
       return <CreateMatch />;
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
+    case 'verify':
+      return <VerifyMatch key={route.code} code={route.code} />;
     case 'quicktest':
       return <QuickTestScreen dev={dev} />;
     case 'signIn':

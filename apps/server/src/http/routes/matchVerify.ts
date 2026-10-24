@@ -1,0 +1,87 @@
+/**
+ * @file   apps/server/src/http/routes/matchVerify.ts
+ * @module server/http
+ * @brief  GET /api/v1/matches/:code/verify — the seed revealed after the end, and the match recomputed from it.
+ *
+ * Responsibility: for anyone, once the match has finished or was cancelled: decrypt the
+ *                 stored seed (../../match/codec decryptSeed), recompute every round's draw
+ *                 order, the draws made and every card from it with the domain's
+ *                 verifyMatch against the commitment published at match open, and answer
+ *                 the contracts' MatchVerificationView. Before the end the answer is 409
+ *                 MATCH_NOT_OVER and the seed stays sealed (01 §9).
+ * Depends on:     fastify, @sbr/contracts (types), @sbr/domain, ../../db/pool,
+ *                 ../../match/codec, ../../match/pgMatchStore
+ * Used by:        ../app
+ * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3, §2.3a; docs/spec/03-security-architecture.md §9
+ */
+import type { MatchVerificationView } from '@sbr/contracts';
+import { verifyMatch, type DomainEvent, type LobbyOpened } from '@sbr/domain';
+import type { FastifyInstance } from 'fastify';
+
+import type { DbPool } from '../../db/pool.js';
+import { decryptSeed } from '../../match/codec.js';
+import type { PgMatchStore } from '../../match/pgMatchStore.js';
+
+export interface VerifyRouteDeps {
+  readonly pool: DbPool;
+  readonly store: PgMatchStore;
+  readonly seedKey: Buffer;
+}
+
+interface SealedRow {
+  readonly id: string;
+  readonly code: string;
+  readonly title: string;
+  readonly status: string;
+  readonly game_type: string;
+  readonly seed_commitment: Buffer;
+  readonly seed_enc: Buffer;
+}
+
+export function registerVerifyRoute(app: FastifyInstance, deps: VerifyRouteDeps): void {
+  app.get<{ Params: { code: string } }>('/api/v1/matches/:code/verify', async (request, reply) => {
+    const r = await deps.pool.query<SealedRow>(
+      `SELECT id, code, title, status, game_type, seed_commitment, seed_enc
+         FROM sbr.matches WHERE code = $1`,
+      [request.params.code],
+    );
+    const row = r.rows[0];
+    if (row === undefined) return reply.status(404).send({ code: 'NOT_FOUND' });
+    // The seed is revealed only once the match is over (01 §9).
+    if (row.status !== 'finished' && row.status !== 'aborted') {
+      return reply.status(409).send({ code: 'MATCH_NOT_OVER' });
+    }
+    const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
+    return verificationOf(row, row.status, decryptSeed(row.seed_enc, deps.seedKey), events);
+  });
+}
+
+function verificationOf(
+  row: SealedRow,
+  status: 'finished' | 'aborted',
+  seed: Uint8Array,
+  events: readonly DomainEvent[],
+): MatchVerificationView {
+  const commitment = new Uint8Array(row.seed_commitment);
+  const result = verifyMatch({ seed, commitment, events });
+  // The numbers drawn per round, in log order, for the bundle.
+  const draws = new Map<number, number[]>();
+  let round = -1;
+  for (const e of events) {
+    if (e.type === 'roundStarted') round = e.roundIndex;
+    else if (e.type === 'drawMade') draws.set(round, [...(draws.get(round) ?? []), e.item]);
+  }
+  const opened = events.find((e): e is LobbyOpened => e.type === 'lobbyOpened');
+  return {
+    code: row.code,
+    title: row.title,
+    status,
+    gameType: row.game_type,
+    commitment: Buffer.from(commitment).toString('hex'),
+    seed: Buffer.from(seed).toString('hex'),
+    commitmentMatches: result.commitmentMatches,
+    ruleset: opened?.ruleset ?? null,
+    rounds: result.rounds.map((check) => ({ ...check, draws: draws.get(check.roundIndex) ?? [] })),
+    verified: result.verified,
+  };
+}
