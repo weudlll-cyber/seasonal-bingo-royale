@@ -105,7 +105,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    sudo sbr rollback
    ```
    It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
-4. Before a planned update you can stop new matches: `sudo sbr maintenance on` (running matches finish), and afterwards `sudo sbr maintenance off`.
+4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end. Afterwards `sudo sbr maintenance off`.
 5. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
 
 ## 7. Hardening checklist
@@ -123,4 +123,4 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets and your earlier answers, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
-- Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login, a maintenance page for players (maintenance already stops new matches).
+- Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login.

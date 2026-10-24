@@ -12,7 +12,8 @@
  *                 ../auth/sessionPlugin, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ./plugins/problem,
  *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
- *                 ./routes/health, ./routes/matches, ./routes/metrics, ./routes/placeholder,
+ *                 ./routes/health, ./routes/maintenance, ./routes/matches,
+ *                 ./routes/metrics, ./routes/placeholder,
  *                 ./routes/quicktest, ./routes/webClient, ../match/runtime, ../realtime/gateway
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
@@ -33,6 +34,7 @@ import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerDevSignIn } from './routes/devSignIn.js';
 import { registerHealth } from './routes/health.js';
+import { registerMaintenance } from './routes/maintenance.js';
 import { registerMatchRoutes } from './routes/matches.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
@@ -102,12 +104,14 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development only: quick sign-in as host or player (never in a production build).
   if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
   const match = createMatchRuntime(deps.pool, seedKeyFrom(deps.env));
+  const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
+  registerMaintenance(fastify, maintenance);
   registerMatchRoutes(fastify, {
     pool: deps.pool,
     engine: match.engine,
     store: match.store,
     dev: isDev,
-    maintenance: maintenanceFlag(deps.env.SBR_DATA_DIR),
+    maintenance,
   });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,

@@ -21,15 +21,24 @@ describe('the maintenance flag', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'sbr-data-'));
     let t = 0;
     const on = maintenanceFlag(dir, () => t);
-    expect(on()).toBe(false);
+    expect(on()).toBeNull();
     writeFileSync(path.join(dir, 'maintenance'), '');
     t = 1_000;
-    expect(on()).toBe(false);
+    expect(on()).toBeNull();
     t = 2_000;
-    expect(on()).toBe(true);
+    expect(on()).toEqual({ reason: null });
     rmSync(path.join(dir, 'maintenance'));
     t = 4_000;
-    expect(on()).toBe(false);
+    expect(on()).toBeNull();
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("carries the operator's reason, trimmed and at most 200 characters", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'sbr-data-'));
+    writeFileSync(path.join(dir, 'maintenance'), '  Database upgrade, back at 22:00 \n');
+    expect(maintenanceFlag(dir)()).toEqual({ reason: 'Database upgrade, back at 22:00' });
+    writeFileSync(path.join(dir, 'maintenance'), 'x'.repeat(300));
+    expect(maintenanceFlag(dir)()?.reason).toHaveLength(200);
     rmSync(dir, { recursive: true, force: true });
   });
 });

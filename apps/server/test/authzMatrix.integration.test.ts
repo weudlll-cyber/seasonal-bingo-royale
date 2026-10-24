@@ -55,6 +55,7 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/readyz', allow: ROLES },
   { method: 'GET', path: '/metrics', allow: ROLES },
   { method: 'GET', path: '/api/v1/session', allow: ROLES },
+  { method: 'GET', path: '/api/v1/maintenance', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code/state', allow: ROLES },

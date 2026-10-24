@@ -9,7 +9,9 @@
  *                 profile); an organizer signs in with a password. An app under
  *                 /games/bingo/ answers /healthz, /readyz and the client's index.html there
  *                 and opens the WebSocket on /games/bingo/ws for its public origin. While the
- *                 maintenance flag file exists, no match is created or started (503).
+ *                 maintenance flag file exists, no match is created or started (503), a
+ *                 running match plays on, and GET /maintenance tells every client, with the
+ *                 operator's reason.
  * Depends on:     vitest, socket.io-client, node:fs, ./harness, ../src/auth/accounts,
  *                 ../src/index, ./session, fastify
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/08-devops-architecture.md §4
@@ -149,15 +151,29 @@ describe('maintenance (sbr maintenance on, 09 §4)', () => {
       missedNumbers: { kind: 'noAutoMark' },
       maxPlayers: 8,
     };
+    // Timed commands (the countdown's end) run, as on a real server.
+    app.match.startScheduler();
+    const status = async () => (await app.fastify.inject('/api/v1/maintenance')).json<unknown>();
+    expect(await status()).toEqual({ on: false, reason: null });
     const { code } = (await host.post('/api/v1/matches', match)).json<{ code: string }>();
     await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
-    writeFileSync(path.join(data, 'maintenance'), '');
+    // A match already running when maintenance begins.
+    const running = (await host.post('/api/v1/matches', match)).json<{ code: string }>().code;
+    await host.post(`/api/v1/matches/${running}/bots`, { upTo: 4 });
+    await host.post(`/api/v1/matches/${running}/start`, {});
+    writeFileSync(path.join(data, 'maintenance'), 'Database upgrade');
     // The app looks at the file at most every 2 seconds.
     await new Promise((resolve) => setTimeout(resolve, 2_100));
+    expect(await status()).toEqual({ on: true, reason: 'Database upgrade' });
     expect((await host.post('/api/v1/matches', match)).json()).toEqual({ code: 'MAINTENANCE' });
     const start = await host.post(`/api/v1/matches/${code}/start`, {});
     expect([start.statusCode, start.json()]).toEqual([503, { code: 'MAINTENANCE' }]);
+    // The running match plays on: after its countdown the host still draws.
+    await new Promise((resolve) => setTimeout(resolve, 10_500));
+    expect((await host.post(`/api/v1/matches/${running}/draw-next`, {})).statusCode).toBe(200);
     await host.post(`/api/v1/matches/${code}/abort`, { reason: 'test cleanup' });
+    await host.post(`/api/v1/matches/${running}/abort`, { reason: 'test cleanup' });
+    await app.match.scheduler.stop();
     await app.fastify.close();
     rmSync(data, { recursive: true, force: true });
   }, 60_000);

@@ -7,11 +7,14 @@
  *                 wordmark, the light/dark toggle, links to the lobby and hosting (with
  *                 `match.create`), the account with sign-out ("Signed in as <name>
  *                 (host|player)") or, signed out, "Sign in" and "Register" (../account).
- *                 Below the bar, the screen of the current route. In development also the
+ *                 Below the bar, the screen of the current route; while maintenance is on
+ *                 (./useMaintenance) the lobby and the create form show the maintenance page
+ *                 and the host console a banner (09 §4). In development also the
  *                 Quick Test link and page and the "Dev sign-in" menu (./DevTools), loaded on
  *                 demand: a production build (Vite's DEV false) leaves them out of the bundle,
  *                 and `dev` (false in production) decides whether they show.
- * Depends on:     react, ./router, ./session, ./ThemeToggle, ./DevTools and ../App (lazy,
+ * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance,
+ *                 ./DevTools and ../App (lazy,
  *                 development only), ../game/*, ../host/*, ../account/*, ./shell.css,
  *                 assets/brand/emblem.webp
  * Used by:        ../main
@@ -27,8 +30,10 @@ import { MatchScreen } from '../game/MatchScreen.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { hrefOf, useRoute, type Route } from './router.js';
+import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
+import { useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
 
 // Development tools load on demand. A production build replaces import.meta.env.DEV with
@@ -45,6 +50,7 @@ const QuickTest = import.meta.env.DEV
 
 export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const route = useRoute();
+  const maintenance = useMaintenance();
   return (
     <>
       <header className="shell-bar">
@@ -61,7 +67,7 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         <Account dev={dev} />
       </header>
       <main className="shell-main">
-        <Screen route={route} dev={dev} />
+        <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />
       </main>
     </>
   );
@@ -138,6 +144,27 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
 
 // Keyed by match code and account: a new match, or a sign-in as someone else, mounts the
 // screen fresh, so nothing of the previous match or session survives (fresh-state rule).
+interface ScreenProps {
+  readonly route: Route;
+  readonly dev: boolean;
+  readonly maintenance: MaintenanceState | null;
+}
+
+// Maintenance (09 §4): the lobby and the create form give way to the maintenance page;
+// running matches and their screens go on, the host console with a banner.
+function MaintainedScreen({ route, dev, maintenance }: ScreenProps): ReactElement {
+  if (maintenance?.on !== true) return <Screen route={route} dev={dev} />;
+  if (route.name === 'lobby' || route.name === 'hostNew') {
+    return <MaintenancePage state={maintenance} />;
+  }
+  return (
+    <>
+      {route.name === 'host' ? <MaintenanceBanner state={maintenance} /> : null}
+      <Screen route={route} dev={dev} />
+    </>
+  );
+}
+
 function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }): ReactElement {
   const who = useSession().session?.account?.id ?? 'guest';
   switch (route.name) {
