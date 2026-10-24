@@ -9,7 +9,8 @@
  *                 way it must mark (only a round that ended meanwhile excuses it). A missed
  *                 number must stay open under "leave open" for as long as its round runs;
  *                 under "mark after 3 s" it is marked for the player, not before about 3 s
- *                 and within a few seconds. The server decides every mark; the screen shows
+ *                 (watched from the draw on, not only at the next draw) and within a few
+ *                 seconds. The server decides every mark; the screen shows
  *                 the server's marks.
  * Depends on:     @playwright/test, ./liveSnap
  * Used by:        ./realGame.spec.ts, ./ownerRules
@@ -28,6 +29,9 @@ interface Pending {
   readonly drawnAt: number;
   readonly plan: 'late' | 'miss';
   done: boolean;
+  // A miss under "mark after 3 s": how long after the draw the screen showed it marked,
+  // if that happened within the first moments (watched right away, ./watchEarly).
+  readonly early?: Promise<number | null>;
 }
 
 export interface LivePlayer {
@@ -77,7 +81,36 @@ export async function onNewDraw(p: LivePlayer, s: LiveSnap, round: number): Prom
     p.insideTaps.push({ value: s.item, round });
     return;
   }
-  p.pending.push({ testId: cell.testId, value: s.item, drawnAt: s.at, plan, done: false });
+  const early =
+    plan === 'miss' && p.missed === 'autoMarkAfter'
+      ? watchEarly(p.page, cell.testId, s.at)
+      : undefined;
+  p.pending.push({
+    testId: cell.testId,
+    value: s.item,
+    drawnAt: s.at,
+    plan,
+    done: false,
+    ...(early === undefined ? {} : { early }),
+  });
+}
+
+// Watches a missed cell from the moment this screen showed its draw until the earliest
+// moment the server may mark it (3 s less the time the screen may have seen the draw
+// late); the checks between draws come too late to see an early auto-mark (NIGHT-6).
+// Resolves to the elapsed ms when it was marked in that time, else null. Not awaited
+// here, so the other players go on meanwhile.
+async function watchEarly(page: Page, testId: string, drawnAt: number): Promise<number | null> {
+  const until = drawnAt + 3_000 - SEEN_LATE_MS;
+  while (Date.now() < until) {
+    const marked = await page
+      .getByTestId(testId)
+      .getAttribute('data-marked', { timeout: 500 })
+      .catch(() => null);
+    if (marked === 'true') return Date.now() - drawnAt;
+    await page.waitForTimeout(150).catch(() => undefined);
+  }
+  return null;
 }
 
 export async function handlePending(p: LivePlayer, s: LiveSnap): Promise<void> {
@@ -91,7 +124,15 @@ export async function handlePending(p: LivePlayer, s: LiveSnap): Promise<void> {
     }
     const elapsed = s.at - item.drawnAt;
     if (item.plan === 'late') await lateTap(p, item, elapsed, cell.marked);
-    else checkMiss(p, item, elapsed, cell.marked);
+    else {
+      if (item.early !== undefined) {
+        expect(
+          await item.early,
+          `${p.who}: missed ${String(item.value)} marked at once`,
+        ).toBeNull();
+      }
+      checkMiss(p, item, elapsed, cell.marked);
+    }
   }
   p.pending = p.pending.filter((x) => !x.done);
 }
