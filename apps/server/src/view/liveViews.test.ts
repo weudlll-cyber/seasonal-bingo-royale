@@ -46,6 +46,7 @@ function views(): LiveViews {
   return new LiveViews({
     events: (_id, afterSeq) => Promise.resolve(stored.filter((e) => e.seq > afterSeq)),
     names: () => Promise.resolve(names),
+    manualTaps: () => Promise.resolve([]),
   });
 }
 
