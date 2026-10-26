@@ -8,12 +8,15 @@
  *                 order, the draws made and every card from it with the domain's
  *                 verifyMatch against the commitment published at match open, and answer
  *                 the contracts' MatchVerificationView. Before the end the answer is 409
- *                 MATCH_NOT_OVER and the seed stays sealed (01 §9).
- * Depends on:     fastify, @sbr/contracts (types), @sbr/domain, ../../db/pool,
+ *                 MATCH_NOT_OVER and the seed stays sealed (01 §9). One answer recomputes the
+ *                 whole match, so the route has its own limit on top of the API's (20 a
+ *                 minute per address, 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
+ * Depends on:     fastify, @fastify/rate-limit, @sbr/contracts (types), @sbr/domain, ../../db/pool,
  *                 ../../match/codec, ../../match/pgMatchStore
  * Used by:        ../app
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3, §2.3a; docs/spec/03-security-architecture.md §9
  */
+import rateLimit from '@fastify/rate-limit';
 import type { MatchVerificationView } from '@sbr/contracts';
 import { verifyMatch, type DomainEvent, type LobbyOpened } from '@sbr/domain';
 import type { FastifyInstance } from 'fastify';
@@ -38,22 +41,38 @@ interface SealedRow {
   readonly seed_enc: Buffer;
 }
 
-export function registerVerifyRoute(app: FastifyInstance, deps: VerifyRouteDeps): void {
-  app.get<{ Params: { code: string } }>('/api/v1/matches/:code/verify', async (request, reply) => {
-    const r = await deps.pool.query<SealedRow>(
-      `SELECT id, code, title, status, game_type, seed_commitment, seed_enc
-         FROM sbr.matches WHERE code = $1`,
-      [request.params.code],
-    );
-    const row = r.rows[0];
-    if (row === undefined) return reply.status(404).send({ code: 'NOT_FOUND' });
-    // The seed is revealed only once the match is over (01 §9).
-    if (row.status !== 'finished' && row.status !== 'aborted') {
-      return reply.status(409).send({ code: 'MATCH_NOT_OVER' });
-    }
-    const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
-    return verificationOf(row, row.status, decryptSeed(row.seed_enc, deps.seedKey), events);
+// Per address and minute: plenty for a person checking matches, little for a flood.
+const VERIFY_LIMIT = { max: 20, timeWindow: 60_000 };
+
+export async function registerVerifyRoute(
+  app: FastifyInstance,
+  deps: VerifyRouteDeps,
+): Promise<void> {
+  // Only routes that ask for it are limited here (the API-wide limit lives in the sessions).
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: () => ({ statusCode: 429, code: 'RATE_LIMITED', message: 'Too many' }),
   });
+  const config = { rateLimit: VERIFY_LIMIT };
+  app.get<{ Params: { code: string } }>(
+    '/api/v1/matches/:code/verify',
+    { config },
+    async (request, reply) => {
+      const r = await deps.pool.query<SealedRow>(
+        `SELECT id, code, title, status, game_type, seed_commitment, seed_enc
+         FROM sbr.matches WHERE code = $1`,
+        [request.params.code],
+      );
+      const row = r.rows[0];
+      if (row === undefined) return reply.status(404).send({ code: 'NOT_FOUND' });
+      // The seed is revealed only once the match is over (01 §9).
+      if (row.status !== 'finished' && row.status !== 'aborted') {
+        return reply.status(409).send({ code: 'MATCH_NOT_OVER' });
+      }
+      const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
+      return verificationOf(row, row.status, decryptSeed(row.seed_enc, deps.seedKey), events);
+    },
+  );
 }
 
 function verificationOf(

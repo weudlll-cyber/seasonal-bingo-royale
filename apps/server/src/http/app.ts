@@ -116,7 +116,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     maintenance,
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
-  registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
+  await registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,
     engine: match.engine,

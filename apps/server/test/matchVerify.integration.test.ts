@@ -8,7 +8,8 @@
  *                 reveals the seed whose sha256 is the stored commitment, and the server's
  *                 recomputation equals the played match (every draw in the log, every card
  *                 dealt). No socket frame and no state answer sent before the end carries
- *                 the seed. A cancelled match reveals its seed too.
+ *                 the seed. A cancelled match reveals its seed too. The route has its own
+ *                 limit: 20 calls a minute per address, then 429 RATE_LIMITED.
  * Depends on:     node:crypto, vitest, ./socketKit
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3a
  */
@@ -137,5 +138,19 @@ describe('verify: a cancelled match, an unknown code', () => {
 
   it('answers 404 for an unknown code', async () => {
     expect((await kit.player.get('/api/v1/matches/NOPE99/verify')).statusCode).toBe(404);
+  });
+});
+
+// Runs last in this file: it uses up this address's verify budget.
+describe('verify: its own rate limit (03 §13)', () => {
+  it('answers 429 RATE_LIMITED after 20 calls a minute from one address', async () => {
+    const answers = [];
+    for (let i = 0; i < 25; i += 1) {
+      answers.push(await kit.player.get('/api/v1/matches/NOPE99/verify'));
+    }
+    const limited = answers.filter((a) => a.statusCode === 429);
+    expect(answers.length - limited.length).toBeLessThanOrEqual(20);
+    expect(limited.length).toBeGreaterThan(0);
+    expect(limited[0]?.json<{ code: string }>().code).toBe('RATE_LIMITED');
   });
 });
