@@ -74,9 +74,9 @@ describe('which cards a pause shows (D20)', () => {
 
   it('keeps the most important cards when the pause is short, never rushing them', () => {
     expect(planInterlude(RECAP, { kind: 'wait', ms: 6_000 }, null).cards).toEqual(['top']);
-    const twelve = planInterlude(RECAP, { kind: 'wait', ms: 30_000 }, 12_000);
-    expect(twelve.cards).toEqual(['top', 'cut', 'seasons']);
-    expect(twelve.cardMs).toBe(CALM_CARD_MS);
+    const short = planInterlude(RECAP, { kind: 'wait', ms: 30_000 }, 15_000);
+    expect(short.cards).toEqual(['top', 'cut', 'seasons']);
+    expect(short.cardMs).toBe(CALM_CARD_MS);
   });
 
   it('leaves out cards without content and loops all cards while the host decides', () => {
@@ -133,11 +133,11 @@ describe('the interlude over the pause (D14, D20)', () => {
   it('advances by itself in a timed pause and ends with the countdown', () => {
     vi.useFakeTimers();
     motion(false);
-    const at = Date.now() + 20_000;
+    const at = Date.now() + 25_000;
     render(
-      <Interlude recap={RECAP} pause={{ kind: 'wait', ms: 20_000 }} nextRoundAt={at} me={null} />,
+      <Interlude recap={RECAP} pause={{ kind: 'wait', ms: 25_000 }} nextRoundAt={at} me={null} />,
     );
-    expect(screen.getByTestId('interlude-countdown').textContent).toBe('Next round in 20 s');
+    expect(screen.getByTestId('interlude-countdown').textContent).toBe('Next round in 25 s');
     act(() => {
       vi.advanceTimersByTime(CALM_CARD_MS);
     });

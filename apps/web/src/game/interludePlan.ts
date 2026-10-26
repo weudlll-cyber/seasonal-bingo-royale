@@ -20,9 +20,11 @@ import type { RoundRecap } from '@sbr/contracts';
 
 import type { RecapCard } from './labels.js';
 
-// Reading time of one card at a calm pace: a card holds 8–15 words; at 200 words a minute
-// that is 2.4–4.5 s, plus a moment to find one's way on a new card (NIGHT-7 step 3).
-export const CALM_CARD_MS = 4_000;
+// Reading time of one card at a calm pace (NIGHT-7 step 3): the cards of a full recap hold
+// 9–23 words (climber 9, facts 12, top three 16, seasons and speed 19, a cut with eight
+// names 23); at 200 words a minute plus about a second to find one's way on a new card that
+// is 3.7–7.9 s, 5.7 s on average. Names in a list are skimmed rather than read, so 5 s.
+export const CALM_CARD_MS = 5_000;
 
 // The order on screen, and which cards stay when the pause is short.
 const SHOWN_IN: readonly RecapCard[] = ['top', 'climber', 'cut', 'seasons', 'facts'];
