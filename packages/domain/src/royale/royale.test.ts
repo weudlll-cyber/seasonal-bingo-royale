@@ -33,6 +33,35 @@ function makeCandidate(partial: Partial<Candidate> & { accountId: string }): Can
   };
 }
 
+describe('applyCut: how many survive (D18, score threshold)', () => {
+  // D18: a percentage cut rounds the number of survivors up.
+  it.each([
+    { players: 10, percent: 33, min: 2, survivors: 4 },
+    { players: 25, percent: 50, min: 2, survivors: 13 },
+    { players: 7, percent: 50, min: 2, survivors: 4 },
+    { players: 100, percent: 50, min: 2, survivors: 50 },
+    { players: 10, percent: 70, min: 2, survivors: 7 },
+    { players: 5, percent: 10, min: 3, survivors: 3 },
+  ])('keeps $survivors of $players at $percent % (min $min, D18)', (c) => {
+    const candidates = Array.from({ length: c.players }, (_v, i) =>
+      makeCandidate({ accountId: `p${String(i)}`, points: 1_000 - i }),
+    );
+    const result = applyCut(candidates, { keep: 'percent', value: c.percent, minSurvivors: c.min });
+    expect(result.survivors).toHaveLength(c.survivors);
+  });
+
+  // A score threshold keeps everyone at or above it (01 §7.4), never below minSurvivors.
+  it('keeps every player at or above a score threshold', () => {
+    const candidates = [300, 200, 200, 120, 80].map((points, i) =>
+      makeCandidate({ accountId: `t${String(i)}`, points }),
+    );
+    const cut = applyCut(candidates, { keep: 'scoreThreshold', value: 200, minSurvivors: 2 });
+    expect(cut.survivors).toEqual(['t0', 't1', 't2']);
+    const strict = applyCut(candidates, { keep: 'scoreThreshold', value: 500, minSurvivors: 2 });
+    expect(strict.survivors).toHaveLength(2);
+  });
+});
+
 describe('applyCut', () => {
   it('keeps the top `percent` of players and eliminates the rest', () => {
     const candidates = [
@@ -118,6 +147,14 @@ describe('finalRanking', () => {
     const early: RankedPlayer = { ...PL_C, accountId: 'early', eliminatedAtRound: 1, points: 999 };
     const placements = finalRanking([late, early]);
     expect(placements[0]?.accountId).toBe('late');
+  });
+
+  // 01 §8.4: on equal points, patterns and seasons, whoever scored earlier ranks higher; a
+  // player who never scored ranks below one who did.
+  it('ranks a tied player who scored above one who never scored', () => {
+    const never: RankedPlayer = { ...PL_A, accountId: 'never', joinedAt: 0, lastScoringDraw: null };
+    const scored: RankedPlayer = { ...PL_A, accountId: 'scored', joinedAt: 9, lastScoringDraw: 30 };
+    expect(finalRanking([never, scored]).map((p) => p.accountId)).toEqual(['scored', 'never']);
   });
 });
 

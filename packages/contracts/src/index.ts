@@ -52,3 +52,4 @@ export {
   type Season,
   type StagePlanEntry,
 } from './view/clientView.js';
+export { type MatchVerificationView, type RoundVerification } from './view/verification.js';

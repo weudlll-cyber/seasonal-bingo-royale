@@ -180,7 +180,9 @@ test('the cancelled-match page after a host and a system abort', async ({ browse
       await expect(page.getByTestId('arena')).toHaveCount(0);
     }
     await expect(host.getByTestId('end-actions')).toContainText('Host another match');
-    await expect(player.getByTestId('end-actions')).toHaveText('Back to the lobby');
+    await expect(player.getByTestId('end-actions')).toHaveText(
+      'Back to the lobbyVerify this match',
+    );
     await shoot(shots, [
       [host, `cancelled-${by}-host`],
       [player, `cancelled-${by}-player`],

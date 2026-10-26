@@ -8,7 +8,7 @@
  *                 host." or "… by the system." and the reason in the host's or the system's
  *                 words, from the match's `matchAborted` event (events logged before D17
  *                 carry no `by`; they were the host's); then "Back to the lobby" for everyone
- *                 and "Host another match" for the host (./EndActions).
+ *                 and "Verify this match", "Host another match" for the host (./EndActions).
  * Depends on:     react, ./EndActions, ./useLiveMatch (types), ../types
  * Used by:        ./MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §13
@@ -44,7 +44,7 @@ export function MatchCancelled({
           </>
         ) : null}
       </p>
-      <EndActions host={live.match.youHost === true} />
+      <EndActions host={live.match.youHost === true} code={live.match.code} />
     </section>
   );
 }

@@ -87,7 +87,7 @@ function HostLive({
       {view.finished ? (
         <div className="sbr-stack host-end">
           <FinalPlacement result={result} view={view} />
-          <EndActions host />
+          <EndActions host code={live.match.code} />
         </div>
       ) : null}
       <section className="sbr-stack">

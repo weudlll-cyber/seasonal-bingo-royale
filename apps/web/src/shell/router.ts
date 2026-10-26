@@ -1,7 +1,7 @@
 /**
  * @file   apps/web/src/shell/router.ts
  * @module web/shell
- * @brief  Hash routes of the player client: lobby, match, host screens, Quick Test, sign-in, register.
+ * @brief  Hash routes of the player client: lobby, match, host screens, verify, Quick Test, sign-in, register.
  *
  * Responsibility: parse `location.hash` into a route and back, and a hook that follows
  *                 hash changes. Hash routing keeps every screen reachable from the dev
@@ -10,7 +10,7 @@
  * Used by:        ./AppShell, the screens that link to each other, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
  *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
- *                 ../host/YourMatches, ./DevTools
+ *                 ../host/YourMatches, ./DevTools, ../game/VerifyMatch
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/15-implementation-plan.md WP-12
  */
 import { useEffect, useState } from 'react';
@@ -20,6 +20,7 @@ export type Route =
   | { readonly name: 'match'; readonly code: string }
   | { readonly name: 'hostNew' }
   | { readonly name: 'host'; readonly code: string }
+  | { readonly name: 'verify'; readonly code: string }
   | { readonly name: 'quicktest' }
   | { readonly name: 'signIn' }
   | { readonly name: 'register' };
@@ -33,6 +34,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'match' && second !== undefined) return { name: 'match', code: second };
   if (first === 'host' && second === 'new') return { name: 'hostNew' };
   if (first === 'host' && second !== undefined) return { name: 'host', code: second };
+  if (first === 'verify' && second !== undefined) return { name: 'verify', code: second };
   if (first === 'quicktest') return { name: 'quicktest' };
   if (first === 'sign-in') return { name: 'signIn' };
   if (first === 'register') return { name: 'register' };
@@ -49,6 +51,8 @@ export function hrefOf(route: Route): string {
       return '#/host/new';
     case 'host':
       return `#/host/${route.code}`;
+    case 'verify':
+      return `#/verify/${route.code}`;
     case 'quicktest':
       return '#/quicktest';
     case 'signIn':

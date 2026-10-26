@@ -16,6 +16,8 @@ logs/
 night-task.md
 # One-off scripts of a run, deleted when the step is done
 tmp/
+# The server's data directory in development (SBR_DATA_DIR ./data: maintenance flag)
+apps/server/data/
 # Screenshots of the latest browser-test run (e2e/screens.ts and the specs write them)
 reports/screens/latest/
 # Editor and OS noise

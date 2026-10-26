@@ -71,14 +71,15 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D13 | Host draws | Draw next stays locked for the match's timed interval since the last draw and shows the remaining seconds; the server refuses an early draw ([01](01-game-design.md) §5). |
 | D14 | Pause between royale rounds | Chosen at creation: wait N seconds (default 6, minimum 3) or the host starts the next round ([01](01-game-design.md) §7.1). |
 | D15 | Cut screen button | “Keep playing” for a survivor, “Watch” for an eliminated player ([01](01-game-design.md) §13). |
-| D16 | Start time | A set start time is an announcement; the host can always start the match. “Start automatically at the start time” (default off, switchable in the console until the start) starts it at that time with at least `minPlayers` players (2, D18); with fewer the match waits and the console says so ([01](01-game-design.md) §7.6). |
+| D16 | Start time | A set start time is an announcement; the host can always start the match. “Start automatically at the start time” (default off, switchable in the console until the start) starts it at that time with at least `minPlayers` players (2, D19); with fewer the match waits and the console says so ([01](01-game-design.md) §7.6). |
 | D17 | Match ended without a result | Its own end page for host and players: the reason in plain words and who ended it (“by the host” or “by the system”), “Back to the lobby” (everyone) and “Host another match” (host); never the live arena ([01](01-game-design.md) §13). |
 
-## 4c. Decisions (2026-10-23)
+## 4c. Decisions (2026-10-23 and 2026-10-24)
 
 | # | Topic | Decision |
 |---|---|---|
-| D18 | Players needed to start | 2, read from the ruleset's `lobby.minPlayers` by Start and by the automatic start ([01](01-game-design.md) §7.6). |
+| D18 | Rounding of a percentage cut (2026-10-24) | A percentage cut rounds the number of survivors up; with the default 50 % a field of 100 goes 100 → 50 → 25 → 13 ([01](01-game-design.md) §7.4). |
+| D19 | Players needed to start (2026-10-23) | 2, read from the ruleset's `lobby.minPlayers` by Start and by the automatic start ([01](01-game-design.md) §7.6). |
 
 ## 5. Open
 

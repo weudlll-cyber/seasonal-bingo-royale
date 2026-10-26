@@ -74,7 +74,7 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
     });
   };
   host('/api/v1/matches/:code/start', async (id) => {
-    if (deps.maintenance()) throw new MatchError('MAINTENANCE');
+    if (deps.maintenance() !== null) throw new MatchError('MAINTENANCE');
     return { startsAt: await deps.engine.start(id, START_COUNTDOWN_MS) };
   });
   host('/api/v1/matches/:code/draw-next', (id) => deps.engine.drawNext(id));

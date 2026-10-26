@@ -19,16 +19,16 @@ export default defineConfig({
     // tests that take 0.3 s alone passed 5 s and timed out (NIGHT-4: slowest test 3.8 s at
     // 13 workers, 2.6 s at 7).
     maxWorkers: '50%',
-    // Off for "pnpm test"; "pnpm test:coverage" (CI) turns it on. Targets of 12 §2 where they
-    // are met; the branch floors are today's values, the gap is in docs/BACKLOG.md.
+    // Off for "pnpm test"; "pnpm test:coverage" (CI) turns it on. The targets of 12 §2 (the
+    // domain's branch target is 85 %: its remaining branches are guards, see 12 §2).
     coverage: {
       provider: 'v8',
       include: ['packages/domain/src/**', 'packages/application/src/**'],
       exclude: ['**/*.test.ts', 'packages/application/src/match/fakes.ts'],
       reporter: ['text-summary'],
       thresholds: {
-        'packages/domain/src/**': { lines: 95, branches: 84 },
-        'packages/application/src/**': { lines: 85, branches: 83 },
+        'packages/domain/src/**': { lines: 95, branches: 85 },
+        'packages/application/src/**': { lines: 85, branches: 85 },
       },
     },
   },

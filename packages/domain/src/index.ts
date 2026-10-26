@@ -14,7 +14,8 @@
  *                 ./match/matchState, ./match/simulate, ./royale/cut, ./royale/finalRanking,
  *                 ./royale/jackpot, ./scoring/basePoints, ./scoring/patternScoring,
  *                 ./scoring/speedBonus, ./seasons/applyEffect, ./seasons/effectCatalog,
- *                 ./seasons/effectState, ./seasons/seasonComplete, ./seasons/tickEffects
+ *                 ./seasons/effectState, ./seasons/seasonComplete, ./seasons/tickEffects,
+ *                 ./verifyMatch
  * Used by:        packages/application, apps/server, ./card/card.properties.test,
  *                 ./card/card.test, ./classic/classic.test, ./commitment.test,
  *                 ./draw/draw.properties.test, ./draw/draw.test, ./match/classicFlow.test,
@@ -22,7 +23,7 @@
  *                 ./match/match.properties.test, ./match/match.test,
  *                 ./match/missedNumbers.test, ./royale/royale.properties.test,
  *                 ./royale/royale.test, ./scoring/scoring.test,
- *                 ./seasons/effects.properties.test, ./seasons/seasons.test,
+ *                 ./seasons/effects.properties.test, ./seasons/seasons.test, ./verifyMatch.test,
  *                 ../test/arbitraries, ../test/builders, ../test/drive
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §4, §5, §9
  */
@@ -58,6 +59,12 @@ export {
   type MarkMask,
 } from './card/patterns.js';
 export { commitSeed, verifyCommitment } from './commitment.js';
+export {
+  verifyMatch,
+  type MatchVerification,
+  type RoundCheck,
+  type VerifyMatchInput,
+} from './verifyMatch.js';
 export { scoreMark, type MarkScoring } from './scoring/basePoints.js';
 export { speedBonus, type SpeedBonusCfg } from './scoring/speedBonus.js';
 export {

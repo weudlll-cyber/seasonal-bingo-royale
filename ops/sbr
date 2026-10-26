@@ -15,7 +15,8 @@
 #                 <file> (--identity <age key file> for encrypted backups, --force-env for
 #                 another environment's backup); logs [service]; admin create-super (the
 #                 first admin, password asked inside the app, never echoed); maintenance
-#                 on|off (a flag file the app reads: no new matches, running ones finish).
+#                 on ["reason"]|off (a flag file the app reads: no new matches, running ones
+#                 finish; players see the maintenance page with the reason).
 #                 --yes skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
@@ -48,7 +49,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
   restore --drill <file> [...]   restore into a throw-away database and check it
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
-  maintenance on|off             no new matches while on; running ones finish
+  maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
 EOF
 }
 
@@ -69,7 +70,7 @@ cmd_status() {
   info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
   [[ -f $ROLLBACK_DIR/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
   if compose "$env" exec -T app test -f /data/maintenance 2>/dev/null; then
-    info "maintenance: ON (no new matches)"
+    info "maintenance: ON (no new matches) $(compose "$env" exec -T app cat /data/maintenance 2>/dev/null)"
   else
     info "maintenance: off"
   fi
@@ -194,11 +195,17 @@ cmd_admin() {
   compose "$env" exec "${tty[@]}" app node dist/cli.js create-super --email "$email" --name "$name"
 }
 
+# The flag file's text is the reason players see on the maintenance page (may be empty).
 cmd_maintenance() {
   case ${2:-} in
-    on) compose "$1" exec -T app touch /data/maintenance && info "maintenance on: no new matches; running ones finish" ;;
+    on)
+      # The reason travels as an argument, so no quoting in it can break the command.
+      # shellcheck disable=SC2016 # $1 expands inside the container's shell
+      compose "$1" exec -T app sh -c 'printf "%s" "$1" > /data/maintenance' sh "${3:-}"
+      info "maintenance on: no new matches; running ones finish; players see the maintenance page"
+      ;;
     off) compose "$1" exec -T app rm -f /data/maintenance && info "maintenance off" ;;
-    *) die "usage: sbr maintenance on|off" ;;
+    *) die "usage: sbr maintenance on [\"reason for players\"] | off" ;;
   esac
 }
 

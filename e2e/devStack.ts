@@ -5,7 +5,8 @@
  *
  * Responsibility: one place for the project's fixed ports (server 3900, player client
  *                 5390) and the DATABASE_URL built from the dev env file, so the e2e
- *                 config never repeats credentials.
+ *                 config never repeats credentials. CI sets SBR_E2E_DATABASE_URL to its
+ *                 PostgreSQL service instead.
  * Depends on:     ops/.env.dev.example
  * Used by:        ./playwright.config.ts, ./globalSetup.ts, ./acceptance/acceptance.spec,
  *                 ./screens, ./showcase.spec
@@ -33,7 +34,12 @@ function readEnvFile(): Map<string, string> {
   return new Map(entries);
 }
 
+// The database the e2e server uses: CI's service (SBR_E2E_DATABASE_URL), else the dev stack.
+export const externalDatabase = (): string | undefined => process.env['SBR_E2E_DATABASE_URL'];
+
 export function databaseUrl(): string {
+  const external = externalDatabase();
+  if (external !== undefined) return external;
   const env = readEnvFile();
   const get = (key: string): string => {
     const value = env.get(key);

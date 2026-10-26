@@ -31,7 +31,10 @@ import {
   seedArb,
 } from '../../test/arbitraries.js';
 
-describe('draw and commitment invariants', () => {
+// 1 000 cases in CI: alone a few seconds, beside the coverage run and the integration
+// databases more than Vitest's 5 s default (it timed out twice under load); an explicit
+// budget, as the full-match properties have.
+describe('draw and commitment invariants', { timeout: 30_000 }, () => {
   it('invariant 3 + 14: sequence is a permutation of the pool with no repeats', () => {
     fc.assert(
       fc.property(

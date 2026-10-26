@@ -196,3 +196,18 @@
   margin: 0;
   font-size: var(--font-size-small);
 }
+
+/* Maintenance (sbr maintenance on): the page instead of the lobby, the host's banner */
+.maintenance-page {
+  max-width: 36rem;
+  margin: var(--space-4) auto;
+  text-align: center;
+}
+
+.maintenance-banner {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-autumn);
+  border-radius: var(--radius);
+  background: var(--color-warning-surface);
+}

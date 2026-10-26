@@ -221,6 +221,7 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 ### 7.4 Cuts (elimination)
 
 - `keep: percent | count | scoreThreshold`.
+- A percentage keeps the number of survivors rounded up (D18): 50 % of 25 keeps 13, 33 % of 10 keeps 4.
 - Ranking for the cut uses the tie-break chain in §8.4.
 - Minimum survivors: `max(cut result, minSurvivors)` (default 2).
 - If the active field is already at or below the final size, remaining elimination stages are skipped.
@@ -315,6 +316,7 @@ A **points** jackpot (never money):
 - Each match has a server-generated 256-bit secret seed. At match open the server publishes `sha256(seed)` (the **commitment**).
 - Cards, season-cell positions and draw order for every round are derived deterministically from the seed (HMAC-SHA256 counter DRBG with domain separation per round and purpose).
 - After the match ends the seed is published. Anyone can recompute all cards and draws and verify the commitment. The match page offers a **“Verify this match”** download (seed + ruleset version + participant card IDs).
+- As built (NIGHT-6): `GET /api/v1/matches/:code/verify` reveals the seed once the match has finished or was cancelled (409 before), and the server recomputes every round's draw order, every draw and every card from it with the domain's `verifyMatch`; the page "Verify this match" (`#/verify/<code>`, linked from the final screen and the cancelled page) shows the commitment, the seed, the result per round and offers the data as JSON. The seed never travels in a socket frame or state answer.
 - Admins cannot see the seed of a running match (it is stored encrypted with a key the admin UI never decrypts; see [03-security-architecture.md](03-security-architecture.md) §9).
 - Changing configuration never affects a running match: the match is frozen to its ruleset version.
 
