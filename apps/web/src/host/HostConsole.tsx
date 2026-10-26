@@ -9,7 +9,8 @@
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
- *                 while the match waits for the host between rounds (D14), standings with active
+ *                 while the match waits for the host between rounds (D14) with the recap of
+ *                 the round below it (../game/Interlude, D20), standings with active
  *                 players first, prizes awarded, the match log (newest first) with cut
  *                 results, and abort with a reason (./AbortMatch); at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
@@ -25,6 +26,7 @@ import { FinalPlacement } from '../components/FinalPlacement.js';
 import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { CurrentBall } from '../game/CurrentBall.js';
+import { currentRecap, Interlude } from '../game/Interlude.js';
 import { EndActions } from '../game/EndActions.js';
 import { MatchCancelled } from '../game/MatchCancelled.js';
 import { intent } from '../game/socket.js';
@@ -82,6 +84,7 @@ function HostLive({
 }): ReactElement {
   const result = live.view;
   const running = live.match.status === 'running';
+  const recap = currentRecap(live, view);
   return (
     <div className="host-grid">
       {view.finished ? (
@@ -105,6 +108,16 @@ function HostLive({
         {live.match.waitingForHost ? (
           <StartNextRound code={live.match.code} round={view.currentRound + 2} />
         ) : null}
+        {/* The recap of the round just played, below Start next round (D20). */}
+        {recap === null ? null : (
+          <Interlude
+            key={recap.roundIndex}
+            recap={recap}
+            pause={live.match.settings.roundPause}
+            nextRoundAt={live.match.nextRoundAt}
+            me={null}
+          />
+        )}
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <AbortMatch code={live.match.code} /> : null}

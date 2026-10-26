@@ -10,12 +10,13 @@
  *                 rank, effects, seasons, shield), standings with active players first, the
  *                 prize list in classic types, one match log (newest first), the cut screen
  *                 with the countdown to the next round or "Waiting for the host to start
- *                 round N" (D14), the spectator note once out; at the
+ *                 round N" (D14) and the recap of the round below it (./Interlude, D20, for
+ *                 eliminated players and spectators too), the spectator note once out; at the
  *                 end the final placement on top; a match ended without a result shows its
  *                 own end page (./MatchCancelled, D17). Remounted per match code, so nothing
  *                 of a previous match survives.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
- *                 ./CurrentBall, ./HostLink, ./WaitingRoom, ./MatchCancelled, ./labels,
+ *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
  *                 ./EndActions, ./game.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
@@ -33,6 +34,7 @@ import { playbackAt, type PlaybackView } from '../playback.js';
 import { CurrentBall } from './CurrentBall.js';
 import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
+import { currentRecap, Interlude } from './Interlude.js';
 import { progressText, rulesLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
@@ -104,8 +106,9 @@ function Arena({
   );
 }
 
-// Above the arena: the final placement at the end; otherwise the cut screen and, while
-// the match waits for its host between rounds, the waiting notice (D14).
+// Above the arena: the final placement at the end; otherwise the cut screen, the recap of
+// the round just played (D20) and, while the match waits for its host between rounds, the
+// waiting notice (D14).
 function ArenaNotice({
   live,
   view,
@@ -121,9 +124,20 @@ function ArenaNotice({
       </>
     );
   }
+  const recap = currentRecap(live, view);
   return (
     <>
       <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />
+      {/* The recap of the round just played, below the cut screen (D20). */}
+      {recap === null ? null : (
+        <Interlude
+          key={recap.roundIndex}
+          recap={recap}
+          pause={live.match.settings.roundPause}
+          nextRoundAt={live.match.nextRoundAt}
+          me={live.me}
+        />
+      )}
       {live.match.waitingForHost ? (
         <p className="sbr-panel" role="status" data-testid="waiting-for-host">
           Waiting for the host to start round {view.currentRound + 2}
