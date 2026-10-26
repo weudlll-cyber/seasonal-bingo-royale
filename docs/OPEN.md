@@ -8,4 +8,5 @@ Full list: [BACKLOG.md](BACKLOG.md).
 - From the website repository: now, for website installs, the import of the bingo route into its Caddy; for Phase 6, the login handoff endpoint (shared website login), the chat room `bingo` and the embeddable call view (consumed by WP-25b).
 - Deployment, still open: signed release images (cosign) instead of building on the server, staging beside prod on one server, the bootstrap page with the admin app (WP-19).
 - Owner idea, to be described: an interlude between royale rounds.
+- Later: "Verify this match" recomputed in the player's own browser (the server recomputes today).
 - Optional: app icon and sounds.

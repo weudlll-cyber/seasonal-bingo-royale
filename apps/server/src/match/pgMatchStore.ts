@@ -3,7 +3,9 @@
  * @module server/match
  * @brief  PostgreSQL adapter of the match store: event log, snapshots, projections (02 §5.2).
  *
- * Responsibility: insert a match (seed encrypted, commitment public); load a match from
+ * Responsibility: insert a match (seed encrypted, commitment public); check at startup that
+ *                 the seed key opens what is stored; events and snapshots are written and
+ *                 read in the codec's stored encoding (match secrets sealed); load a match from
  *                 its latest snapshot plus the event tail, with the draw times of the
  *                 current round; append a batch in one transaction — version check on the
  *                 matches row (optimistic concurrency), events with consecutive seq, the
@@ -33,7 +35,7 @@ import {
 } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
-import { encryptSeed, fromJson, toJson } from './codec.js';
+import { decodeStored, decryptSeed, encodeStored, encryptSeed } from './codec.js';
 import { project } from './projections.js';
 import { recordFrom, type MatchRow } from './records.js';
 
@@ -46,6 +48,22 @@ export class PgMatchStore implements MatchStore {
     private readonly pool: DbPool,
     private readonly seedKey: Buffer,
   ) {}
+
+  // At startup: the key must open what is stored (the newest sealed seed), so a wrong key
+  // stops the server at once instead of failing on the first match it loads. No secret is
+  // named in the error.
+  async checkKey(): Promise<void> {
+    const r = await this.pool.query<{ seed_enc: Buffer }>(
+      'SELECT seed_enc FROM sbr.matches ORDER BY created_at DESC LIMIT 1',
+    );
+    const sealed = r.rows[0]?.seed_enc;
+    if (sealed === undefined) return;
+    try {
+      decryptSeed(sealed, this.seedKey);
+    } catch {
+      throw new Error('SBR_SEED_KEY does not open the stored match secrets (wrong key?)');
+    }
+  }
 
   async insert(r: NewMatchRecord): Promise<void> {
     const s = r.settings;
@@ -94,7 +112,9 @@ export class PgMatchStore implements MatchStore {
     );
     const base = snap.rows[0];
     let state =
-      base === undefined ? createInitialMatchState() : (fromJson(base.state) as MatchState);
+      base === undefined
+        ? createInitialMatchState()
+        : (decodeStored(base.state, this.seedKey) as MatchState);
     let seq = base === undefined ? 0 : Number(base.seq);
     for (const e of await this.events(matchId, seq)) {
       state = evolve(state, e.event);
@@ -111,7 +131,7 @@ export class PgMatchStore implements MatchStore {
     );
     return result.rows.map((r) => ({
       seq: Number(r.seq),
-      event: fromJson(r.payload) as DomainEvent,
+      event: decodeStored(r.payload, this.seedKey) as DomainEvent,
       occurredAt: r.occurred_at.getTime(),
     }));
   }
@@ -150,7 +170,7 @@ export class PgMatchStore implements MatchStore {
           input.matchId,
           stored.map((s) => s.seq),
           stored.map((s) => s.event.type),
-          stored.map((s) => toJson(s.event)),
+          stored.map((s) => encodeStored(s.event, this.seedKey)),
           input.at,
           input.actorAccountId,
         ],
@@ -162,7 +182,12 @@ export class PgMatchStore implements MatchStore {
       ]);
       await project(client, { ...input, state: input.stateAfter, seq: lastSeq, mark: input.mark });
       if (Math.floor(lastSeq / SNAPSHOT_EVERY) > Math.floor(input.expectedSeq / SNAPSHOT_EVERY)) {
-        await snapshot(client, input.matchId, lastSeq, input.stateAfter);
+        await snapshot(
+          client,
+          input.matchId,
+          lastSeq,
+          encodeStored(input.stateAfter, this.seedKey),
+        );
       }
       await client.query('COMMIT');
       return stored;
@@ -209,15 +234,16 @@ export class PgMatchStore implements MatchStore {
   }
 }
 
+// `state` is the match state in its stored encoding (./codec encodeStored).
 async function snapshot(
   client: { query: (q: string, v: unknown[]) => Promise<unknown> },
   matchId: string,
   seq: number,
-  state: MatchState,
+  state: string,
 ): Promise<void> {
   await client.query(
     'INSERT INTO sbr.match_snapshots (match_id, seq, state) VALUES ($1, $2, $3::jsonb)',
-    [matchId, seq, toJson(state)],
+    [matchId, seq, state],
   );
   await client.query(
     `DELETE FROM sbr.match_snapshots WHERE match_id = $1 AND seq NOT IN

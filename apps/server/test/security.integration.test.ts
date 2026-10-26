@@ -129,7 +129,6 @@ describe('the session cookie (S5)', () => {
     const app = await buildOn(kit.harness.pool, kit.harness.container.getConnectionUri(), {
       NODE_ENV: 'production',
       SBR_DEV: '0',
-      SBR_SEED_KEY: 'ab'.repeat(32),
       SBR_BASE_PATH: '/games/bingo/',
     });
     const login = await app.fastify.inject({

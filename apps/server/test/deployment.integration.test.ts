@@ -38,7 +38,8 @@ afterAll(async () => {
   await stopHarness(harness);
 }, SUITE_TIMEOUT_MS);
 
-const PRODUCTION = { NODE_ENV: 'production', SBR_DEV: '0', SBR_SEED_KEY: 'ab'.repeat(32) };
+// The seed key comes from the harness (one key per database).
+const PRODUCTION = { NODE_ENV: 'production', SBR_DEV: '0' };
 const ORGANIZER = { email: 'organizer@example.com', password: 'correct horse battery staple' };
 
 // Signs the organizer in with the password; the session cookie and CSRF token.
