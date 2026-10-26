@@ -63,8 +63,15 @@ export function newPlayer(page: Page, who: string, missed: LivePlayer['missed'])
 }
 
 // A new number is on screen: plan what this player does with it, if it is on the card
-// (once per draw). `round` is the round's index in the server's log.
-export async function onNewDraw(p: LivePlayer, s: LiveSnap, round: number): Promise<void> {
+// (once per draw). `round` is the round's index in the server's log; `hostSawAt` is when
+// the host's screen first showed the draw (the players' screens are read one after the
+// other, so a player's own read can come seconds after the draw).
+export async function onNewDraw(
+  p: LivePlayer,
+  s: LiveSnap,
+  round: number,
+  hostSawAt: number,
+): Promise<void> {
   const draw = `${String(s.ticker.length)}:${String(s.item)}`;
   if (draw === p.lastDraw) return;
   p.lastDraw = draw;
@@ -83,7 +90,7 @@ export async function onNewDraw(p: LivePlayer, s: LiveSnap, round: number): Prom
   }
   const early =
     plan === 'miss' && p.missed === 'autoMarkAfter'
-      ? watchEarly(p.page, cell.testId, s.at)
+      ? watchEarly(p.page, cell.testId, hostSawAt)
       : undefined;
   p.pending.push({
     testId: cell.testId,
@@ -95,19 +102,19 @@ export async function onNewDraw(p: LivePlayer, s: LiveSnap, round: number): Prom
   });
 }
 
-// Watches a missed cell from the moment this screen showed its draw until the earliest
-// moment the server may mark it (3 s less the time the screen may have seen the draw
-// late); the checks between draws come too late to see an early auto-mark (NIGHT-6).
-// Resolves to the elapsed ms when it was marked in that time, else null. Not awaited
-// here, so the other players go on meanwhile.
-async function watchEarly(page: Page, testId: string, drawnAt: number): Promise<number | null> {
-  const until = drawnAt + 3_000 - SEEN_LATE_MS;
+// Watches a missed cell until the earliest moment the server may mark it: the host saw
+// the draw at most SEEN_LATE_MS after the server made it, so a mark shown before
+// hostSawAt + 3 s − SEEN_LATE_MS came before the 3 s. The checks between draws come too
+// late to see an early auto-mark (NIGHT-6). Resolves to the ms after hostSawAt when it was
+// marked in that time, else null. Not awaited here, so the other players go on meanwhile.
+async function watchEarly(page: Page, testId: string, hostSawAt: number): Promise<number | null> {
+  const until = hostSawAt + 3_000 - SEEN_LATE_MS;
   while (Date.now() < until) {
     const marked = await page
       .getByTestId(testId)
       .getAttribute('data-marked', { timeout: 500 })
       .catch(() => null);
-    if (marked === 'true') return Date.now() - drawnAt;
+    if (marked === 'true') return Date.now() - hostSawAt;
     await page.waitForTimeout(150).catch(() => undefined);
   }
   return null;
@@ -149,19 +156,25 @@ async function lateTap(
   if (marked) return;
   await p.page.getByTestId(item.testId).click();
   const feedback = p.page.getByTestId('card-feedback');
+  // Short timeouts on both reads: without one, reading a feedback line that is not shown
+  // waits longer than the whole poll (NIGHT-6: a late tap failed without being looked at).
   const outcome = async (): Promise<string> => {
-    const text = await feedback.innerText().catch(() => '');
+    const text = await feedback.innerText({ timeout: 300 }).catch(() => '');
+    // The round ended meanwhile: the tap said so, or the screen shows it now (a tap sent
+    // just before the screen heard of the end is refused by the server instead).
     if (text.startsWith('Round over')) return 'round over';
+    if ((await p.page.getByText('Round over').count()) > 0) return 'round over';
     const now = await p.page
       .getByTestId(item.testId)
-      .getAttribute('data-marked')
+      .getAttribute('data-marked', { timeout: 300 })
       .catch(() => null);
-    return now === 'true' ? 'marked' : 'open';
+    // Still open: the feedback line goes into the failure message.
+    return now === 'true' ? 'marked' : `open (${text})`;
   };
   // A late tap marks (without bonus); only a round that ended meanwhile refuses it.
   await expect
     .poll(outcome, { timeout: 4_000, message: `${p.who}: late tap on ${String(item.value)}` })
-    .not.toBe('open');
+    .toMatch(/^(marked|round over)$/);
 }
 
 // How much later than the server's draw a screen may notice it (poll and render).

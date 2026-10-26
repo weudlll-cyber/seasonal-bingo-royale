@@ -108,7 +108,7 @@ const seqOf = async (page: Page, testId: string): Promise<number> =>
 // After a draw: every screen's numbers are the server's, by the server's event log (every
 // draw, also across round changes); a player's points are the server's when the screen and
 // the server are at the same event.
-async function afterDraw(t: Table, code: string): Promise<boolean> {
+async function afterDraw(t: Table, code: string, hostSawAt: number): Promise<boolean> {
   const hostSeq = await seqOf(t.host, 'host-console');
   await checkAgainstServer(t.host, 'host', code, await liveSnap(t.host));
   let cut = false;
@@ -124,7 +124,7 @@ async function afterDraw(t: Table, code: string): Promise<boolean> {
     }
     checkPlayer(s, p.who);
     await handlePending(p, s);
-    await onNewDraw(p, s, view.rounds.length - 1);
+    await onNewDraw(p, s, view.rounds.length - 1, hostSawAt);
     await checkCutButton(p);
     cut ||= s.cutShown;
   }
@@ -138,11 +138,16 @@ async function checkAgainstServer(page: Page, who: string, code: string, s: Live
   return view;
 }
 
-async function waitTimedDraw(host: Page, before: number): Promise<void> {
+// Both waits answer when the host's screen showed the draw (polled every 100 ms).
+async function waitTimedDraw(host: Page, before: number): Promise<number> {
   const count = () => host.getByTestId('draw-ticker').locator(':scope > *').count();
   await expect
-    .poll(async () => (await count()) !== before || (await isOver(host)), { timeout: 15_000 })
+    .poll(async () => (await count()) !== before || (await isOver(host)), {
+      timeout: 15_000,
+      intervals: [100],
+    })
     .toBe(true);
+  return Date.now();
 }
 
 const isOver = async (host: Page) =>
@@ -166,15 +171,16 @@ async function playToEnd(t: Table, combo: Combo, code: string): Promise<number> 
       mode = await setMode(t.host, 'auto');
       await checkShortestIntervalLive(t.host);
     }
-    if (mode === 'host') await hostDraw(t.host);
-    else
-      await waitTimedDraw(
-        t.host,
-        await t.host.getByTestId('draw-ticker').locator(':scope > *').count(),
-      );
+    const hostSawAt =
+      mode === 'host'
+        ? await hostDraw(t.host)
+        : await waitTimedDraw(
+            t.host,
+            await t.host.getByTestId('draw-ticker').locator(':scope > *').count(),
+          );
     if (await isOver(t.host)) break;
     draws += 1;
-    const cut = await afterDraw(t, code);
+    const cut = await afterDraw(t, code, hostSawAt);
     if (draws === 8) await shoot(t, combo, 'mid');
     if (cut && !cutShot) {
       cutShot = true;
@@ -186,17 +192,19 @@ async function playToEnd(t: Table, combo: Combo, code: string): Promise<number> 
 
 // A host draw; right after it Draw next counts down to its unlock (D13). A failed draw fails
 // the test, unless the round or the match ended or the match waits for its host meanwhile.
-async function hostDraw(host: Page): Promise<void> {
+async function hostDraw(host: Page): Promise<number> {
   const failure = await drawNext(host).then(
     () => null,
     (error: unknown) => error,
   );
+  const sawAt = Date.now();
   const roundOver = (await host.getByText('Round over').count()) > 0;
   const ended = roundOver || (await isOver(host)) || (await waitingForHost(host));
   if (failure !== null && !ended) {
     throw failure instanceof Error ? failure : new Error('Draw next failed');
   }
   if (failure === null && !ended) await checkDrawCountdown(host);
+  return sawAt;
 }
 
 async function setMode(host: Page, mode: 'auto' | 'host'): Promise<'auto' | 'host'> {

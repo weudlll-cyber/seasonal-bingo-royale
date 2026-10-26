@@ -124,6 +124,8 @@ export async function drawNext(host: Page): Promise<void> {
   await expect
     .poll(async () => host.getByTestId('draw-ticker').locator(':scope > *').count(), {
       timeout: 10_000,
+      // Every 100 ms: the play-through times missed numbers from the moment this returns.
+      intervals: [100],
     })
     .not.toBe(before);
 }
