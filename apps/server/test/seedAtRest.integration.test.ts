@@ -67,17 +67,18 @@ async function rawRows(id: string): Promise<string[]> {
   return [...events.rows, ...snapshots.rows].map((r) => r.text);
 }
 
-// Every plain form the secrets could take in a stored row; jsonb writes ", " between
-// array items, the codec's own JSON writes ",".
-function plainForms(seed: Buffer, order: readonly number[]): string[] {
-  const start = order.slice(0, 12);
+// Every plain form the secrets could take in a stored row: the seed, and the numbers of
+// the order not drawn yet (those already drawn are public: they are in every drawMade and
+// in the state's draws). jsonb writes ", " between array items, the codec's own JSON ",".
+function plainForms(seed: Buffer, order: readonly number[], drawn: number): string[] {
+  const next = order.slice(drawn, drawn + 12);
   return [
     seed.toString('hex'),
     seed.toString('base64'),
     [...seed].join(','),
     [...seed].join(', '),
-    start.join(','),
-    start.join(', '),
+    next.join(','),
+    next.join(', '),
   ];
 }
 
@@ -108,12 +109,13 @@ describe('match secrets at rest (03 §9)', () => {
     const id = await runningMatch();
     const { state } = await harness.built.match.engine.runner.current(id);
     const order = state.currentRound?.drawSequence ?? [];
+    const draws = state.currentRound?.draws ?? [];
     const seed = Buffer.from(state.seed);
     expect(order.length).toBe(75);
     for (const text of await rawRows(id)) {
-      for (const form of plainForms(seed, order)) expect(text).not.toContain(form);
+      for (const form of plainForms(seed, order, draws.length)) expect(text).not.toContain(form);
     }
-    await checkRestart(id, seed, order, state.currentRound?.draws ?? []);
+    await checkRestart(id, seed, order, draws);
   }, 120_000);
 
   it('refuses to start with another seed key', async () => {
