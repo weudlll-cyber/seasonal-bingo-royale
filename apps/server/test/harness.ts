@@ -4,7 +4,8 @@
  * @brief  Integration harness: a Testcontainers PostgreSQL 17, migrations, the Fastify app.
  *
  * Responsibility: start one database per test file, migrate it and build the app with
- *                 test settings (overridable, e.g. NODE_ENV=production or feature flags);
+ *                 test settings (overridable, e.g. NODE_ENV=production or feature flags) and
+ *                 one seed key for every app on the database;
  *                 `buildOn` builds a second app on the same database. Every test file
  *                 aborts the matches it left open and stops its own container (12 §7:
  *                 data created by a test is removed), also when a test failed.
@@ -18,6 +19,10 @@ import { buildApp, createPool, loadEnv, migrate, type App, type DbPool } from '.
 
 // Starting Postgres can be slow on a cold cache, so give each suite a generous ceiling.
 export const SUITE_TIMEOUT_MS = 180_000;
+
+// One seed key for every app on a suite's database, development and production builds
+// alike: the stored match secrets are sealed with it, and another key refuses to start.
+const TEST_SEED_KEY = 'ab'.repeat(32);
 
 export interface Harness {
   readonly container: StartedPostgreSqlContainer;
@@ -40,6 +45,7 @@ export async function buildOn(
     SBR_PORT: '0',
     SBR_LOG_LEVEL: 'warn',
     DATABASE_URL: url,
+    SBR_SEED_KEY: TEST_SEED_KEY,
     ...overrides,
   });
   const built = await buildApp({ env, pool });

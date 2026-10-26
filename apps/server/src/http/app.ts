@@ -6,8 +6,9 @@
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
  *                 auth, the live match engine and its routes onto a fresh Fastify instance,
- *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies. The caller owns the lifecycle (listen,
- *                 scheduler, close, pool disposal).
+ *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies; first
+ *                 of all, refuse a seed key that does not open the stored match secrets.
+ *                 The caller owns the lifecycle (listen, scheduler, close, pool disposal).
  * Depends on:     fastify, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
  *                 ../auth/sessionPlugin, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ./plugins/problem,
@@ -78,6 +79,11 @@ function createFastify(env: Env): FastifyInstance {
 }
 
 export async function buildApp(deps: AppDeps): Promise<App> {
+  const seedKey = seedKeyFrom(deps.env);
+  const match = createMatchRuntime(deps.pool, seedKey);
+  // A wrong seed key stops the server before anything is built, not at the first match it
+  // loads (the stored match secrets are sealed with it, 03 §9).
+  await match.store.checkKey();
   const fastify = createFastify(deps.env);
   // Development features only with SBR_DEV=1 (fail closed, audit S1).
   const isDev = deps.env.SBR_DEV;
@@ -104,8 +110,6 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   });
   // Development only: quick sign-in as host or player (never in a production build).
   if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
-  const seedKey = seedKeyFrom(deps.env);
-  const match = createMatchRuntime(deps.pool, seedKey);
   const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
   registerMaintenance(fastify, maintenance);
   registerMatchRoutes(fastify, {
