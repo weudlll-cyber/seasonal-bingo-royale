@@ -124,7 +124,7 @@ function ArenaNotice({
       </>
     );
   }
-  const recap = currentRecap(live, view);
+  const recap = currentRecap(live.view.recaps, view);
   return (
     <>
       <CutScreen cut={view.lastCut} nextRoundAt={live.match.nextRoundAt} />

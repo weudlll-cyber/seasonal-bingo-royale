@@ -10,16 +10,20 @@
  *                 advancing by itself to "Next round in N s"; a host-started pause going
  *                 round until the host starts the round, Start next round staying in view;
  *                 no motion under prefers-reduced-motion; an eliminated player and a
- *                 spectator seeing it too.
+ *                 spectator seeing it too; the Quick Test showing the same recap at its
+ *                 round end.
  * Depends on:     @testing-library/react, vitest, @sbr/contracts (types), ./Interlude,
- *                 ./interludePlan, ./MatchScreen, ../host/HostConsole, ../test/*
+ *                 ./interludePlan, ./MatchScreen, ../host/HostConsole, ../components/Playback,
+ *                 ../playback, ../test/*
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import type { RoundRecap } from '@sbr/contracts';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { Playback } from '../components/Playback.js';
 import { HostConsole } from '../host/HostConsole.js';
+import { playbackAt } from '../playback.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { Interlude } from './Interlude.js';
@@ -211,5 +215,18 @@ describe('who sees the interlude (D20)', () => {
     await show(<HostConsole code="MATCH1" />);
     expect(screen.getByTestId('host-next-round')).toBeTruthy();
     expect(screen.getByTestId('interlude')).toBeTruthy();
+  });
+});
+
+describe('the Quick Test round end (D20)', () => {
+  it('shows the same recap after the cut, and none before the round ends', () => {
+    motion(false);
+    const result = { ...royaleFixture(), recaps: [RECAP] };
+    render(<Playback result={result} view={playbackAt(result, 11)} />);
+    expect(screen.getByTestId('interlude')).toBeTruthy();
+    expect(screen.getByTestId('recap-top-2').className).toContain('is-own');
+    cleanup();
+    render(<Playback result={result} view={playbackAt(result, 6)} />);
+    expect(screen.queryByTestId('interlude')).toBeNull();
   });
 });

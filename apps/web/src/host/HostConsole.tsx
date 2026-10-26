@@ -84,7 +84,7 @@ function HostLive({
 }): ReactElement {
   const result = live.view;
   const running = live.match.status === 'running';
-  const recap = currentRecap(live, view);
+  const recap = currentRecap(live.view.recaps, view);
   return (
     <div className="host-grid">
       {view.finished ? (

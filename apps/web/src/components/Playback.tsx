@@ -4,11 +4,13 @@
  * @brief  Match view: stage banner, cut screen, draws, owner cards and status (WP-08).
  *
  * Responsibility: present the match the owner plays or watches. Royale: stage and round
- *                 header, cut screen, spectator note once eliminated. Classic types:
+ *                 header, cut screen and the round recap after it (../game/Interlude, D20),
+ *                 spectator note once eliminated. Classic types:
  *                 prize list with winners. Always: banners, draw ticker, the owner's
  *                 cards and status, standings, final placement. State lives in App.tsx,
  *                 the view-model in ../playback.ts.
- * Depends on:     react, ./CutScreen, ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
+ * Depends on:     react, ./CutScreen, ../game/Interlude, ../game/interludePlan (types),
+ *                 ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
  *                 ../game/labels, ../playback, ../types, ../useReducedMotion, ./results.css
  * Used by:        ../App, ./FinalPlacement; MatchLog and PrizeList also by the live screens
  *                 ../game/MatchScreen and ../host/HostConsole
@@ -17,6 +19,8 @@
 import type { ReactElement } from 'react';
 
 import { CutScreen } from './CutScreen.js';
+import { currentRecap, Interlude } from '../game/Interlude.js';
+import type { Pause } from '../game/interludePlan.js';
 import { DrawTicker } from './DrawTicker.js';
 import { FinalPlacement } from './FinalPlacement.js';
 import { OwnerArea } from './OwnerArea.js';
@@ -32,12 +36,29 @@ export interface PlaybackProps {
   readonly view: PlaybackView;
 }
 
-export function Playback({ result, view }: PlaybackProps): ReactElement {
+// The Quick Test's pause after a royale round: the next draw's interval, or until the
+// owner presses Draw next (host draws).
+export function Playback({
+  result,
+  view,
+  pause = { kind: 'host' },
+}: PlaybackProps & { readonly pause?: Pause }): ReactElement {
   const allOut = view.owners.length > 0 && view.owners.every((o) => o.eliminated);
+  const recap = currentRecap(result.recaps, view);
   return (
     <div style={{ display: 'grid', gap: '1rem' }}>
       <Header result={result} view={view} />
       <CutScreen cut={view.lastCut} />
+      {/* The same recap as a live match, from the same server builder (D20). */}
+      {recap === null ? null : (
+        <Interlude
+          key={recap.roundIndex}
+          recap={recap}
+          pause={pause}
+          nextRoundAt={null}
+          me={view.owners[0]?.accountId ?? null}
+        />
+      )}
       {allOut && !view.finished ? (
         <p data-testid="spectator-note" style={{ color: 'var(--color-text-muted)', margin: 0 }}>
           You were eliminated – keep watching as a spectator.

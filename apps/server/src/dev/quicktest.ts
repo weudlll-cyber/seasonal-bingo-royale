@@ -16,9 +16,11 @@
  *                 in manual mode. The match is computed before playback, so the owner's
  *                 later taps are unknown here: those cards are computed as never tapping
  *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
- *                 delay), measured in draws of the chosen interval.
+ *                 delay), measured in draws of the chosen interval. A royale result carries
+ *                 the recap of every round another round follows (D20), as a live match
+ *                 sends it in the pause.
  * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ../view/clientView,
- *                 @sbr/contracts
+ *                 ../view/roundRecap, @sbr/contracts
  * Used by:        ../http/routes/quicktest.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3a, §6, §13
  */
@@ -42,6 +44,7 @@ import {
 } from '@sbr/domain';
 
 import { buildClientView } from '../view/clientView.js';
+import { buildRoundRecap } from '../view/roundRecap.js';
 
 interface QuickTestInput {
   readonly gameType: GameType;
@@ -120,7 +123,7 @@ function buildResult(args: BuildArgs): QuickTestResult {
       return [accountId, `${prefix}${String(i + 1).padStart(2, '0')}`];
     }),
   );
-  return buildClientView({
+  const view = buildClientView({
     gameType: input.gameType,
     ruleset,
     settings: {
@@ -134,6 +137,23 @@ function buildResult(args: BuildArgs): QuickTestResult {
     state,
     idMap,
     owners: new Map([...idMap].slice(0, ownerCount)),
+  });
+  const recaps = royaleRecaps(events, idMap, ruleset.marking.speedWindowMs);
+  return recaps.length === 0 ? view : { ...view, recaps };
+}
+
+// The recap of every royale round another round follows (D20), from the same builder as
+// a live match; the simulation keeps no tap times, so there is no fastest tapper.
+function royaleRecaps(
+  events: readonly DomainEvent[],
+  idMap: ReadonlyMap<string, string>,
+  speedWindowMs: number,
+) {
+  const starts = events.flatMap((e) => (e.type === 'roundStarted' ? [e.roundIndex] : []));
+  const timed = events.map((event) => ({ event }));
+  return starts.slice(0, -1).flatMap((roundIndex) => {
+    const recap = buildRoundRecap({ events: timed, roundIndex, idMap, speedWindowMs });
+    return recap === null ? [] : [recap];
   });
 }
 

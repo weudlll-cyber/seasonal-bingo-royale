@@ -13,8 +13,8 @@
  *                 nothing.
  * Depends on:     react, @sbr/contracts (types), ../playback (types), ../useReducedMotion,
  *                 ../useSecondsUntil, ./interludePlan, ./InterludeCards, ./labels,
- *                 ./useLiveMatch (types), ./interlude.css
- * Used by:        ./MatchScreen, ../host/HostConsole
+ *                 ./interlude.css
+ * Used by:        ./MatchScreen, ../host/HostConsole, ../components/Playback (Quick Test)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import type { RoundRecap } from '@sbr/contracts';
@@ -26,13 +26,16 @@ import { useSecondsUntil } from '../useSecondsUntil.js';
 import { planInterlude, type InterludePlan, type Pause } from './interludePlan.js';
 import { RecapCardBody } from './InterludeCards.js';
 import { nextRoundLine, RECAP_TITLE, recapStep } from './labels.js';
-import type { LiveState } from './useLiveMatch.js';
 import './interlude.css';
 
-// The recap of the pause now running: the server sends it only then (D20).
-export function currentRecap(live: LiveState, view: PlaybackView): RoundRecap | null {
+// The recap of the round just played while the screen is in the pause after it (D20): a
+// live match sends it only then, the Quick Test sends every round's.
+export function currentRecap(
+  recaps: readonly RoundRecap[] | undefined,
+  view: PlaybackView,
+): RoundRecap | null {
   if (!view.roundOver || view.finished) return null;
-  return live.view.recaps?.find((r) => r.roundIndex === view.currentRound) ?? null;
+  return recaps?.find((r) => r.roundIndex === view.currentRound) ?? null;
 }
 
 interface InterludeProps {
