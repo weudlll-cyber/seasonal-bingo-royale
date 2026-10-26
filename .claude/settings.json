@@ -57,7 +57,7 @@
       "WebFetch(domain:localhost)",
       "WebFetch(domain:127.0.0.1)"
     ],
-    "ask": ["Bash(gh pr merge *)", "Bash(git branch -D *)"],
+    "ask": [],
     "deny": [
       "Bash(git push --force*)",
       "Bash(git push -f*)",
