@@ -1,0 +1,72 @@
+/* The interlude between royale rounds (./Interlude, D20): a card sequence in the pause.
+   Design tokens only, so both themes follow; motion comes from ../motion.css and stops
+   under prefers-reduced-motion. */
+.interlude {
+  display: grid;
+  gap: var(--space-2);
+  border-left: 4px solid var(--color-accent);
+}
+
+.interlude-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+
+.interlude-head h3 {
+  margin: 0;
+}
+
+/* Room for the tallest card, so the buttons below do not jump between cards. */
+.interlude-card {
+  min-height: 9rem;
+  display: grid;
+  align-content: center;
+}
+
+.interlude-lead {
+  margin: 0;
+  font-weight: var(--font-weight-strong);
+}
+
+.interlude-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.interlude-names li {
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+}
+
+.interlude-names li.is-own {
+  outline: 2px solid var(--color-accent);
+}
+
+.interlude-seasons {
+  display: inline-flex;
+  gap: 0.15rem;
+  vertical-align: middle;
+}
+
+.interlude-facts {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: var(--font-weight-strong);
+}
+
+.interlude-nav {
+  align-items: center;
+}
+
+.interlude-countdown {
+  margin-left: auto;
+  font-weight: var(--font-weight-strong);
+}

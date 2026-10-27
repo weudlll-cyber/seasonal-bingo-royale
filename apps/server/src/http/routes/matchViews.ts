@@ -17,8 +17,9 @@
  *                 the player list unless a join, the first round's start or the finish is
  *                 among its events (the client keeps the list it holds). Round starts carry
  *                 only the viewer's own cards and no draw order; the player list only the
- *                 viewer's first-round card (NIGHT-5).
- * Depends on:     @sbr/application, ../../view/clientView, ../../view/liveViews (types),
+ *                 viewer's first-round card (NIGHT-5). During the pause after a royale round
+ *                 the view carries that round's recap (`recaps`, D20), the same for every viewer.
+ * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
  *                 @sbr/domain, ../../view/clientEvents
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
@@ -30,6 +31,7 @@ import {
   waitingForHost,
   type LoadedMatch,
 } from '@sbr/application';
+import type { RoundRecap } from '@sbr/contracts';
 import type { DomainEvent } from '@sbr/domain';
 
 import { liveEvent } from '../../view/clientEvents.js';
@@ -78,6 +80,8 @@ interface LiveViewInput {
   readonly entry: LiveEntry;
   readonly me: string | null;
   readonly since: number;
+  // The recap of the royale round just played, during the pause after it (D20).
+  readonly recap: RoundRecap | null;
 }
 
 // Events after which the screens need the player list again: a join, the first round's
@@ -91,7 +95,7 @@ function changesPlayers(e: DomainEvent): boolean {
   );
 }
 
-export function liveView({ match: m, entry, me, since }: LiveViewInput) {
+export function liveView({ match: m, entry, me, since, recap }: LiveViewInput) {
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
@@ -119,11 +123,12 @@ export function liveView({ match: m, entry, me, since }: LiveViewInput) {
   const events = replay.renamed.slice(since).map((e) => liveEvent(e, viewer));
   const withPlayers = since === 0 || events.some(changesPlayers);
   const { players, ...rest } = view;
+  const recaps = recap === null ? {} : { recaps: [recap] };
   return {
     match: matchSummary(m, me),
     seq: replay.length,
     since,
     me: viewer,
-    view: withPlayers ? { ...rest, players, events } : { ...rest, events },
+    view: withPlayers ? { ...rest, ...recaps, players, events } : { ...rest, ...recaps, events },
   };
 }

@@ -11,7 +11,7 @@
  *                 drawn", "Cut 1: 12 go on, 8 are out" …), never an internal identifier.
  * Depends on:     ../types, ./useLiveMatch (types), ../playback
  * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*, ./LiveCard,
- *                 ./WaitingRoom, ../playbackScoring
+ *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
 import { ballLabel, type GameType } from '../types.js';
@@ -168,3 +168,45 @@ export function problemText(code: string): string {
   };
   return texts[code] ?? 'Something went wrong — please try again.';
 }
+
+/* The interlude between royale rounds (D20): titles and lines of the recap cards. */
+export type RecapCard = 'top' | 'climber' | 'cut' | 'seasons' | 'facts';
+
+export const RECAP_TITLE: Readonly<Record<RecapCard, string>> = {
+  top: 'Top of the round',
+  climber: 'Biggest climber',
+  cut: 'The cut',
+  seasons: 'Seasons and speed',
+  facts: 'The round in numbers',
+};
+
+export const recapStep = (index: number, count: number): string =>
+  `Card ${String(index + 1)} of ${String(count)}`;
+
+export const climberLine = (from: number, to: number): string =>
+  `up from #${String(from)} to #${String(to)}`;
+
+export const cutOutLine = (count: number): string =>
+  `${String(count)} ${count === 1 ? 'player is' : 'players are'} out`;
+
+export const moreLine = (count: number): string => `and ${String(count)} more`;
+
+// "a", "a and b", "a, b and c".
+export function nameList(names: readonly string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`;
+}
+
+export const shieldSavedLine = (names: readonly string[]): string =>
+  `Saved by the Winter shield: ${names.join(', ')}`;
+
+export function fastestLine(name: string, averageMs: number, taps: number): string {
+  return `Fastest tapper: ${name} — ${seconds(averageMs)} s on average over ${String(taps)} taps`;
+}
+
+export function factsLine(numbersDrawn: number, playersLeft: number): string {
+  const drawn = `${String(numbersDrawn)} ${numbersDrawn === 1 ? 'number' : 'numbers'} drawn`;
+  return `${drawn} · ${String(playersLeft)} ${playersLeft === 1 ? 'player' : 'players'} still in`;
+}
+
+export const nextRoundLine = (left: number): string => `Next round in ${String(left)} s`;

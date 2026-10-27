@@ -8,11 +8,12 @@
  *                 owner's effect status, stage plan, timing and scoring settings) and the
  *                 season vocabulary they use. The server builds them
  *                 (apps/server/src/view/clientView.ts), the client renders them.
- * Depends on:     ../config/gameType
+ * Depends on:     ../config/gameType, ./roundRecap
  * Used by:        apps/web (through src/types.ts), apps/server/src/view/clientView.ts, ../index
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §4–§7
  */
 import type { GameType } from '../config/gameType.js';
+import type { RoundRecap } from './roundRecap.js';
 
 export type MarkingMode = 'auto' | 'manual';
 
@@ -157,4 +158,7 @@ export interface QuickTestResult {
     readonly points: Readonly<Record<string, number>>;
   }[];
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
+  // Recaps of royale rounds followed by a pause (D20): in a live match the one of the
+  // pause now running, in the Quick Test every such round. Absent when there is none.
+  readonly recaps?: readonly RoundRecap[];
 }

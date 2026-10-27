@@ -4,7 +4,8 @@
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
  * Responsibility: GET /matches (open, running and recent matches), POST /matches
- *                 (match.create; 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews),
+ *                 (match.create; 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews;
+ *                 during the pause after a royale round it carries the round's recap, D20),
  *                 POST /matches/:code/join (match.join), and for the match's creator with
  *                 match.manage: /start (countdown), /draw-next, PUT /draw-mode, /abort;
  *                 POST /matches/:code/marks is the fallback for clients without a socket.
@@ -73,6 +74,16 @@ async function playerNames(pool: DbPool, matchId: string): Promise<Record<string
   return Object.fromEntries(r.rows.map((row) => [row.player_id, row.name]));
 }
 
+// The marks of a round the players tapped themselves (the round recap's fastest tapper).
+async function manualTaps(pool: DbPool, matchId: string, roundIndex: number): Promise<string[]> {
+  const r = await pool.query<{ key: string }>(
+    `SELECT player_id || ':' || card_index || ':' || cell AS key FROM sbr.marks
+      WHERE match_id = $1 AND round_index = $2 AND source = 'manual'`,
+    [matchId, roundIndex],
+  );
+  return r.rows.map((row) => row.key);
+}
+
 // Open and running matches, and those finished in the last day, newest first.
 function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
   app.get('/api/v1/matches', async (request) => {
@@ -87,13 +98,37 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
   });
 }
 
-export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
-  registerMatchList(app, deps);
+// The live view a screen folds (./matchViews), from one shared replay per match.
+function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
   // One replay per match, extended as events come, for every screen's fetch.
   const views = new LiveViews({
     events: (id, afterSeq) => deps.store.events(id, afterSeq),
     names: (id) => playerNames(deps.pool, id),
+    manualTaps: (id, round) => manualTaps(deps.pool, id, round),
   });
+  app.get<{ Params: { code: string }; Querystring: { since?: string } }>(
+    '/api/v1/matches/:code/state',
+    async (request, reply) => {
+      const id = await matchIdByCode(deps.pool, request.params.code);
+      if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
+      // Not in the match's command queue (fetches must not hold up draws): the shared
+      // replay takes the logged events up to the match's current seq, so log and state
+      // still belong together.
+      const m = await deps.engine.runner.current(id);
+      const entry = await views.entryFor(m);
+      const since = Math.max(
+        0,
+        Math.min(entry.replay.length, Number(request.query.since ?? 0) || 0),
+      );
+      // The recap of the royale round just played, during the pause after it (D20).
+      const recap = await views.recapFor(m, entry);
+      return liveView({ match: m, entry, me: request.session?.accountId ?? null, since, recap });
+    },
+  );
+}
+
+export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
+  registerMatchList(app, deps);
   app.post('/api/v1/matches', async (request, reply) => {
     const accountId = requirePermission(request, reply, 'match.create');
     if (accountId === null) return reply;
@@ -116,23 +151,7 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
     return matchSummary(await deps.engine.runner.current(id), request.session?.accountId ?? null);
   });
-  app.get<{ Params: { code: string }; Querystring: { since?: string } }>(
-    '/api/v1/matches/:code/state',
-    async (request, reply) => {
-      const id = await matchIdByCode(deps.pool, request.params.code);
-      if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-      // Not in the match's command queue (fetches must not hold up draws): the shared
-      // replay takes the logged events up to the match's current seq, so log and state
-      // still belong together.
-      const m = await deps.engine.runner.current(id);
-      const entry = await views.entryFor(m);
-      const since = Math.max(
-        0,
-        Math.min(entry.replay.length, Number(request.query.since ?? 0) || 0),
-      );
-      return liveView({ match: m, entry, me: request.session?.accountId ?? null, since });
-    },
-  );
+  registerStateRoute(app, deps);
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {
     const accountId = requirePermission(request, reply, 'match.join');
     if (accountId === null) return reply;

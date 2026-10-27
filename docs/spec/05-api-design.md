@@ -74,7 +74,7 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | GET | `/matches` | — | anyone: open and running matches, and those ended in the last day |
 | POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }` | `match.create` |
 | GET | `/matches/:code` | — | anyone: the summary (`youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, …) |
-| GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta |
+| GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta; during the pause after a royale round `view.recaps` holds that round's recap (D20, `RoundRecap` in `packages/contracts`), the same for every viewer |
 | POST | `/matches/:code/join` | `{}` | `match.join` |
 | POST | `/matches/:code/marks` | `{ cardIndex, cell }` | `match.join`: the tap without a socket |
 | POST | `/matches/:code/start` | `{}` | the match's host (`match.manage`, created it) |

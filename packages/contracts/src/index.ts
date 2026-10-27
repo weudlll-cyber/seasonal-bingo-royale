@@ -53,3 +53,4 @@ export {
   type StagePlanEntry,
 } from './view/clientView.js';
 export { type MatchVerificationView, type RoundVerification } from './view/verification.js';
+export { type RecapScorer, type RoundRecap } from './view/roundRecap.js';

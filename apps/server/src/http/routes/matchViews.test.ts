@@ -57,8 +57,10 @@ async function viewSince(since: number, seq = stored.length, viewer: string | nu
   const views = new LiveViews({
     events: (_id, after) => Promise.resolve(stored.filter((e) => e.seq > after)),
     names: () => Promise.resolve({}),
+    manualTaps: () => Promise.resolve([]),
   });
-  return liveView({ match, entry: await views.entryFor(match), me: viewer, since }).view;
+  const entry = await views.entryFor(match);
+  return liveView({ match, entry, me: viewer, since, recap: null }).view;
 }
 
 // How many players the view lists; null when it leaves the list out.

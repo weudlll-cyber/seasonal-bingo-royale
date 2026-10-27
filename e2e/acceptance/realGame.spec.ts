@@ -13,7 +13,9 @@
  *                 sits on an undrawn number, the missed-number rule holds, the cut screen's
  *                 button fits the outcome (D15); host draws count down to their unlock (D13);
  *                 the live seconds field refuses a too-short interval (D12); with "host
- *                 starts the next round" nothing starts until the host does (D14). At the
+ *                 starts the next round" nothing starts until the host does (D14), and in that
+ *                 pause the host and every player, also one already out, see the round recap,
+ *                 which changes no standings and no points (D20). At the
  *                 end every cut matches server points, each rank equals the final place and
  *                 each player's points the server's; a failed Draw next fails the test;
  *                 then one more match right away must start fresh. Every match the test
@@ -21,7 +23,7 @@
  *                 classic with seasons (mid-match, cut, pause, end; light and dark) go to
  *                 reports/screens/latest/. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../realGame, ../screens, ./combos, ./liveSnap,
- *                 ./livePlayer, ./cuts, ./ownerRules, ./serverView
+ *                 ./livePlayer, ./cuts, ./ownerRules, ./recap, ./serverView
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
@@ -48,6 +50,7 @@ import {
   startNextRoundByHost,
   waitingForHost,
 } from './ownerRules.js';
+import { checkRecap, type RecapSeen } from './recap.js';
 import { matchesServer, serverView, type ServerView } from './serverView.js';
 
 interface Table {
@@ -153,13 +156,21 @@ async function waitTimedDraw(host: Page, before: number): Promise<number> {
 const isOver = async (host: Page) =>
   (await host.getByTestId('host-status').getAttribute('data-status')) !== 'running';
 
-async function playToEnd(t: Table, combo: Combo, code: string): Promise<number> {
+// Plays to the end; answers the draws and, per pause the host ended, who saw the recap.
+async function playToEnd(
+  t: Table,
+  combo: Combo,
+  code: string,
+): Promise<{ draws: number; recaps: RecapSeen[] }> {
   let draws = 0;
+  const recaps: RecapSeen[] = [];
   let cutShot = false;
   let pauseShot = false;
   let mode = combo.drawMode;
   while (!(await isOver(t.host))) {
     if (await waitingForHost(t.host)) {
+      // D20: everyone sees the recap; it changes no standings and no points.
+      recaps.push(await checkRecap(t.host, t.players, code));
       await startNextRoundByHost(t.host, t.players, async () => {
         if (!pauseShot) await shoot(t, combo, 'pause');
         pauseShot = true;
@@ -187,7 +198,7 @@ async function playToEnd(t: Table, combo: Combo, code: string): Promise<number> 
       await shoot(t, combo, 'cut');
     }
   }
-  return draws;
+  return { draws, recaps };
 }
 
 // A host draw; right after it Draw next counts down to its unlock (D13). A failed draw fails
@@ -288,14 +299,14 @@ for (const combo of COMBOS) {
     const created: string[] = [];
     try {
       const code = await startMatch(t, combo, title(combo), created);
-      const draws = await playToEnd(t, combo, code);
+      const { draws, recaps } = await playToEnd(t, combo, code);
       const cuts = await checkEnd(t, code);
       await shoot(t, combo, 'end');
       await checkFreshStart(t, combo, created);
       const misses = t.players.flatMap((p) => p.missTimings);
       const lastNumberTaps = lastTaps(t, await serverView(t.host, code));
       console.log(
-        `REAL ${combo.name} ${JSON.stringify({ code, draws, cuts, misses, lastNumberTaps })}`,
+        `REAL ${combo.name} ${JSON.stringify({ code, draws, cuts, misses, lastNumberTaps, recaps })}`,
       );
     } finally {
       // Every match this test created is stopped, also when a step above failed.

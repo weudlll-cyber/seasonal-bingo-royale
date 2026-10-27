@@ -146,3 +146,34 @@ describe('runQuickTest — scores the client shows', () => {
     for (const p of result.players) expect(points.get(p.accountId) ?? 0).toBe(p.points);
   });
 });
+
+describe('runQuickTest — the round recap (D20)', () => {
+  it('carries a recap for every royale round another round follows, without a fastest tapper', () => {
+    const result = runQuickTest({
+      gameType: 'royale',
+      playerCount: 19,
+      ownerCards: 1,
+      seedText: 'showcase-3',
+      tickedPrizes: [],
+      markingMode: 'auto',
+    });
+    const rounds = result.events.flatMap((e) => (e.type === 'roundStarted' ? [e.roundIndex] : []));
+    expect(rounds.length).toBeGreaterThan(1);
+    expect(result.recaps?.map((r) => r.roundIndex)).toEqual(rounds.slice(0, -1));
+    const ids = new Set(result.players.map((p) => p.accountId));
+    for (const recap of result.recaps ?? []) {
+      expect(recap.fastest).toBeUndefined();
+      expect(recap.facts.numbersDrawn).toBeGreaterThan(0);
+      for (const s of recap.top ?? []) expect(ids.has(s.name)).toBe(true);
+    }
+    const classic = runQuickTest({
+      gameType: 'classic',
+      playerCount: 3,
+      ownerCards: 1,
+      seedText: 'spring-10',
+      tickedPrizes: TICKED,
+      markingMode: 'auto',
+    });
+    expect(classic.recaps).toBeUndefined();
+  });
+});

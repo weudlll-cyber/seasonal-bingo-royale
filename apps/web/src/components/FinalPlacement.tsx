@@ -9,13 +9,14 @@
  *                 "out" below a divider, ranked by when they went out (01 §7.5); classic
  *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
  *                 states how places are decided.
- * Depends on:     react, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
+ * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
  */
 import type { ReactElement } from 'react';
 
 import type { PlaybackProps } from './Playback.js';
+import { Podium } from './Podium.js';
 import { OutDivider, RankRow } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
 import type { PlaybackView } from '../playback.js';
@@ -50,19 +51,15 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
       <p className="sbr-muted final-rule" data-testid="final-rule">
         {PLACEMENT_RULE[result.gameType === 'royale' ? 'royale' : 'classic']}
       </p>
-      <ol className="podium">
-        {podium.map((p) => (
-          <li
-            key={p.accountId}
-            className={`podium-step podium-step--${String(p.place)}${p.isOwner ? ' is-own' : ''}`}
-            {...row(p).attrs}
-          >
-            <span className="podium-place">{p.place}</span>
-            <span className="podium-name">{p.accountId}</span>
-            <span className="podium-note">{row(p).note}</span>
-          </li>
-        ))}
-      </ol>
+      <Podium
+        entries={podium.map((p) => ({
+          place: p.place,
+          name: p.accountId,
+          note: row(p).note,
+          own: p.isOwner,
+          attrs: row(p).attrs,
+        }))}
+      />
       {rest.length === 0 ? null : (
         <ol className="rank-list">
           {rest.map((p, i) => [

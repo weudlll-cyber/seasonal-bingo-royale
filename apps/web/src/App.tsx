@@ -22,6 +22,7 @@ import { DrawControls } from './components/DrawControls.js';
 import { StartForm } from './components/StartForm.js';
 import { Playback } from './components/Playback.js';
 import { autoIntervalMs, INITIAL_CONTROL, type DrawControl } from './drawControl.js';
+import type { Pause } from './game/interludePlan.js';
 import { playbackAt } from './playback.js';
 import type { QuickTestResult } from './types.js';
 import { useDrawTicker } from './useDrawTicker.js';
@@ -79,12 +80,20 @@ export function App(): ReactElement {
             Nothing yet. Fill in the form and press run.
           </p>
         ) : (
-          <Playback key={runId} result={result} view={view} />
+          <Playback key={runId} result={result} view={view} pause={pauseOf(control, result)} />
         )}
       </section>
       <DevBadge />
     </main>
   );
+}
+
+// The pause after a royale round, for the round recap (D20): one draw interval with timed
+// draws, until Draw next with host draws.
+function pauseOf(control: DrawControl, result: QuickTestResult): Pause {
+  return control.mode === 'host'
+    ? { kind: 'host' }
+    : { kind: 'wait', ms: autoIntervalMs(control, result) };
 }
 
 // Form beside the match on wide screens; stacked on a phone.

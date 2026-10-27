@@ -80,6 +80,7 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 |---|---|---|
 | D18 | Rounding of a percentage cut (2026-10-24) | A percentage cut rounds the number of survivors up; with the default 50 % a field of 100 goes 100 → 50 → 25 → 13 ([01](01-game-design.md) §7.4). |
 | D19 | Players needed to start (2026-10-23) | 2, read from the ruleset's `lobby.minPlayers` by Start and by the automatic start ([01](01-game-design.md) §7.6). |
+| D20 | Interlude between royale rounds (2026-10-27) | The pause between two royale rounds shows a recap of the round just played (top three, climber, cut and shield saves, Season Complete, fastest tapper, facts). Fun only: no points, shields or effects, no change to any ranking ([01](01-game-design.md) §7). |
 
 ## 5. Open
 
