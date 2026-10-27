@@ -11,10 +11,11 @@
  *                 and, with at least five own taps, the player as the fastest tapper (bots
  *                 never count). Before the round ends there is none. A second server on the
  *                 same database (a restart in the pause) gives the same recap.
- * Depends on:     vitest, @sbr/contracts (types), ./harness, ./session
+ * Depends on:     vitest, fastify (types), @sbr/contracts (types), ./harness, ./session
  * Spec:           docs/spec/01-game-design.md §7 (D20); docs/spec/05-api-design.md §2.3a
  */
 import type { RoundRecap } from '@sbr/contracts';
+import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
@@ -33,8 +34,19 @@ interface StateBody {
   readonly view: { readonly recaps?: readonly RoundRecap[] };
 }
 
-const recapsOf = async (get: () => Promise<{ json: <T>() => T }>) =>
+const recapsOf = async (get: () => Promise<LightMyRequestResponse>) =>
   (await get()).json<StateBody>().view.recaps;
+
+// The player taps the number just drawn, if it is on their card; true when it marked.
+async function tapNewest(id: string, code: string, player: Client, me: string) {
+  const now = (await harness.built.match.engine.runner.current(id)).state.currentRound;
+  const item = now?.draws.at(-1);
+  const cell =
+    now?.cards[me]?.[0]?.card.cells.findIndex((c) => c.kind === 'number' && c.value === item) ?? -1;
+  if (cell < 0) return false;
+  const r = await player.post(`/api/v1/matches/${code}/marks`, { cardIndex: 0, cell });
+  return r.statusCode < 300;
+}
 
 // Plays the first round to its end: after every draw the player taps their own new number,
 // then the draw's speed window closes. Returns how many taps the player made.
@@ -45,16 +57,8 @@ async function playFirstRound(id: string, code: string, player: Client, me: stri
     const round = (await engine.runner.current(id)).state.currentRound;
     if (round === null || round.ended) return taps;
     await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
-    const now = (await engine.runner.current(id)).state.currentRound;
-    const item = now?.draws.at(-1);
-    const cell = now?.cards[me]?.[0]?.card.cells.findIndex(
-      (c) => c.kind === 'number' && c.value === item,
-    );
-    if (cell !== undefined && cell >= 0) {
-      const r = await player.post(`/api/v1/matches/${code}/marks`, { cardIndex: 0, cell });
-      if (r.statusCode < 300) taps += 1;
-    }
-    const drawIndex = (now?.draws.length ?? 0) - 1;
+    if (await tapNewest(id, code, player, me)) taps += 1;
+    const drawIndex = ((await engine.runner.current(id)).state.currentRound?.draws.length ?? 0) - 1;
     await engine.handle({ matchId: id, kind: 'close_speed_window', dueAt: Date.now(), drawIndex });
   }
   return taps;
