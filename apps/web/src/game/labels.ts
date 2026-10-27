@@ -191,6 +191,12 @@ export const cutOutLine = (count: number): string =>
 
 export const moreLine = (count: number): string => `and ${String(count)} more`;
 
+// "a", "a and b", "a, b and c".
+export function nameList(names: readonly string[]): string {
+  if (names.length <= 1) return names.join('');
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1) ?? ''}`;
+}
+
 export const shieldSavedLine = (names: readonly string[]): string =>
   `Saved by the Winter shield: ${names.join(', ')}`;
 

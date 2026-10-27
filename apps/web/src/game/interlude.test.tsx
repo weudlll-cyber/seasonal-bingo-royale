@@ -55,7 +55,7 @@ const RECAP: RoundRecap = {
     out: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'owner-01'],
     saved: ['bot-03'],
   },
-  seasonComplete: ['bot-02'],
+  seasonComplete: ['bot-02', 'p9', 'bot-04'],
   fastest: { name: 'owner-01', averageMs: 640, taps: 7 },
   facts: { numbersDrawn: 12, playersLeft: 11 },
 };
@@ -111,8 +111,9 @@ describe('the recap cards (D20)', () => {
     expect(screen.getByTestId('recap-out').textContent).toContain('and 1 more');
     expect(screen.getByTestId('recap-saved').textContent).toContain('bot-03');
     next();
+    // One line for everyone who completed them.
     expect(screen.getByTestId('recap-season-complete').textContent).toContain(
-      'bot-02 collected all four seasons',
+      'bot-02, p9 and bot-04 collected all four seasons',
     );
     expect(screen.getByTestId('recap-fastest').textContent).toBe(
       'Fastest tapper: owner-01 — 0.6 s on average over 7 taps',
@@ -158,6 +159,17 @@ describe('the interlude over the pause (D14, D20)', () => {
     passCards(5);
     expect(screen.getByTestId('interlude-step').textContent).toBe('Card 1 of 5');
     expect(screen.queryByTestId('interlude-countdown')).toBeNull();
+  });
+
+  it('takes in a recap that grew after it appeared (the cut came in a later fetch)', () => {
+    motion(false);
+    const { cut: _cut, ...beforeCut } = RECAP;
+    const { rerender } = render(
+      <Interlude recap={beforeCut} pause={{ kind: 'host' }} nextRoundAt={null} me={null} />,
+    );
+    expect(screen.getByTestId('interlude-step').textContent).toBe('Card 1 of 4');
+    rerender(<Interlude recap={RECAP} pause={{ kind: 'host' }} nextRoundAt={null} me={null} />);
+    expect(screen.getByTestId('interlude-step').textContent).toBe('Card 1 of 5');
   });
 
   it('moves without animation under prefers-reduced-motion', () => {

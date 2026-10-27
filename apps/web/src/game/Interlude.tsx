@@ -18,7 +18,7 @@
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import type { RoundRecap } from '@sbr/contracts';
-import { useEffect, useState, type ReactElement } from 'react';
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 
 import type { PlaybackView } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
@@ -49,10 +49,17 @@ interface InterludeProps {
 // Mount it with `key={recap.roundIndex}`: a new round's recap starts at its first card.
 export function Interlude({ recap, pause, nextRoundAt, me }: InterludeProps): ReactElement {
   const reduced = useReducedMotion();
-  const [plan] = useState<InterludePlan>(() =>
-    planInterlude(recap, pause, nextRoundAt === null ? null : nextRoundAt - Date.now()),
+  // The time left counts from when the interlude appeared; the cards follow the recap, which
+  // can grow while it is on screen (the cut may come in a later fetch than the round's end).
+  const [shownAt] = useState(() => Date.now());
+  const sig = JSON.stringify([recap, pause]);
+  const plan = useMemo<InterludePlan>(
+    () => planInterlude(recap, pause, nextRoundAt === null ? null : nextRoundAt - shownAt),
+    // `sig` stands for recap and pause: new objects come with every fetch, the same content not.
+    [sig, nextRoundAt, shownAt],
   );
-  const [index, step] = useCardSequence(plan);
+  const [step, move] = useCardSequence(plan);
+  const index = Math.min(step, plan.cards.length - 1);
   const card = plan.cards[index] ?? 'facts';
   return (
     <section
@@ -80,7 +87,7 @@ export function Interlude({ recap, pause, nextRoundAt, me }: InterludeProps): Re
           testId="interlude-prev"
           disabled={!plan.loop && index === 0}
           onStep={() => {
-            step(-1);
+            move(-1);
           }}
         />
         <StepButton
@@ -88,7 +95,7 @@ export function Interlude({ recap, pause, nextRoundAt, me }: InterludeProps): Re
           testId="interlude-next"
           disabled={!plan.loop && index === plan.cards.length - 1}
           onStep={() => {
-            step(1);
+            move(1);
           }}
         />
         {pause.kind === 'wait' ? <NextRound at={nextRoundAt} /> : null}

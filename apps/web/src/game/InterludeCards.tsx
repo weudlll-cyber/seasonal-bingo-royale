@@ -27,6 +27,7 @@ import {
   factsLine,
   fastestLine,
   moreLine,
+  nameList,
   seasonCompleteLine,
   shieldSavedLine,
   type RecapCard,
@@ -116,16 +117,17 @@ function SeasonsCard({ recap }: CardProps): ReactElement {
   const fastest = recap.fastest;
   return (
     <div className="sbr-stack">
-      {(recap.seasonComplete ?? []).map((name) => (
-        <p key={name} data-testid="recap-season-complete">
+      {recap.seasonComplete === undefined ? null : (
+        // One line however many completed them, the four season icons once.
+        <p data-testid="recap-season-complete">
           <span className="interlude-seasons" aria-hidden="true">
             {SEASON_NAMES.map((s) => (
               <SeasonIcon key={s} season={s} size="1.1rem" onColor />
             ))}
           </span>{' '}
-          {seasonCompleteLine(name)}
+          {seasonCompleteLine(nameList(recap.seasonComplete))}
         </p>
-      ))}
+      )}
       {fastest === undefined ? null : (
         <p data-testid="recap-fastest">
           {fastestLine(fastest.name, fastest.averageMs, fastest.taps)}
