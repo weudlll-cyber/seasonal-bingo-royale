@@ -10,8 +10,9 @@
  *                 its CSRF token), stop a match in teardown and close the test's contexts.
  * Depends on:     @playwright/test
  * Used by:        ./realGame.spec.ts, ./startScreens.spec.ts, ./acceptance/realGame.spec.ts,
- *                 ./acceptance/combos, ./account.spec, ./createFormPhone.spec, ./hostNav.spec,
- *                 ./maintenance.spec, ./verifyMatch.spec
+ *                 ./acceptance/combos, ./acceptance/interludeScreens.spec,
+ *                 ./acceptance/pauseScreens.spec, ./account.spec, ./createFormPhone.spec,
+ *                 ./hostNav.spec, ./maintenance.spec, ./verifyMatch.spec
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
 import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';
@@ -42,8 +43,9 @@ export interface NewMatch {
   readonly intervalSec?: number;
   readonly missed: 'autoMarkAfter' | 'noAutoMark';
   readonly maxPlayers?: number;
-  // Royale: the host starts each next round (D14); otherwise the default wait.
-  readonly pause?: 'host';
+  // Royale: the host starts each next round (D14), or a wait of that many seconds;
+  // otherwise the default wait.
+  readonly pause?: 'host' | number;
   // Development only: the server's fast test profile (a short royale).
   readonly fast?: boolean;
 }
@@ -63,6 +65,8 @@ export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
   await page.getByTestId('missed-numbers').selectOption(m.missed);
   await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
   if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
+  if (typeof m.pause === 'number')
+    await page.getByTestId('create-round-pause-sec').fill(String(m.pause));
   if (m.fast === true) await page.getByTestId('create-fast').check();
   await page.getByTestId('create-submit').click();
   await expect(page.getByTestId('host-console')).toBeVisible();
