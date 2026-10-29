@@ -114,11 +114,12 @@ export async function currentItem(page: Page): Promise<number | null> {
   return value === null ? null : Number(value);
 }
 
-// Host draws: waits until Draw next is enabled (the previous window closed), presses, and
-// waits until the new number is on the host's screen.
+// Host draws: waits until Draw next is enabled (the previous window closed, or after a
+// round the default 15 s pause, D21), presses, and waits until the new number is on the
+// host's screen.
 export async function drawNext(host: Page): Promise<void> {
   const button = host.getByTestId('host-draw-next');
-  await expect(button).toBeEnabled({ timeout: 15_000 });
+  await expect(button).toBeEnabled({ timeout: 25_000 });
   const before = await host.getByTestId('draw-ticker').locator(':scope > *').count();
   await button.click();
   await expect

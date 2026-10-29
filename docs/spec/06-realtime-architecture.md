@@ -53,7 +53,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |
 | `draw.next` | `{ code }` | Host draw control (01 §5); permission `match.manage`; rejected with `DRAW_MODE_AUTO` unless the match is in `host` mode and with `DRAW_TOO_EARLY` before the timed interval since the last draw has passed (01 §5, D13); rate limit 2/s |
-| `round.next` | `{ code }` | The host starts the next royale round while the match waits for it (01 §7.1, D14); permission `match.manage`; rejected with `NOT_WAITING_FOR_HOST` otherwise |
+| `round.next` | `{ code }` | The host starts the next royale round while the match waits for it (01 §7.1, D14), or ends a timed pause early (D21): `nextRoundScheduled` at that moment, then `roundStarted` for everyone; the scheduled `start_round` is replaced, not doubled. Permission `match.manage`, the match's creator only; rejected with `NOT_WAITING_FOR_HOST` outside a pause between rounds |
 | `draw.setMode` | `{ code, mode, intervalMs? }` | Switch between `auto` and `host` or change the `auto` interval while the match runs; permission `match.manage`; `intervalMs` within the ruleset's allowed range; never changes the draw sequence |
 
 Built in the first draft: `match.watch`, `match.unwatch`, `mark`, `draw.next`, `round.next`, `draw.setMode`; an unknown `t` answers `UNKNOWN_INTENT`, a repeated or out-of-order `seq` `REPLAYED`, a fourth watched match `TOO_MANY_ROOMS`. `chat.*` and `presence.ping` follow with chat (WP-17) and asynchronous matches (WP-14).

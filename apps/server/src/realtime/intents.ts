@@ -8,7 +8,7 @@
  *                 and out-of-order intents are dropped (`REPLAYED`). Limits per socket: 10
  *                 intents a second overall, marks 4 a second, draw.next 2 a second (03 §13).
  *                 Intents: match.watch / match.unwatch (at most 3 match rooms), mark (players,
- *                 manual marking), draw.next, round.next (D14) and draw.setMode (the
+ *                 manual marking), draw.next, round.next (D14, D21) and draw.setMode (the
  *                 match's creator with match.manage, D8); `INTENT_TYPES` lists them all and
  *                 any other `t` answers UNKNOWN_INTENT.
  * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ./gateway (types)

@@ -173,7 +173,8 @@ export class MatchEngine {
     });
   }
 
-  // The host starts the next royale round when the match waits for it (D14).
+  // The host starts the next royale round when the match waits for it (D14), or ends a
+  // timed pause early (D21).
   startNextRound(matchId: string): Promise<void> {
     return this.runner.serial(matchId, async () => {
       if (!(await startNextRound(this.flow, matchId))) throw new MatchError('NOT_WAITING_FOR_HOST');

@@ -66,8 +66,8 @@ export async function startNextRoundByHost(
       { timeout: 10_000 },
     );
   }
-  // Longer than the default 6 s pause: the round must not start without the host.
-  await host.waitForTimeout(8_000);
+  // Longer than the default 15 s pause (D21): the round must not start without the host.
+  await host.waitForTimeout(17_000);
   expect(await waitingForHost(host), 'still waiting for the host').toBe(true);
   expect(await ticker(), 'no new number while waiting').toBe(drawnBefore);
   await beforeStart();

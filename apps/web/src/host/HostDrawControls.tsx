@@ -6,7 +6,8 @@
  * Responsibility: a big "Draw next" for host draws, also on the Space key while no field
  *                 has focus; it is usable only while the round runs, the previous number's
  *                 speed window has closed (D10) and the timed interval since the last draw
- *                 has passed — it counts down the seconds until then (D13). A
+ *                 has passed — it counts down the seconds until then (D13); in the pause
+ *                 between rounds neither the button nor its line shows (D21). A
  *                 segmented switch "Host draws" / "Timed draws" (../components/DrawModeSwitch)
  *                 and the seconds between timed draws (shown for timed draws only)
  *                 change at any time over the socket (draw.setMode); the server keeps the
@@ -16,7 +17,7 @@
  *                 ../game/useLiveMatch (types), ../playback (types), ../types,
  *                 ../useSecondsUntil, ./TimingFields
  * Used by:        ./HostConsole
- * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13); docs/spec/06-realtime-architecture.md §4.1
+ * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13), §7 (D21); docs/spec/06-realtime-architecture.md §4.1
  */
 import { useEffect, useState, type ReactElement } from 'react';
 
@@ -69,6 +70,8 @@ export function HostDrawControls({
   const hostMode = settings.drawMode === 'host';
   const { canDraw, left, drawNext } = useDrawNext(live, view, setNote);
   const locked = left !== null && left > 0;
+  // In the pause between rounds nothing is drawn: no Draw next and no line about it (D21).
+  const paused = view.roundOver;
   return (
     <section
       className="sbr-panel sbr-stack"
@@ -76,7 +79,7 @@ export function HostDrawControls({
       data-testid="host-draw-controls"
     >
       {/* Draw next exists for host draws only; timed draws need nothing pressed. */}
-      {hostMode ? (
+      {hostMode && !paused ? (
         <button
           type="button"
           className="sbr-btn sbr-btn--primary host-draw"
@@ -87,7 +90,9 @@ export function HostDrawControls({
           {locked ? `Draw next in ${String(left)} s` : 'Draw next'}
         </button>
       ) : null}
-      <p className="sbr-muted">{drawHint(hostMode, canDraw, settings.drawIntervalMs)}</p>
+      {paused ? null : (
+        <p className="sbr-muted">{drawHint(hostMode, canDraw, settings.drawIntervalMs)}</p>
+      )}
       <ModeSwitch
         code={live.match.code}
         settings={settings}
