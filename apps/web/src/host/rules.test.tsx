@@ -143,3 +143,48 @@ describe('D14: the pause between royale rounds', () => {
     );
   });
 });
+
+describe('D21: a 15 s pause the host can end early', () => {
+  // The match right after its first cut, in a timed pause (round 2 starts in 10 s).
+  const afterCut = royaleFixture();
+  const inPause = { ...afterCut, events: afterCut.events.slice(0, 11) };
+  const timed = (over: Partial<MatchSummary> = {}) =>
+    summary({
+      settings: { ...summary().settings, roundPause: { kind: 'wait', ms: 15_000 } },
+      nextRoundAt: Date.now() + 10_000,
+      ...over,
+    });
+
+  it('offers 15 seconds as the pause in the create form', async () => {
+    serve(summary());
+    await show(<CreateMatch />);
+    fireEvent.change(screen.getByTestId('create-game-type'), { target: { value: 'royale' } });
+    expect(screen.getByTestId<HTMLInputElement>('create-round-pause-sec').value).toBe('15');
+  });
+
+  it('offers the host "Start next round now" and no Draw next during the pause', async () => {
+    serve(timed(), inPause);
+    await show(<HostConsole code="RULES1" />);
+    expect(screen.queryByTestId('host-draw-next')).toBeNull();
+    expect(screen.queryByText(/Draw next opens/)).toBeNull();
+    expect(screen.queryByTestId('host-next-round')).toBeNull();
+    fireEvent.click(screen.getByTestId('host-next-round-now'));
+    expect(sent).toHaveBeenCalledWith('round.next', { code: 'RULES1' });
+  });
+
+  it('shows players "Round over" instead of the last ball until the next first draw', async () => {
+    serve(timed({ youHost: false }), inPause);
+    await show(<MatchScreen code="RULES1" />);
+    const ball = screen.getByTestId('current-ball');
+    expect(ball.textContent).toBe('Round over');
+    expect(ball.getAttribute('data-item')).toBeNull();
+    cleanup();
+    // The next round started, no number drawn yet.
+    serve(timed({ youHost: false, nextRoundAt: null }), {
+      ...afterCut,
+      events: afterCut.events.slice(0, 13),
+    });
+    await show(<MatchScreen code="RULES1" />);
+    expect(screen.getByTestId('current-ball').textContent).toBe('Waiting for the first number');
+  });
+});

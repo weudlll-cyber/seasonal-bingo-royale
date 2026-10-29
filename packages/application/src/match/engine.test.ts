@@ -7,8 +7,9 @@
  *                 scheduled actions alone, every round ending only after its last window
  *                 closed (D10); host draws are refused in timed mode and while a window is
  *                 open; switching to timed draws schedules the next draw one interval after
- *                 the switch (D8); a tap inside the window earns the speed bonus, a later
- *                 tap does not (01 §6).
+ *                 the switch (D8); the royale pause is 15 s by default and the host may
+ *                 end a timed one early, which starts the next round once (D14, D21); a tap
+ *                 inside the window earns the speed bonus, a later tap does not (01 §6).
  * Depends on:     vitest, ./engine, ./fakes, @sbr/domain, ./flow
  * Spec:           docs/spec/01-game-design.md §5–§7; docs/spec/06-realtime-architecture.md §4–§5
  */
@@ -91,7 +92,7 @@ describe('pause between royale rounds (D14)', () => {
     );
   });
 
-  it('keeps a waiting pause at 3 s or more, 6 s by default (D14)', async () => {
+  it('keeps a waiting pause at 3 s or more, 15 s by default (D14, D21)', async () => {
     const { engine } = setUp();
     const short = await engine.create(
       { ...base, gameType: 'royale', roundPause: { kind: 'wait', ms: 1_000 } },
@@ -99,7 +100,41 @@ describe('pause between royale rounds (D14)', () => {
     );
     const plain = await engine.create({ ...base, gameType: 'royale' }, null);
     expect(short.settings.roundPause).toEqual({ kind: 'wait', ms: 3_000 });
-    expect(plain.settings.roundPause).toEqual({ kind: 'wait', ms: 6_000 });
+    expect(plain.settings.roundPause).toEqual({ kind: 'wait', ms: 15_000 });
+  });
+});
+
+describe('the host ends a timed pause early (D21)', () => {
+  it('starts the next round now, once, and nothing starts it again later', async () => {
+    const { store, scheduler, clock, engine, published } = setUp();
+    const roundPause = { kind: 'wait', ms: 60_000 } as const;
+    const m = await engine.create({ ...base, gameType: 'royale', roundPause }, null);
+    await engine.fillWithBots(m.id, 20);
+    await engine.start(m.id, 1_000);
+    // Outside a pause (the first round runs) the host cannot start the next one.
+    await scheduler.runUntil(engine, clock, clock.t + 1_000);
+    await expect(engine.startNextRound(m.id)).rejects.toEqual(
+      new MatchError('NOT_WAITING_FOR_HOST'),
+    );
+    for (let i = 0; i < 1_000; i += 1) {
+      if ((await engine.runner.current(m.id)).state.nextRoundAt !== null) break;
+      await scheduler.runUntil(engine, clock, clock.t + 1_000);
+    }
+    const startsOf = (round: number) =>
+      (store.events.get(m.id) ?? []).filter(
+        (s) => s.event.type === 'roundStarted' && s.event.roundIndex === round,
+      ).length;
+    expect(startsOf(1)).toBe(0);
+    const pressedAt = clock.t;
+    await engine.startNextRound(m.id);
+    expect(startsOf(1)).toBe(1);
+    // Recorded: the pause ended at the press.
+    expect(published.at(-2)?.event).toEqual({ type: 'nextRoundScheduled', at: pressedAt });
+    // The pending start was replaced, not doubled: past its time nothing starts round 1 again.
+    expect(scheduler.pending.some((a) => a.kind === 'start_round')).toBe(false);
+    await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
+    expect(startsOf(1)).toBe(1);
+    expect(store.types(m.id).at(-1)).toBe('matchFinished');
   });
 });
 

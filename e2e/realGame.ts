@@ -10,8 +10,9 @@
  *                 its CSRF token), stop a match in teardown and close the test's contexts.
  * Depends on:     @playwright/test
  * Used by:        ./realGame.spec.ts, ./startScreens.spec.ts, ./acceptance/realGame.spec.ts,
- *                 ./acceptance/combos, ./account.spec, ./createFormPhone.spec, ./hostNav.spec,
- *                 ./maintenance.spec, ./verifyMatch.spec
+ *                 ./acceptance/combos, ./acceptance/interludeScreens.spec,
+ *                 ./acceptance/pauseScreens.spec, ./account.spec, ./createFormPhone.spec,
+ *                 ./hostNav.spec, ./maintenance.spec, ./verifyMatch.spec
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
 import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';
@@ -42,8 +43,9 @@ export interface NewMatch {
   readonly intervalSec?: number;
   readonly missed: 'autoMarkAfter' | 'noAutoMark';
   readonly maxPlayers?: number;
-  // Royale: the host starts each next round (D14); otherwise the default wait.
-  readonly pause?: 'host';
+  // Royale: the host starts each next round (D14), or a wait of that many seconds;
+  // otherwise the default wait.
+  readonly pause?: 'host' | number;
   // Development only: the server's fast test profile (a short royale).
   readonly fast?: boolean;
 }
@@ -63,6 +65,8 @@ export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
   await page.getByTestId('missed-numbers').selectOption(m.missed);
   await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
   if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
+  if (typeof m.pause === 'number')
+    await page.getByTestId('create-round-pause-sec').fill(String(m.pause));
   if (m.fast === true) await page.getByTestId('create-fast').check();
   await page.getByTestId('create-submit').click();
   await expect(page.getByTestId('host-console')).toBeVisible();
@@ -114,11 +118,12 @@ export async function currentItem(page: Page): Promise<number | null> {
   return value === null ? null : Number(value);
 }
 
-// Host draws: waits until Draw next is enabled (the previous window closed), presses, and
-// waits until the new number is on the host's screen.
+// Host draws: waits until Draw next is enabled (the previous window closed, or after a
+// round the default 15 s pause, D21), presses, and waits until the new number is on the
+// host's screen.
 export async function drawNext(host: Page): Promise<void> {
   const button = host.getByTestId('host-draw-next');
-  await expect(button).toBeEnabled({ timeout: 15_000 });
+  await expect(button).toBeEnabled({ timeout: 25_000 });
   const before = await host.getByTestId('draw-ticker').locator(':scope > *').count();
   await button.click();
   await expect

@@ -47,8 +47,10 @@ export function shortestDrawIntervalMs(
 }
 
 // Pause between royale rounds when the match waits on its own (D14): chosen at creation,
-// 6 s by default and at least 3 s; the other choice is "host starts the next round".
-export const DEFAULT_ROUND_PAUSE_MS = 6_000;
+// 15 s by default (D21: the recap's three most important cards) and at least 3 s; the
+// host may end it early. The other choice is "host starts the next round". The same for
+// both royale defaults (realtime and async).
+export const DEFAULT_ROUND_PAUSE_MS = 15_000;
 export const MIN_ROUND_PAUSE_MS = 3_000;
 
 // Start rules (01 §7.6): the countdown the players see before the first round, and how far

@@ -141,12 +141,13 @@ async function checkAgainstServer(page: Page, who: string, code: string, s: Live
   return view;
 }
 
-// Both waits answer when the host's screen showed the draw (polled every 100 ms).
+// Both waits answer when the host's screen showed the draw (polled every 100 ms). A
+// timed wait spans a royale pause: the speed window, the default 15 s pause (D21), room.
 async function waitTimedDraw(host: Page, before: number): Promise<number> {
   const count = () => host.getByTestId('draw-ticker').locator(':scope > *').count();
   await expect
     .poll(async () => (await count()) !== before || (await isOver(host)), {
-      timeout: 15_000,
+      timeout: 25_000,
       intervals: [100],
     })
     .toBe(true);

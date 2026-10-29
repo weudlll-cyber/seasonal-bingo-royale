@@ -53,7 +53,7 @@ const RECAP: RoundRecap = {
   cut: {
     outCount: 9,
     out: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'owner-01'],
-    saved: ['bot-03'],
+    saved: ['bot-03', 'p8', 'bot-05'],
   },
   seasonComplete: ['bot-02', 'p9', 'bot-04'],
   fastest: { name: 'owner-01', averageMs: 640, taps: 7 },
@@ -109,7 +109,10 @@ describe('the recap cards (D20)', () => {
     next();
     expect(screen.getByTestId('interlude-card-cut').textContent).toContain('9 players are out');
     expect(screen.getByTestId('recap-out').textContent).toContain('and 1 more');
-    expect(screen.getByTestId('recap-saved').textContent).toContain('bot-03');
+    // The same list format as the other name lists (D21 step 2).
+    expect(screen.getByTestId('recap-saved').textContent).toContain(
+      'Saved by the Winter shield: bot-03, p8 and bot-05',
+    );
     next();
     // One line for everyone who completed them.
     expect(screen.getByTestId('recap-season-complete').textContent).toContain(

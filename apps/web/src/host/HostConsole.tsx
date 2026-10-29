@@ -9,8 +9,9 @@
  *                 (also on the Space key while no field has focus; usable only with host
  *                 draws and after the previous number's speed window closed, D10), the
  *                 timed/host switch and the seconds at any time (D8), "Start next round"
- *                 while the match waits for the host between rounds (D14) with the recap of
- *                 the round below it (../game/Interlude, D20), standings with active
+ *                 while the match waits for the host between rounds (D14) or "Start next
+ *                 round now" in a timed pause (D21; Draw next and its line are hidden then),
+ *                 with the recap of the round below it (../game/Interlude, D20), standings with active
  *                 players first, prizes awarded, the match log (newest first) with cut
  *                 results, and abort with a reason (./AbortMatch); at the end the final placement on top. Pause applies to asynchronous
  *                 matches only and is not offered here (realtime).
@@ -84,7 +85,6 @@ function HostLive({
 }): ReactElement {
   const result = live.view;
   const running = live.match.status === 'running';
-  const recap = currentRecap(live.view.recaps, view);
   return (
     <div className="host-grid">
       {view.finished ? (
@@ -105,19 +105,7 @@ function HostLive({
           speedWindowMs={result.speedWindowMs}
           showWindow={!view.finished}
         />
-        {live.match.waitingForHost ? (
-          <StartNextRound code={live.match.code} round={view.currentRound + 2} />
-        ) : null}
-        {/* The recap of the round just played, below Start next round (D20). */}
-        {recap === null ? null : (
-          <Interlude
-            key={recap.roundIndex}
-            recap={recap}
-            pause={live.match.settings.roundPause}
-            nextRoundAt={live.match.nextRoundAt}
-            me={null}
-          />
-        )}
+        <BetweenRounds live={live} view={view} />
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <AbortMatch code={live.match.code} /> : null}
@@ -134,29 +122,71 @@ function HostLive({
   );
 }
 
-// The pause between royale rounds when the host starts them (D14).
+// Between royale rounds: Start next round (D14) or Start next round now (D21), and the
+// recap of the round just played below it (D20).
+function BetweenRounds({
+  live,
+  view,
+}: {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+}): ReactElement {
+  const recap = currentRecap(live.view.recaps, view);
+  // A timed pause between royale rounds: the host may end it early (D21).
+  const running = live.match.status === 'running';
+  const timedPause = running && view.roundOver && live.match.nextRoundAt !== null;
+  return (
+    <>
+      {live.match.waitingForHost || timedPause ? (
+        <StartNextRound
+          code={live.match.code}
+          round={view.currentRound + 2}
+          timed={!live.match.waitingForHost}
+        />
+      ) : null}
+      {recap === null ? null : (
+        <Interlude
+          key={recap.roundIndex}
+          recap={recap}
+          pause={live.match.settings.roundPause}
+          nextRoundAt={live.match.nextRoundAt}
+          me={null}
+        />
+      )}
+    </>
+  );
+}
+
+// The pause between royale rounds when the host starts them (D14), or a timed pause the
+// host may end early (D21): the same intent starts the next round for everyone.
 function StartNextRound({
   code,
   round,
+  timed,
 }: {
   readonly code: string;
   readonly round: number;
+  readonly timed: boolean;
 }): ReactElement {
   const [note, setNote] = useState<string | null>(null);
   return (
     <section className="sbr-panel sbr-stack" data-testid="host-next-round-panel">
-      <p>The round is over. Players wait for you to start round {round}.</p>
+      <p>
+        {timed
+          ? `The round is over. Round ${String(round)} starts after the pause, or now if you start it.`
+          : `The round is over. Players wait for you to start round ${String(round)}.`}
+      </p>
       <button
         type="button"
         className="sbr-btn sbr-btn--primary sbr-btn--big"
-        data-testid="host-next-round"
+        data-testid={timed ? 'host-next-round-now' : 'host-next-round'}
         onClick={() => {
           void intent('round.next', { code }).then((a) => {
             setNote(a.ok ? null : problemText(a.code));
           });
         }}
       >
-        Start next round
+        {timed ? 'Start next round now' : 'Start next round'}
       </button>
       {note !== null ? <p className="lobby-error">{note}</p> : null}
     </section>

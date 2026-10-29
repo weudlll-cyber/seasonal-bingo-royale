@@ -13,9 +13,11 @@
  *                 to the screens as nextRoundAt), the next stage begins or the match finishes — or,
  *                 with timed draws, schedules the next draw one interval after this one.
  *                 Host draws follow the same path from the host's Draw next (D8, D10).
+ *                 The host starts the next round when the match waits for them (D14) or
+ *                 ends a timed pause early, replacing its scheduled start (D21).
  * Depends on:     @sbr/domain, ./ports, ./runner, ./startRules
  * Used by:        ./engine, ../index, ./startRules
- * Spec:           docs/spec/01-game-design.md §5, §6, §7; docs/spec/06-realtime-architecture.md §5
+ * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D14, D21); docs/spec/06-realtime-architecture.md §5
  */
 import { nextStep } from '@sbr/domain';
 
@@ -97,8 +99,9 @@ async function advance(deps: FlowDeps, matchId: string, pause: boolean): Promise
   }
 }
 
-// The pause after a round and its cut (D14): wait the chosen seconds, or until the host
-// starts the next round (engine.startNextRound). The screens learn of it either way.
+// The pause after a round and its cut (D14): wait the chosen seconds (the host may end the
+// wait early, D21), or until the host starts the next round (both engine.startNextRound).
+// The screens learn of it either way.
 async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
   const matchId = m.record.id;
   const pause = m.record.settings.roundPause;
@@ -112,18 +115,34 @@ async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
   await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: dueAt }]);
 }
 
-// The match waits for its host to start the next round (D14): derived from the state, so
-// it survives a restart.
-export function waitingForHost(m: LoadedMatch): boolean {
-  if (m.record.settings.roundPause.kind !== 'host' || m.state.phase !== 'running') return false;
+// Between a round (and its cut) and the next one: derived from the state, so it survives
+// a restart. A timed pause has its start time in the event log (nextRoundAt).
+function inPause(m: LoadedMatch): boolean {
+  if (m.state.phase !== 'running') return false;
   const round = m.state.currentRound;
-  return (round === null || round.ended) && nextStep(m.state) === 'startRound';
+  if (round !== null && !round.ended) return false;
+  if (m.record.settings.roundPause.kind === 'wait' && m.state.nextRoundAt === null) return false;
+  return nextStep(m.state) === 'startRound';
 }
 
-// The host's "Start next round" (D14); false when the match is not waiting for it.
+// The match waits for its host to start the next round (D14).
+export function waitingForHost(m: LoadedMatch): boolean {
+  return m.record.settings.roundPause.kind === 'host' && inPause(m);
+}
+
+// The host's "Start next round" (D14), and "Start next round now" in a timed pause (D21);
+// false outside a pause.
 export async function startNextRound(deps: FlowDeps, matchId: string): Promise<boolean> {
-  if (!waitingForHost(await deps.runner.current(matchId))) return false;
+  const m = await deps.runner.current(matchId);
+  if (!inPause(m)) return false;
+  if (m.record.settings.roundPause.kind === 'wait') {
+    // In the event log: the pause ended now, not at the time first announced.
+    await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: deps.clock.now() }]);
+  }
   await startRound(deps, matchId);
+  // The timed start is replaced, not doubled. Dropped after the round started: if the
+  // server stops in between, the old start finds the round running and does nothing.
+  await deps.scheduler.cancel(matchId, 'start_round');
   deps.runner.update(matchId, (x) => x);
   return true;
 }

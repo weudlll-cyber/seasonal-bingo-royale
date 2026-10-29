@@ -6,10 +6,12 @@
  * Responsibility: show the latest draw of the round as a ball that rolls in on every new
  *                 number (no animation under reduced motion), with a speed-window bar that
  *                 runs down from the moment the number appeared; before the first draw it
- *                 says so. Announced to screen readers.
+ *                 says so, and in the pause between rounds it says "Round over" in place of
+ *                 the last number (D21); at the end of the match the last number stays with
+ *                 "Match over". Announced to screen readers.
  * Depends on:     react, ../components/SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./MatchScreen, ../host/HostConsole
- * Spec:           docs/spec/01-game-design.md §5, §6, §13
+ * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D21), §13
  */
 import { useEffect, useState, type ReactElement } from 'react';
 
@@ -21,7 +23,7 @@ interface CurrentBallProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
   readonly roundOver: boolean;
-  // The match is over: the note says so instead of "Round over".
+  // The match is over: its last number stays, with "Match over" instead of "Round over".
   readonly finished?: boolean;
 }
 
@@ -33,10 +35,11 @@ export function CurrentBall(props: CurrentBallProps): ReactElement {
   useEffect(() => {
     setShownAt(Date.now());
   }, [item, draws.length]);
-  if (item === undefined) {
+  // In the pause between rounds the last number is not shown as if the round still ran.
+  if (item === undefined || (roundOver && !finished)) {
     return (
       <div className="ball ball--empty" data-testid="current-ball" aria-live="polite">
-        Waiting for the first number
+        {item === undefined ? 'Waiting for the first number' : 'Round over'}
       </div>
     );
   }
@@ -60,8 +63,8 @@ export function CurrentBall(props: CurrentBallProps): ReactElement {
           <SeasonIcon season={season} size="60%" />
         )}
       </div>
-      {roundOver ? (
-        <p className="sbr-muted ball-note">{finished ? 'Match over' : 'Round over'}</p>
+      {finished ? (
+        <p className="sbr-muted ball-note">Match over</p>
       ) : (
         <WindowBar key={`${String(draws.length)}-${String(shownAt)}`} ms={speedWindowMs} />
       )}

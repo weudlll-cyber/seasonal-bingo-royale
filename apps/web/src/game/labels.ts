@@ -198,7 +198,7 @@ export function nameList(names: readonly string[]): string {
 }
 
 export const shieldSavedLine = (names: readonly string[]): string =>
-  `Saved by the Winter shield: ${names.join(', ')}`;
+  `Saved by the Winter shield: ${nameList(names)}`;
 
 export function fastestLine(name: string, averageMs: number, taps: number): string {
   return `Fastest tapper: ${name} — ${seconds(averageMs)} s on average over ${String(taps)} taps`;

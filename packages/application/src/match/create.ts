@@ -50,7 +50,7 @@ export interface CreateMatchInput {
 }
 
 // The pause between royale rounds (D14): the chosen one, a wait never shorter than the
-// minimum; 6 s by default.
+// minimum; 15 s by default (D21).
 function chosenRoundPause(chosen: RoundPause | undefined): RoundPause {
   if (chosen?.kind === 'host') return chosen;
   return { kind: 'wait', ms: Math.max(MIN_ROUND_PAUSE_MS, chosen?.ms ?? DEFAULT_ROUND_PAUSE_MS) };

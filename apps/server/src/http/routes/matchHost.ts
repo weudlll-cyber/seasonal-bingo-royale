@@ -6,7 +6,8 @@
  * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1),
  *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 503 MAINTENANCE
  *                 while the flag is on), POST /draw-next (host mode, D8, D13), POST
- *                 /next-round (when the match waits for the host, D14), POST /draw-mode
+ *                 /next-round (when the match waits for the host, D14, or to end a timed
+ *                 pause early, D21), POST /draw-mode
  *                 { mode, intervalMs } at any time, POST /auto-start { auto } while the
  *                 match waits to start (D16), POST /abort { reason }.
  *                 Development builds add POST /bots { upTo } to fill the lobby with bots and
