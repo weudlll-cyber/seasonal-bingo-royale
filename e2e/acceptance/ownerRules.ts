@@ -76,13 +76,19 @@ export async function startNextRoundByHost(
   for (const p of players) await expect(p.page.getByTestId('waiting-for-host')).toHaveCount(0);
 }
 
-// D15: the cut screen's button by the player's outcome (own standings row).
+// D15: the cut screen's button by the player's outcome (own standings row). Both are read
+// in one look at the page: the screen of an earlier cut goes away when the next cut leaves
+// out a player already out (INTERLUDE-2: read apart, the button was gone in between).
 export async function checkCutButton(p: LivePlayer): Promise<void> {
-  const screen = p.page.getByTestId('cut-screen');
-  if ((await screen.count()) === 0) return;
-  const own = p.page.locator('[data-testid^="standing-"].is-own');
-  const out = (await own.getAttribute('data-eliminated')) === 'true';
-  await expect(screen.getByRole('button'), `${p.who}: cut button`).toHaveText(
-    out ? 'Watch' : 'Keep playing',
-  );
+  const seen = await p.page.evaluate(() => {
+    const button = document.querySelector('[data-testid="cut-screen"] button');
+    const own = document.querySelector('[data-testid^="standing-"].is-own');
+    if (button === null) return null;
+    return {
+      text: button.textContent.trim(),
+      out: own?.getAttribute('data-eliminated') === 'true',
+    };
+  });
+  if (seen === null) return;
+  expect(seen.text, `${p.who}: cut button`).toBe(seen.out ? 'Watch' : 'Keep playing');
 }
