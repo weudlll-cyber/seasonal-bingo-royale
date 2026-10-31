@@ -32,7 +32,8 @@ import type { LiveEntry } from '../../view/liveViews.js';
 
 // `youHost` tells the viewer whether they created (and so may run) this match; null when
 // the summary goes to a whole room (the client keeps what it knew).
-export function matchSummary(m: LoadedMatch, viewer: string | null) {
+// `startHeld`: maintenance holds the automatic start (MatchEngine.startHeld, D22).
+export function matchSummary(m: LoadedMatch, viewer: string | null, startHeld: boolean) {
   const r = m.record;
   return {
     id: r.id,
@@ -55,6 +56,7 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     minPlayers: minPlayersOf(m),
     // The automatic start found too few players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
+    startHeld,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
 }
@@ -74,6 +76,7 @@ interface LiveViewInput {
   readonly since: number;
   // The recap of the royale round just played, during the pause after it (D20).
   readonly recap: RoundRecap | null;
+  readonly startHeld: boolean;
 }
 
 // Events after which the screens need the player list again: a join, the first round's
@@ -87,7 +90,7 @@ function changesPlayers(e: DomainEvent): boolean {
   );
 }
 
-export function liveView({ match: m, entry, me, since, recap }: LiveViewInput) {
+export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveViewInput) {
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
@@ -117,7 +120,7 @@ export function liveView({ match: m, entry, me, since, recap }: LiveViewInput) {
   const { players, ...rest } = view;
   const recaps = recap === null ? {} : { recaps: [recap] };
   return {
-    match: matchSummary(m, me),
+    match: matchSummary(m, me, startHeld),
     seq: replay.length,
     since,
     me: viewer,

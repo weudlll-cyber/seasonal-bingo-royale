@@ -177,7 +177,12 @@ describe('maintenance holds every start (D22)', () => {
     expect(t.status()).toBe('lobby');
     expect(t.store.records.get(t.id)?.startsAt).toBeNull();
     expect(t.autoPending()).toBe(true);
+    // The screens say "held by maintenance", not "not enough players".
+    const held = await t.engine.runner.current(t.id);
+    expect(tooFewAtStart(held, t.clock.t)).toBe(false);
+    expect(t.engine.startHeld(held)).toBe(true);
     t.maintenance.on = false;
+    expect(t.engine.startHeld(held)).toBe(false);
     await t.scheduler.runUntil(t.engine, t.clock, t.clock.t + 5_000);
     expect(t.store.records.get(t.id)?.startsAt).not.toBeNull();
     await t.scheduler.runUntil(t.engine, t.clock, t.clock.t + 10_000);

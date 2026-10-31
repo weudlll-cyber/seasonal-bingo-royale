@@ -32,7 +32,7 @@ export function MaintenancePage({ state }: { readonly state: MaintenanceState })
 export function MaintenanceBanner({ state }: { readonly state: MaintenanceState }): ReactElement {
   return (
     <p className="maintenance-banner" role="status" data-testid="maintenance-banner">
-      Maintenance: no new match can be created or started; this match plays to the end.
+      Maintenance: no new match can be created or started; running matches play to the end.
       {state.reason === null ? '' : ` ${state.reason}`}
     </p>
   );

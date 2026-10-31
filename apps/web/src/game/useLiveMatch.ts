@@ -58,6 +58,8 @@ export interface MatchSummary {
   readonly minPlayers: number;
   // The automatic start found too few players; the match waits for its host (D16).
   readonly tooFewAtStart: boolean;
+  // Maintenance holds the automatic start (D22).
+  readonly startHeld?: boolean;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.
   readonly youHost: boolean | null;

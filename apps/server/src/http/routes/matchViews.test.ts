@@ -60,7 +60,7 @@ async function viewSince(since: number, seq = stored.length, viewer: string | nu
     manualTaps: () => Promise.resolve([]),
   });
   const entry = await views.entryFor(match);
-  return liveView({ match, entry, me: viewer, since, recap: null }).view;
+  return liveView({ match, entry, me: viewer, since, recap: null, startHeld: false }).view;
 }
 
 // How many players the view lists; null when it leaves the list out.
@@ -131,6 +131,6 @@ describe('the summary of an ended match (NIGHT-5)', () => {
   it('says finished as soon as the event log has the finish, before the record follows', () => {
     // The simulated match has finished; its record still says running.
     const m = { record: { ...record, status: 'running' }, state: sim.state, seq: 1 };
-    expect(matchSummary(m as unknown as LoadedMatch, null).status).toBe('finished');
+    expect(matchSummary(m as unknown as LoadedMatch, null, false).status).toBe('finished');
   });
 });

@@ -90,6 +90,13 @@ describe('the registration status', () => {
       '1 place left',
     );
   });
+
+  it('says when maintenance holds a start that is due (D22)', () => {
+    const due = withRule({ kind: 'at', at: AT, auto: true }, { startHeld: true });
+    expect(registrationText(due, AT + 60_000)).toBe(
+      'Held by maintenance — starts when maintenance ends',
+    );
+  });
 });
 
 describe('the countdown (D16)', () => {

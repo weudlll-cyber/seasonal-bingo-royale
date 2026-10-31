@@ -48,6 +48,8 @@ function whenText(at: number, now: number): string {
 
 export function registrationText(match: MatchSummary, now: number): string {
   if (match.startsAt !== null) return 'Starting…';
+  // D22: the start is due, but maintenance holds it.
+  if (match.startHeld === true) return 'Held by maintenance — starts when maintenance ends';
   // The automatic start came and found too few players (D16): the match waits.
   if (match.tooFewAtStart) {
     return `Waiting for players — at least ${String(match.minPlayers)} are needed to start`;

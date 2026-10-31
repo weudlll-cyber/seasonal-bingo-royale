@@ -32,6 +32,7 @@ import { prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
 import type {
   Clock,
   DrawMode,
+  LoadedMatch,
   MaintenanceReader,
   MatchEventBus,
   MatchRecord,
@@ -44,6 +45,7 @@ import {
   minPlayersOf,
   planAutoStart,
   scheduleStart,
+  startHeld,
   startIfFull,
   startTimeValid,
 } from './startRules.js';
@@ -167,6 +169,11 @@ export class MatchEngine {
   // Called by the scheduler for every due action.
   handle(action: ScheduledAction): Promise<void> {
     return this.runner.serial(action.matchId, () => runAction(this.flow, action));
+  }
+
+  // Maintenance holds this match's automatic start right now (D22), for the screens.
+  startHeld(m: LoadedMatch): boolean {
+    return startHeld(m, this.deps.clock.now(), this.deps.maintenance() !== null);
   }
 
   // At start-up: continues a match that stopped between a round end and its next step.

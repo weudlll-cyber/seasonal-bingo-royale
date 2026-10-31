@@ -98,7 +98,8 @@ export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> 
   await scheduleStart(deps, matchId, deps.clock.now() + START_COUNTDOWN_MS);
 }
 
-// The automatic start came and found too few players: the match waits (D16).
+// The automatic start came and found too few players: the match waits (D16). With enough
+// players a start time that has passed means maintenance holds it (startHeld, D22).
 export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
   const rule = m.record.settings.startRule;
   return (
@@ -106,6 +107,16 @@ export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
     rule.auto &&
     m.record.status === 'lobby' &&
     m.record.startsAt === null &&
-    now >= rule.at
+    now >= rule.at &&
+    m.state.playerOrder.length < minPlayersOf(m)
   );
+}
+
+// D22: maintenance holds a start that would have begun by itself: an automatic start
+// whose time has come, or start when full with every place taken. The screens say so.
+export function startHeld(m: LoadedMatch, now: number, maintenanceOn: boolean): boolean {
+  if (!maintenanceOn || m.record.status !== 'lobby' || m.record.startsAt !== null) return false;
+  const rule = m.record.settings.startRule;
+  if (rule.kind === 'at') return rule.auto && now >= rule.at;
+  return fullAndWaiting(m);
 }

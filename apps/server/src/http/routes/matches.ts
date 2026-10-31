@@ -81,7 +81,7 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;
-    return { matches: matches.map((m) => matchSummary(m, viewer)) };
+    return { matches: matches.map((m) => matchSummary(m, viewer, deps.engine.startHeld(m))) };
   });
 }
 
@@ -109,7 +109,8 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       );
       // The recap of the royale round just played, during the pause after it (D20).
       const recap = await views.recapFor(m, entry);
-      return liveView({ match: m, entry, me: request.session?.accountId ?? null, since, recap });
+      const me = request.session?.accountId ?? null;
+      return liveView({ match: m, entry, me, since, recap, startHeld: deps.engine.startHeld(m) });
     },
   );
 }
@@ -139,7 +140,8 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
   app.get<{ Params: { code: string } }>('/api/v1/matches/:code', async (request, reply) => {
     const id = await matchIdByCode(deps.pool, request.params.code);
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-    return matchSummary(await deps.engine.runner.current(id), request.session?.accountId ?? null);
+    const m = await deps.engine.runner.current(id);
+    return matchSummary(m, request.session?.accountId ?? null, deps.engine.startHeld(m));
   });
   registerStateRoute(app, deps);
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {
