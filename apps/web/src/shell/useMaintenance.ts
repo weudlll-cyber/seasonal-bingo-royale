@@ -9,7 +9,7 @@
  *                 blocked on a guess. ./AppShell shares the answer as `MaintenanceContext`;
  *                 screens read it with `useMaintenanceState`.
  * Depends on:     react, ./http
- * Used by:        ./AppShell, ./Maintenance, ../host/HostLobby
+ * Used by:        ./AppShell, ./Maintenance, ../host/HostLobby, ../quicktest/TestMatch
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */
 import { createContext, useContext, useEffect, useState } from 'react';

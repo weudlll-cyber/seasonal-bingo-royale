@@ -176,7 +176,7 @@ flag on.
 
 In both rules the speed bonus is earned only by a tap inside the speed window. Patterns, season activations and Season Complete count only from marked cells: under `noAutoMark` an untapped number does not count until it is tapped. A tap on an undrawn number is always rejected by the server, so there is nothing to gain by cheating a mark.
 
-The rule applies to human players. Bots (only in the Quick Test, 15 WP-08) always mark on the draw.
+The rule applies to human players. Bots (development only: the Quick Test's simulation and the bots a dev host adds to a live test match, 15 WP-08) always mark on the draw.
 
 ## 7. Battle royale structure
 

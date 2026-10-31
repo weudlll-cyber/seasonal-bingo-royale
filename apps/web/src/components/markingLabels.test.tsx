@@ -10,14 +10,14 @@
  *                 shows the speed bonus apart from the points with the Quick Test note,
  *                 the limitation is stated, a missed number follows the chosen rule and
  *                 the seasons counter comes from the server, not from local taps.
- * Depends on:     @testing-library/react, ./StartForm, ./DrawControls, ../App,
+ * Depends on:     @testing-library/react, ./StartForm, ./DrawControls, ../quicktest/Simulation,
  *                 ../test/quickTestFixture, ../drawControl, ../api, ../types
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/11-admin-panel.md §3.2
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { App } from '../App.js';
+import { Simulation } from '../quicktest/Simulation.js';
 import type { StartQuickTestInput } from '../api.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
@@ -111,7 +111,7 @@ async function startHostRun(missed: MissedNumbers): Promise<void> {
     'fetch',
     vi.fn(() => Promise.resolve(new Response(JSON.stringify(result)))),
   );
-  render(<App />);
+  render(<Simulation />);
   fireEvent.change(screen.getByTestId('start-draw-mode'), { target: { value: 'host' } });
   fireEvent.click(screen.getByTestId('start-run'));
   await act(async () => {

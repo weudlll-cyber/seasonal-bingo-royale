@@ -12,7 +12,7 @@
  *                 server's points as the new baseline at every stage start. Pure.
  * Depends on:     ./types, ./playbackTypes, ./playbackScoring (scoring events), ./standingsOrder,
  *                 ./game/labels (event lines in plain English)
- * Used by:        ./App, ./components/*, ./game/*, ./host/*
+ * Used by:        ./quicktest/Simulation, ./components/*, ./game/*, ./host/*
  * Spec:           docs/spec/01-game-design.md §3, §7, §8, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { abortLine, CUT_NOTE, cutLine, roundEndLine } from './game/labels.js';

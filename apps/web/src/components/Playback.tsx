@@ -7,12 +7,12 @@
  *                 header, cut screen and the round recap after it (../game/Interlude, D20),
  *                 spectator note once eliminated. Classic types:
  *                 prize list with winners. Always: banners, draw ticker, the owner's
- *                 cards and status, standings, final placement. State lives in App.tsx,
+ *                 cards and status, standings, final placement. State lives in ../quicktest/Simulation,
  *                 the view-model in ../playback.ts.
  * Depends on:     react, ./CutScreen, ../game/Interlude, ../game/interludePlan (types),
  *                 ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
  *                 ../game/labels, ../playback, ../types, ../useReducedMotion, ./results.css
- * Used by:        ../App, ./FinalPlacement; MatchLog and PrizeList also by the live screens
+ * Used by:        ../quicktest/Simulation, ./FinalPlacement; MatchLog and PrizeList also by the live screens
  *                 ../game/MatchScreen and ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */

@@ -14,7 +14,7 @@
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
  *                 ./EndActions, ./game.css
- * Used by:        ../shell/AppShell
+ * Used by:        ../shell/AppShell, ../quicktest/TestMatchReady
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
 import type { ReactElement } from 'react';

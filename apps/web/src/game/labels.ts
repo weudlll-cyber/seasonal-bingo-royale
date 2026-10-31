@@ -4,19 +4,23 @@
  * @brief  Plain-English names and event lines, shared by all screens.
  *
  * Responsibility: "Battle royale" / "Classic with seasons" / "Classic" for the game types
- *                 (01 §3a), prize names ("2 rows", "Full card"), one line describing draws
+ *                 (01 §3a) and their order in the forms, prize names ("2 rows", "Full card"), one line describing draws
  *                 and missed numbers with the same words as the Quick Test ("Draws: timed
  *                 (every N seconds)" …), never the word "auto" alone, and every event line
  *                 the banners and the match log show ("Round 1 over — all 40 numbers
  *                 drawn", "Cut 1: 12 go on, 8 are out" …), never an internal identifier.
  * Depends on:     ../types, ./useLiveMatch (types), ../playback
  * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*, ./LiveCard,
- *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan
+ *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan,
+ *                 ../quicktest/*
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
 import { ballLabel, secondsText as seconds, type GameType } from '../types.js';
 import type { PlaybackView } from '../playback.js';
 import type { LiveState, MatchSummary } from './useLiveMatch.js';
+
+// The game types in the order every form offers them.
+export const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
 
 export function gameTypeName(type: GameType): string {
   if (type === 'royale') return 'Battle royale';

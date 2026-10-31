@@ -67,6 +67,7 @@ seasonal-bingo-royale/
 │  ├─ web/                      Player client (also the embed target)
 │  │  └─ src/  shell/ (frame, router, session)  game/ (lobby, match)  host/  account/
 │  │           components/ (Quick Test and shared views)  test/ (fixtures)
+│  │           quicktest/ (dev page "Test a match": real test match, seed simulation)
 │  │           main.tsx  App.tsx  api.ts  types.ts  drawControl.ts  manualMarking.ts
 │  │           playback.ts  playbackScoring.ts  playbackTypes.ts  seasonIcons.ts
 │  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts  useSecondsUntil.ts

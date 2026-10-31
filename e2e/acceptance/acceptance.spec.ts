@@ -7,7 +7,7 @@
  *                 on a fixed seed, checking the whole screen after every draw (./checks) and
  *                 every cut against server points (./cuts); one royale and one classic run switch
  *                 timed/host draws mid-match; a seed whose round ends on an owner number must see
- *                 a D10 last-number tap. After each match Run Quick Test again with another seed:
+ *                 a D10 last-number tap. After each match run the simulation again with another seed:
  *                 nothing may remain, then a few draws play. Full-page screenshots of each end
  *                 and restart go to reports/screens/latest/acceptance/. Only with
  *                 SBR_ACCEPTANCE=1 (about half an hour), not in CI.
@@ -70,7 +70,7 @@ function contextOf(c: Combo): RunContext {
   return newContext(c.gameType, c.marking === 'tap', missed);
 }
 
-// Starts a run (fresh page or Run Quick Test again) and returns the server's result.
+// Starts a run (fresh page or Run simulation again) and returns the server's result.
 async function run(page: Page, start: () => Promise<void>): Promise<ServerResult> {
   const response = page.waitForResponse((r) => r.url().endsWith('/dev/quicktest'));
   await start();
@@ -146,9 +146,10 @@ for (const combo of combos()) {
     expect(ctx.lastNumberTaps).toBeLessThanOrEqual(chances);
     await page.screenshot({ path: path.join(SCREENS, `${nameOf(combo)}.png`), fullPage: true });
 
-    // Run Quick Test again with another seed: a fresh match, then a few draws.
+    // Run the simulation again with another seed: a fresh match, then a few draws.
     const again = contextOf(combo);
     await run(page, async () => {
+      await page.getByTestId('simulation-change').click();
       await page.getByTestId('seed').fill(`${seed}-again`);
       await page.getByTestId('start-run').click();
     });

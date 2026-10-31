@@ -1,0 +1,61 @@
+/**
+ * @file   apps/web/src/quicktest/quicktest.css
+ * @module web/quicktest
+ * @brief  The test page: its sections, the test match's steps and live screen, the simulation.
+ *
+ * Responsibility: page width and section spacing, short number fields, the numbered steps,
+ *                 the live match screen inside section A, and the simulation's draw control
+ *                 beside the playback from 960 px (stacked on a phone). Everything else comes
+ *                 from the shared classes (sbr-*, ../host/host.css). Colours from @sbr/ui tokens.
+ * Used by:        ../App, ./TestMatch, ./Simulation
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+.test-page {
+  max-width: 72rem;
+}
+
+.test-page h1,
+.test-section h2,
+.test-steps h3 {
+  margin: 0;
+}
+
+.test-number {
+  width: 6rem;
+}
+
+.test-steps {
+  padding: var(--space-2);
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+}
+
+.test-steps ol {
+  margin: 0;
+  padding-left: 1.4rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.test-live {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.sim-run-line {
+  justify-content: space-between;
+}
+
+.sim-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (min-width: 960px) {
+  .sim-grid {
+    grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+    align-items: start;
+  }
+}

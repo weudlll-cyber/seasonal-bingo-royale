@@ -11,7 +11,7 @@
  *                 and delays into range as well).
  * Depends on:     @sbr/contracts (prize list), ../components/StartMarkingField, ../drawControl,
  *                 ../types, ./TimingFields
- * Used by:        ./CreateMatch
+ * Used by:        ./CreateMatch, ../quicktest/testMatchSetup, ../quicktest/TestMatch
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §7.1
  */
 import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
@@ -33,6 +33,9 @@ import {
   type RoundPauseChoice,
   type StartRuleChoice,
 } from './TimingFields.js';
+
+// The most players a match can have (05 §2.3; the server checks it as well).
+export const MAX_PLAYERS = 200;
 
 export interface FormValues {
   readonly title: string;
@@ -85,7 +88,7 @@ export function createBody(v: FormValues) {
       : { drawIntervalMs: Math.round(v.draw.intervalSec * 1000) }),
     missedNumbers: toMissedNumbers(v.missed),
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
-    maxPlayers: Math.min(200, Math.max(2, v.maxPlayers)),
+    maxPlayers: Math.min(MAX_PLAYERS, Math.max(2, v.maxPlayers)),
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
     // Vite makes DEV false in a production build, which then drops this line.
     ...(import.meta.env.DEV && v.fast === true ? { testProfile: 'fast' as const } : {}),

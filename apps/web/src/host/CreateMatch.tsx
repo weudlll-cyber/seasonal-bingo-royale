@@ -23,7 +23,7 @@ import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
 import { MissedField } from '../components/StartMarkingField.js';
-import { gameTypeName, prizeName, problemText } from '../game/labels.js';
+import { GAME_TYPES, gameTypeName, prizeName, problemText } from '../game/labels.js';
 import '../game/game.css';
 import './host.css';
 import { api, ApiError } from '../shell/http.js';
@@ -32,8 +32,6 @@ import { createBody, INITIAL, intervalMessage, type FormValues } from './createF
 import { RoundPauseField, StartRuleField, startTimeProblem } from './TimingFields.js';
 import { YourMatches } from './YourMatches.js';
 import type { GameType } from '../types.js';
-
-const GAME_TYPES: readonly GameType[] = ['royale', 'classicSeasons', 'classic'];
 
 export function CreateMatch(): ReactElement {
   const [values, setValues] = useState<FormValues>(INITIAL);

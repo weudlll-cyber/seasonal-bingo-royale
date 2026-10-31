@@ -10,7 +10,7 @@
  *                 play. Labels never use the word "auto" alone, so they cannot be
  *                 confused with marking.
  * Depends on:     react, ../drawControl
- * Used by:        ./StartForm, ../host/CreateMatch
+ * Used by:        ./StartForm, ../host/CreateMatch, ../quicktest/TestMatch
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -29,14 +29,7 @@ interface StartDrawFieldProps {
 export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactElement {
   const seconds = value.intervalSec ?? RULESET_INTERVAL_SEC;
   return (
-    <fieldset
-      style={{
-        border: '1px solid var(--color-border)',
-        padding: '0.5rem',
-        display: 'grid',
-        gap: '0.4rem',
-      }}
-    >
+    <fieldset>
       <legend>Draws</legend>
       <select
         className="sbr-select"
@@ -50,7 +43,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
         <option value="auto">Timed (every {String(seconds)} seconds)</option>
         <option value="host">Host presses Draw next</option>
       </select>
-      <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+      <label className="sbr-row">
         <span>Seconds between timed draws</span>
         <input
           className="sbr-input"

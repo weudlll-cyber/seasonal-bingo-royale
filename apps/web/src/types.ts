@@ -8,7 +8,7 @@
  *                 display helpers on them: the season of a symbol, a ball's label with its
  *                 column letter, a season's colour token, milliseconds as seconds.
  * Depends on:     @sbr/contracts
- * Used by:        ./App, ./playback, ./manualMarking, ./components/*, ./game/*, ./host/*,
+ * Used by:        ./quicktest/*, ./playback, ./manualMarking, ./components/*, ./game/*, ./host/*,
  *                 ./api, ./drawControl, ./playbackScoring, ./playbackTypes, ./seasonIcons,
  *                 ./useDrawTicker, ./test/quickTestFixture
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §5, §13

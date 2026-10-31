@@ -8,13 +8,13 @@
  *                 Run Quick Test again and check that nothing of run A remains: no mark,
  *                 speed bonus or feedback on the owner card, and the cut screen
  *                 shows again at run B's first cut.
- * Depends on:     @testing-library/react, ./App, ./test/quickTestFixture
+ * Depends on:     @testing-library/react, ./quicktest/Simulation, ./test/quickTestFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { App } from './App.js';
+import { Simulation } from './quicktest/Simulation.js';
 import { royaleFixture } from './test/quickTestFixture.js';
 
 beforeEach(() => {
@@ -58,7 +58,7 @@ async function closeWindow(): Promise<void> {
 
 describe('a new run', () => {
   it('starts the owner card from the new run only, even in the same round', async () => {
-    render(<App />);
+    render(<Simulation />);
     await startRun();
     await nextDraw(); // draw 1: number 1, on the owner card at cell 0
     fireEvent.click(screen.getByTestId('owner-cell-0'));
@@ -80,7 +80,7 @@ describe('a new run', () => {
   });
 
   it("shows the next run's first cut screen after the last run's was closed", async () => {
-    render(<App />);
+    render(<Simulation />);
     await startRun();
     await nextDraw();
     await nextDraw(); // draw 2, the round's last
