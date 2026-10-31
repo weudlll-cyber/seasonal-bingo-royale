@@ -10,7 +10,7 @@
  *                 form. Maintenance on: the reason, and the button disabled (D22).
  * Depends on:     react, ./testMatchSetup, ./TestMatchReady, ../components/StartDrawField,
  *                 ../game/labels, ../host/createForm, ../host/host.css, ../shell/DevTools,
- *                 ../shell/http, ../shell/session, ../shell/useMaintenance, ./quicktest.css
+ *                 ../shell/session, ../shell/useMaintenance, ./quicktest.css
  * Used by:        ../App
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22), §13; docs/spec/05-api-design.md §2.3
  */
@@ -21,16 +21,15 @@ import { GAME_TYPES, gameTypeName, problemText } from '../game/labels.js';
 import { INITIAL, intervalMessage } from '../host/createForm.js';
 import '../host/host.css';
 import { useDevSignIn } from '../shell/DevTools.js';
-import { ApiError } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
 import type { GameType } from '../types.js';
 import {
   botLimits,
-  createTestMatch,
   DEFAULT_BOTS,
   INITIAL_TEST_MATCH,
   type TestMatchValues,
+  useCreateTestMatch,
 } from './testMatchSetup.js';
 import { NextSteps, ReadyPanel, SetupError } from './TestMatchReady.js';
 import './quicktest.css';
@@ -100,9 +99,9 @@ interface FormProps {
 }
 
 function TestMatchForm(props: FormProps): ReactElement {
-  const { values, onValues, onCreated, error, onError } = props;
+  const { values, onValues, error } = props;
   const maintenance = useMaintenanceState();
-  const [busy, setBusy] = useState(false);
+  const { busy, create } = useCreateTestMatch(props);
   const set = <K extends keyof TestMatchValues>(key: K, value: TestMatchValues[K]): void => {
     onValues({ ...values, [key]: value });
   };
@@ -111,13 +110,7 @@ function TestMatchForm(props: FormProps): ReactElement {
   const held = maintenance?.on === true;
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
-    if (tooShort !== null || held) return;
-    setBusy(true);
-    onError(null);
-    createTestMatch(values, onCreated).catch((e: unknown) => {
-      setBusy(false);
-      onError(e instanceof ApiError ? problemText(e.code, e.reason) : problemText(''));
-    });
+    if (tooShort === null && !held) create();
   };
   return (
     <form className="create-form" onSubmit={submit} data-testid="test-match-form">

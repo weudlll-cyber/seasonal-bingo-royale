@@ -8,8 +8,9 @@
  *                 "Now" the host's start; the bots field's limits follow "I play along"; the
  *                 calls run create → join → bots (→ start for "Now"); signed out the section
  *                 offers the dev host sign-in instead of the form; maintenance disables the
- *                 button with the reason; after creating, the code, the console in a new tab
- *                 and the numbered steps show.
+ *                 button with the reason; the waiting room opens once the bots are in (a
+ *                 failed later step still shows the code); then the code, the console in a
+ *                 new tab and the numbered steps.
  * Depends on:     @testing-library/react, ./testMatchSetup, ./TestMatch, ../shell/session,
  *                 ../shell/useMaintenance
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
@@ -111,6 +112,57 @@ describe('the test match request', () => {
     const fetch = serve(HOST);
     await createTestMatch({ ...INITIAL_TEST_MATCH, playAlong: false }, vi.fn());
     expect(posts(fetch).slice(1)).toEqual(['/matches/TEST01/bots {"upTo":7}']);
+  });
+});
+
+// Every POST answers a code, except the bots: held until `release`, or refused.
+function serveSlowBots(refuse: boolean): () => void {
+  let release = (): void => undefined;
+  const bots = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/session')) {
+        const session = { signedIn: true, account: null, permissions: HOST, csrfToken: 'x' };
+        return new Response(JSON.stringify(session));
+      }
+      if (url.endsWith('/bots')) {
+        await bots;
+        if (refuse) return new Response(JSON.stringify({ code: 'MATCH_FULL' }), { status: 409 });
+      }
+      return new Response(JSON.stringify(init?.method === 'POST' ? { code: 'TEST01' } : {}));
+    }),
+  );
+  return release;
+}
+
+const settle = () =>
+  act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+
+describe('section A while it sets the match up', () => {
+  it('opens the waiting room only once the bots are in', async () => {
+    const release = serveSlowBots(false);
+    await showSection({ on: false, reason: null });
+    fireEvent.click(screen.getByTestId('test-match-create'));
+    await settle();
+    expect(screen.queryByTestId('test-match-ready')).toBeNull();
+    release();
+    await settle();
+    expect(screen.getByTestId('test-match-ready')).toBeTruthy();
+  });
+
+  it('still shows the code with the message when a step after creating fails', async () => {
+    const release = serveSlowBots(true);
+    await showSection({ on: false, reason: null });
+    fireEvent.click(screen.getByTestId('test-match-create'));
+    release();
+    await settle();
+    expect(screen.getByTestId('test-match-code').textContent).toBe('TEST01');
+    expect(screen.getByTestId('test-match-error').textContent).toContain('Could not set up');
   });
 });
 

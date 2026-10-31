@@ -47,9 +47,11 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
   for (const key of BUILTIN_PRIZE_KEYS) {
     await page.getByTestId(`start-prize-${key}`).setChecked(prizes.has(key));
   }
-  await page.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
+  // The draw choice exists in both sections of the test page: the simulation's.
+  const simulation = page.getByTestId('simulation');
+  await simulation.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
   if (settings.intervalSec !== undefined) {
-    await page.getByTestId('start-draw-interval').fill(String(settings.intervalSec));
+    await simulation.getByTestId('start-draw-interval').fill(String(settings.intervalSec));
   }
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('stage-banner')).toBeVisible();

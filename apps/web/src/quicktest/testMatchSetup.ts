@@ -8,14 +8,19 @@
  *                 of the bots field, the POST /matches body built by the create form's own
  *                 `createBody` (a set start time with "Start automatically", D16), and the
  *                 calls in order: create, join as a player, bots, and for "Now" the host's
- *                 Start with the normal countdown. No new game mechanism.
- * Depends on:     ../host/createForm, ../drawControl, ../shell/http, ../types
+ *                 Start with the normal countdown, run by `useCreateTestMatch` for the form.
+ *                 No new game mechanism.
+ * Depends on:     react, ../host/createForm, ../drawControl, ../game/labels, ../shell/http,
+ *                 ../types
  * Used by:        ./TestMatch
  * Spec:           docs/spec/01-game-design.md §7.6 (D16); docs/spec/05-api-design.md §2.3, §2.3a
  */
+import { useState } from 'react';
+
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
+import { problemText } from '../game/labels.js';
 import { createBody, INITIAL, MAX_PLAYERS } from '../host/createForm.js';
-import { api } from '../shell/http.js';
+import { api, ApiError } from '../shell/http.js';
 import type { GameType } from '../types.js';
 
 // "Now": the host's Start with the 10-second countdown; else a set time N minutes ahead.
@@ -104,4 +109,31 @@ export async function createTestMatch(
   await post('bots', { upTo: playersOf(v) });
   if (v.start.kind === 'now') await post('start', {});
   return code;
+}
+
+// Runs the setup once: busy until it ends. The waiting room opens once the setup is done
+// (the bots in, as the steps say); a step that fails after the match exists still opens it,
+// with the message beside the code.
+export function useCreateTestMatch(handlers: {
+  readonly values: TestMatchValues;
+  readonly onCreated: (code: string) => void;
+  readonly onError: (error: string | null) => void;
+}): { readonly busy: boolean; readonly create: () => void } {
+  const { values, onCreated, onError } = handlers;
+  const [busy, setBusy] = useState(false);
+  const create = (): void => {
+    setBusy(true);
+    onError(null);
+    let created: string | null = null;
+    createTestMatch(values, (c) => {
+      created = c;
+    })
+      .then(onCreated)
+      .catch((e: unknown) => {
+        setBusy(false);
+        onError(e instanceof ApiError ? problemText(e.code, e.reason) : problemText(''));
+        if (created !== null) onCreated(created);
+      });
+  };
+  return { busy, create };
 }
