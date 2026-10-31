@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  The host ends a timed pause between royale rounds early (D21).
  *
- * Responsibility: a royale with the fast test profile and a 60-second pause, its first round
- *                 played to the cut. Outside the pause the host is refused; in the pause a
- *                 player and another host are refused, and the match's host starts the next
- *                 round at once: every viewer's state shows round 2 running, the event log
- *                 holds exactly one start of it (after the pause end recorded at the press),
- *                 and no timed round start is left pending. A second server on the same
- *                 database (a restart) shows the same, and the replaced timed start does
- *                 nothing when it runs there. The other host's account is deleted at the end.
- * Depends on:     vitest, ../src/auth/*, ./firstRound, ./harness, ./session
+ * Responsibility: royales (fast test profile, 60-second pause) played to the first cut.
+ *                 Outside the pause the host is refused; in it a player and another host are
+ *                 refused and the host starts round 2 at once for every viewer: one start in
+ *                 the log after the pause end recorded at the press, no timed start pending,
+ *                 the same after a restart. The press works over the socket too; a second
+ *                 press is refused, concurrent presses (HTTP and socket) start one round.
+ *                 The other host's account is deleted at the end.
+ * Depends on:     ../src/auth/*, ./firstRound, ./harness, ./session, ./socketKit
  * Spec:           docs/spec/01-game-design.md §7 (D14, D21); docs/spec/05-api-design.md §2.3a;
  *                 docs/spec/06-realtime-architecture.md §4.1
  */
@@ -20,18 +19,21 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { createSession } from '../src/auth/sessions.js';
 import { playFirstRound } from './firstRound.js';
-import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
-import { signIn, type Client } from './session.js';
+import { buildOn, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import type { Client } from './session.js';
+import { startSocketKit, type SocketKit } from './socketKit.js';
 
+let kit: SocketKit;
 let harness: Harness;
 let otherHostId = '';
 
 beforeAll(async () => {
-  harness = await startHarness();
+  kit = await startSocketKit();
+  harness = kit.harness;
 }, SUITE_TIMEOUT_MS);
 afterAll(async () => {
   if (otherHostId !== '') await deleteAccount(harness.pool, otherHostId);
-  await stopHarness(harness);
+  await kit.close();
 }, SUITE_TIMEOUT_MS);
 
 // "Start next round now" as another organizer (match.manage, but not this match's host).
@@ -107,8 +109,7 @@ async function checkLog(id: string, pressedAt: number): Promise<void> {
 
 describe('the host ends a timed pause early (D21)', () => {
   it('starts the next round at once, once, also after a restart; only the host may', async () => {
-    const host = await signIn(harness.built.fastify, 'host');
-    const player = await signIn(harness.built.fastify, 'player-1');
+    const { host, player } = kit;
     const { code, id } = await toFirstPause(host, player);
     const now = `/api/v1/matches/${code}/next-round`;
     expect((await player.post(now, {})).statusCode).toBe(403);
@@ -137,5 +138,41 @@ describe('the host ends a timed pause early (D21)', () => {
     } finally {
       await restarted.fastify.close();
     }
+  }, 120_000);
+});
+
+describe('pressing "Start next round now" more than once (D21)', () => {
+  const state = (code: string) => kit.host.get(`/api/v1/matches/${code}/state`);
+
+  it('works over the socket, and a second press is refused on either path', async () => {
+    const { code } = await toFirstPause(kit.host, kit.player);
+    const socket = kit.open(kit.host.cookie);
+    expect(await kit.connected(socket)).toBe('ok');
+    expect(await kit.send(socket, 'round.next', { code })).toEqual({ ok: true });
+    expect(await kit.send(socket, 'round.next', { code })).toMatchObject({
+      ok: false,
+      code: 'NOT_WAITING_FOR_HOST',
+    });
+    const http = await kit.host.post(`/api/v1/matches/${code}/next-round`, {});
+    expect([http.statusCode, http.json()]).toEqual([409, { code: 'NOT_WAITING_FOR_HOST' }]);
+    expect(startsOf((await state(code)).json<StateBody>(), 1)).toBe(1);
+    socket.disconnect();
+  }, 120_000);
+
+  it('starts one round when HTTP and socket presses arrive together', async () => {
+    const { code, id } = await toFirstPause(kit.host, kit.player);
+    const socket = kit.open(kit.host.cookie);
+    expect(await kit.connected(socket)).toBe('ok');
+    const url = `/api/v1/matches/${code}/next-round`;
+    const answers = await Promise.all([
+      kit.host.post(url, {}).then((r) => r.statusCode === 200),
+      kit.host.post(url, {}).then((r) => r.statusCode === 200),
+      kit.send(socket, 'round.next', { code }).then((a) => a.ok),
+      kit.send(socket, 'round.next', { code }).then((a) => a.ok),
+    ]);
+    expect(answers.filter(Boolean)).toHaveLength(1);
+    expect(startsOf((await state(code)).json<StateBody>(), 1)).toBe(1);
+    await checkLog(id, 0);
+    socket.disconnect();
   }, 120_000);
 });
