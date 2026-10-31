@@ -5,14 +5,15 @@
  *
  * Responsibility: a session id is 32 random bytes sent in the cookie; the database keeps
  *                 only its SHA-256. Each session carries a synchronizer CSRF token (03 §8).
- *                 Lookup loads the account's display name and permissions (via role
+ *                 Lookup (by cookie token, or by session id for a socket's host intents)
+ *                 loads the account's display name and permissions (via role
  *                 assignments; a guest session gets the guest role's permissions) and
  *                 refuses revoked, expired and idle-expired sessions. Idle 7 days, absolute
  *                 30 days for players and guests; idle 30 minutes, absolute 8 hours for
  *                 accounts with an admin role. Dead sessions are purged by the retention job.
  * Depends on:     node:crypto, ../db/pool
  * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway,
- *                 ../match/retention
+ *                 ../realtime/intents, ../match/retention
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/04-database-design.md §3.1
  */
 import { createHash, randomBytes } from 'node:crypto';
@@ -71,10 +72,24 @@ interface SessionRow {
 
 // Loads a live session and slides its idle expiry. Unknown or dead tokens give null.
 export async function findSession(pool: DbPool, token: string): Promise<Session | null> {
+  return liveSession(pool, 's.token_hash', tokenHash(token));
+}
+
+// The same checks by session id, for a socket that holds a session loaded at connect: a
+// host intent re-reads it, so an expired or revoked session or a lost role counts at once.
+export async function refreshSession(pool: DbPool, sessionId: string): Promise<Session | null> {
+  return liveSession(pool, 's.id', sessionId);
+}
+
+async function liveSession(
+  pool: DbPool,
+  by: 's.token_hash' | 's.id',
+  key: Buffer | string,
+): Promise<Session | null> {
   const result = await pool.query<SessionRow>(
     `UPDATE sbr.sessions s SET last_seen_at = now(),
        idle_expires_at = now() + CASE s.kind WHEN 'admin' THEN interval '30 minutes' ELSE interval '7 days' END
-       WHERE s.token_hash = $1 AND s.revoked_at IS NULL
+       WHERE ${by} = $1 AND s.revoked_at IS NULL
          AND s.expires_at > now() AND s.idle_expires_at > now()
      RETURNING s.id, s.account_id, s.kind, s.csrf_token,
        (SELECT a.display_name FROM sbr.accounts a WHERE a.id = s.account_id AND a.status = 'active') AS display_name,
@@ -82,7 +97,7 @@ export async function findSession(pool: DbPool, token: string): Promise<Session 
           WHERE rp.role_id = 'guest' AND s.account_id IS NULL
              OR rp.role_id IN (SELECT ra.role_id FROM sbr.role_assignments ra WHERE ra.account_id = s.account_id)
        ) AS permissions`,
-    [tokenHash(token)],
+    [key],
   );
   const row = result.rows[0];
   if (row === undefined) return null;

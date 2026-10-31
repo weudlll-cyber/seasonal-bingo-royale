@@ -6,10 +6,11 @@
  * Responsibility: validate the request body with zod, call the dev-only match runner,
  *                 return the full result as JSON. The route is only mounted when
  *                 NODE_ENV !== 'production' so it is unavailable in a shipped build.
- * Depends on:     fastify, zod, ../../dev/quicktest
+ * Depends on:     fastify, zod, @sbr/contracts, ../../dev/quicktest
  * Used by:        ../app.ts
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §6
  */
+import { MAX_PRIZES, PrizeKeySchema } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
@@ -22,7 +23,8 @@ const bodySchema = z.object({
   ownerCards: z.number().int().min(1).max(4),
   seedText: z.string().min(1).max(64),
   tickedPrizes: z
-    .array(z.string().min(1))
+    .array(PrizeKeySchema)
+    .max(MAX_PRIZES)
     .refine((list) => new Set(list).size === list.length, { error: 'duplicate prize key' }),
   markingMode: z.enum(['auto', 'manual']),
   // Missed-number rule for the owner's tapping cards (01 §6); the runner raises a delay

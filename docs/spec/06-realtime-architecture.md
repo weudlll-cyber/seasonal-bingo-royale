@@ -13,7 +13,7 @@
 
 1. Client opens the socket with credentials: cookie (first-party) or `auth: { token }` (embed bearer).
 2. Server middleware verifies the session/token, checks `Origin` against the allowed origin list (own origin + `embed_origins`), checks account status and global chat/account sanctions, and attaches `socket.data.principal = { accountId, permissions, sessionId }`.
-3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately. Built: every socket joins the room `session:<id>`; logout, a new sign-in (which revokes the old session) and account deletion disconnect that session's sockets; a recovered connection runs the session check again (`skipMiddlewares: false`). Role changes follow with the admin app.
+3. Session revocation and role changes publish `SessionRevoked` / `PermissionsChanged` on the event bus; the gateway disconnects or updates affected sockets immediately. Built: every socket joins the room `session:<id>`; logout, a new sign-in (which revokes the old session) and account deletion disconnect that session's sockets; a recovered connection runs the session check again (`skipMiddlewares: false`). Every host intent (`draw.next`, `round.next`, `draw.setMode`) re-reads the session by its id with the same checks as every HTTP call (revoked, expired, idle-expired, account no longer active; permissions from the current role assignments), so a session that expired while the socket stayed open answers `UNAUTHORIZED` and the socket closes, and a host who lost `match.manage` gets `FORBIDDEN` at once. Role-change events follow with the admin app.
 4. A socket may be in at most 3 match rooms at once (watching several async matches).
 
 ## 3. Rooms
@@ -38,7 +38,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 ```
 
 - `seq` (client) is per socket, strictly increasing; duplicates/out-of-order intents are dropped (replay protection).
-- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
+- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view: the names come from that match's own entries — a deleted account shows as "deleted player" with a short tag, never its account id — and the gateway caches them per match for 30 s, at most 1000 matches; an id it does not know yet, a player who just joined, loads the match's names again); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
 - `s` (server) is the match `event seq`; clients detect gaps (`s` jumps) and resync by calling the state endpoint.
 - Intents use Socket.IO acknowledgements: `{ ok: true, data }` or `{ ok: false, code }` with codes from the error catalogue.
 

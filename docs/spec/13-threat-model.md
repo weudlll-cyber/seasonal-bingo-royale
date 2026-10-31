@@ -41,17 +41,17 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T4 | 1 | I | Predicting draws to gain advantage | 1 | 3 | CSPRNG seed, commit-reveal, seed encrypted at rest (§9, §11) |
 | T5 | 1 | T | Speed-bonus cheating with fake timestamps or bots | 2 | 1 | Server-side timing, bot heuristics, small bonus size (§11) |
 | T6 | 1 | E | Multi-accounting to farm league points | 2 | 2 | E-mail verification, signup limits, min distinct players for points, heuristics (§11) |
-| T7 | 1 | D | Connection/request flood, WS flood | 2 | 3 | Caddy limits, app limits, socket caps, optional Cloudflare (§13) |
+| T7 | 1 | D | Connection/request flood, WS flood | 2 | 3 | Caddy limits, app limits, socket caps, optional Cloudflare (§13); "Verify this match" computed once per match that is over and cached (05 §2.3) |
 | T8 | 1 | T | CSRF on state-changing endpoints | 2 | 2 | SameSite + synchronizer token, Origin check on WS (§8) |
 | T9 | 1 | R | Moderator/admin denies an action | 2 | 2 | Hash-chained append-only audit log (§16) |
 | T10 | 1 | I | Account enumeration | 2 | 1 | Uniform responses and timing (§2) |
-| T11 | 1 | E | IDOR: reading another player’s cards or private data | 2 | 2 | Ownership checks in every query use case, authz matrix tests |
+| T11 | 1 | E | IDOR: reading another player’s cards or private data | 2 | 2 | Ownership checks in every query use case, authz matrix tests; live frames name only the match's own players, from its entries, never by account id (06 §4) |
 | T12 | 2 | S | Malicious site embeds the game (clickjacking) or spoofs postMessage | 2 | 2 | `frame-ancestors` allowlist, strict origin checks, explicit `targetOrigin` (07 §3) |
 | T13 | 2 | S | Forged or replayed handoff JWT | 2 | 3 | Pinned algs/keys, aud/exp/jti single use, ≤ 60 s (§4) |
 | T14 | 2 | E | Host maps its users to admin roles | 1 | 3 | Mapping can never grant security_admin/super_admin (07 §2.1) |
 | T15 | 2 | S | Account takeover via unverified e-mail at an IdP | 2 | 3 | Link only by (iss, sub), no silent e-mail linking (07 §2.1) |
-| T16 | 3/4 | T | SQL injection | 1 | 3 | Parameterized queries, lint ban, no DDL for app role (§6) |
-| T17 | 4 | I | DB dump leaks secrets | 1 | 3 | Field encryption for secrets/seeds, hashed tokens, encrypted backups (§9, §15) |
+| T16 | 3/4 | T | SQL injection | 1 | 3 | Parameterized queries, lint ban, no DDL for app role (§6); free text capped in the contracts and by CHECKs (display name, prize keys) |
+| T17 | 4 | I | DB dump leaks secrets | 1 | 3 | Field encryption for secrets/seeds (sealed seeds bound to their match id, strict decoding), hashed tokens, encrypted backups (§9, §15) |
 | T18 | 5 | I | SSRF through OIDC discovery, JWKS or webhook URLs | 2 | 3 | SafeHttpClient with allowlist and IP range blocks (§10) |
 | T19 | 5 | T | Webhook receiver spoofing / replay | 1 | 1 | HMAC signature with timestamp (07 §5) |
 | T20 | 1 | T | Malicious upload (polyglot, script SVG) | 1 | 3 | Admin-only, magic bytes, re-encode, SVG sanitize, isolated serving (§14) |
@@ -63,6 +63,7 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T26 | all | D | Data loss (disk failure, operator error) | 2 | 3 | Encrypted nightly backups pulled off-site, restore drill (§15) |
 | T27 | 1 | I | Personal data exposure in logs | 2 | 2 | No secrets/bodies in logs, IP truncation, pseudonymous IDs (02 §7) |
 | T28 | 1 | T | Replayed or duplicated WS intents | 2 | 1 | Per-socket seq, idempotent marks (06 §4) |
+| T29 | 1 | E | A long-lived socket keeps host powers after its session expired or the role was removed | 2 | 2 | Every host intent re-reads the session with the HTTP checks; an ended session closes the socket (§3, 06 §2) |
 
 ## 5. Residual risks (accepted)
 

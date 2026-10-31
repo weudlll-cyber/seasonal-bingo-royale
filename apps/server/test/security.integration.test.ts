@@ -9,7 +9,7 @@
  *                 path and cleared with Secure; admin accounts get short sessions; the
  *                 Permissions-Policy header; /metrics refused through a proxy; no account
  *                 ids to anonymous viewers, a deleted player shown as such; a broken
- *                 %-escape answers 400.
+ *                 %-escape answers 400. The guest sessions it creates are removed at the end.
  * Depends on:     vitest, node:fs, ./socketKit, ./harness, ./session, ../src/auth/*, fastify,
  *                 socket.io-client
  * Spec:           docs/spec/03-security-architecture.md §3, §7, §13; docs/spec/06-realtime-architecture.md §2.3
@@ -24,7 +24,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { registerAccount } from '../src/auth/accounts.js';
 import { purgeDeadSessions } from '../src/auth/sessions.js';
-import { buildOn, stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import {
+  buildOn,
+  guestSessions,
+  removeGuests,
+  stopOpenMatches,
+  SUITE_TIMEOUT_MS,
+} from './harness.js';
 import { signIn } from './session.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
@@ -35,6 +41,8 @@ beforeAll(async () => {
 }, SUITE_TIMEOUT_MS);
 afterAll(async () => {
   await stopOpenMatches(kit.harness);
+  await removeGuests(kit.harness);
+  expect(await guestSessions(kit.harness)).toBe(0);
   await kit.close();
 }, SUITE_TIMEOUT_MS);
 

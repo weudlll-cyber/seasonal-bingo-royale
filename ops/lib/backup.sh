@@ -19,7 +19,7 @@
 #                 flag stays as it is) and puts the backup's seed key into an env file
 #                 without one. A drill restores into a throw-away PostgreSQL container
 #                 (readiness wait capped at 60 s), counts the rows and lets the app's own
-#                 code open one stored version-2 seed with the backup's key. The systemd
+#                 code open one stored sealed seed with the backup's key. The systemd
 #                 timer runs `sbr --env <env> backup` at 03:30; a failed run marks
 #                 /var/lib/sbr/<env>/backup-failed (sbr status shows it) and logs an error.
 # Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
@@ -170,7 +170,7 @@ drill_database() {
 }
 
 # do_drill <env> <file> <identity>: restores into a throw-away database, counts what came
-# back and opens one stored version-2 seed with the backup's seed key.
+# back and opens one stored sealed seed with the backup's seed key.
 do_drill() {
   local env=$1 work name="sbr-drill-$$" counts key image opened
   work=$(mktemp -d)

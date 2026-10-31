@@ -17,6 +17,10 @@ export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,
   DEFAULT_PRIZE_SELECTION,
+  MAX_PRIZES,
+  PRIZE_KEY_MAX_LENGTH,
+  PrizeKeySchema,
+  PrizeListSchema,
 } from './config/prizes.js';
 export {
   REALTIME_DRAW_INTERVAL_MS,

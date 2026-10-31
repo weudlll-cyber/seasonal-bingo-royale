@@ -72,7 +72,7 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | Method | Path | Body | Who |
 |---|---|---|---|
 | GET | `/matches` | — | anyone: open and running matches, and those ended in the last day |
-| POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }` | `match.create` |
+| POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }`; `prizes` at most 20 keys of 1–32 characters (`PrizeKeySchema`, `MAX_PRIZES` in `packages/contracts`), else 400 `VALIDATION_FAILED` | `match.create` |
 | GET | `/matches/:code` | — | anyone: the summary (`youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, …) |
 | GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta; during the pause after a royale round `view.recaps` holds that round's recap (D20, `RoundRecap` in `packages/contracts`), the same for every viewer |
 | POST | `/matches/:code/join` | `{}` | `match.join` |
@@ -86,7 +86,7 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | POST | `/matches/:code/bots` · `/matches/:code/dev-system-abort` | `{ upTo }` · `{ reason }` | development builds only |
 | DELETE | `/me` | `{ password }` | the signed-in account |
 | GET | `/maintenance` | — | anyone: `{ on, reason }` while `sbr maintenance on` is set (09 §4) |
-| GET | `/matches/:code/verify` | — | anyone, once the match has finished or was cancelled: the commitment and the revealed seed (hex), the ruleset, per round the numbers drawn and whether the draw order, the draws and the cards follow from the seed (counted, no account ids), and `verified`; before the end 409 `MATCH_NOT_OVER` (01 §9); its own limit of 20 calls a minute per address (429 `RATE_LIMITED`), since one answer recomputes the whole match |
+| GET | `/matches/:code/verify` | — | anyone, once the match has finished or was cancelled: the commitment and the revealed seed (hex), the ruleset, per round the numbers drawn and whether the draw order, the draws and the cards follow from the seed (counted, no account ids), and `verified`; before the end 409 `MATCH_NOT_OVER` (01 §9); its own limit of 20 calls a minute per address (429 `RATE_LIMITED`), since one answer recomputes the whole match; the answer of a match that is over never changes, so it is computed once and kept in memory (the newest 500 matches; calls arriving together share one computation) |
 
 Answers are `{ code }` on error (problem+json follows with the contracts work): `VALIDATION_FAILED` (400), `SIGN_IN_REQUIRED` (401), `FORBIDDEN`, `NOT_YOUR_MATCH`, `CSRF_INVALID`, `PASSWORD_REQUIRED` (403), `NOT_FOUND` (404), `MATCH_NOT_IN_LOBBY`, `MATCH_FULL`, `DRAW_MODE_AUTO`, `DRAW_NOT_ALLOWED`, `DRAW_TOO_EARLY`, `NOT_WAITING_FOR_HOST`, `NO_START_TIME`, `MATCH_STARTING`, `MATCH_NOT_OVER` (409), `NOT_ENOUGH_PLAYERS`, `START_TIME_INVALID`, `INVALID_PRIZES`, `MARK_REJECTED` (422), `JSON_REQUIRED` (415), `RATE_LIMITED` (429), `MAINTENANCE` (503, `sbr maintenance on`; the body adds the operator's `reason`, D22).
 

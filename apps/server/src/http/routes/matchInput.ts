@@ -8,11 +8,12 @@
  *                 players, pause between royale rounds, and in development the fast test
  *                 profile), its mapping to the engine's CreateMatchInput, and the status
  *                 code for each MatchError (404 unknown match, 409 wrong phase, 503 maintenance, 422 the rest).
- * Depends on:     fastify, zod, @sbr/application, ../../dev/fastRulesets
+ * Depends on:     fastify, zod, @sbr/application, @sbr/contracts, ../../dev/fastRulesets
  * Used by:        ./matches, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §5; docs/spec/11-admin-panel.md §3.2
  */
 import { MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
+import { MAX_PRIZES, PrizeKeySchema } from '@sbr/contracts';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 
@@ -21,7 +22,8 @@ import { fastRuleset } from '../../dev/fastRulesets.js';
 export const createBody = z.object({
   title: z.string().trim().min(1).max(60),
   gameType: z.enum(['royale', 'classicSeasons', 'classic']),
-  prizes: z.array(z.string().min(1)).max(20).optional(),
+  // Each key and the list are capped (@sbr/contracts PrizeKeySchema, MAX_PRIZES).
+  prizes: z.array(PrizeKeySchema).max(MAX_PRIZES).optional(),
   drawMode: z.enum(['auto', 'host']),
   drawIntervalMs: z.number().int().min(1).max(3_600_000).optional(),
   missedNumbers: z.discriminatedUnion('kind', [

@@ -15,7 +15,7 @@
 import { z } from 'zod';
 
 import { GameTypeSchema, isClassic } from './gameType.js';
-import { BuiltinPrizeKeySchema, PrizeListSchema } from './prizes.js';
+import { BuiltinPrizeKeySchema, PrizeKeySchema, PrizeListSchema } from './prizes.js';
 
 const ModeSchema = z.enum(['realtime', 'async']);
 const MarkingModeSchema = z.enum(['auto', 'manual']);
@@ -142,7 +142,7 @@ const StageSchema = z.object({
   cut: CutRuleSchema.optional(),
   scoreCarry: ScoreCarrySchema,
   stageMultiplier: z.number().min(0.1).max(10),
-  activePatterns: z.array(BuiltinPrizeKeySchema.or(z.string().min(1))).nonempty(),
+  activePatterns: z.array(BuiltinPrizeKeySchema.or(PrizeKeySchema)).nonempty(),
 });
 
 const ScoringSchema = z.object({

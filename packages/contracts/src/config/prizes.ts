@@ -8,10 +8,11 @@
  *                 01 §3a.2), and the default ticked set that pre-fills the
  *                 match-create form (11 §3.2). Custom library patterns extend
  *                 this catalogue through the pattern document, below `fullCard`.
+ *                 A prize key is capped at 32 characters and a list at 20 keys.
  * Depends on:     zod
- * Used by:        ./ruleset.ts, future match-create contracts, ./defaults/classicRealtime,
- *                 ./defaults/classicSeasonsRealtime, ../index
- * Spec:           docs/spec/01-game-design.md §3a.1, §3a.2
+ * Used by:        ./ruleset.ts, ./defaults/classicRealtime, ./defaults/classicSeasonsRealtime,
+ *                 ../index (apps/server match-create and Quick Test bodies), ./prizes.test
+ * Spec:           docs/spec/01-game-design.md §3a.1, §3a.2; docs/spec/05-api-design.md §2.3
  */
 import { z } from 'zod';
 
@@ -66,11 +67,19 @@ export const DEFAULT_PRIZE_SELECTION: readonly BuiltinPrizeKey[] = Object.freeze
   'fullCard',
 ]);
 
+// The text a client may send for prizes is capped (audit): a key is at most
+// PRIZE_KEY_MAX_LENGTH characters (the longest built-in key has 13), a list at most
+// MAX_PRIZES keys. The database holds the same caps (migration 0008).
+export const PRIZE_KEY_MAX_LENGTH = 32;
+export const MAX_PRIZES = 20;
+export const PrizeKeySchema = z.string().min(1).max(PRIZE_KEY_MAX_LENGTH);
+
 // At runtime a prize list may also contain custom pattern keys defined in the ruleset's
-// patterns array. The schema accepts any non-empty string, but duplicates are rejected
-// and at least one key is required so the match cannot start with no prizes to award.
+// patterns array. The schema accepts any capped non-empty string, but duplicates are
+// rejected and at least one key is required so the match cannot start with no prizes.
 export const PrizeListSchema = z
-  .array(z.string().min(1))
+  .array(PrizeKeySchema)
+  .max(MAX_PRIZES)
   .nonempty({ error: 'at least one prize must be ticked' })
   .refine((list) => new Set(list).size === list.length, {
     error: 'prize keys must be unique',
