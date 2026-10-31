@@ -169,6 +169,7 @@ Uploaded images are never fetched from URLs — only direct uploads.
 | Registration | 5 / h per IP |
 | Password reset | 3 / h per account, 10 / h per IP |
 | General API | 120 / min per session |
+| "Verify this match" (`GET /matches/:code/verify`) | 20 / min per address; the answer of a match that is over is computed once and cached (newest 500 matches), so repeated calls cost no recomputation |
 | WS intents | marks 4 / s, chat per §12, other 10 / s |
 
 Account lockout is **soft** (delay), never a hard lock that an attacker could use to lock out a victim.

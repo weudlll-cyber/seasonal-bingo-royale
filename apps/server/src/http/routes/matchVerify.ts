@@ -9,8 +9,9 @@
  *                 verifyMatch against the commitment published at match open, and answer
  *                 the contracts' MatchVerificationView. Before the end the answer is 409
  *                 MATCH_NOT_OVER and the seed stays sealed (01 §9). One answer recomputes the
- *                 whole match, so the route has its own limit on top of the API's (20 a
- *                 minute per address, 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
+ *                 whole match, so it is computed once per match that is over and kept (the
+ *                 newest 500 matches), and the route has its own limit on top of the API's
+ *                 (20 a minute per address, 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
  * Depends on:     fastify, @fastify/rate-limit, @sbr/contracts (types), @sbr/domain, ../../db/pool,
  *                 ../../match/codec, ../../match/pgMatchStore
  * Used by:        ../app
@@ -45,6 +46,31 @@ interface SealedRow {
 // Per address and minute: plenty for a person checking matches, little for a flood.
 const VERIFY_LIMIT = { max: 20, timeWindow: 60_000 };
 
+// Finished and cancelled are final, so a match's answer never changes: each is computed
+// once and kept, the newest VERIFIED_KEPT of them (the oldest leaves first). The promise is
+// kept, so calls that arrive together share one computation; a failed one is forgotten.
+const VERIFIED_KEPT = 500;
+
+class VerifiedAnswers {
+  private readonly kept = new Map<string, Promise<MatchVerificationView>>();
+
+  of(
+    matchId: string,
+    compute: () => Promise<MatchVerificationView>,
+  ): Promise<MatchVerificationView> {
+    const known = this.kept.get(matchId);
+    if (known !== undefined) return known;
+    const answer = compute();
+    this.kept.set(matchId, answer);
+    answer.catch(() => {
+      this.kept.delete(matchId);
+    });
+    const oldest = this.kept.keys().next().value;
+    if (this.kept.size > VERIFIED_KEPT && oldest !== undefined) this.kept.delete(oldest);
+    return answer;
+  }
+}
+
 export async function registerVerifyRoute(
   app: FastifyInstance,
   deps: VerifyRouteDeps,
@@ -55,6 +81,7 @@ export async function registerVerifyRoute(
     errorResponseBuilder: () => ({ statusCode: 429, code: 'RATE_LIMITED', message: 'Too many' }),
   });
   const config = { rateLimit: VERIFY_LIMIT };
+  const answers = new VerifiedAnswers();
   app.get<{ Params: { code: string } }>(
     '/api/v1/matches/:code/verify',
     { config },
@@ -67,11 +94,14 @@ export async function registerVerifyRoute(
       const row = r.rows[0];
       if (row === undefined) return reply.status(404).send({ code: 'NOT_FOUND' });
       // The seed is revealed only once the match is over (01 §9).
-      if (row.status !== 'finished' && row.status !== 'aborted') {
+      const status = row.status;
+      if (status !== 'finished' && status !== 'aborted') {
         return reply.status(409).send({ code: 'MATCH_NOT_OVER' });
       }
-      const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
-      return verificationOf(row, row.status, openSeedColumn(row, deps.seedKey), events);
+      return answers.of(row.id, async () => {
+        const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
+        return verificationOf(row, status, openSeedColumn(row, deps.seedKey), events);
+      });
     },
   );
 }

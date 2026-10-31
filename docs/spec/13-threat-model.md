@@ -41,7 +41,7 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T4 | 1 | I | Predicting draws to gain advantage | 1 | 3 | CSPRNG seed, commit-reveal, seed encrypted at rest (§9, §11) |
 | T5 | 1 | T | Speed-bonus cheating with fake timestamps or bots | 2 | 1 | Server-side timing, bot heuristics, small bonus size (§11) |
 | T6 | 1 | E | Multi-accounting to farm league points | 2 | 2 | E-mail verification, signup limits, min distinct players for points, heuristics (§11) |
-| T7 | 1 | D | Connection/request flood, WS flood | 2 | 3 | Caddy limits, app limits, socket caps, optional Cloudflare (§13) |
+| T7 | 1 | D | Connection/request flood, WS flood | 2 | 3 | Caddy limits, app limits, socket caps, optional Cloudflare (§13); "Verify this match" computed once per match that is over and cached (05 §2.3) |
 | T8 | 1 | T | CSRF on state-changing endpoints | 2 | 2 | SameSite + synchronizer token, Origin check on WS (§8) |
 | T9 | 1 | R | Moderator/admin denies an action | 2 | 2 | Hash-chained append-only audit log (§16) |
 | T10 | 1 | I | Account enumeration | 2 | 1 | Uniform responses and timing (§2) |
