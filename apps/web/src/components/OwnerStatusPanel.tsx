@@ -10,7 +10,7 @@
  *                 server, never from local taps. Once eliminated, the panel says "Out in
  *                 cut N" instead of effects and shield.
  * Depends on:     react, ./SeasonIcon, ../types
- * Used by:        ./OwnerArea, ../game/MatchScreen
+ * Used by:        ./OwnerArea (OwnerStatusFor, also for ../game/MatchScreen)
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';

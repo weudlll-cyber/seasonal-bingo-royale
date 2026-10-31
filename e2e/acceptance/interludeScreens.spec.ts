@@ -121,7 +121,8 @@ test('every round recap card, host and player, both themes and sizes', async ({ 
     await expect(player.getByTestId('interlude')).toBeVisible({ timeout: 10_000 });
     const hostCards = await shootCards(host, 'host');
     const playerCards = await shootCards(player, 'player');
-    console.log(`INTERLUDE cards ${JSON.stringify({ hostCards, playerCards })}`);
+    // Evidence for the report, in the form of the other specs: TAG, the match, the facts.
+    console.log(`INTERLUDE ${code} ${JSON.stringify({ hostCards, playerCards })}`);
     expect(hostCards).toContain('cut');
     expect(playerCards).toEqual(hostCards);
   } finally {

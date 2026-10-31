@@ -1,6 +1,14 @@
-/* The interlude between royale rounds (./Interlude, D20): a card sequence in the pause.
-   Design tokens only, so both themes follow; motion comes from ../motion.css and stops
-   under prefers-reduced-motion. */
+/**
+ * @file   apps/web/src/game/interlude.css
+ * @module web/game
+ * @brief  The interlude between royale rounds (D20): the recap card sequence in the pause.
+ *
+ * Responsibility: the layout of ./Interlude's cards, podium and step controls with design
+ *                 tokens only, so both themes follow; motion comes from ../motion.css and
+ *                 stops under prefers-reduced-motion.
+ * Used by:        ./Interlude
+ * Spec:           docs/spec/01-game-design.md §7 (D20), §13
+ */
 .interlude {
   display: grid;
   gap: var(--space-2);

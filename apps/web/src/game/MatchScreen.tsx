@@ -25,8 +25,7 @@ import type { ReactElement } from 'react';
 
 import { CutScreen } from '../components/CutScreen.js';
 import { DrawTicker } from '../components/DrawTicker.js';
-import { inPlay, ownerRank } from '../components/OwnerArea.js';
-import { OwnerStatusPanel } from '../components/OwnerStatusPanel.js';
+import { inPlay, OwnerStatusFor } from '../components/OwnerArea.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
 import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
@@ -85,15 +84,7 @@ function Arena({
         </section>
         <aside className="arena-side">
           {owner !== undefined ? (
-            <OwnerStatusPanel
-              accountId={owner.accountId}
-              points={owner.points}
-              rank={ownerRank(result, view, owner.accountId)}
-              status={view.ownerStatus[owner.accountId] ?? null}
-              effectSeasons={result.effectSeasons}
-              showSeasons={result.gameType === 'royale'}
-              outInCut={owner.eliminatedCut}
-            />
+            <OwnerStatusFor result={result} view={view} owner={owner} />
           ) : null}
           {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
           {/* At the end the final placement above replaces the live standings. */}

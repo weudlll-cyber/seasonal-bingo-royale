@@ -17,7 +17,7 @@
  * Used by:        ./components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §6, §8.1; docs/spec/15-implementation-plan.md WP-08
  */
-import type { Cell, MissedNumbers } from './types.js';
+import { secondsText, type Cell, type MissedNumbers } from './types.js';
 
 export interface ManualRules {
   readonly maxSpeedBonus: number;
@@ -148,12 +148,8 @@ export function feedbackText(feedback: Feedback | null): string {
     case 'roundOver':
       return 'Round over — no more taps';
     case 'autoMarked':
-      return `Marked ${String(feedback.count)} for you without bonus (after ${seconds(feedback.delayMs)} s)`;
+      return `Marked ${String(feedback.count)} for you without bonus (after ${secondsText(feedback.delayMs)} s)`;
   }
-}
-
-function seconds(ms: number): string {
-  return String(Math.round(ms / 100) / 10);
 }
 
 function withMark(marks: readonly boolean[], index: number): readonly boolean[] {

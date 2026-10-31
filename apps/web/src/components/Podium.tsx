@@ -14,7 +14,7 @@ import type { ReactElement } from 'react';
 
 import './results.css';
 
-export interface PodiumEntry {
+interface PodiumEntry {
   readonly place: number;
   readonly name: string;
   readonly note: string;

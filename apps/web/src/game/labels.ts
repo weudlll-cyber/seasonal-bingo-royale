@@ -14,7 +14,7 @@
  *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
-import { ballLabel, type GameType } from '../types.js';
+import { ballLabel, secondsText as seconds, type GameType } from '../types.js';
 import type { PlaybackView } from '../playback.js';
 import type { LiveState, MatchSummary } from './useLiveMatch.js';
 
@@ -34,8 +34,6 @@ export function statusName(status: MatchSummary['status']): string {
   };
   return names[status];
 }
-
-const seconds = (ms: number): string => String(Math.round(ms / 100) / 10);
 
 export function drawLine(settings: MatchSummary['settings']): string {
   return settings.drawMode === 'auto'
