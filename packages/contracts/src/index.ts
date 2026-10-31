@@ -9,7 +9,7 @@
  *                 match); later WPs add HTTP/WS envelopes and other config documents.
  * Depends on:     zod, ./config/*, ./view/*, ./config/defaults/index
  * Used by:        apps/server, apps/web, apps/admin, packages/application, packages/domain,
- *                 ./config/ruleset.test
+ *                 ./config/ruleset.test, ./config/prizes.test
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 
@@ -18,6 +18,10 @@ export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,
   DEFAULT_PRIZE_SELECTION,
+  MAX_PRIZES,
+  PRIZE_KEY_MAX_LENGTH,
+  PrizeKeySchema,
+  PrizeListSchema,
 } from './config/prizes.js';
 export {
   REALTIME_DRAW_INTERVAL_MS,

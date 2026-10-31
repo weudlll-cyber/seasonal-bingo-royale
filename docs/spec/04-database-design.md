@@ -118,7 +118,7 @@ embed_origins
 | seed_enc | bytea | AES-GCM; readable by API only when `status IN ('finished','aborted')` |
 | seed_enc_version | smallint | 3: `seed_enc` sealed with the match id as AAD (written today); 2: sealed without it (matches stored before, kept as they are) |
 | current_stage int, current_round int | | royale only; NULL in classic types |
-| prizes | text[] | classic types: ticked prize keys from 01 §3a.1, in catalogue order; empty for royale |
+| prizes | text[] | classic types: ticked prize keys from 01 §3a.1, in catalogue order; empty for royale; CHECK at most 20 keys of 1–32 characters (`sbr.prize_keys_capped`, the caps of `@sbr/contracts`) |
 | counts_for_leaderboard | bool | 01 §3a.3; default true for royale, false for classic |
 | host_call_ref | text NULL | linked Seasonal Entertainment call reference, 01 §12a |
 | draw_mode | text | `auto` or `host` (01 §5); set at creation, changed by the host during the match; default `auto` |
