@@ -3,15 +3,14 @@
  * @module application/match
  * @brief  How a match starts (01 §7.6, D16): Start, a set time with or without auto start, when full.
  *
- * Responsibility: the host starts a match with a set time before that time; with the
- *                 automatic start on, the countdown begins at the set time when enough
- *                 players have joined; with fewer the match waits (not aborted) and the
- *                 host can still start it; the console's switch takes effect both ways, also
- *                 after the time has passed; "start when full" begins the countdown with the
- *                 last place; a start time too soon or more than a week ahead is refused;
- *                 the start minimum is the ruleset's lobby.minPlayers (default 2).
- * Depends on:     vitest, @sbr/contracts, ./engine, ./fakes, ./startRules
- * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
+ * Responsibility: Start before a set time; the automatic start at the time with enough
+ *                 players, waiting with fewer, the console switch both ways, nothing from a
+ *                 late or stale automatic start; start when full with the last place; the
+ *                 time limits; the ruleset's start minimum (default 2); maintenance holds
+ *                 every start and releases it when turned off, Start refused with the
+ *                 reason (D22); a second Start during the countdown refused (audit M4).
+ * Depends on:     @sbr/contracts, ./engine, ./fakes, ./startRules
+ * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
  */
 import { classicRealtimeDefault } from '@sbr/contracts';
 import { describe, expect, it } from 'vitest';
@@ -226,5 +225,26 @@ describe('a second Start during the countdown (audit M4)', () => {
     await expect(t.engine.start(t.id, 10_000)).rejects.toEqual(new MatchError('MATCH_STARTING'));
     const starts = t.scheduler.pending.filter((a) => a.kind === 'start_match');
     expect(starts).toHaveLength(1);
+  });
+});
+
+describe('a late or stale automatic start (D16)', () => {
+  it('does nothing once the countdown runs', async () => {
+    const t = await announced(true);
+    await t.engine.fillWithBots(t.id, 4);
+    await t.engine.start(t.id, 10_000);
+    const startsAt = t.store.records.get(t.id)?.startsAt;
+    await t.engine.handle({ matchId: t.id, kind: 'auto_start', dueAt: t.clock.t });
+    expect(t.store.records.get(t.id)?.startsAt).toBe(startsAt);
+    expect(t.scheduler.pending.filter((a) => a.kind === 'start_match')).toHaveLength(1);
+  });
+
+  it('does nothing with the switch off', async () => {
+    const t = await announced(false);
+    await t.engine.fillWithBots(t.id, 4);
+    t.clock.t = t.at;
+    await t.engine.handle({ matchId: t.id, kind: 'auto_start', dueAt: t.at });
+    expect(t.store.records.get(t.id)?.startsAt).toBeNull();
+    expect(t.scheduler.pending).toHaveLength(0);
   });
 });
