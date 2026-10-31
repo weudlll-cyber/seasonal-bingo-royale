@@ -51,7 +51,7 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T14 | 2 | E | Host maps its users to admin roles | 1 | 3 | Mapping can never grant security_admin/super_admin (07 §2.1) |
 | T15 | 2 | S | Account takeover via unverified e-mail at an IdP | 2 | 3 | Link only by (iss, sub), no silent e-mail linking (07 §2.1) |
 | T16 | 3/4 | T | SQL injection | 1 | 3 | Parameterized queries, lint ban, no DDL for app role (§6) |
-| T17 | 4 | I | DB dump leaks secrets | 1 | 3 | Field encryption for secrets/seeds, hashed tokens, encrypted backups (§9, §15) |
+| T17 | 4 | I | DB dump leaks secrets | 1 | 3 | Field encryption for secrets/seeds (sealed seeds bound to their match id, strict decoding), hashed tokens, encrypted backups (§9, §15) |
 | T18 | 5 | I | SSRF through OIDC discovery, JWKS or webhook URLs | 2 | 3 | SafeHttpClient with allowlist and IP range blocks (§10) |
 | T19 | 5 | T | Webhook receiver spoofing / replay | 1 | 1 | HMAC signature with timestamp (07 §5) |
 | T20 | 1 | T | Malicious upload (polyglot, script SVG) | 1 | 3 | Admin-only, magic bytes, re-encode, SVG sanitize, isolated serving (§14) |

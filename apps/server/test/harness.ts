@@ -22,7 +22,7 @@ export const SUITE_TIMEOUT_MS = 180_000;
 
 // One seed key for every app on a suite's database, development and production builds
 // alike: the stored match secrets are sealed with it, and another key refuses to start.
-const TEST_SEED_KEY = 'ab'.repeat(32);
+export const TEST_SEED_KEY = 'ab'.repeat(32);
 
 export interface Harness {
   readonly container: StartedPostgreSqlContainer;

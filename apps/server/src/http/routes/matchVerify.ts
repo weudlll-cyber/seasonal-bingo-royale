@@ -4,7 +4,7 @@
  * @brief  GET /api/v1/matches/:code/verify — the seed revealed after the end, and the match recomputed from it.
  *
  * Responsibility: for anyone, once the match has finished or was cancelled: decrypt the
- *                 stored seed (../../match/codec decryptSeed), recompute every round's draw
+ *                 stored seed (../../match/codec openSeedColumn), recompute every round's draw
  *                 order, the draws made and every card from it with the domain's
  *                 verifyMatch against the commitment published at match open, and answer
  *                 the contracts' MatchVerificationView. Before the end the answer is 409
@@ -22,7 +22,7 @@ import { verifyMatch, type DomainEvent, type LobbyOpened } from '@sbr/domain';
 import type { FastifyInstance } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
-import { decryptSeed } from '../../match/codec.js';
+import { openSeedColumn } from '../../match/codec.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 
 export interface VerifyRouteDeps {
@@ -39,6 +39,7 @@ interface SealedRow {
   readonly game_type: string;
   readonly seed_commitment: Buffer;
   readonly seed_enc: Buffer;
+  readonly seed_enc_version: number;
 }
 
 // Per address and minute: plenty for a person checking matches, little for a flood.
@@ -59,7 +60,7 @@ export async function registerVerifyRoute(
     { config },
     async (request, reply) => {
       const r = await deps.pool.query<SealedRow>(
-        `SELECT id, code, title, status, game_type, seed_commitment, seed_enc
+        `SELECT id, code, title, status, game_type, seed_commitment, seed_enc, seed_enc_version
          FROM sbr.matches WHERE code = $1`,
         [request.params.code],
       );
@@ -70,7 +71,7 @@ export async function registerVerifyRoute(
         return reply.status(409).send({ code: 'MATCH_NOT_OVER' });
       }
       const events = (await deps.store.events(row.id, 0)).map((e) => e.event);
-      return verificationOf(row, row.status, decryptSeed(row.seed_enc, deps.seedKey), events);
+      return verificationOf(row, row.status, openSeedColumn(row, deps.seedKey), events);
     },
   );
 }

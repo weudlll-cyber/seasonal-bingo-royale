@@ -116,6 +116,7 @@ embed_origins
 | timezone | text | for quiet hours |
 | seed_commitment | bytea | sha256(seed) |
 | seed_enc | bytea | AES-GCM; readable by API only when `status IN ('finished','aborted')` |
+| seed_enc_version | smallint | 3: `seed_enc` sealed with the match id as AAD (written today); 2: sealed without it (matches stored before, kept as they are) |
 | current_stage int, current_round int | | royale only; NULL in classic types |
 | prizes | text[] | classic types: ticked prize keys from 01 §3a.1, in catalogue order; empty for royale |
 | counts_for_leaderboard | bool | 01 §3a.3; default true for royale, false for classic |
@@ -133,7 +134,7 @@ one entry in `prizes`.
 
 **match_entries** — `match_id`, `player_id text` (the account id; development bots have `bot-NN` and no account), `account_id` (NULL for bots), `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
 
-**match_events** — `match_id`, `seq bigint`, `type text`, `payload jsonb`, `occurred_at`, `actor_account_id NULL`. PK `(match_id, seq)`. Append-only (trigger). Payload schemas per event type in `contracts/events`. Encoding version 2 (`"$v": 2` in the payload) stores the seed of `lobbyOpened` and the `drawSequence` of `roundStarted` as `{ "$sealed": base64 }` (AES-256-GCM, 03 §9); payloads without `$v` are version 1 and stay as written.
+**match_events** — `match_id`, `seq bigint`, `type text`, `payload jsonb`, `occurred_at`, `actor_account_id NULL`. PK `(match_id, seq)`. Append-only (trigger). Payload schemas per event type in `contracts/events`. Encoding version 3 (`"$v": 3` in the payload, written today) stores the seed of `lobbyOpened` and the `drawSequence` of `roundStarted` as `{ "$sealed": base64 }` (AES-256-GCM with the match id as additional authenticated data, 03 §9); version 2 payloads are sealed the same way without the match id, payloads without `$v` are version 1; both stay as written and are still read. Any other version is refused.
 
 **match_snapshots** — `match_id`, `seq`, `state jsonb`, `created_at`. Keep last 3 per match while running; delete all but last after finish. Stored in the same encoding as the events (seed and draw order sealed).
 
