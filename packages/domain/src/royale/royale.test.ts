@@ -6,7 +6,9 @@
  * Responsibility: cover the invariants directly. The cut tests check minSurvivors,
  *                 the shield rescue margin, and the "no survivor is beaten by an
  *                 eliminated player" rule. finalRanking returns a total order 1..N
- *                 without gaps. jackpotValue is `base + growth × unclaimed`.
+ *                 without gaps, finalists who never scored by join time; cut and final
+ *                 ranking break ties alike (./tieBreak). jackpotValue is `base + growth ×
+ *                 unclaimed`.
  * Depends on:     ../index
  * Spec:           docs/spec/12-testing-strategy.md §3 inv. 7, 8, 10
  */
@@ -155,6 +157,41 @@ describe('finalRanking', () => {
     const never: RankedPlayer = { ...PL_A, accountId: 'never', joinedAt: 0, lastScoringDraw: null };
     const scored: RankedPlayer = { ...PL_A, accountId: 'scored', joinedAt: 9, lastScoringDraw: 30 };
     expect(finalRanking([never, scored]).map((p) => p.accountId)).toEqual(['scored', 'never']);
+  });
+});
+
+describe('one tie-break for cut and final ranking (01 §8.4)', () => {
+  // Four finalists who never scored: only the join time separates them.
+  const zero = (accountId: string, joinedAt: number): RankedPlayer => ({
+    accountId,
+    joinedAt,
+    points: 0,
+    patterns: 0,
+    seasonsActivated: 0,
+    lastScoringDraw: null,
+    eliminatedAtRound: null,
+  });
+
+  it('ranks finalists who never scored by their join time', () => {
+    const players = [zero('late', 9), zero('first', 2), zero('mid', 5), zero('last', 12)];
+    expect(finalRanking(players).map((p) => p.accountId)).toEqual(['first', 'mid', 'late', 'last']);
+  });
+
+  it('orders a field the same way in the cut and in the final ranking', () => {
+    const field: RankedPlayer[] = [
+      zero('z', 1),
+      { ...zero('p', 7), points: 20, patterns: 1, lastScoringDraw: 9 },
+      { ...zero('q', 3), points: 20, patterns: 1, lastScoringDraw: 4 },
+      { ...zero('s', 0), points: 20, patterns: 0, seasonsActivated: 2, lastScoringDraw: 1 },
+      { ...zero('t', 2), points: 20, patterns: 1, seasonsActivated: 1, lastScoringDraw: 9 },
+    ];
+    const cut = applyCut(
+      field.map((p) => makeCandidate(p)),
+      { keep: 'count', value: field.length, minSurvivors: 2 },
+    );
+    const final = finalRanking(field).map((p) => p.accountId);
+    expect(cut.survivors).toEqual(final);
+    expect(final).toEqual(['t', 'q', 'p', 's', 'z']);
   });
 });
 

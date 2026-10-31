@@ -8,10 +8,11 @@
  *                 charges + rank margin cover them. Never falls below `minSurvivors`
  *                 (invariant 7 of 12 §3). Rescues only add; no one ranked above a
  *                 survivor can be removed except by the cut rule itself.
- * Depends on:     nothing
+ * Depends on:     ./tieBreak
  * Used by:        ../index, ../match/decide, ../match/decideRanking
  * Spec:           docs/spec/01-game-design.md §7.4, docs/spec/12-testing-strategy.md §3 inv. 7
  */
+import { byTieBreak } from './tieBreak.js';
 
 export interface Candidate {
   readonly accountId: string;
@@ -36,7 +37,7 @@ export interface CutResult {
 }
 
 export function applyCut(active: readonly Candidate[], rule: CutRule): CutResult {
-  const ranked = [...active].sort(compare);
+  const ranked = [...active].sort(byTieBreak);
   const baseKeep = resolveKeep(rule, ranked);
   const survivorIds = new Set(ranked.slice(0, baseKeep).map((p) => p.accountId));
   const shieldSaves: string[] = [];
@@ -67,14 +68,4 @@ function resolveKeep(rule: CutRule, ranked: readonly Candidate[]): number {
   else if (rule.keep === 'count') computed = Math.min(rule.value, totalCount);
   else computed = ranked.filter((p) => p.points >= rule.value).length;
   return Math.max(rule.minSurvivors, Math.min(computed, totalCount));
-}
-
-function compare(a: Candidate, b: Candidate): number {
-  if (a.points !== b.points) return b.points - a.points;
-  if (a.patterns !== b.patterns) return b.patterns - a.patterns;
-  if (a.seasonsActivated !== b.seasonsActivated) return b.seasonsActivated - a.seasonsActivated;
-  const dA = a.lastScoringDraw ?? Number.POSITIVE_INFINITY;
-  const dB = b.lastScoringDraw ?? Number.POSITIVE_INFINITY;
-  if (dA !== dB) return dA - dB;
-  return a.joinedAt - b.joinedAt;
 }

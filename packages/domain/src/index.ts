@@ -12,7 +12,7 @@
  *                 ./match/commands, ./match/decide, ./match/decideRanking, ./match/events,
  *                 ./match/evolve, ./match/flow, ./match/lifecycleTypes, ./match/markResolver,
  *                 ./match/matchState, ./match/simulate, ./royale/cut, ./royale/finalRanking,
- *                 ./royale/jackpot, ./scoring/basePoints, ./scoring/patternScoring,
+ *                 ./royale/jackpot, ./royale/tieBreak, ./scoring/basePoints, ./scoring/patternScoring,
  *                 ./scoring/speedBonus, ./seasons/applyEffect, ./seasons/effectCatalog,
  *                 ./seasons/effectState, ./seasons/seasonComplete, ./seasons/tickEffects,
  *                 ./verifyMatch
@@ -90,6 +90,7 @@ export {
 } from './seasons/seasonComplete.js';
 export { finalRanking, type Placement, type RankedPlayer } from './royale/finalRanking.js';
 export { applyCut, type Candidate, type CutResult, type CutRule } from './royale/cut.js';
+export { byTieBreak, type TieBreakScore } from './royale/tieBreak.js';
 export { jackpotValue, type JackpotCfg } from './royale/jackpot.js';
 export {
   classicPlacement,
@@ -155,7 +156,7 @@ export type {
 } from './match/events.js';
 export { decide, type DecideCtx } from './match/decide.js';
 export { evolve, createInitialMatchState } from './match/evolve.js';
-export { countBits } from './match/decideRanking.js';
+export { candidateOf, countBits } from './match/decideRanking.js';
 export { type MarkInput } from './match/markResolver.js';
 export {
   simulateMatch,

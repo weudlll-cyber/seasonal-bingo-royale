@@ -5,7 +5,7 @@
  *
  * Responsibility: hand-made event logs (players a–j, one card each with the numbers 1–25)
  *                 check the top three by points scored in the round (ties by the place
- *                 after it, no one who scored nothing), the biggest climber (ties by points
+ *                 after it, places tie-broken as the cut does, no one who scored nothing), the biggest climber (ties by points
  *                 in the round, none when nobody gained), the cut (count, at most 8 names,
  *                 shield saves; left out without a cut or when it changed nothing), Season
  *                 Complete, the fastest tapper (own taps inside the speed window, at least
@@ -101,6 +101,28 @@ const recap = (events: TimedEvent[], roundIndex = 0, manualTaps?: ReadonlySet<st
     speedWindowMs: WINDOW,
     ...(manualTaps === undefined ? {} : { manualTaps }),
   });
+
+describe('round recap: ties in the standings (D20, 01 §8.4)', () => {
+  const ids = ['a', 'b', 'c', 'd'];
+
+  it('ranks as the cut does (01 §8.4), not by join order', () => {
+    // b and c tie on 20; c scored on an earlier draw, so c ranks above b (who joined first).
+    const log = [
+      ...opened(ids),
+      roundStart(0, ids),
+      draw(0),
+      mark('c', 1, 20),
+      draw(1),
+      mark('b', 2, 20),
+      ended(0),
+    ];
+    expect(recap(log)?.top).toEqual([
+      { name: 'c', points: 20 },
+      { name: 'b', points: 20 },
+    ]);
+    expect(recap(log)?.climber).toEqual({ name: 'c', from: 3, to: 1 });
+  });
+});
 
 describe('round recap: top three and climber (D20)', () => {
   const ids = ['a', 'b', 'c', 'd'];
