@@ -64,8 +64,11 @@ cmd_status() {
   else
     info "health:      NOT READY (sbr logs app)"
   fi
-  # The names carry the time, so the last in name order is the newest.
-  last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' 2>/dev/null | sort | tail -1)
+  # The names carry the time, so the last in name order is the newest. No folder yet (no
+  # backup ever ran) is "none yet", not a failed find that stops status under pipefail.
+  if [[ -d $SBR_BACKUPS/$env ]]; then
+    last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' | sort | tail -1)
+  fi
   info "last backup: ${last:-none yet}"
   info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
   [[ -f $ROLLBACK_DIR/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
