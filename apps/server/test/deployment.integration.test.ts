@@ -153,7 +153,7 @@ describe('maintenance (sbr maintenance on, 09 §4)', () => {
       maxPlayers: 8,
     };
     // Timed commands (the countdown's end) run, as on a real server.
-    app.match.startScheduler();
+    await app.match.startScheduler();
     const status = async () => (await app.fastify.inject('/api/v1/maintenance')).json<unknown>();
     expect(await status()).toEqual({ on: false, reason: null });
     const { code } = (await host.post('/api/v1/matches', match)).json<{ code: string }>();

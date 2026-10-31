@@ -12,8 +12,8 @@
  *                 before the timed interval since the last draw, D13), starts the next
  *                 round when the match waits for it (D14), and switches draw mode or
  *                 seconds at any time (D8, never below D12); a tap is scored with the
- *                 speed bonus from the time since its draw (01 §6). Every command for a
- *                 match runs serialized through ./runner.
+ *                 speed bonus from the time since its draw (01 §6); `recover` continues a
+ *                 match after a crash. Every command for a match runs through ./runner.
  * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./timing,
  *                 ./startRules (set time, start when full), ./create
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes
@@ -25,6 +25,7 @@ import {
   canDraw,
   draw,
   nextDrawAt,
+  resumeMatch,
   runAction,
   startNextRound,
   stopMatch,
@@ -157,6 +158,11 @@ export class MatchEngine {
   // Called by the scheduler for every due action.
   handle(action: ScheduledAction): Promise<void> {
     return this.runner.serial(action.matchId, () => runAction(this.flow, action));
+  }
+
+  // At start-up: continues a match that stopped between a round end and its next step.
+  recover(matchId: string): Promise<void> {
+    return this.runner.serial(matchId, () => resumeMatch(this.flow, matchId));
   }
 
   drawNext(matchId: string): Promise<void> {

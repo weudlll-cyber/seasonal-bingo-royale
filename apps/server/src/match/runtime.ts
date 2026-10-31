@@ -5,8 +5,9 @@
  *
  * Responsibility: build the store, scheduler, bus and engine for one server process;
  *                 seeds come from the CSPRNG (01 §9), match codes are six characters
- *                 without look-alikes. `startScheduler` begins running due actions; the
- *                 caller stops it on shutdown.
+ *                 without look-alikes. `startScheduler` first continues every running match
+ *                 that stopped between a round end and its next step (audit H2), then
+ *                 begins running due actions; the caller stops it on shutdown.
  * Depends on:     node:crypto, @sbr/application, ./pgMatchStore, ./pgScheduler, ./eventBus,
  *                 @sbr/domain, ../db/pool
  * Used by:        ../http/app
@@ -29,7 +30,8 @@ export interface MatchRuntime {
   readonly store: PgMatchStore;
   readonly scheduler: PgScheduler;
   readonly bus: LocalEventBus;
-  startScheduler(): void;
+  // Resolves with the running matches that could not be continued.
+  startScheduler(): Promise<readonly string[]>;
 }
 
 export function createMatchRuntime(pool: DbPool, seedKey: Buffer): MatchRuntime {
@@ -50,8 +52,22 @@ export function createMatchRuntime(pool: DbPool, seedKey: Buffer): MatchRuntime 
     store,
     scheduler,
     bus,
-    startScheduler: () => {
+    startScheduler: async () => {
+      const failed = await recoverRunning(pool, engine);
       scheduler.start((action) => engine.handle(action));
+      return failed;
     },
   };
+}
+
+// One broken match does not keep the others (or the server) from starting.
+async function recoverRunning(pool: DbPool, engine: MatchEngine): Promise<string[]> {
+  const running = await pool.query<{ id: string }>(
+    `SELECT id FROM sbr.matches WHERE status = 'running'`,
+  );
+  const failed: string[] = [];
+  for (const { id } of running.rows) {
+    await engine.recover(id).catch(() => failed.push(id));
+  }
+  return failed;
 }

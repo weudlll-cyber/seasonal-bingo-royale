@@ -90,6 +90,7 @@ markCell(manual), autoMarkMissed, closeSpeedWindow, endRound, applyCut, startSta
 
 - The scheduler is a port `MatchClock` with the DB-backed adapter `PgScheduler`: every pending timed action is a row in `scheduled_actions` (`match_id`, `kind`, `due_at`, `lease_until`).
 - A single loop polls due rows every 250 ms in realtime matches’ presence, every 5 s otherwise, claims them with `FOR UPDATE SKIP LOCKED`, and executes the command. This is restart-safe and already safe for multiple instances.
+- An action that fails or is cut short by a crash stays pending and runs again, so every action derives its next step from the match state instead of from what it just produced: a round's end and its cut are one batch (one transaction); a window close that finds its round ended but nothing after it (no next stage, finish or pause) does that step; a round start without a first timed draw schedules it; re-scheduling replaces the pending action of that kind instead of adding one. At start-up the server does the same for every running match before the loop begins (`MatchEngine.recover`).
 - Realtime precision target: draw fires within 300 ms of `due_at` (p95).
 
 ### 5.4 Concurrency

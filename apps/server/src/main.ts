@@ -24,7 +24,8 @@ async function main(): Promise<void> {
   if (applied.length > 0) app.fastify.log.info({ migrations: applied }, 'applied migrations');
   await app.fastify.listen({ host: env.SBR_HOST, port: env.SBR_PORT });
   // Timed match commands (draws, window closes, round starts) and the 90-day marks purge.
-  app.match.startScheduler();
+  const notRecovered = await app.match.startScheduler();
+  if (notRecovered.length > 0) app.fastify.log.warn({ notRecovered }, 'matches not continued');
   const stopRetention = startRetention(pool);
   const shutdown = async (): Promise<void> => {
     stopRetention();

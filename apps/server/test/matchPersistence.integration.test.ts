@@ -75,12 +75,12 @@ describe('restart mid-match', () => {
   it('continues on a second server without losing or doubling an event', async () => {
     const a = harness.built;
     await setUpMatch(a);
-    a.match.startScheduler();
+    await a.match.startScheduler();
     await waitForDraws(3, 30_000);
     await a.match.scheduler.stop();
     const before = await drawCount();
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
-    b.match.startScheduler();
+    await b.match.startScheduler();
     await waitForDraws(before + 3, 40_000);
     await b.match.scheduler.stop();
     await b.fastify.close();
@@ -241,7 +241,7 @@ describe('start at a set time across a restart', () => {
     expect(summary.settings.startRule).toEqual({ kind: 'at', at, auto: true });
     // The restart: a new server on the same database, nothing in memory, its scheduler on.
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
-    b.match.startScheduler();
+    await b.match.startScheduler();
     const status = async () => (await b.match.store.load(id))?.record.status;
     expect((await b.match.store.load(id))?.record.settings.startRule).toEqual({
       kind: 'at',
