@@ -11,6 +11,7 @@
  *                 the tables fails the test, so a new one cannot go in unreviewed. Bodies are
  *                 chosen so a call that gets through changes as little as possible. One write
  *                 per route group is refused without the CSRF token or with another session's.
+ *                 The account and the guest sessions it creates are removed at the end.
  * Depends on:     vitest, fastify (inject), ../src/auth/*, ../src/realtime/intents,
  *                 ./harness, ./socketKit
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/12-testing-strategy.md §7;
@@ -26,7 +27,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { createSession } from '../src/auth/sessions.js';
 import { INTENT_TYPES } from '../src/realtime/intents.js';
-import { buildOn, stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import {
+  buildOn,
+  guestSessions,
+  removeGuests,
+  stopOpenMatches,
+  SUITE_TIMEOUT_MS,
+} from './harness.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
 type Role = 'anonymous' | 'guest' | 'player' | 'otherHost' | 'host';
@@ -138,6 +145,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await stopOpenMatches(kit.harness);
   if (otherHostId !== '') await deleteAccount(kit.harness.pool, otherHostId);
+  await removeGuests(kit.harness);
+  expect(await guestSessions(kit.harness)).toBe(0);
   await kit.close();
 }, SUITE_TIMEOUT_MS);
 

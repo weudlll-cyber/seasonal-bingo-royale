@@ -10,7 +10,8 @@
  *                 permissions; the dev quick sign-in gives dev-host `match.create` and reuses
  *                 accounts; a production build has no dev sign-in; with e-mail verification
  *                 on, unverified accounts cannot sign in. Each test creates the accounts it
- *                 needs (any order works) and they are removed at the end.
+ *                 needs (any order works) and they are removed at the end, the guest
+ *                 sessions too.
  * Depends on:     vitest, ./harness, fastify, ../src/auth/accounts
  * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
  */
@@ -18,7 +19,15 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
-import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import {
+  buildOn,
+  guestSessions,
+  removeGuests,
+  startHarness,
+  stopHarness,
+  SUITE_TIMEOUT_MS,
+  type Harness,
+} from './harness.js';
 
 let harness: Harness;
 const app = (): FastifyInstance => harness.built.fastify;
@@ -32,6 +41,8 @@ afterAll(async () => {
     "SELECT id FROM sbr.accounts WHERE email LIKE '%@example.com'",
   );
   for (const row of made.rows) await deleteAccount(harness.pool, row.id);
+  await removeGuests(harness);
+  expect(await guestSessions(harness)).toBe(0);
   await stopHarness(harness);
 }, SUITE_TIMEOUT_MS);
 
