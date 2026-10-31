@@ -7,7 +7,8 @@
 #                 asks (never in --yes mode) and a yes/no confirmation; running a command or
 #                 only showing it (--dry-run); writing a file only when its content changed
 #                 (so a second install run changes nothing), atomically; reading a value of
-#                 an env file or replacing one value in it; removing work files and throw-away containers on exit; and
+#                 an env file or replacing one value in it; a host as a URL writes it (IPv6
+#                 in brackets); removing work files and throw-away containers on exit; and
 #                 running Docker Compose for one environment with the right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
@@ -63,6 +64,12 @@ confirm() {
 env_value() {
   [[ -f $1 ]] || return 0
   sed -n "s/^$2=//p" "$1" | head -1 | sed -E "s/^'(.*)'\$/\1/"
+}
+
+# url_host <host>: the host as a URL writes it; an IPv6 address goes in brackets
+# (https://[2001:db8::1]/), a domain or IPv4 address stays as it is.
+url_host() {
+  if [[ $1 == *:* && $1 != \[* ]]; then printf '[%s]' "$1"; else printf '%s' "$1"; fi
 }
 
 # set_env_value <file> <key> <value>: replaces one line, single-quoted, atomically.

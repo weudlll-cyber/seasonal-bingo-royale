@@ -116,11 +116,11 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 4. fail2ban for SSH: `apt install fail2ban`.
 5. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
 6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
-7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses (`SBR_TRUSTED_PROXIES` in `/etc/sbr/prod.env`).
+7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses as well: run the installer again with `--trusted-proxies <range>,<range>,…` (Cloudflare's published ranges). They are added to the proxy the install type trusts and kept on later runs; `--trusted-proxies none` removes them.
 
 ## 8. Good to know
 
-- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets and your earlier answers, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
+- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
 - Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login.

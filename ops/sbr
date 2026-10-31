@@ -80,14 +80,16 @@ cmd_status() {
   if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then check_proxy "$env"; fi
 }
 
-# Website installs trust the website network's range; it holds while that network exists.
+# Website installs trust the website network's ranges (plus the operator's extra proxies);
+# they hold while that network exists.
 check_proxy() {
-  local env=$1 network now trusted
+  local env=$1 network now trusted extra
   [[ -n $(website_caddy) ]] || { warn "the website's Caddy is not running"; return 0; }
   network=$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)
-  now=$(network_subnet "$network")
+  extra=$(env_value "$SBR_ETC/$env.env" SBR_EXTRA_PROXIES)
+  now=$(network_subnets "$network")
   trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
-  if [[ $now == "$trusted" ]]; then
+  if [[ $now${extra:+,$extra} == "$trusted" ]]; then
     info "proxy:       the website's network $network ($now)"
   else
     warn "the website's network is now $now, the app trusts $trusted: run the installer again to update it"

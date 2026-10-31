@@ -19,12 +19,14 @@ bingo.example.org {
 }
 
 # Under a path of an existing site (what ops/install.sh --type website writes for the
-# Seasonal Entertainment website): inside that site's block, before its own reverse_proxy.
+# Seasonal Entertainment website): inside that site's block. Caddy sorts the directives, so
+# "handle /games/bingo/*" runs before the site's own reverse_proxy; the metrics 404 sits
+# inside the handle, since a respond beside it would run only after the handle had proxied.
 example.org {
 	redir /games/bingo /games/bingo/ 308
-	@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
-	respond @sbr_metrics 404
 	handle /games/bingo/* {
+		@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
+		respond @sbr_metrics 404
 		reverse_proxy app:3000
 	}
 	reverse_proxy site:3800

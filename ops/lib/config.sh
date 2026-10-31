@@ -6,14 +6,17 @@
 # Responsibility: read the answers of an earlier run back from /etc/sbr/<env>.env, so a
 #                 re-run (also with --yes) keeps them; write that file (0600, values
 #                 single-quoted for Compose, written atomically) — secrets made once with
-#                 openssl rand and kept on every later run, the public URL, base path and
-#                 trusted proxy for the install type, admin e-mail, optional SMTP, the
-#                 operator's age key; write the install record /etc/sbr/install.conf; copy
-#                 the compose files, Caddyfile, the sbr CLI and its library to /opt/sbr;
-#                 build the app image on the server from a git ref (until a signed release
-#                 image exists), skipping it when the image of that commit is there, and
-#                 drop app images older than the current and the previous one.
-# Depends on:     ./common.sh (put_file, run, env_value), git, docker, openssl
+#                 openssl rand and kept on every later run, the public URL (an IPv6 address
+#                 in brackets), base path and trusted proxies for the install type plus the
+#                 operator's extra ones (--trusted-proxies), admin e-mail, optional SMTP,
+#                 the operator's age key, and every other key the operator added kept as it
+#                 is; write the install record /etc/sbr/install.conf; copy the compose
+#                 files, Caddyfile, the sbr CLI and its library to /opt/sbr; build the app
+#                 image on the server from a git ref (until a signed release image exists;
+#                 the fetch prunes deleted branches), skipping it when the image of that
+#                 commit is there, and drop app images older than the current and the
+#                 previous one.
+# Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (update)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
 
@@ -30,9 +33,24 @@ secret() {
 read_saved_answers() {
   local file="$SBR_ETC/$1.env" key
   for key in SBR_ADMIN_EMAIL SBR_AGE_RECIPIENT SBR_SMTP_HOST SBR_SMTP_PORT SBR_SMTP_USER \
-    SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_WEBSITE_NETWORK; do
+    SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_WEBSITE_NETWORK SBR_EXTRA_PROXIES; do
     [[ -n ${!key:-} ]] || printf -v "$key" '%s' "$(env_value "$file" "$key")"
   done
+}
+
+# The keys write_env writes. Any other KEY= line of an existing env file (the operator's
+# own, e.g. SBR_ALLOWED_ORIGINS) is kept as it is on a re-run.
+ENV_KEYS=(SBR_INSTALL_TYPE SBR_ENV SBR_ENV_FILE SBR_IMAGE POSTGRES_PASSWORD DATABASE_URL
+  SBR_SEED_KEY SBR_PUBLIC_URL SBR_BASE_PATH SBR_TRUSTED_PROXIES SBR_EXTRA_PROXIES
+  SBR_SITE_ADDRESS SBR_TLS SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT
+  SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL)
+
+# operator_lines <env file>: its KEY= lines whose key write_env does not write.
+operator_lines() {
+  local known
+  [[ -f $1 ]] || return 0
+  known=$(IFS='|' && printf '%s' "${ENV_KEYS[*]}")
+  grep -E '^[A-Za-z_][A-Za-z0-9_]*=' "$1" | grep -vE "^($known)=" || true
 }
 
 # KEY='value' — Compose then takes the value literally; a single quote cannot be written so.
@@ -43,19 +61,23 @@ quoted() {
 
 # write_env <env>: from the answers in SBR_* variables; secrets survive a re-run.
 write_env() {
-  local env=$1 file="$SBR_ETC/$1.env" pg seed public base site tls key
+  local env=$1 file="$SBR_ETC/$1.env" pg seed public base site tls key extra
   pg=$(env_value "$file" POSTGRES_PASSWORD)
   seed=$(env_value "$file" SBR_SEED_KEY)
   [[ -n $pg ]] || pg=$(secret 24)
   [[ -n $seed ]] || seed=$(secret 32)
   if [[ $SBR_TYPE == website ]]; then
-    public="https://$SBR_WEBSITE_DOMAIN/games/bingo/" base=/games/bingo/ site='' tls=''
+    public="https://$(url_host "$SBR_WEBSITE_DOMAIN")/games/bingo/" base=/games/bingo/ site='' tls=''
   else
-    public="https://$SBR_ADDRESS/" base=/ site=$SBR_ADDRESS tls=''
+    public="https://$(url_host "$SBR_ADDRESS")/" base=/ site=$SBR_ADDRESS tls=''
     # An IP address gets Caddy's internal CA (browsers warn until a domain is set).
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && tls='tls internal'
     SBR_TRUSTED_PROXIES=uniquelocal
   fi
+  # --trusted-proxies: proxies in front of this server (e.g. Cloudflare), added to the one the
+  # install type needs; "none" removes the saved ones.
+  extra=${SBR_EXTRA_PROXIES:-}
+  [[ $extra != none ]] || extra=''
   {
     echo "# Seasonal Bingo Royale, environment $env (written by ops/install.sh; secrets are kept on re-runs)."
     quoted SBR_INSTALL_TYPE "$SBR_TYPE"
@@ -67,7 +89,8 @@ write_env() {
     quoted SBR_SEED_KEY "$seed"
     quoted SBR_PUBLIC_URL "$public"
     quoted SBR_BASE_PATH "$base"
-    quoted SBR_TRUSTED_PROXIES "$SBR_TRUSTED_PROXIES"
+    quoted SBR_TRUSTED_PROXIES "$SBR_TRUSTED_PROXIES${extra:+,$extra}"
+    quoted SBR_EXTRA_PROXIES "$extra"
     quoted SBR_SITE_ADDRESS "$site"
     quoted SBR_TLS "$tls"
     for key in SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT SBR_SMTP_USER \
@@ -75,6 +98,7 @@ write_env() {
       quoted "$key" "${!key:-}"
     done
     quoted SBR_LOG_LEVEL info
+    operator_lines "$file"
   } | put_file "$file" 0600
 }
 
@@ -118,7 +142,8 @@ build_image() {
   elif [[ $(git -C "$src" remote get-url origin) != "$repo" ]]; then
     git -C "$src" remote set-url origin "$repo"
   fi
-  git -C "$src" fetch --quiet --tags origin
+  # --prune: a branch deleted upstream no longer resolves as origin/<ref> (audit, low).
+  git -C "$src" fetch --quiet --prune --tags origin
   commit=$(git -C "$src" rev-parse --verify --quiet "origin/$ref^{commit}" || git -C "$src" rev-parse --verify "$ref^{commit}")
   SBR_IMAGE="sbr-app:${commit:0:12}"
   if docker image inspect "$SBR_IMAGE" >/dev/null 2>&1; then
