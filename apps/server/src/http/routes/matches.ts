@@ -13,7 +13,7 @@
  *                 engine become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./matchHost, ./matchInput, ./matchViews,
- *                 ../../view/liveViews
+ *                 ../../view/liveViews, ../../view/playerNames
  * Used by:        ../app, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
@@ -25,6 +25,7 @@ import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerHostRoutes } from './matchHost.js';
 import { LiveViews } from '../../view/liveViews.js';
+import { playerNames } from '../../view/playerNames.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
 
@@ -57,21 +58,6 @@ export function requirePermission(
 export async function matchIdByCode(pool: DbPool, code: string): Promise<string | null> {
   const r = await pool.query<{ id: string }>('SELECT id FROM sbr.matches WHERE code = $1', [code]);
   return r.rows[0]?.id ?? null;
-}
-
-// Display name of every player; bots keep their id; a deleted account shows as "deleted
-// player" with a short tag that keeps names apart — never the account id (audit S10).
-async function playerNames(pool: DbPool, matchId: string): Promise<Record<string, string>> {
-  const r = await pool.query<{ player_id: string; name: string }>(
-    `SELECT e.player_id,
-            CASE WHEN a.display_name IS NOT NULL THEN a.display_name
-                 WHEN e.is_bot THEN e.player_id
-                 ELSE 'deleted player ' || substr(md5(e.player_id), 1, 4) END AS name
-       FROM sbr.match_entries e LEFT JOIN sbr.accounts a ON a.id = e.account_id
-      WHERE e.match_id = $1`,
-    [matchId],
-  );
-  return Object.fromEntries(r.rows.map((row) => [row.player_id, row.name]));
 }
 
 // The marks of a round the players tapped themselves (the round recap's fastest tapper).

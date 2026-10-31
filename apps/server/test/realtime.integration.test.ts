@@ -9,19 +9,25 @@
  *                 draws and switches mode over the socket (D8), a player may not; a player
  *                 taps a drawn number; unwatch and watch sent back to back keep their order;
  *                 a repeated seq is dropped; marks are limited to 4 a second; a socket
- *                 watches at most 3 matches; a host intent is refused once the session has
+ *                 watches at most 3 matches; a player whose account was deleted is named
+ *                 "deleted player …" in frames, never by the account id, also by a server
+ *                 that never saw the name; a host intent is refused once the session has
  *                 expired (the socket closes) or the host role is gone, though both were
  *                 fine at connect; the teardown aborts every match left open.
  *                 The match rules over the socket are in ./matchRules.integration.test.ts.
- * Depends on:     node:crypto, vitest, socket.io-client, ./harness, ./session, ./socketKit
+ * Depends on:     node:crypto, vitest, socket.io-client, ../src/auth/accounts, ../src/index (types),
+ *                 ./harness, ./playToEnd, ./session, ./socketKit
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §3, §8, §13
  */
 import { createHash } from 'node:crypto';
 
-import type { Socket } from 'socket.io-client';
+import { io as connect, type Socket } from 'socket.io-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import { deleteAccount } from '../src/auth/accounts.js';
+import type { App } from '../src/index.js';
+import { buildOn, stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import { playToEnd } from './playToEnd.js';
 import { signIn, type Client } from './session.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
@@ -175,6 +181,60 @@ describe('draw control and limits', () => {
       answers.push(await kit.send(s, 'mark', { code: codes[0], cardIndex: 0, cell: 0 }));
     expect(answers.at(-1)).toEqual({ ok: false, code: 'RATE_LIMITED' });
   });
+});
+
+interface Placement {
+  readonly accountId: string;
+}
+type Frame = { events: { event: { type: string; placement?: Placement[] } }[] };
+
+// A second server on the suite's database, listening; its gateway has met no player yet.
+async function secondServer(): Promise<{ app: App; url: string }> {
+  const app = await buildOn(kit.harness.pool, kit.harness.container.getConnectionUri());
+  await app.fastify.listen({ host: '127.0.0.1', port: 0 });
+  const address = app.fastify.server.address();
+  const port = typeof address === 'object' && address !== null ? address.port : 0;
+  return { app, url: `http://127.0.0.1:${String(port)}/play` };
+}
+
+describe('display names in frames come from the match entries (audit S10)', () => {
+  it('names a player whose account was deleted "deleted player", never by the account id', async () => {
+    const code = await kit.createMatch('host');
+    const leaver = await signIn(kit.harness.built.fastify, 'player-2');
+    expect((await leaver.post(`/api/v1/matches/${code}/join`, {})).statusCode).toBe(204);
+    await kit.host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
+    const me = await leaver.get('/api/v1/session');
+    const accountId = me.json<{ account: { id: string } }>().account.id;
+    const id = (await kit.host.get(`/api/v1/matches/${code}`)).json<{ id: string }>().id;
+    // The test's account goes again (dev sign-in creates it anew when asked).
+    await deleteAccount(kit.harness.pool, accountId);
+    const second = await secondServer();
+    const s = connect(second.url, {
+      path: '/ws',
+      transports: ['websocket'],
+      extraHeaders: { origin: 'http://localhost:5390', cookie: kit.host.cookie },
+      reconnection: false,
+    });
+    try {
+      await kit.connected(s);
+      const frames: Frame[] = [];
+      s.on('events', (f: Frame) => frames.push(f));
+      expect((await kit.send(s, 'match.watch', { code })).ok).toBe(true);
+      const engine = second.app.match.engine;
+      await engine.start(id, 0);
+      await engine.handle({ matchId: id, kind: 'start_match', dueAt: Date.now() });
+      await playToEnd(engine, id);
+      const finished = () =>
+        frames.flatMap((f) => f.events).find((e) => e.event.type === 'matchFinished');
+      await expect.poll(finished).toBeDefined();
+      const names = (finished()?.event.placement ?? []).map((p) => p.accountId);
+      expect(names).not.toContain(accountId);
+      expect(names.filter((n) => n.startsWith('deleted player '))).toHaveLength(1);
+    } finally {
+      s.disconnect();
+      await second.app.fastify.close();
+    }
+  }, 120_000);
 });
 
 // The session row behind a test client's cookie (the database keeps only the SHA-256).

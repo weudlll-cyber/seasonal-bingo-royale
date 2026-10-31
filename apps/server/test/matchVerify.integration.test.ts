@@ -10,7 +10,7 @@
  *                 dealt). No socket frame and no state answer sent before the end carries
  *                 the seed. A cancelled match reveals its seed too. The route has its own
  *                 limit: 20 calls a minute per address, then 429 RATE_LIMITED.
- * Depends on:     node:crypto, vitest, ./socketKit
+ * Depends on:     node:crypto, vitest, ./socketKit, ./playToEnd
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3a
  */
 import { createHash } from 'node:crypto';
@@ -19,6 +19,7 @@ import type { MatchVerificationView } from '@sbr/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { SUITE_TIMEOUT_MS } from './harness.js';
+import { playToEnd } from './playToEnd.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
 let kit: SocketKit;
@@ -29,19 +30,6 @@ beforeAll(async () => {
 afterAll(async () => {
   await kit.close();
 }, SUITE_TIMEOUT_MS);
-
-// Draws and closes speed windows straight through the engine until the match has ended.
-async function playToEnd(id: string): Promise<void> {
-  const engine = kit.harness.built.match.engine;
-  for (let i = 0; i < 200; i += 1) {
-    const m = await engine.runner.current(id);
-    if (m.record.status === 'finished') return;
-    await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
-    const drawIndex = ((await engine.runner.current(id)).state.currentRound?.draws.length ?? 0) - 1;
-    await engine.handle({ matchId: id, kind: 'close_speed_window', dueAt: Date.now(), drawIndex });
-  }
-  throw new Error('the match did not end');
-}
 
 async function logged(id: string, type: string): Promise<Record<string, unknown>[]> {
   const r = await kit.harness.pool.query<{ payload: Record<string, unknown> }>(
@@ -90,7 +78,7 @@ describe('verify this match (01 §9)', () => {
     await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
     expect((await kit.host.get(`/api/v1/matches/${code}/verify`)).statusCode).toBe(409);
     const runningState = (await kit.player.get(`/api/v1/matches/${code}/state`)).body;
-    await playToEnd(id);
+    await playToEnd(engine, id);
     const sentBeforeEnd = JSON.stringify(frames) + runningState;
 
     const answer = await kit.player.get(`/api/v1/matches/${code}/verify`);

@@ -45,7 +45,7 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T8 | 1 | T | CSRF on state-changing endpoints | 2 | 2 | SameSite + synchronizer token, Origin check on WS (§8) |
 | T9 | 1 | R | Moderator/admin denies an action | 2 | 2 | Hash-chained append-only audit log (§16) |
 | T10 | 1 | I | Account enumeration | 2 | 1 | Uniform responses and timing (§2) |
-| T11 | 1 | E | IDOR: reading another player’s cards or private data | 2 | 2 | Ownership checks in every query use case, authz matrix tests |
+| T11 | 1 | E | IDOR: reading another player’s cards or private data | 2 | 2 | Ownership checks in every query use case, authz matrix tests; live frames name only the match's own players, from its entries, never by account id (06 §4) |
 | T12 | 2 | S | Malicious site embeds the game (clickjacking) or spoofs postMessage | 2 | 2 | `frame-ancestors` allowlist, strict origin checks, explicit `targetOrigin` (07 §3) |
 | T13 | 2 | S | Forged or replayed handoff JWT | 2 | 3 | Pinned algs/keys, aud/exp/jti single use, ≤ 60 s (§4) |
 | T14 | 2 | E | Host maps its users to admin roles | 1 | 3 | Mapping can never grant security_admin/super_admin (07 §2.1) |

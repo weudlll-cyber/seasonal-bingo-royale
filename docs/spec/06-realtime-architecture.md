@@ -38,7 +38,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 ```
 
 - `seq` (client) is per socket, strictly increasing; duplicates/out-of-order intents are dropped (replay protection).
-- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
+- On the wire (first draft): intents are emitted as the Socket.IO event `intent` with `{ t, seq, data }` and an acknowledgement; committed match events reach the room as one frame `events` with `{ s, events: [{ s, at, event }] }` (the public event projection, seed removed, with account ids replaced by display names as in the `state` view: the names come from that match's own entries — a deleted account shows as "deleted player" with a short tag, never its account id — and the gateway caches them per match for 30 s, at most 1000 matches; an id it does not know yet, a player who just joined, loads the match's names again); record changes (status, start time, draw control) as `match`. The client folds the event stream with the same playback logic as the Quick Test.
 - `s` (server) is the match `event seq`; clients detect gaps (`s` jumps) and resync by calling the state endpoint.
 - Intents use Socket.IO acknowledgements: `{ ok: true, data }` or `{ ok: false, code }` with codes from the error catalogue.
 
