@@ -14,7 +14,7 @@
 import type { Harness } from './harness.js';
 import type { Client } from './session.js';
 
-export interface RoundPlayer {
+interface RoundPlayer {
   readonly harness: Harness;
   readonly id: string;
   readonly code: string;
