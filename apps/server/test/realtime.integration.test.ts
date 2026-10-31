@@ -9,15 +9,20 @@
  *                 draws and switches mode over the socket (D8), a player may not; a player
  *                 taps a drawn number; unwatch and watch sent back to back keep their order;
  *                 a repeated seq is dropped; marks are limited to 4 a second; a socket
- *                 watches at most 3 matches; the teardown aborts every match left open.
+ *                 watches at most 3 matches; a host intent is refused once the session has
+ *                 expired (the socket closes) or the host role is gone, though both were
+ *                 fine at connect; the teardown aborts every match left open.
  *                 The match rules over the socket are in ./matchRules.integration.test.ts.
- * Depends on:     vitest, socket.io-client, ./harness, ./socketKit
- * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §8, §13
+ * Depends on:     node:crypto, vitest, socket.io-client, ./harness, ./session, ./socketKit
+ * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §3, §8, §13
  */
+import { createHash } from 'node:crypto';
+
 import type { Socket } from 'socket.io-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import { signIn, type Client } from './session.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
 let kit: SocketKit;
@@ -169,6 +174,62 @@ describe('draw control and limits', () => {
     for (let i = 0; i < 5; i += 1)
       answers.push(await kit.send(s, 'mark', { code: codes[0], cardIndex: 0, cell: 0 }));
     expect(answers.at(-1)).toEqual({ ok: false, code: 'RATE_LIMITED' });
+  });
+});
+
+// The session row behind a test client's cookie (the database keeps only the SHA-256).
+function sessionHash(client: Client): Buffer {
+  const token = decodeURIComponent(client.cookie.split('=').slice(1).join('='));
+  return createHash('sha256').update(token).digest();
+}
+
+describe('host intents re-check the session (03 §3, 06 §2.3)', () => {
+  it('refuses a host intent once the session has expired, and closes the socket', async () => {
+    const code = await kit.createMatch('host');
+    const host = await signIn(kit.harness.built.fastify, 'host');
+    const s = kit.open(host.cookie);
+    await kit.connected(s);
+    const closed = new Promise<void>((resolve) => {
+      s.on('disconnect', () => {
+        resolve();
+      });
+    });
+    expect((await kit.send(s, 'draw.setMode', { code, mode: 'host' })).ok).toBe(true);
+    await kit.harness.pool.query(
+      `UPDATE sbr.sessions SET expires_at = now() - interval '1 second' WHERE token_hash = $1`,
+      [sessionHash(host)],
+    );
+    expect(await kit.send(s, 'draw.setMode', { code, mode: 'host' })).toEqual({
+      ok: false,
+      code: 'UNAUTHORIZED',
+    });
+    await closed;
+  });
+
+  it('refuses a host intent once the host role is gone', async () => {
+    const code = await kit.createMatch('host');
+    const s = kit.open(kit.host.cookie);
+    await kit.connected(s);
+    expect((await kit.send(s, 'draw.setMode', { code, mode: 'host' })).ok).toBe(true);
+    const removed = await kit.harness.pool.query<{ account_id: string }>(
+      `DELETE FROM sbr.role_assignments ra USING sbr.accounts a
+        WHERE a.id = ra.account_id AND a.display_name = 'dev-host' AND ra.role_id = 'organizer'
+        RETURNING ra.account_id`,
+    );
+    try {
+      expect(await kit.send(s, 'draw.setMode', { code, mode: 'host' })).toEqual({
+        ok: false,
+        code: 'FORBIDDEN',
+      });
+    } finally {
+      // The role comes back for the rest of the file.
+      for (const row of removed.rows) {
+        await kit.harness.pool.query(
+          `INSERT INTO sbr.role_assignments (account_id, role_id) VALUES ($1, 'organizer')`,
+          [row.account_id],
+        );
+      }
+    }
   });
 });
 

@@ -63,6 +63,7 @@ Anonymous internet user · guest · player · cheating player · spammer/troll �
 | T26 | all | D | Data loss (disk failure, operator error) | 2 | 3 | Encrypted nightly backups pulled off-site, restore drill (§15) |
 | T27 | 1 | I | Personal data exposure in logs | 2 | 2 | No secrets/bodies in logs, IP truncation, pseudonymous IDs (02 §7) |
 | T28 | 1 | T | Replayed or duplicated WS intents | 2 | 1 | Per-socket seq, idempotent marks (06 §4) |
+| T29 | 1 | E | A long-lived socket keeps host powers after its session expired or the role was removed | 2 | 2 | Every host intent re-reads the session with the HTTP checks; an ended session closes the socket (§3, 06 §2) |
 
 ## 5. Residual risks (accepted)
 

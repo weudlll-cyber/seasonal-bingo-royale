@@ -14,7 +14,8 @@
  *                 every account renamed to its display name, as the state endpoint does (a
  *                 screen appends such events without fetching); record changes (status, start time,
  *                 draw control) go out as `match`. Intents arrive on `intent` and are
- *                 handled by ./intents. Payloads are capped at 16 KiB; a dropped connection
+ *                 handled by ./intents; when a host intent finds the session ended since the
+ *                 connect, the answer goes out and the socket closes. Payloads are capped at 16 KiB; a dropped connection
  *                 recovers missed frames for 2 minutes, longer gaps resync over HTTP.
  * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ../view/clientEvents,
  *                 ./intents, ./inOrder, @sbr/application, @sbr/domain, ../auth/sessionEnds,
@@ -36,7 +37,7 @@ import { matchSummary } from '../http/routes/matchViews.js';
 import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
-import { handleIntent, type IntentContext } from './intents.js';
+import { handleIntent, SESSION_ENDED, type Answer, type IntentContext } from './intents.js';
 
 export interface GatewayDeps {
   readonly pool: DbPool;
@@ -82,19 +83,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
       });
   });
   play.on('connection', (socket) => {
-    const ctx: IntentContext = { socket, data: socket.data as SocketData, deps };
-    void socket.join(`session:${ctx.data.session.id}`);
-    // One intent at a time per socket, in arrival order (./inOrder).
-    const handle = inOrder(async (envelope: unknown, ack?: (answer: unknown) => void) => {
-      const answer = await handleIntent(ctx, envelope).catch(() => ({
-        ok: false,
-        code: 'INTERNAL',
-      }));
-      ack?.(answer);
-    });
-    socket.on('intent', (envelope: unknown, ack?: (answer: unknown) => void) => {
-      void handle(envelope, ack);
-    });
+    onConnection(socket, deps);
   });
   const names = nameBook(deps.pool);
   deps.bus.subscribe((matchId, events) => {
@@ -114,6 +103,26 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
     });
   });
   return io;
+}
+
+// A socket joins its session's room and takes intents one at a time, in arrival order
+// (./inOrder).
+function onConnection(socket: Socket, deps: GatewayDeps): void {
+  const ctx: IntentContext = { socket, data: socket.data as SocketData, deps };
+  void socket.join(`session:${ctx.data.session.id}`);
+  const handle = inOrder(async (envelope: unknown, ack?: (answer: unknown) => void) => {
+    const answer = await handleIntent(ctx, envelope).catch((): Answer => ({
+      ok: false,
+      code: 'INTERNAL',
+    }));
+    ack?.(answer);
+    // A session that ended since the connect (./intents): the answer goes out, then the
+    // socket closes (06 §2.3).
+    if (!answer.ok && answer.code === SESSION_ENDED) socket.disconnect(true);
+  });
+  socket.on('intent', (envelope: unknown, ack?: (answer: unknown) => void) => {
+    void handle(envelope, ack);
+  });
 }
 
 async function authenticate(socket: Socket, deps: GatewayDeps): Promise<Session> {

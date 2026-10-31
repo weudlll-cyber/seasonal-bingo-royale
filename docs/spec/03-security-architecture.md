@@ -41,6 +41,7 @@ Feature flag `auth.guests` (default on): a guest gets a temporary session to **w
   The DB stores only `sha256(id)`.
 - Idle timeout 7 days for players, 30 minutes for admin sessions; absolute lifetime 30 days / 8 hours. A session is an admin session when its account holds `super_admin`, `security_admin`, `game_admin` or `moderator`. Revoked and expired sessions are deleted by the daily retention job.
 - Session ID rotates on login, privilege change and 2FA completion.
+- A WebSocket is authenticated at the handshake and closed when its session ends (06 §2). Host intents over the socket do not trust that check alone: each one re-reads the session with the HTTP checks (revoked, expired, idle-expired, account active, current permissions), so an expired session is refused (`UNAUTHORIZED`, socket closed) and a lost host role (`FORBIDDEN`) counts at once.
 - Admin actions require a **step-up**: re-entering TOTP if the last 2FA check is older than 10 minutes.
 - Users see and revoke their sessions (device, approximate location from IP prefix only, last seen).
 - Embedded clients on a foreign site (third-party context) cannot rely on cookies; they use an in-memory access token (§4).
