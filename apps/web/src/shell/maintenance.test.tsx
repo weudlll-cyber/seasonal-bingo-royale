@@ -79,7 +79,7 @@ describe('maintenance (09 §4)', () => {
     serve({ on: true, reason: null });
     await shell('#/host/ABC123');
     expect(screen.getByTestId('maintenance-banner').textContent).toContain(
-      'this match plays to the end',
+      'running matches play to the end',
     );
     expect(screen.queryByTestId('maintenance-page')).toBeNull();
     cleanup();

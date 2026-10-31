@@ -11,12 +11,11 @@
  *                 (01 §9). The answer is computed once per finished match and cached (newest
  *                 500); the route has its own limit on top of the API's (20 a minute per address,
  *                 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
- * Depends on:     fastify, @fastify/rate-limit, @sbr/contracts (types), @sbr/domain, ../../db/pool,
+ * Depends on:     fastify, @sbr/contracts (types), @sbr/domain, ../../db/pool,
  *                 ../../match/codec, ../../match/pgMatchStore
  * Used by:        ../app
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3, §2.3a; docs/spec/03-security-architecture.md §9
  */
-import rateLimit from '@fastify/rate-limit';
 import type { MatchVerificationView } from '@sbr/contracts';
 import { verifyMatch, type DomainEvent, type LobbyOpened } from '@sbr/domain';
 import type { FastifyInstance } from 'fastify';
@@ -70,15 +69,8 @@ class VerifiedAnswers {
   }
 }
 
-export async function registerVerifyRoute(
-  app: FastifyInstance,
-  deps: VerifyRouteDeps,
-): Promise<void> {
-  // Only routes that ask for it are limited here (the API-wide limit lives in the sessions).
-  await app.register(rateLimit, {
-    global: false,
-    errorResponseBuilder: () => ({ statusCode: 429, code: 'RATE_LIMITED', message: 'Too many' }),
-  });
+export function registerVerifyRoute(app: FastifyInstance, deps: VerifyRouteDeps): void {
+  // The per-route limit (@fastify/rate-limit, registered by ../app).
   const config = { rateLimit: VERIFY_LIMIT };
   const answers = new VerifiedAnswers();
   app.get<{ Params: { code: string } }>(

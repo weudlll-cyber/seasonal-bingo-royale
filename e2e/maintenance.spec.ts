@@ -95,6 +95,10 @@ test('maintenance holds an automatic start until it is turned off (D22)', async 
   test.setTimeout(180_000);
   const host = await (await browser.newContext()).newPage();
   await signIn(host, 'host');
+  // The test before removed its flag; the server may still hold it for up to 2 s.
+  await expect
+    .poll(() => maintenanceOf(host), { timeout: 5_000 })
+    .toEqual({ on: false, reason: null });
   // The earliest start time allowed: a minute ahead (01 §7.6), plus a little for the form.
   const at = Date.now() + 65_000;
   const created = await post(host, '/api/v1/matches', {
@@ -106,6 +110,7 @@ test('maintenance holds an automatic start until it is turned off (D22)', async 
     maxPlayers: 4,
     startRule: { kind: 'at', at, auto: true },
   });
+  expect(created.status(), 'create the match').toBe(201);
   const { code } = (await created.json()) as { code: string };
   const summary = async () =>
     (await (await host.request.get(`/api/v1/matches/${code}`)).json()) as {
