@@ -10,8 +10,7 @@
  *                 Permissions-Policy header; /metrics refused through a proxy; no account
  *                 ids to anonymous viewers, a deleted player shown as such; a broken
  *                 %-escape answers 400. The guest sessions it creates are removed at the end.
- * Depends on:     vitest, node:fs, ./socketKit, ./harness, ./session, ../src/auth/*, fastify,
- *                 socket.io-client
+ * Depends on:     ./socketKit, ./harness, ./session, ../src/auth/*, fastify, socket.io-client
  * Spec:           docs/spec/03-security-architecture.md §3, §7, §13; docs/spec/06-realtime-architecture.md §2.3
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

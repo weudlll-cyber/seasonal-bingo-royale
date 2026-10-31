@@ -3,17 +3,14 @@
  * @module server/realtime
  * @brief  Client → server intents of the gateway with replay protection and limits (06 §4.1).
  *
- * Responsibility: every intent is `{ t, seq, data }` with an acknowledgement `{ ok, data }`
- *                 or `{ ok: false, code }`. `seq` must grow strictly per socket; duplicates
- *                 and out-of-order intents are dropped (`REPLAYED`). Limits per socket: 10
- *                 intents a second overall, marks 4 a second, draw.next 2 a second (03 §13).
- *                 Intents: match.watch / match.unwatch (at most 3 match rooms), mark (players,
- *                 manual marking), draw.next, round.next (D14, D21) and draw.setMode (the
- *                 match's creator with match.manage, D8); `INTENT_TYPES` lists them all and
- *                 any other `t` answers UNKNOWN_INTENT. Every host intent re-reads the
- *                 session (../auth/sessions refreshSession, the checks of every HTTP call):
- *                 expired or revoked answers UNAUTHORIZED (./gateway then closes the socket), a lost
- *                 match.manage answers FORBIDDEN.
+ * Responsibility: every intent is `{ t, seq, data }`, acknowledged `{ ok, data }` or `{ ok:
+ *                 false, code }`. `seq` must grow strictly per socket, else `REPLAYED`.
+ *                 Per-socket limits: 10 intents a second, marks 4, draw.next 2 (03 §13). Intents
+ *                 (`INTENT_TYPES`): match.watch / match.unwatch (at most 3 rooms), mark (players,
+ *                 manual marking), draw.next, round.next (D14, D21), draw.setMode (creator with
+ *                 match.manage, D8); any other `t` answers UNKNOWN_INTENT. Host intents re-read
+ *                 the session (../auth/sessions refreshSession): expired or revoked answers
+ *                 UNAUTHORIZED (./gateway then closes the socket), a lost match.manage FORBIDDEN.
  * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ../auth/sessions,
  *                 ./gateway (types)
  * Used by:        ./gateway

@@ -9,7 +9,7 @@
  *                 (the recap is for fun only). Answers how many screens saw it and how many
  *                 of the players were already out.
  * Depends on:     @playwright/test, ./livePlayer (types), ./liveSnap, ./serverView
- * Used by:        ./realGame.spec.ts
+ * Used by:        the acceptance Playwright specs (test helper)
  * Spec:           docs/spec/01-game-design.md §7 (D20)
  */
 import { expect, type Page } from '@playwright/test';

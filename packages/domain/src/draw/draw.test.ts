@@ -6,7 +6,7 @@
  * Responsibility: lock in invariants 2, 3, 14 of 12 §3 — deterministic DRBG and
  *                 draw order, permutation prefix of 1–75 for royale/classic, and
  *                 permutation of 79 items (75 + 4 symbols) for classicSeasons.
- * Depends on:     ./drbg, ./drawSequence, ./pool, ../index
+ * Depends on:     ../index (./drbg and ./drawSequence through it)
  * Spec:           docs/spec/12-testing-strategy.md §3
  */
 import { describe, expect, it } from 'vitest';

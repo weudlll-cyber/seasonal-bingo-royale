@@ -9,7 +9,7 @@
  *                 placement states the owner's place and puts places 1–3 on a podium; the
  *                 match log is hidden while empty; the host's draw-mode switch marks the
  *                 active mode and shows the seconds field for timed draws only.
- * Depends on:     @testing-library/react, vitest, ./Standings, ./FinalPlacement, ./Playback,
+ * Depends on:     @testing-library/react, ./Standings, ./FinalPlacement, ./Playback,
  *                 ../host/HostDrawControls, ../playback, ../test/quickTestFixture, ./DrawTicker,
  *                 ../game/useLiveMatch
  * Spec:           docs/spec/01-game-design.md §5, §7.5, §13

@@ -7,7 +7,7 @@
  *                 that drives a round's draws. Fisher-Yates shuffle driven by the DRBG,
  *                 so same seed + same (match, round, purpose) → same order.
  * Depends on:     ./drbg, ./pool, ../gameType
- * Used by:        ../match/* (future WPs), tests, ../index
+ * Used by:        ../match/decide, ../verifyMatch, ../index
  * Spec:           docs/spec/01-game-design.md §5, §9
  */
 import type { GameType } from '../gameType.js';

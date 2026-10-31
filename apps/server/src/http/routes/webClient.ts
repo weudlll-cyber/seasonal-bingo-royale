@@ -9,7 +9,7 @@
  *                 revalidated); a path that leaves the directory or names no file is a 404.
  *                 The client routes with the URL hash, so no other path needs index.html.
  *                 /admin answers a placeholder until the admin app exists (WP-19).
- * Depends on:     fastify, node:fs, node:path
+ * Depends on:     fastify
  * Used by:        ../app.ts (only when SBR_WEB_DIR is set, i.e. in the image)
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/08-devops-architecture.md §4
  */

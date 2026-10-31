@@ -8,7 +8,7 @@
  *                 page.evaluate, and check on every player screen: the points above the card
  *                 equal the player's standings row, no marked cell holds an undrawn number.
  * Depends on:     @playwright/test
- * Used by:        ./realGame.spec.ts, ./livePlayer.ts
+ * Used by:        ./livePlayer, ./recap
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/01-game-design.md §5–§7
  */
 import { expect, type Page } from '@playwright/test';

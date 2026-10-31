@@ -2,16 +2,14 @@
 # @module ops
 # @brief  The production stack on one VPS: app, PostgreSQL 17 and, standalone, Caddy.
 #
-# Responsibility: the app image (built on the server from a git ref until a release image
-#                 exists) runs as uid 10001 on a read-only root filesystem with /tmp in
-#                 memory and one writable volume for uploads and the maintenance flag;
-#                 PostgreSQL sits on an internal network without a published port.
-#                 Standalone installs add Caddy (profile "standalone") with automatic HTTPS
-#                 on 80/443. Website installs (ops/compose.website.yml on top) publish no
-#                 port: the app joins the website's network and its Caddy forwards
-#                 /games/bingo to it. Logs go to Docker's compressed `local` driver, 5 × 20 MB
-#                 per service; CPU and memory caps per spec 08 §4 (app 1 CPU / 768 MiB,
-#                 PostgreSQL 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB).
+# Responsibility: the app image (built from a git ref until a release image exists) runs as uid
+#                 10001 on a read-only root, /tmp in memory, one writable volume for uploads and
+#                 the maintenance flag; PostgreSQL on an internal network, no published port.
+#                 Standalone installs add Caddy (profile "standalone", automatic HTTPS on 80/443).
+#                 Website installs (ops/compose.website.yml on top) publish no port: the app joins
+#                 the website's network, whose Caddy forwards /games/bingo. Logs: Docker `local`
+#                 driver, 5 × 20 MB per service. Caps per spec 08 §4: app 1 CPU / 768 MiB,
+#                 PostgreSQL 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB.
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6

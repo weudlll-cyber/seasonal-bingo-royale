@@ -8,7 +8,7 @@
  *                 server refusal (wrong login, name or e-mail in use, weak or common
  *                 password, too many tries) and an unknown code read as sentences, never as
  *                 a code.
- * Depends on:     vitest, ./accountText, ../shell/http
+ * Depends on:     ./accountText, ../shell/http
  * Spec:           docs/spec/03-security-architecture.md §2.1, §13; docs/spec/05-api-design.md §2.1
  */
 import { describe, expect, it } from 'vitest';

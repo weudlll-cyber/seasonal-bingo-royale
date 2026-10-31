@@ -3,19 +3,14 @@
 # @module ops
 # @brief  The install's files: env file with secrets, install record, stack files, the app image.
 #
-# Responsibility: read the answers of an earlier run back from /etc/sbr/<env>.env, so a
-#                 re-run (also with --yes) keeps them; write that file (0600, values
-#                 single-quoted for Compose, written atomically) — secrets made once with
-#                 openssl rand and kept on every later run, the public URL (an IPv6 address
-#                 in brackets), base path and trusted proxies for the install type plus the
-#                 operator's extra ones (--trusted-proxies), admin e-mail, optional SMTP,
-#                 the operator's age key, and every other key the operator added kept as it
-#                 is; write the install record /etc/sbr/install.conf; copy the compose
-#                 files, Caddyfile, the sbr CLI and its library to /opt/sbr; build the app
-#                 image on the server from a git ref (until a signed release image exists;
-#                 the fetch prunes deleted branches), skipping it when the image of that
-#                 commit is there, and drop app images older than the current and the
-#                 previous one.
+# Responsibility: read an earlier run's answers back from /etc/sbr/<env>.env so a re-run (also
+#                 --yes) keeps them; write that file (0600, single-quoted, atomic): secrets made
+#                 once (openssl rand), public URL (IPv6 in brackets), base path, trusted proxies
+#                 (install type plus --trusted-proxies), admin e-mail, optional SMTP, age key,
+#                 other operator keys kept; write /etc/sbr/install.conf; copy compose files,
+#                 Caddyfile and the sbr CLI with its library to /opt/sbr; build the app image from
+#                 a git ref on the server (until a signed release image exists; fetch prunes)
+#                 unless that commit's image exists; drop app images older than the previous one.
 # Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (update)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3

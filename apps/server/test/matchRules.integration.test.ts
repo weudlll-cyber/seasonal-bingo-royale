@@ -10,7 +10,7 @@
  *                 keeps the classic default; an overlong prize key is refused with 400, and
  *                 the database refuses one written past the API. The matches it opens are
  *                 aborted at the end.
- * Depends on:     vitest, ./harness, ./socketKit
+ * Depends on:     ./harness, ./socketKit
  * Spec:           docs/spec/01-game-design.md §7.1; docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

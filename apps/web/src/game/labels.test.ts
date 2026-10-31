@@ -6,7 +6,7 @@
  * Responsibility: a cut line says "1 goes on, 1 is out" for one player; prize keys become
  *                 words; an unknown round-end reason or server code never shows itself; a
  *                 refusal under maintenance carries the operator's reason (D22).
- * Depends on:     vitest, ./labels
+ * Depends on:     ./labels
  * Spec:           docs/spec/01-game-design.md §3a.1, §7.3, §7.4, §7.6 (D22), §13
  */
 import { describe, expect, it } from 'vitest';

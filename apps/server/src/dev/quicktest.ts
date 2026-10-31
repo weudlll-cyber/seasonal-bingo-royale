@@ -3,22 +3,14 @@
  * @module server/dev
  * @brief  In-memory Quick Test match runner driven by the real lifecycle (WP-08).
  *
- * Responsibility: given a seed, game type, bot count, owner-card count and ticked
- *                 prize keys, run a complete match through the WP-07 lifecycle and
- *                 return a JSON-friendly payload the player client renders. All three
- *                 game types use `simulateMatch`; the owner's cards sit at the top of
- *                 the player order (ids starting with "owner-") so the client can tell
- *                 them from bots. Determinism (01 §9, 12 §3 inv. 2): the same input
- *                 always returns the same output, including the owner's cards and
- *                 auto-mark positions. Events carry display ids and come with the
- *                 owner's effect timeline (../view/clientView). Marking is per player
- *                 (01 §6): bots always mark on the draw; the owner's cards are people
- *                 in manual mode. The match is computed before playback, so the owner's
- *                 later taps are unknown here: those cards are computed as never tapping
- *                 under autoMarkAfter with the chosen delay (noAutoMark uses the default
- *                 delay), measured in draws of the chosen interval. A royale result carries
- *                 the recap of every round another round follows (D20), as a live match
- *                 sends it in the pause.
+ * Responsibility: for a seed, game type, bot and owner-card counts and prize keys, run a full
+ *                 match through the WP-07 lifecycle (`simulateMatch`) and return a JSON payload;
+ *                 owner cards lead the player order (ids "owner-*"). Deterministic incl. owner
+ *                 cards and auto-marks (01 §9, 12 §3 inv. 2). Events carry display ids and the
+ *                 owner's effect timeline (../view/clientView). Bots mark on the draw (01 §6);
+ *                 owner cards, whose taps are unknown here, count as never tapping under
+ *                 autoMarkAfter with the chosen delay (noAutoMark: default), in draws of the
+ *                 chosen interval. Royale results carry each non-final round's recap (D20).
  * Depends on:     @sbr/domain, @sbr/application (rulesets, timing), ../view/clientView,
  *                 ../view/roundRecap, @sbr/contracts
  * Used by:        ../http/routes/quicktest.ts

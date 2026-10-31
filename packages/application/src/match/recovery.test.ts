@@ -7,7 +7,7 @@
  *                 pause that follows); the scheduler's retry of the window close, or a
  *                 restarted engine's start-up sweep (`recover`), continues the match, which
  *                 then plays the same events as a run without the failure.
- * Depends on:     vitest, @sbr/domain, ./engine, ./fakes, ./ports
+ * Depends on:     @sbr/domain, ./engine, ./fakes, ./ports
  * Spec:           docs/spec/02-software-architecture.md §5.3; docs/spec/01-game-design.md §7
  */
 import type { DomainEvent } from '@sbr/domain';

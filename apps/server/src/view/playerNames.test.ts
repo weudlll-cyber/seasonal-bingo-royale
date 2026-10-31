@@ -8,7 +8,7 @@
  *                 unknown id (a player who just joined) or an expired entry loads again, so
  *                 a deleted account's new name shows; the cache holds a bounded number of
  *                 matches, the oldest leaves first.
- * Depends on:     vitest, ./playerNames
+ * Depends on:     ./playerNames
  * Spec:           docs/spec/06-realtime-architecture.md §4; docs/spec/03-security-architecture.md §11
  */
 import { describe, expect, it } from 'vitest';

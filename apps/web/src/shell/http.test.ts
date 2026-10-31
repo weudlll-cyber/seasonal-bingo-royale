@@ -5,7 +5,7 @@
  *
  * Responsibility: "/" for a standalone install, "/games/bingo/" inside the website, with or
  *                 without a hash route or a page file name.
- * Depends on:     vitest, ./http
+ * Depends on:     ./http
  * Spec:           docs/spec/09-deployment-architecture.md §1
  */
 import { describe, expect, it } from 'vitest';

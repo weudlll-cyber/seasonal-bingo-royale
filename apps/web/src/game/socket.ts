@@ -7,7 +7,7 @@
  *                 the session cookie goes along) once per page; send intents as `{ t, seq,
  *                 data }` with a strictly growing seq and wait for the answer (06 §4.1).
  * Depends on:     socket.io-client, ../shell/http
- * Used by:        ./useLiveMatch, ./LiveCard, ../host/*, ../shell/session
+ * Used by:        ./useLiveMatch, ./LiveCard, ../host/*, ../shell/session, ../shell/DevTools
  * Spec:           docs/spec/06-realtime-architecture.md §1, §4
  */
 import { io, type Socket } from 'socket.io-client';

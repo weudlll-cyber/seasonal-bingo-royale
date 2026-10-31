@@ -3,25 +3,14 @@
  * @module e2e/acceptance
  * @brief  Acceptance play-through of the real game: host and three players, every game type.
  *
- * Responsibility: four browser contexts — the host and players 1–2 at 1280×800, player 3
- *                 at phone size 390×844 — signed in with the quick sign-in, play every match
- *                 of ./combos: the host creates it (after checking the D12 message in the
- *                 form), the players join, bots fill it to 20, the host starts and it plays to
- *                 the end. Players tap, tap late and miss; on every draw every screen's numbers
- *                 are the start of the server's round (also across round changes), each
- *                 player's points equal their standings row and the server's points, no mark
- *                 sits on an undrawn number, the missed-number rule holds, the cut screen's
- *                 button fits the outcome (D15); host draws count down to their unlock (D13);
- *                 the live seconds field refuses a too-short interval (D12); with "host
- *                 starts the next round" nothing starts until the host does (D14), and in that
- *                 pause the host and every player, also one already out, see the round recap,
- *                 which changes no standings and no points (D20). At the
- *                 end every cut matches server points, each rank equals the final place and
- *                 each player's points the server's; a failed Draw next fails the test;
- *                 then one more match right away must start fresh. Every match the test
- *                 created is stopped in teardown. Screenshots of royale with host draws and
- *                 classic with seasons (mid-match, cut, pause, end; light and dark) go to
- *                 reports/screens/latest/. Runs only with SBR_ACCEPTANCE=1.
+ * Responsibility: four contexts (host, players 1–2 at 1280×800, player 3 at 390×844) play each
+ *                 match of ./combos to the end: host creates (D12 form message), bots fill to 20,
+ *                 players tap, tap late, miss. Each draw: screens match the server's round,
+ *                 points and standings, no mark on an undrawn number, missed-number rule, cut
+ *                 button fits (D15); host draws count down (D13), short intervals refused (D12),
+ *                 host-started rounds wait (D14) with a recap changing no points (D20). End:
+ *                 cuts, ranks, points match the server; a next match starts fresh; teardown stops
+ *                 all. Screenshots: reports/screens/latest/. SBR_ACCEPTANCE=1 only.
  * Depends on:     @playwright/test, ../realGame, ../screens, ./combos, ./liveSnap,
  *                 ./livePlayer, ./cuts, ./ownerRules, ./recap, ./serverView
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13

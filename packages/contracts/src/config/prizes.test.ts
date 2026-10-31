@@ -6,7 +6,7 @@
  * Responsibility: a prize key is 1 to PRIZE_KEY_MAX_LENGTH characters; every built-in
  *                 key fits; a list holds at most MAX_PRIZES keys, each capped, unique and
  *                 at least one (01 §3a.1).
- * Depends on:     vitest, ../index
+ * Depends on:     ../index
  * Spec:           docs/spec/01-game-design.md §3a.1; docs/spec/05-api-design.md §2.3
  */
 import { describe, expect, it } from 'vitest';

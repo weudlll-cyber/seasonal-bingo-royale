@@ -3,28 +3,17 @@
  * @module server/match
  * @brief  How events and match state are stored (match secrets sealed), and seed encryption.
  *
- * Responsibility: events and snapshots are stored as jsonb. Encoding version 3 (`"$v": 3`
- *                 in the stored JSON, written today) seals the match secrets with the
- *                 server's seed key: every `seed` (bytes) and every round's `drawSequence` is
- *                 written as { "$sealed": base64 } through encryptSeed (AES-256-GCM, the
- *                 match id as additional authenticated data, so a seal copied into another
- *                 match does not open) and opened on read through decryptSeed, so the domain,
- *                 replay, scheduler recovery and the verification read the values unchanged
- *                 (03 §9). Older payloads stay readable as they are (the event log is
- *                 append-only, never rewritten): version 2 sealed the same way without the
- *                 match id; payloads without "$v" hold the seed as { "$bytes": base64 } and
- *                 the draw order as a plain list. Decoding is strict: an unknown version, a
- *                 secret in plain form where it must be sealed, a seal where none may be, and
- *                 a marker object with other fields or a non-base64 value are refused. The
- *                 seed column (04 §3.3 `seed_enc`) uses the same encryption; `seed_enc_version`
- *                 says whether it is bound to the match id (3) or not (2, stored before). Its
- *                 public commitment is the domain's commitSeed (SHA-256). The public
- *                 projection of the event log drops the seed (01 §9: revealed only after
- *                 the match). No error names a secret.
- * Depends on:     node:crypto, @sbr/domain
- * Used by:        ./pgMatchStore, ../realtime/gateway, ../view/liveViews,
- *                 ../http/routes/matchVerify (openSeedColumn, the seed reveal after a match),
- *                 ./codec.test
+ * Responsibility: events and snapshots are stored as jsonb. Encoding v3 (`"$v": 3`) seals each
+ *                 `seed` and `drawSequence` as { "$sealed": base64 } (encryptSeed: AES-256-GCM,
+ *                 match id as AAD); reads unseal transparently (03 §9). Older payloads stay
+ *                 readable (append-only log): v2 is unbound; no "$v" means a { "$bytes" } seed
+ *                 and a plain draw list. Decoding is strict (unknown version, misplaced secret or
+ *                 seal, bad marker: refused). The seed column (04 §3.3 `seed_enc`;
+ *                 `seed_enc_version` 3 bound, 2 not) is sealed alike; commitSeed (SHA-256) is
+ *                 public; the public log drops the seed (01 §9). No error names a secret.
+ * Depends on:     @sbr/domain
+ * Used by:        ./pgMatchStore, ./sealedSeedCheck, ../realtime/gateway, ../view/liveViews,
+ *                 ../http/routes/matchVerify (openSeedColumn, the seed reveal after a match)
  * Spec:           docs/spec/04-database-design.md §3.3; docs/spec/01-game-design.md §9; docs/spec/03-security-architecture.md §9
  */
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';

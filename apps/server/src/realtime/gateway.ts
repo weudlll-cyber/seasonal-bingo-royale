@@ -3,24 +3,17 @@
  * @module server/realtime
  * @brief  Socket.IO gateway: authenticated sockets, match rooms, events out, intents in (06).
  *
- * Responsibility: one endpoint `/ws` (under the base path), namespace `/play`, WebSocket only (06 §1). The
- *                 handshake checks the Origin against the allowed list and loads the
- *                 session from the cookie (06 §2); without a live session the socket is
- *                 refused, also on a recovered connection. Each socket joins the room
- *                 `session:<id>`; when its session ends (logout, account deletion, a new
- *                 sign-in) the socket is closed (../auth/sessionEnds). Committed match events go to the room `match:<id>` as one frame
- *                 `{ s, events }` with the public event projection (the seed removed; a round
- *                 start without cards and draw order, ../view/clientEvents liveEvent) and
- *                 every player renamed as the state endpoint does: names from that match's
- *                 own entries, cached per match for 30 s (../view/playerNames; a screen
- *                 appends such events without fetching); record changes (status, start time,
- *                 draw control) go out as `match`. Intents arrive on `intent` and are
- *                 handled by ./intents; when a host intent finds the session ended since the
- *                 connect, the answer goes out and the socket closes. Payloads are capped at 16 KiB; a dropped connection
- *                 recovers missed frames for 2 minutes, longer gaps resync over HTTP.
- * Depends on:     socket.io, node:http, ../auth/sessions, ../match/*, ../view/clientEvents,
- *                 ../view/playerNames, ./intents, ./inOrder, @sbr/application, ../auth/sessionEnds,
- *                 ../db/pool, ../http/routes/matchViews
+ * Responsibility: `/ws` (base path), namespace `/play`, WebSocket only (06 §1). The handshake
+ *                 checks Origin, needs a live cookie session (06 §2), also on recovery. Sockets
+ *                 join `session:<id>` and close when it ends (../auth/sessionEnds). Committed
+ *                 events go to `match:<id>` as `{ s, events }`: public projection (no seed; round
+ *                 starts lack cards, draw order; ../view/clientEvents liveEvent), players renamed
+ *                 per match, cached 30 s (../view/playerNames); record changes as `match`.
+ *                 `intent` goes to ./intents; a host intent on an ended session is answered, then
+ *                 closed. Payloads max 16 KiB; frames recover for 2 min, then HTTP resync.
+ * Depends on:     socket.io, ../auth/sessions, ../match/*, ../view/clientEvents,
+ *                 ../view/playerNames, ./intents, ./inOrder, @sbr/application,
+ *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews
  * Used by:        ../http/app, ./intents
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */

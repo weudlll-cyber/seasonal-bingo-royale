@@ -8,7 +8,8 @@
  *                 was given, and that matches already running play to the end. The banner
  *                 above the host console says the same in one line, so the host knows the
  *                 running match goes on and no new one can start.
- * Depends on:     react, ./useMaintenance (type), ./shell.css
+ * Depends on:     react, ./useMaintenance (type); its classes live in ./shell.css
+ *                 (loaded by ./AppShell)
  * Used by:        ./AppShell
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */

@@ -3,23 +3,14 @@
 # @module ops
 # @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance.
 #
-# Responsibility: one command per task of 09 §4 for the environment of the install record
-#                 (or --env): status (type, address, image, containers, health, last
-#                 backup and a failed scheduled one, timer, maintenance); update <git ref>
-#                 (refused while the last update is unconfirmed; image built from the ref,
-#                 then backup and plain pre-update dump for a rollback, restart, the app
-#                 migrates on start, app images no environment uses pruned); confirm (the
-#                 update works: the plain pre-update dump and the rollback data are deleted);
-#                 rollback (backup of the current state, confirmation, the pre-update dump
-#                 restored when the update migrated the schema — everything since the update
-#                 is then lost —, previous image and ref; a failed restore starts the app
-#                 again unchanged); backup; restore <file> and restore --drill <file>
-#                 (--identity <age key file> for encrypted backups, --force-env for another
-#                 environment's backup or seed key); logs [service]; admin create-super (the
-#                 first admin, password asked inside the app, never echoed); maintenance
-#                 on ["reason"]|off (a flag file the app reads: no new matches, running ones
-#                 finish; players see the maintenance page with the reason).
-#                 --yes skips the confirmations.
+# Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
+#                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
+#                 plain pre-update dump, restarts, the app migrates, prunes unused images);
+#                 confirm (drops the rollback data); rollback (backup, then the pre-update dump if
+#                 the schema migrated — later data is lost — previous image and ref); backup;
+#                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
+#                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
+#                 file: no new matches, running ones finish). --yes skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail

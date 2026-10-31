@@ -9,8 +9,7 @@
  *                 rising seq, open a match with host or timed draws; close every socket and
  *                 the harness at the end.
  * Depends on:     socket.io-client, ./harness, ./session
- * Used by:        ./realtime.integration.test.ts, ./matchRules.integration.test.ts,
- *                 ./security.integration.test
+ * Used by:        the integration tests in this folder (test helper)
  * Spec:           docs/spec/06-realtime-architecture.md §1–§4
  */
 import { io as connect, type Socket } from 'socket.io-client';

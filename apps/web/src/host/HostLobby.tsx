@@ -3,15 +3,14 @@
  * @module web/host
  * @brief  The host's console while the match is open: notice, players, start (01 §7.6, D16).
  *
- * Responsibility: the notice "Your match is open — players can join now from the lobby
- *                 (code …)" with the registration status (../game/Registration); the joined
- *                 players; "Fill with N
- *                 bots" (development only); for a set start time the switch "Start
- *                 automatically at the start time" (until the countdown runs) and, when the
- *                 automatic start found too few players, "Not enough players at the
- *                 start time — start it yourself or abort"; Start match, which the host can
- *                 always press, or the countdown once it runs; "Abort match" with a reason
- *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).
+ * Responsibility: the notice "Your match is open — players can join now from the lobby (code …)"
+ *                 with the registration status (../game/Registration); the joined players; "Fill
+ *                 with N bots" (dev only); for a set start time the switch "Start automatically
+ *                 at the start time" (until the countdown runs) and, when the automatic start
+ *                 found too few players, "Not enough players at the start time — start it
+ *                 yourself or abort"; Start match (always pressable) or the running countdown;
+ *                 "Abort match" with a reason (./AbortMatch), which leads every screen to the
+ *                 cancelled-match page (D17).
  * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback, ../shell/http,
  *                 ./TimingFields, ./AbortMatch
  * Used by:        ./HostConsole

@@ -3,15 +3,14 @@
  * @module server/http
  * @brief  GET /api/v1/matches/:code/verify — the seed revealed after the end, and the match recomputed from it.
  *
- * Responsibility: for anyone, once the match has finished or was cancelled: decrypt the
- *                 stored seed (../../match/codec openSeedColumn), recompute every round's draw
- *                 order, the draws made and every card from it with the domain's
- *                 verifyMatch against the commitment published at match open, and answer
- *                 the contracts' MatchVerificationView. Before the end the answer is 409
- *                 MATCH_NOT_OVER and the seed stays sealed (01 §9). One answer recomputes the
- *                 whole match, so it is computed once per match that is over and kept (the
- *                 newest 500 matches), and the route has its own limit on top of the API's
- *                 (20 a minute per address, 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
+ * Responsibility: for anyone, once the match has finished or was cancelled: decrypt the stored
+ *                 seed (../../match/codec openSeedColumn), recompute every round's draw order,
+ *                 the draws made and every card with the domain's verifyMatch against the
+ *                 commitment published at match open, and answer the contracts'
+ *                 MatchVerificationView. Before the end: 409 MATCH_NOT_OVER, seed stays sealed
+ *                 (01 §9). The answer is computed once per finished match and cached (newest
+ *                 500); the route has its own limit on top of the API's (20 a minute per address,
+ *                 429 RATE_LIMITED; @fastify/rate-limit, 03 §13).
  * Depends on:     fastify, @fastify/rate-limit, @sbr/contracts (types), @sbr/domain, ../../db/pool,
  *                 ../../match/codec, ../../match/pgMatchStore
  * Used by:        ../app
@@ -26,7 +25,7 @@ import type { DbPool } from '../../db/pool.js';
 import { openSeedColumn } from '../../match/codec.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 
-export interface VerifyRouteDeps {
+interface VerifyRouteDeps {
   readonly pool: DbPool;
   readonly store: PgMatchStore;
   readonly seedKey: Buffer;

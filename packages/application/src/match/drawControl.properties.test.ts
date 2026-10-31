@@ -7,7 +7,7 @@
  *                 interval changes, at random moments of a classic match, every number
  *                 drawn is the next item of the round's sequence, and that sequence is the
  *                 one the match's seed and id determine (drawSequence), switches or not.
- * Depends on:     vitest, fast-check, ./fakes, @sbr/domain
+ * Depends on:     fast-check, ./fakes, @sbr/domain
  * Spec:           docs/spec/12-testing-strategy.md §3 invariant 16; docs/spec/01-game-design.md §5
  */
 import { drawSequence, type DomainEvent } from '@sbr/domain';

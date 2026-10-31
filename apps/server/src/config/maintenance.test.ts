@@ -6,7 +6,7 @@
  * Responsibility: off without the file; on within 2 seconds of `sbr maintenance on`
  *                 creating it, off again within 2 seconds of its removal, and on again
  *                 with a new reason when it is created once more.
- * Depends on:     vitest, node:fs, ./maintenance
+ * Depends on:     ./maintenance
  * Spec:           docs/spec/09-deployment-architecture.md §4
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';

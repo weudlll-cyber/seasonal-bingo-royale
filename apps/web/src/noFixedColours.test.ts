@@ -6,7 +6,7 @@
  * Responsibility: scan every .tsx file of the client (the Quick Test included) for a hex
  *                 colour outside comments; colours come from the @sbr/ui tokens (the season
  *                 colours from ./types). A fixed dark colour would break the light theme.
- * Depends on:     node:fs, node:path, vitest
+ * Depends on:     nothing (reads the source files)
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { readdirSync, readFileSync } from 'node:fs';

@@ -7,8 +7,9 @@
  *                 Replay (evolve folded over the full event list) must reproduce the
  *                 live state (invariant 4). Events are plain data; no behaviour.
  * Depends on:     ../card/cardTypes, ../gameType, ./lifecycleTypes
- * Used by:        ./decide, ./evolve, apps/server event log, ../index, ./decideAutoMark,
- *                 ./evolveLifecycle, ./evolveScoring, ./markResolver, ./roundEnd, ./simulate
+ * Used by:        ./decide, ./evolve, ../index, ./decideAutoMark, ./evolveLifecycle,
+ *                 ./evolveScoring, ./markResolver, ./roundEnd, ./simulate, ../verifyMatch;
+ *                 apps/server (event log, through ../index)
  * Spec:           docs/spec/02-software-architecture.md §5.1–§5.2
  */
 import type { Card } from '../card/cardTypes.js';

@@ -7,9 +7,7 @@
  *                 (buildApp, loadEnv, createPool, migrate). The actual CLI entry
  *                 is ./main.ts and is run from the Dockerfile and `pnpm dev`.
  * Depends on:     ./config/env, ./db/pool, ./db/migrator, ./http/app
- * Used by:        test/* and later packages that depend on @sbr/server,
- *                 ../test/deployment.integration.test, ../test/harness,
- *                 ../test/matchPersistence.integration.test, ../test/server.integration.test
+ * Used by:        ../test/harness, later packages that depend on @sbr/server
  * Spec:           docs/spec/02-software-architecture.md §3
  */
 

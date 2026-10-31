@@ -3,17 +3,16 @@
  * @module server
  * @brief  Operator commands run inside the app image: create the first admin, check the seed key.
  *
- * Responsibility: `create-super --email <e-mail> --name <display name>` asks for the
- *                 password (not echoed on a terminal; read from standard input otherwise),
- *                 checks it against the password rules and creates an account with the
- *                 roles super_admin and organizer (every host permission). Until the admin
- *                 app with its bootstrap page exists (WP-19), this is how the first admin
- *                 is made (`sbr admin create-super`). The password is never printed or logged.
- *                 `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
- *                 with SBR_SEED_KEY (exit 1 when the key does not open it); the backup drill
- *                 runs it on the restored copy (`sbr restore --drill`).
+ * Responsibility: `create-super --email <e-mail> --name <display name>` asks for the password
+ *                 (not echoed on a terminal, else read from standard input), checks the password
+ *                 rules and creates an account with roles super_admin and organizer (every host
+ *                 permission); until the admin app's bootstrap page exists (WP-19) this makes the
+ *                 first admin (`sbr admin create-super`). The password is never printed or
+ *                 logged. `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
+ *                 with SBR_SEED_KEY (exit 1 when it fails); the backup drill runs it on the
+ *                 restored copy (`sbr restore --drill`).
  * Depends on:     ./config/env, ./config/seedKey, ./db/pool, ./auth/accounts, ./auth/password,
- *                 ./match/sealedSeedCheck, node:readline
+ *                 ./match/sealedSeedCheck
  * Used by:        ops/sbr (docker compose exec app node dist/cli.js …), ops/lib/backup.sh (drill)
  * Spec:           docs/spec/09-deployment-architecture.md §4–§6; docs/spec/03-security-architecture.md §2.1
  */

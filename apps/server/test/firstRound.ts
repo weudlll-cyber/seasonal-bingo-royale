@@ -8,7 +8,7 @@
  *                 the draw's speed window closes; stops when the round has ended (and its cut
  *                 is applied). Answers how many taps the player made.
  * Depends on:     ./harness (types), ./session (types)
- * Used by:        ./roundRecap.integration.test, ./pauseEnd.integration.test
+ * Used by:        the integration tests in this folder (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §4
  */
 import type { Harness } from './harness.js';

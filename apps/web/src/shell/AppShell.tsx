@@ -3,17 +3,14 @@
  * @module web/shell
  * @brief  The player client's frame: top bar, navigation, account, screens.
  *
- * Responsibility: show the Seasonal Entertainment emblem with the "Seasonal Bingo Royale"
- *                 wordmark, the light/dark toggle, links to the lobby and hosting (with
- *                 `match.create`), the account with sign-out ("Signed in as <name>
- *                 (host|player)") or, signed out, "Sign in" and "Register" (../account).
- *                 Below the bar, the screen of the current route; while maintenance is on
- *                 (./useMaintenance) the lobby and the create form show the maintenance page
- *                 and the host console a banner (09 §4); "Verify this match" after a match
- *                 (../game/VerifyMatch). In development also the
- *                 Quick Test link and page and the "Dev sign-in" menu (./DevTools), loaded on
- *                 demand: a production build (Vite's DEV false) leaves them out of the bundle,
- *                 and `dev` (false in production) decides whether they show.
+ * Responsibility: show the Seasonal Entertainment emblem, the "Seasonal Bingo Royale" wordmark,
+ *                 the light/dark toggle, links to the lobby and hosting (with `match.create`),
+ *                 the account with sign-out ("Signed in as <name> (host|player)") or "Sign in"
+ *                 and "Register" (../account). Below the bar, the current route's screen; in
+ *                 maintenance (./useMaintenance) the lobby and create form show the maintenance
+ *                 page, the host console a banner (09 §4); "Verify this match" after a match
+ *                 (../game/VerifyMatch). Dev-only Quick Test and "Dev sign-in" (./DevTools) load
+ *                 on demand and are left out of production builds.
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance,
  *                 ./DevTools and ../App (lazy,
  *                 development only), ../game/*, ../host/*, ../account/*, ./shell.css,

@@ -12,7 +12,7 @@
  *                 read (the caller passes the revealed one). Pure.
  * Depends on:     ./card/generateCard, ./card/cardTypes, ./commitment, ./draw/drawSequence,
  *                 ./match/events
- * Used by:        ./index, ./verifyMatch.test
+ * Used by:        ./index
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/12-testing-strategy.md §3 invariant 11
  */
 import type { Card } from './card/cardTypes.js';

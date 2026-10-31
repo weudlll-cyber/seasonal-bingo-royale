@@ -11,7 +11,7 @@
  *                 A prize key is capped at 32 characters and a list at 20 keys.
  * Depends on:     zod
  * Used by:        ./ruleset.ts, ./defaults/classicRealtime, ./defaults/classicSeasonsRealtime,
- *                 ../index (apps/server match-create and Quick Test bodies), ./prizes.test
+ *                 ../index (apps/server match-create and Quick Test bodies)
  * Spec:           docs/spec/01-game-design.md §3a.1, §3a.2; docs/spec/05-api-design.md §2.3
  */
 import { z } from 'zod';

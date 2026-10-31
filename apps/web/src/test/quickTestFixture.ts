@@ -7,10 +7,7 @@
  *                 marks a season cell, a cut eliminates the owner, round 2 deals new
  *                 cards to the survivors only. Small enough to reason about in a test.
  * Depends on:     ../types
- * Used by:        ../playback.test.ts, ../components/*.test.tsx, ../game/liveFrames.test,
- *                 ../game/liveGame.test, ../game/matchCancelled.test, ../game/plainEnglish.test,
- *                 ../game/progressLine.test, ../host/hostNav.test, ../host/rules.test,
- *                 ./matchFixture, ../newRun.test, ../useDrawTicker.test
+ * Used by:        ./matchFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import type { Card, MissedNumbers, OwnerStatus, QuickTestResult } from '../types.js';

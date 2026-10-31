@@ -3,18 +3,15 @@
  * @module application/match
  * @brief  The live match engine: create, join, bots, start, draw control, marks, abort.
  *
- * Responsibility: the use cases of a realtime match on top of the domain lifecycle. A
- *                 match is created from the published default ruleset of its game type
- *                 with the starter's choices (prizes, draw mode and seconds, missed-number
- *                 rule); players join while the lobby is open; development bots join as
- *                 non-tapping players; start schedules the match after a countdown;
- *                 scheduled actions run through ./flow; the host draws in host mode (not
- *                 before the timed interval since the last draw, D13), starts the next
- *                 round when the match waits for it (D14), and switches draw mode or
- *                 seconds at any time (D8, never below D12); a tap is scored with the
- *                 speed bonus from the time since its draw (01 §6); `recover` continues a
- *                 match after a crash. Every command for a match runs through ./runner.
- * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./runner, ./flow, ./timing,
+ * Responsibility: realtime match use cases on top of the domain lifecycle: create from the game
+ *                 type's published default ruleset with the starter's choices (prizes, draw mode
+ *                 and seconds, missed-number rule); join while the lobby is open (dev bots as
+ *                 non-tapping players); start after a countdown; scheduled actions via ./flow;
+ *                 host draws in host mode (not before the timed interval, D13); start the next
+ *                 round when it waits (D14); switch draw mode or seconds anytime (D8, never below
+ *                 D12); score a tap with the speed bonus from its draw time (01 §6); `recover`
+ *                 after a crash. All commands run through ./runner.
+ * Depends on:     @sbr/domain, ./ports, ./runner, ./flow, ./timing,
  *                 ./startRules (set time, start when full), ./create
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes
  * Spec:           docs/spec/01-game-design.md §3–§8; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§5

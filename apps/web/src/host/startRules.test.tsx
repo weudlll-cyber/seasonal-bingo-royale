@@ -10,7 +10,7 @@
  *                 which sends the change; it shows "Not enough players at the start time —
  *                 start it yourself or abort" when the automatic start found too few, with
  *                 the line "Waiting for players …" and "Abort match" in the lobby.
- * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./createForm, ./HostConsole,
+ * Depends on:     @testing-library/react, ./CreateMatch, ./createForm, ./HostConsole,
  *                 ./TimingFields, ../test/matchFixture, ../game/useLiveMatch
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */

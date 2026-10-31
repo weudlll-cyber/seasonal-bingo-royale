@@ -11,8 +11,8 @@
  *                 development modules (src/dev/*, the Quick Test and dev sign-in routes)
  *                 replaced by ./devStub.mjs; copy src/db/migrations to <out>/migrations,
  *                 where the bundled migrator looks for them. Run by the Dockerfile.
- * Depends on:     esbuild, node:fs, node:path, ./devStub.mjs
- * Used by:        Dockerfile, test/productionBundle.test.ts
+ * Depends on:     esbuild, ./devStub.mjs
+ * Used by:        Dockerfile
  * Spec:           docs/spec/08-devops-architecture.md §4; docs/spec/09-deployment-architecture.md §1
  */
 import { cpSync, rmSync } from 'node:fs';

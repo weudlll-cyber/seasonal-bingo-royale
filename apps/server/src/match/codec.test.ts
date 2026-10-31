@@ -3,18 +3,15 @@
  * @module server/match
  * @brief  Seed encryption and the stored encoding of events and snapshots (match secrets at rest).
  *
- * Responsibility: encryptSeed/decryptSeed: the stored seed (04 §3.3 `seed_enc`) comes back
- *                 byte for byte with the right key and match id, a fresh IV makes two seals
- *                 differ, and a wrong key, another match's id or a changed byte fails instead
- *                 of returning another seed (GCM tag over the match id as AAD).
- *                 encodeStored/decodeStored: a stored lobbyOpened or roundStarted holds
- *                 neither the seed nor the draw order in plain form, and both come back as
- *                 they were; a sealed payload moved to another match does not open; payloads
- *                 written before encoding version 2, and version-2 payloads (sealed without
- *                 the match id), still decode; a payload with a plain secret where it must be
- *                 sealed, an unknown version, or a marker object with extra or wrong fields
- *                 fails loudly and names no secret.
- * Depends on:     vitest, node:crypto, ./codec
+ * Responsibility: encryptSeed/decryptSeed: the stored seed (04 §3.3 `seed_enc`) round-trips with
+ *                 the right key and match id, a fresh IV makes seals differ, and a wrong key,
+ *                 another match's id or a changed byte fails (GCM tag, match id as AAD).
+ *                 encodeStored/decodeStored: a stored lobbyOpened or roundStarted holds no plain
+ *                 seed or draw order and round-trips; a sealed payload moved to another match
+ *                 does not open; pre-v2 and v2 (unbound) payloads still decode; a plain secret
+ *                 where a seal belongs, an unknown version, or a bad marker object fails loudly
+ *                 and names no secret.
+ * Depends on:     ./codec
  * Spec:           docs/spec/04-database-design.md §3.3; docs/spec/03-security-architecture.md §9
  */
 import { randomBytes } from 'node:crypto';

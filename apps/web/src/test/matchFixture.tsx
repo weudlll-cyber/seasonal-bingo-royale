@@ -7,9 +7,9 @@
  *                 fields a test gives; `serveMatch` stubs fetch with the signed-in host's
  *                 session, the lobby list and the live state of one match; `show` renders inside the
  *                 session provider and lets the first fetches settle. Test support only.
- * Depends on:     @testing-library/react, vitest, ../game/useLiveMatch (types),
- *                 ./quickTestFixture, ../shell/session
- * Used by:        ../host/*.test.tsx, ../game/registration.test.tsx, ../game/matchCancelled.test
+ * Depends on:     @testing-library/react, ../game/useLiveMatch (types), ./quickTestFixture,
+ *                 ../shell/session
+ * Used by:        the component tests (test helper)
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §2
  */
 import { act, render } from '@testing-library/react';

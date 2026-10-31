@@ -9,10 +9,7 @@
  *                 number and the standings from a screen, post as the signed-in account (with
  *                 its CSRF token), stop a match in teardown and close the test's contexts.
  * Depends on:     @playwright/test
- * Used by:        ./realGame.spec.ts, ./startScreens.spec.ts, ./acceptance/realGame.spec.ts,
- *                 ./acceptance/combos, ./acceptance/interludeScreens.spec,
- *                 ./acceptance/pauseScreens.spec, ./account.spec, ./createFormPhone.spec,
- *                 ./hostNav.spec, ./maintenance.spec, ./verifyMatch.spec
+ * Used by:        ./acceptance/combos
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
 import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';

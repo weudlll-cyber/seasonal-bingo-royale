@@ -3,17 +3,15 @@
  * @module server/view
  * @brief  Display names of a match's players, for the state view and the gateway's frames.
  *
- * Responsibility: playerNames reads the names from the match's own entries (only players
- *                 of that match are named): an account's display name, a bot's id, and for
- *                 a deleted account "deleted player" with a short tag that keeps names apart,
- *                 never the account id (audit S10). PlayerNameCache keeps those names per
- *                 match for the gateway, which renames every frame: a batch whose ids are
- *                 all known is served from memory; an unknown id (a player who just joined)
- *                 or an entry older than its lifetime (30 s) loads the match again, so a
- *                 deleted account's new name shows; at most 1000 matches are kept, the
- *                 oldest leaves first.
+ * Responsibility: playerNames reads names from the match's own entries: an account's display
+ *                 name, a bot's id, for a deleted account "deleted player" with a short tag that
+ *                 keeps names apart, never the account id (audit S10). PlayerNameCache keeps them
+ *                 per match for the gateway's frame renaming: a batch of known ids comes from
+ *                 memory; an unknown id (a new joiner) or an entry older than 30 s reloads the
+ *                 match, so a deleted account's new name shows; at most 1000 matches, the oldest
+ *                 leaves first.
  * Depends on:     ../db/pool
- * Used by:        ../http/routes/matches (state view), ../realtime/gateway, ./playerNames.test
+ * Used by:        ../http/routes/matches (state view), ../realtime/gateway
  * Spec:           docs/spec/06-realtime-architecture.md §4; docs/spec/05-api-design.md §2.3
  */
 import type { DbPool } from '../db/pool.js';

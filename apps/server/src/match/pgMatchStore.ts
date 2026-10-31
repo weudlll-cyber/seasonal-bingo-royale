@@ -3,18 +3,16 @@
  * @module server/match
  * @brief  PostgreSQL adapter of the match store: event log, snapshots, projections (02 §5.2).
  *
- * Responsibility: insert a match (seed encrypted and bound to the match id, commitment
- *                 public); check at startup that the seed key opens what is stored; events
- *                 and snapshots are written and read in the codec's stored encoding (match
- *                 secrets sealed for their match); load a match from
- *                 its latest snapshot plus the event tail, with the draw times of the
- *                 current round; append a batch in one transaction — version check on the
- *                 matches row (optimistic concurrency), events with consecutive seq, the
- *                 projections, and a snapshot every 25 events (the last 3 are kept); set
- *                 the status, the draw control and the start rule (D16) on the row.
+ * Responsibility: insert a match (seed encrypted and bound to the match id, commitment public);
+ *                 check at startup that the seed key opens what is stored; write and read events
+ *                 and snapshots in the codec's stored encoding; load a match from its latest
+ *                 snapshot plus the event tail, with the current round's draw times; append a
+ *                 batch in one transaction (version check on the matches row, consecutive seq,
+ *                 projections, a snapshot every 25 events, last 3 kept); set the status, draw
+ *                 control and start rule (D16) on the row.
  * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records,
  *                 ../db/pool
- * Used by:        ../http/routes/matches, ./runtime
+ * Used by:        ../http/routes/matches, ../http/routes/matchVerify, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §5.2; docs/spec/04-database-design.md §3.3
  */
 import type {

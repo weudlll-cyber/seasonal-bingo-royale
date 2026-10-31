@@ -8,7 +8,7 @@
  *                 reload. Null until the first answer (and after a failed one): nothing is
  *                 blocked on a guess.
  * Depends on:     react, ./http
- * Used by:        ./AppShell
+ * Used by:        ./AppShell, ./Maintenance
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */
 import { useEffect, useState } from 'react';

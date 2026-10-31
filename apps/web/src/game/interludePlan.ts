@@ -3,17 +3,16 @@
  * @module web/game
  * @brief  Which recap cards the interlude shows, in what order and for how long (D20).
  *
- * Responsibility: from the server's recap and the pause: the cards that have content (top
- *                 three, climber, cut and shield saves, seasons and the fastest tapper, the
- *                 round's facts). With a timed pause (D14) the cards share the time left
- *                 evenly and each gets at least CALM_CARD_MS, the time a card needs to be
- *                 read at a calm pace; when the pause is too short for all of them, the most
- *                 important ones are kept (top three, cut, seasons and speed, climber, facts)
- *                 instead of rushing. With "the host starts the next round" every card is
- *                 shown for CALM_CARD_MS and the cards loop. Display only: the server built
- *                 the recap; nothing here computes a score or a ranking.
+ * Responsibility: from the server's recap and the pause: the cards with content (top three,
+ *                 climber, cut and shield saves, seasons and the fastest tapper, the round's
+ *                 facts). In a timed pause (D14) the cards share the time left evenly, each at
+ *                 least CALM_CARD_MS (a calm reading time); if the pause is too short, the most
+ *                 important are kept (top three, cut, seasons and speed, climber, facts) instead
+ *                 of rushing. With "the host starts the next round" each card shows for
+ *                 CALM_CARD_MS and they loop. Display only: nothing here computes a score or a
+ *                 ranking.
  * Depends on:     @sbr/contracts (types), ./labels (types)
- * Used by:        ./Interlude, ./interlude.test
+ * Used by:        ./Interlude, ../components/Playback (types), ../App (types)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20)
  */
 import type { RoundRecap } from '@sbr/contracts';

@@ -3,16 +3,14 @@
  * @module e2e
  * @brief  The host finds the console again; a player window shows no Manage; the top bar (POLISH-1).
  *
- * Responsibility: the host creates a match, goes to the lobby, returns via "Manage", fills
- *                 it with bots and starts it; opens the match screen and returns via "Open
- *                 host console"; the same window signed in as a player shows no "Manage"
- *                 and no host link. The top bar never covers a field brought to the top edge
- *                 on a wide screen and scrolls away on a phone; at 360 and 390 px the account
- *                 chip is not cut and the buttons stay on one line. The console in the lobby
- *                 shows the open-match notice with the code. In Chromium it also saves the
- *                 create form (start rule "At a set time"), the console in the lobby, the
- *                 lobby and the waiting room at desktop and phone size, light and dark, to
- *                 reports/screens/latest/.
+ * Responsibility: the host creates a match, goes to the lobby, returns via "Manage", fills it
+ *                 with bots and starts it; opens the match screen and returns via "Open host
+ *                 console"; as a player the window shows no "Manage" and no host link. The top
+ *                 bar never covers a field at the top edge on a wide screen and scrolls away on a
+ *                 phone; at 360 and 390 px the account chip is not cut and buttons stay on one
+ *                 line. The lobby console shows the open-match notice with the code. Chromium
+ *                 saves the create form ("At a set time"), lobby console, lobby and waiting room
+ *                 at desktop and phone size, light and dark, to reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */

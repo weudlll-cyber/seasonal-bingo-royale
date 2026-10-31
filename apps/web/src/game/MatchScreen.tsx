@@ -3,18 +3,14 @@
  * @module web/game
  * @brief  A live match for a player or spectator: waiting room, arena, final ranking (WP-12/13).
  *
- * Responsibility: fold the server's live view with the Quick Test's playback logic and
- *                 show: in the lobby, the waiting room with the players and the start
- *                 countdown; while running, the arena — the current number large, recent
- *                 numbers, the player's own cards (taps go to the server), status (points,
- *                 rank, effects, seasons, shield), standings with active players first, the
- *                 prize list in classic types, one match log (newest first), the cut screen
- *                 with the countdown to the next round or "Waiting for the host to start
- *                 round N" (D14) and the recap of the round below it (./Interlude, D20, for
- *                 eliminated players and spectators too), the spectator note once out; at the
- *                 end the final placement on top; a match ended without a result shows its
- *                 own end page (./MatchCancelled, D17). Remounted per match code, so nothing
- *                 of a previous match survives.
+ * Responsibility: fold the server's live view with the Quick Test playback logic and show: the
+ *                 lobby waiting room (players, start countdown); the arena (current number large,
+ *                 recent numbers, own cards with taps sent to the server, status: points, rank,
+ *                 effects, seasons, shield; standings active first; classic prize list; one match
+ *                 log, newest first); the cut screen with the next-round countdown or "Waiting
+ *                 for the host to start round N" (D14) over the round recap (./Interlude, D20,
+ *                 for everyone); the spectator note once out; the final placement on top;
+ *                 ./MatchCancelled for a match without result (D17). Remounted per match code.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
  *                 ./EndActions, ./game.css

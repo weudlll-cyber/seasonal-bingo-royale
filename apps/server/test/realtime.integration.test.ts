@@ -3,20 +3,16 @@
  * @module server/test
  * @brief  WebSocket gateway: auth, origin, rooms, events, intents, replay protection, limits (WP-11).
  *
- * Responsibility: against a listening server: sockets without a session or from a foreign
- *                 origin are refused; a watcher receives committed events in seq order, a
- *                 round start without cards or draw order, and draw-control changes; the host
- *                 draws and switches mode over the socket (D8), a player may not; a player
- *                 taps a drawn number; unwatch and watch sent back to back keep their order;
- *                 a repeated seq is dropped; marks are limited to 4 a second; a socket
- *                 watches at most 3 matches; a player whose account was deleted is named
- *                 "deleted player …" in frames, never by the account id, also by a server
- *                 that never saw the name; a host intent is refused once the session has
- *                 expired (the socket closes) or the host role is gone, though both were
- *                 fine at connect; the teardown aborts every match left open.
+ * Responsibility: against a listening server: sessionless or foreign-origin sockets refused; a
+ *                 watcher gets committed events in seq order, a round start without cards or draw
+ *                 order, and draw-control changes; the host draws and switches mode (D8), a
+ *                 player may not; taps; unwatch/watch keep order; repeated seq dropped; marks
+ *                 4/s; at most 3 watched matches; a deleted account is "deleted player …", never
+ *                 its id, even on a server that never saw the name; host intents refused after
+ *                 session expiry or role loss (socket closes); teardown aborts open matches.
  *                 The match rules over the socket are in ./matchRules.integration.test.ts.
- * Depends on:     node:crypto, vitest, socket.io-client, ../src/auth/accounts, ../src/index (types),
- *                 ./harness, ./playToEnd, ./session, ./socketKit
+ * Depends on:     socket.io-client, ../src/auth/accounts, ../src/index (types), ./harness,
+ *                 ./playToEnd, ./session, ./socketKit
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8; docs/spec/03-security-architecture.md §3, §8, §13
  */
 import { createHash } from 'node:crypto';

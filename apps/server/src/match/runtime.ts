@@ -8,8 +8,8 @@
  *                 without look-alikes. `startScheduler` first continues every running match
  *                 that stopped between a round end and its next step (audit H2), then
  *                 begins running due actions; the caller stops it on shutdown.
- * Depends on:     node:crypto, @sbr/application, ./pgMatchStore, ./pgScheduler, ./eventBus,
- *                 @sbr/domain, ../db/pool
+ * Depends on:     @sbr/application, ./pgMatchStore, ./pgScheduler, ./eventBus, @sbr/domain,
+ *                 ../db/pool
  * Used by:        ../http/app
  * Spec:           docs/spec/02-software-architecture.md §5; docs/spec/01-game-design.md §9
  */

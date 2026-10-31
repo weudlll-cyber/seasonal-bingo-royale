@@ -8,7 +8,7 @@
  *                 later round start, carries no player list and stays small; a round start
  *                 carries only the viewer's own cards (none for the host) and no draw order,
  *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
- * Depends on:     vitest, @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
+ * Depends on:     @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/05-api-design.md §2.3
  */
 import {

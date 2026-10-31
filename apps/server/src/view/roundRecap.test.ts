@@ -11,7 +11,7 @@
  *                 Complete, the fastest tapper (own taps inside the speed window, at least
  *                 5, ties by more taps), the facts, a second round measured from its own
  *                 start, and no recap before the round has ended.
- * Depends on:     vitest, @sbr/application (ruleset), @sbr/domain (types), ./roundRecap
+ * Depends on:     @sbr/application (ruleset), @sbr/domain (types), ./roundRecap
  * Spec:           docs/spec/01-game-design.md §7 (D20)
  */
 import { defaultRulesetFor, toMatchRuleset } from '@sbr/application';

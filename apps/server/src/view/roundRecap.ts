@@ -3,19 +3,16 @@
  * @module server/view
  * @brief  Builds the recap of a royale round from the match's own events (D20).
  *
- * Responsibility: replay the events with the domain's evolve and, for one round, collect:
- *                 the points each active player scored in it (their total at the round's
- *                 end less their total at its start, so multipliers and score carry are the
- *                 domain's), the standings place before and after it (among the round's
- *                 players, ties broken as the cut breaks them, 01 §8.4), Season Complete, the numbers
- *                 drawn, the cut that follows (out, shield saves, players left) and each
- *                 player's own taps: the time from a number's draw to the tap, from the
- *                 events' stored times, for the marks stored as the player's own (`manualTaps`,
- *                 from sbr.marks; bots and auto-marks mark on the draw and are not taps).
- *                 Items with no content are left out. Pure: the same events give the same
+ * Responsibility: replay the events with the domain's evolve and, for one round, collect: each
+ *                 active player's points in it (total at its end less total at its start, so
+ *                 multipliers and carry are the domain's), standings place before and after
+ *                 (among its players, cut tie-break, 01 §8.4), Season Complete, numbers drawn,
+ *                 the following cut (out, shield saves, left) and each player's own taps
+ *                 (`manualTaps` from sbr.marks: draw-to-tap time from stored event times; bots
+ *                 and auto-marks are not taps). Empty items are left out. Pure: same events, same
  *                 recap, also after a restart. Fun only: nothing here changes a score.
  * Depends on:     @sbr/contracts (types), @sbr/domain
- * Used by:        ./liveViews, ../dev/quicktest, ./roundRecap.test
+ * Used by:        ./liveViews, ../dev/quicktest
  * Spec:           docs/spec/01-game-design.md §7 (D20); docs/spec/05-api-design.md §2.3a
  */
 import type { RecapScorer, RoundRecap } from '@sbr/contracts';

@@ -7,7 +7,8 @@
  *                 add their animation class only when this returns false; motion.css
  *                 also switches every animation off under the same media query.
  * Depends on:     react
- * Used by:        ./components/*, ./game/CurrentBall
+ * Used by:        ./components/CutScreen, ./components/DrawTicker, ./components/OwnerCard,
+ *                 ./components/Playback, ./game/CurrentBall, ./game/Interlude
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { useEffect, useState } from 'react';

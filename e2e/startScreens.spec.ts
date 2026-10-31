@@ -3,15 +3,14 @@
  * @module e2e
  * @brief  How a match starts and how a cancelled one ends, in the browser (D16, D17, NIGHT-4).
  *
- * Responsibility: for each start rule the host's console and the player's waiting room show
- *                 the same registration line ("Registration open until the host starts the
- *                 match", "Starts at … · the host starts it" / "· starts automatically",
- *                 "3 places left"); an automatic start that finds no players leaves the match
- *                 waiting and the console says "Not enough players at the start time — start
- *                 it yourself or abort"; "Starting…" and the countdown appear once the host
- *                 starts. A match cancelled by the host or by the system shows its end page to
- *                 host and player. In Chromium each screen is saved at desktop and phone size,
- *                 light and dark. Every match the test opens is stopped (it stays aborted).
+ * Responsibility: for each start rule the host's console and the player's waiting room show the
+ *                 same registration line ("Registration open until the host starts the match",
+ *                 "Starts at … · the host starts it" / "· starts automatically", "3 places
+ *                 left"); an automatic start without players leaves the match waiting and the
+ *                 console says "Not enough players at the start time — start it yourself or
+ *                 abort"; "Starting…" and the countdown follow the host's start. A cancelled
+ *                 match (host or system) shows its end page to both. Chromium saves each screen
+ *                 at desktop/phone size, light and dark. Every match opened is stopped (aborted).
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/01-game-design.md §7.6, §13; docs/spec/05-api-design.md §2.3
  */

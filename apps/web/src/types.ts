@@ -10,7 +10,7 @@
  * Depends on:     @sbr/contracts
  * Used by:        ./App, ./playback, ./manualMarking, ./components/*, ./game/*, ./host/*,
  *                 ./api, ./drawControl, ./playbackScoring, ./playbackTypes, ./seasonIcons,
- *                 ./useDrawTicker
+ *                 ./useDrawTicker, ./test/quickTestFixture
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §5, §13
  */
 import { SEASON_NAMES, type Season } from '@sbr/contracts';

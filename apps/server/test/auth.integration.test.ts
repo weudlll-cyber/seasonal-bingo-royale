@@ -3,16 +3,15 @@
  * @module server/test
  * @brief  Local accounts, sessions, CSRF, auth rate limits, guests and dev sign-in (WP-09).
  *
- * Responsibility: register → session cookie → GET /session; weak passwords and taken
- *                 names refused; login answers alike for a wrong password and an unknown
- *                 e-mail; state-changing calls need the session's CSRF token; logout ends
- *                 the session; login is rate-limited per account+IP; guests get watch-only
- *                 permissions; the dev quick sign-in gives dev-host `match.create` and reuses
- *                 accounts; a production build has no dev sign-in; with e-mail verification
- *                 on, unverified accounts cannot sign in. Each test creates the accounts it
- *                 needs (any order works) and they are removed at the end, the guest
- *                 sessions too.
- * Depends on:     vitest, ./harness, fastify, ../src/auth/accounts
+ * Responsibility: register → session cookie → GET /session; weak passwords and taken names
+ *                 refused; login answers alike for a wrong password and an unknown e-mail;
+ *                 state-changing calls need the session's CSRF token; logout ends the session;
+ *                 login is rate-limited per account+IP; guests get watch-only permissions; the
+ *                 dev quick sign-in gives dev-host `match.create` and reuses accounts; a
+ *                 production build has no dev sign-in; with e-mail verification on, unverified
+ *                 accounts cannot sign in. Each test creates its accounts (any order works); they
+ *                 and the guest sessions are removed at the end.
+ * Depends on:     ./harness, fastify, ../src/auth/accounts
  * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';

@@ -6,7 +6,7 @@
  * Responsibility: one way to start a Quick Test from the browser with exact settings and
  *                 to skip to the end, so every spec drives the page the same way.
  * Depends on:     @playwright/test, @sbr/contracts (prize list)
- * Used by:        ./*.spec.ts, ./acceptance/acceptance.spec
+ * Used by:        the Playwright specs (test helper)
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { expect, type Page } from '@playwright/test';

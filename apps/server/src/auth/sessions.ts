@@ -11,7 +11,7 @@
  *                 refuses revoked, expired and idle-expired sessions. Idle 7 days, absolute
  *                 30 days for players and guests; idle 30 minutes, absolute 8 hours for
  *                 accounts with an admin role. Dead sessions are purged by the retention job.
- * Depends on:     node:crypto, ../db/pool
+ * Depends on:     ../db/pool
  * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway,
  *                 ../realtime/intents, ../match/retention
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/04-database-design.md §3.1

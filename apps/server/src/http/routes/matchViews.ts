@@ -3,22 +3,14 @@
  * @module server/http
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
- * Responsibility: the summary (code, title, game type, status — finished or aborted as soon
- *                 as the event log says so —, settings, player count,
- *                 prizes, countdown end, next round's start, when Draw next unlocks, whether
- *                 the match waits for its host or for players at its start time (D16),
- *                 creator, whether the viewer hosts it) and the live
- *                 view the player and host screens fold with the Quick Test's playback logic: the same payload as
- *                 the Quick Test (../../view/clientView) built from the public event log
- *                 (seed removed, 01 §9), with every player named by display name and the
- *                 caller as the owner, from the match's shared replay (../../view/liveViews).
- *                 `since` limits the events to those after a seq, so a client that already
- *                 holds the start of the log fetches only the rest; such a delta leaves out
- *                 the player list unless a join, the first round's start or the finish is
- *                 among its events (the client keeps the list it holds). Round starts carry
- *                 only the viewer's own cards and no draw order; the player list only the
- *                 viewer's first-round card (NIGHT-5). During the pause after a royale round
- *                 the view carries that round's recap (`recaps`, D20), the same for every viewer.
+ * Responsibility: the summary (code, title, type, status per the event log, settings, players,
+ *                 prizes, countdown, next round, Draw next unlock, waiting for host or players
+ *                 (D16), creator, if the viewer hosts) and the live view: the Quick Test payload
+ *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
+ *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
+ *                 only later events, no player list unless a join, first round start or finish is
+ *                 among them. Round starts and the player list carry only the viewer's cards, no
+ *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20).
  * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
  *                 @sbr/domain, ../../view/clientEvents
  * Used by:        ./matches, ../../realtime/gateway

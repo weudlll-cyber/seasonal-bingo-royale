@@ -10,7 +10,7 @@
  *                 as "none", not as a failure. The backup drill runs it on the restored copy
  *                 with the backup's key (`node dist/cli.js check-seed-key`).
  * Depends on:     ../db/pool, ./codec
- * Used by:        ../cli, ../../test/seedAtRest.integration.test
+ * Used by:        ../cli
  * Spec:           docs/spec/09-deployment-architecture.md §6; docs/spec/03-security-architecture.md §9
  */
 import type { DbPool } from '../db/pool.js';

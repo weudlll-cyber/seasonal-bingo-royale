@@ -3,21 +3,14 @@
 # @module ops
 # @brief  One-command install of Seasonal Bingo Royale on Ubuntu 24.04: standalone or inside the website.
 #
-# Responsibility: ask (or take from flags) the install type — standalone with its own domain
-#                 and HTTPS, or integrated into the Seasonal Entertainment website on this
-#                 server behind its proxy at /games/bingo — and the environment, address,
-#                 admin e-mail, optional SMTP and the operator's age public key; check the
-#                 system; install Docker when missing; build the app image from a git ref (no
-#                 release image exists yet); write /etc/sbr/<env>.env with fresh secrets;
-#                 start the stack (the app migrates the database on start) and wait for
-#                 /readyz; install the backup timer; print the next steps. Re-running keeps
-#                 the earlier answers (read back from /etc/sbr/<env>.env, also with --yes),
-#                 changes only what changed and never switches the type without confirmation.
-#                 The SMTP password comes from a file (--smtp-password-file, "-" for standard
-#                 input) or a hidden prompt, never from a flag visible in the process list.
-#                 --trusted-proxies adds proxies in front of this server (e.g. Cloudflare's
-#                 ranges, comma-separated) to the one the install type trusts; it is kept on
-#                 re-runs, "none" removes it. Keys the operator added to the env file stay.
+# Responsibility: ask (or take from flags) the install type — standalone with its own domain and
+#                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
+#                 /games/bingo —, environment, address, admin e-mail, optional SMTP and age public
+#                 key; install Docker if missing, build the image from a git ref, write
+#                 /etc/sbr/<env>.env with fresh secrets, start the stack, wait for /readyz,
+#                 install the backup timer. Re-runs keep earlier answers and operator-added keys,
+#                 never switch type unconfirmed. SMTP password only from a file or hidden prompt;
+#                 --trusted-proxies adds proxy ranges (kept on re-runs, "none" removes them).
 # Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8
 #

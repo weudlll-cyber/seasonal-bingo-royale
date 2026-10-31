@@ -3,16 +3,14 @@
 # @module ops
 # @brief  Website installs: find the running Seasonal Entertainment website, write the Caddy snippet.
 #
-# Responsibility: find the website's Caddy (compose project "seasonal-site", service
-#                 "caddy", as its docs/DEPLOYMENT.md sets it up in deploy/site/) and from it
-#                 the Docker network (seasonal-site_default, else its only one, else asked),
-#                 every subnet of that network (IPv4 and IPv6) as the trusted proxy ranges
-#                 and the website's domain (SITE_DOMAIN); stop with a plain message when the
-#                 website is not running (a dry run on a server without Docker yet only
-#                 shows the step). Write the snippet that routes /games/bingo/* (HTTP and
-#                 WebSocket) to the app, with /games/bingo/metrics answered 404 inside that
-#                 route, and print how to add it to the website's Caddyfile. The installer
-#                 never edits the website's files.
+# Responsibility: find the website's Caddy (compose project "seasonal-site", service "caddy", per
+#                 its docs/DEPLOYMENT.md, deploy/site/), its Docker network
+#                 (seasonal-site_default, else its only one, else asked), every subnet of it (IPv4
+#                 and IPv6) as trusted proxy ranges and SITE_DOMAIN; stop plainly when the website
+#                 is not running (a dry run without Docker only shows the step). Write the snippet
+#                 routing /games/bingo/* (HTTP and WebSocket) to the app, with
+#                 /games/bingo/metrics answered 404 inside that route, and print how to add it to
+#                 the website's Caddyfile. The installer never edits the website's files.
 # Used by:        ops/install.sh, ops/sbr (status)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §8
 

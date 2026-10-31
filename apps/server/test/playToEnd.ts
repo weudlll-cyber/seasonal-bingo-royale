@@ -7,7 +7,7 @@
  *                 fail after 200 draws. Takes the engine, so a second app on the same
  *                 database (./harness buildOn) can play the match on.
  * Depends on:     @sbr/application (types)
- * Used by:        ./matchVerify.integration.test.ts, ./realtime.integration.test.ts
+ * Used by:        the integration tests in this folder (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §2
  */
 import type { MatchEngine } from '@sbr/application';

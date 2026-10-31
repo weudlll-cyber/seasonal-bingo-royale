@@ -8,7 +8,7 @@
  *                 we'll be back shortly" with the operator's reason; the host console stays
  *                 reachable with a banner above it; a match screen is not replaced (running
  *                 matches play to the end); with maintenance off the lobby shows as usual.
- * Depends on:     @testing-library/react, vitest, ./AppShell, ./session
+ * Depends on:     @testing-library/react, ./AppShell, ./session
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */
 import { act, cleanup, render, screen } from '@testing-library/react';

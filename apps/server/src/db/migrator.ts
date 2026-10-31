@@ -7,7 +7,7 @@
  *                 result in sbr.schema_migrations (name + sha256 + applied_at). Reject a
  *                 migration whose checksum no longer matches the recorded one — a published
  *                 migration file is immutable (10 §2, 04 §6).
- * Depends on:     pg, node:fs, node:crypto, ./pool
+ * Depends on:     pg, ./pool
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/04-database-design.md §6, docs/spec/02-software-architecture.md §7
  */

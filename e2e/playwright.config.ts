@@ -3,15 +3,14 @@
  * @module e2e
  * @brief  Playwright config: three browsers against the dev server and player client.
  *
- * Responsibility: start PostgreSQL (global setup), the server on 3900 and the player
- *                 client on 5390, then run the specs in Chromium, Firefox and WebKit at a
- *                 phone viewport. The specs that measure time in the browser (speed window,
- *                 missed-number delay, timed draws) run afterwards, one at a time and one
- *                 browser after the other, so no other browser starves their timers (NIGHT-3:
- *                 six of them failed under the full parallel run and passed alone). Locally
- *                 an already-running stack is reused. The acceptance play-through runs only
- *                 with SBR_ACCEPTANCE=1. SBR_E2E_BROWSER=<name> keeps one browser and its
- *                 timing specs (CI runs one job per browser).
+ * Responsibility: start PostgreSQL (global setup), the server on 3900 and the player client on
+ *                 5390, then run the specs in Chromium, Firefox and WebKit at a phone viewport.
+ *                 Specs timing things in the browser (speed window, missed-number delay, timed
+ *                 draws) run afterwards, serially, one browser after the other, so nothing
+ *                 starves their timers (NIGHT-3: six failed in the full parallel run, passed
+ *                 alone). Locally a running stack is reused. The acceptance play-through needs
+ *                 SBR_ACCEPTANCE=1. SBR_E2E_BROWSER=<name> keeps one browser and its timing specs
+ *                 (CI runs one job per browser).
  * Depends on:     @playwright/test, ./devStack, ./globalSetup
  * Spec:           docs/spec/12-testing-strategy.md §2, §4; docs/spec/15-implementation-plan.md WP-08
  */

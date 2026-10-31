@@ -3,14 +3,12 @@
  * @module web
  * @brief  Quick Test draw control (D8): one draw per step, `auto` interval or `host` draws.
  *
- * Responsibility: pure rules for how far one draw advances the event stream (exactly one
- *                 draw plus every event that belongs to it, up to the close of its speed
- *                 window; then what that close decides, up to the next draw, stage or
- *                 round) and for
- *                 the draw control: `auto` draws after an interval the starter or host
- *                 sets, clamped to the ruleset's allowed range; `host` draws only on
- *                 "Draw next". The draw order is fixed by the seed; control only decides
- *                 when the next draw is shown. The speed window for manual taps always
+ * Responsibility: pure rules for how far one draw advances the event stream (the draw plus every
+ *                 event of it up to the close of its speed window, then what that close decides,
+ *                 up to the next draw, stage or round) and for the draw control: `auto` draws
+ *                 after an interval the starter or host sets, clamped to the ruleset's range;
+ *                 `host` draws only on "Draw next". The seed fixes the draw order; control only
+ *                 decides when the next draw shows. The speed window for manual taps always
  *                 starts when a draw is shown (./manualMarking).
  * Depends on:     ./types
  * Used by:        ./useDrawTicker, ./App, ./components/DrawControls,

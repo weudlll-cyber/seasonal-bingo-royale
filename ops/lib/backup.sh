@@ -3,25 +3,14 @@
 # @module ops
 # @brief  Backups: pg_dump + uploads + seed key → age → /var/backups/sbr/<env>/, retention, restore, drill, timer.
 #
-# Responsibility: a backup is a tar of the database dump (pg_dump -Fc, inside the postgres
-#                 container), the uploads volume without the maintenance flag (read by a
-#                 helper container, so a crash-looping app does not block it) and the env
-#                 file's SBR_SEED_KEY (the stored match secrets are sealed with it: without
-#                 it a restored database cannot be opened), encrypted with the operator's age
-#                 public key (the server never holds the private key), written as .partial
-#                 and renamed when complete; kept: the 14 newest plus the newest of each of 8
-#                 older weeks. The plain dump lives in a work folder removed on exit. Files
-#                 are readable by the group sbr-backup (pulling without root). A restore
-#                 needs the operator's age identity file, refuses another environment's
-#                 backup and a seed key other than the environment's unless --force-env,
-#                 asks, stops the app (started again if anything fails), drops and restores
-#                 the schema in one transaction, replaces the uploads (the live maintenance
-#                 flag stays as it is) and puts the backup's seed key into an env file
-#                 without one. A drill restores into a throw-away PostgreSQL container
-#                 (readiness wait capped at 60 s), counts the rows and lets the app's own
-#                 code open one stored sealed seed with the backup's key. The systemd
-#                 timer runs `sbr --env <env> backup` at 03:30; a failed run marks
-#                 /var/lib/sbr/<env>/backup-failed (sbr status shows it) and logs an error.
+# Responsibility: a backup tars the database dump (pg_dump -Fc in the postgres container), the
+#                 uploads volume minus the maintenance flag (via a helper container) and the env
+#                 file's SBR_SEED_KEY (sealed secrets need it), age-encrypted to the operator's
+#                 public key, written .partial then renamed, group sbr-backup; keeps the 14 newest
+#                 plus the newest of 8 older weeks. A restore needs the age identity, refuses
+#                 another env's backup or seed key unless --force-env, asks, stops the app,
+#                 restores in one transaction; a drill uses a throw-away PostgreSQL, opens one
+#                 sealed seed. Timer 03:30; failures mark backup-failed.
 # Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
 #                 cleanup, stop_app), age, docker
 # Used by:        ops/sbr, ops/install.sh (timer)

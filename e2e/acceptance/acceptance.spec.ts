@@ -3,15 +3,14 @@
  * @module e2e/acceptance
  * @brief  Acceptance play-through: every game type × marking × missed numbers × draws.
  *
- * Responsibility: for every combination play one complete match with 20 bots and one
- *                 owner card on a fixed seed, checking the whole screen after every draw
- *                 (./checks) and every cut against server points (./cuts); one royale and
- *                 one classic run switch between timed and host draws mid-match; a seed
- *                 whose round ends on an owner number must see a D10 last-number tap. After
- *                 each match, Run Quick Test again with another seed: nothing of the last
- *                 run may remain, then a few draws are played. A full-page screenshot of
- *                 each match end and each restart goes to reports/screens/latest/acceptance/.
- *                 Runs only with SBR_ACCEPTANCE=1 (about half an hour), not in CI.
+ * Responsibility: for every combination play one complete match with 20 bots and one owner card
+ *                 on a fixed seed, checking the whole screen after every draw (./checks) and
+ *                 every cut against server points (./cuts); one royale and one classic run switch
+ *                 timed/host draws mid-match; a seed whose round ends on an owner number must see
+ *                 a D10 last-number tap. After each match Run Quick Test again with another seed:
+ *                 nothing may remain, then a few draws play. Full-page screenshots of each end
+ *                 and restart go to reports/screens/latest/acceptance/. Only with
+ *                 SBR_ACCEPTANCE=1 (about half an hour), not in CI.
  * Depends on:     @playwright/test, ../quickTest, ../devStack, ./checks, ./cuts, ./play,
  *                 ./snapshot
  * Spec:           docs/spec/01-game-design.md §3a, §5–§8, §13; docs/spec/12-testing-strategy.md §8

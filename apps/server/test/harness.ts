@@ -11,7 +11,7 @@
  *                 data created by a test is removed), also when a test failed; the suites
  *                 that create guests remove their guest sessions (removeGuests).
  * Depends on:     @testcontainers/postgresql, ../src/index
- * Used by:        ./*.integration.test.ts
+ * Used by:        ./firstRound, ./socketKit, the integration tests in this folder
  * Spec:           docs/spec/12-testing-strategy.md §2, §7
  */
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';

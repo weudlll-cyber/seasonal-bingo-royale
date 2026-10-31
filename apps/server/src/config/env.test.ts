@@ -6,7 +6,7 @@
  * Responsibility: without NODE_ENV and SBR_DEV the settings say production and no
  *                 development features; SBR_DEV=1 is refused for a public address and
  *                 accepted for localhost; the seed key is required unless SBR_DEV=1 or tests.
- * Depends on:     vitest, ./env, ./seedKey
+ * Depends on:     ./env, ./seedKey
  * Spec:           docs/spec/03-security-architecture.md §3; docs/spec/09-deployment-architecture.md §1
  */
 import { describe, expect, it } from 'vitest';

@@ -9,7 +9,7 @@
  *                 as PgScheduler does; `fakeEngine` wires an engine to them, with a
  *                 maintenance switch (`maintenance.on`, D22). Test support only.
  * Depends on:     @sbr/domain, ./ports, ./engine
- * Used by:        ./engine.test.ts, ./startRules.test.ts
+ * Used by:        the engine tests (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §2
  */
 import { createInitialMatchState, evolve, type DomainEvent } from '@sbr/domain';

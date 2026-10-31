@@ -3,17 +3,15 @@
  * @module e2e/acceptance
  * @brief  A player in the real-game play-through: taps inside the window, late, or misses.
  *
- * Responsibility: each number drawn on the player's card is in turn tapped at once (inside
- *                 the speed window), tapped late, or missed on purpose. A late tap under
- *                 "leave open" comes after the window, under "mark after 3 s" at 2 s; either
- *                 way it must mark (only a round that ended meanwhile excuses it). A missed
- *                 number must stay open under "leave open" for as long as its round runs;
- *                 under "mark after 3 s" it is marked for the player, not before about 3 s
- *                 (watched from the draw on, not only at the next draw) and within a few
- *                 seconds. The server decides every mark; the screen shows
- *                 the server's marks.
+ * Responsibility: each number drawn on the player's card is in turn tapped at once (inside the
+ *                 speed window), tapped late, or missed on purpose. A late tap comes after the
+ *                 window under "leave open", at 2 s under "mark after 3 s"; either way it must
+ *                 mark (only a round that ended meanwhile excuses it). A missed number stays open
+ *                 under "leave open" while its round runs; under "mark after 3 s" it is marked
+ *                 for the player not before about 3 s (watched from the draw on) and within a few
+ *                 seconds. The server decides every mark; the screen shows the server's marks.
  * Depends on:     @playwright/test, ./liveSnap
- * Used by:        ./realGame.spec.ts, ./ownerRules
+ * Used by:        ./ownerRules, ./recap
  * Spec:           docs/spec/01-game-design.md §6 (D9, D10)
  */
 import { expect, type Page } from '@playwright/test';

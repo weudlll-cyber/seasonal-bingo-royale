@@ -8,7 +8,7 @@
  *                 catalogue, and the view the player client folds (Quick Test and live
  *                 match); later WPs add HTTP/WS envelopes and other config documents.
  * Depends on:     ./config/*, ./config/defaults/*, ./view/*
- * Used by:        apps/server, apps/web, apps/admin, packages/application, packages/domain
+ * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 

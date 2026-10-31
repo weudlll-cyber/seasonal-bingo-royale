@@ -3,16 +3,13 @@
  * @module web/host
  * @brief  The host's draw control in a live match: Draw next, timed/host switch, seconds (D8).
  *
- * Responsibility: a big "Draw next" for host draws, also on the Space key while no field
- *                 has focus; it is usable only while the round runs, the previous number's
- *                 speed window has closed (D10) and the timed interval since the last draw
- *                 has passed — it counts down the seconds until then (D13); in the pause
- *                 between rounds neither the button nor its line shows (D21). A
- *                 segmented switch "Host draws" / "Timed draws" (../components/DrawModeSwitch)
- *                 and the seconds between timed draws (shown for timed draws only)
- *                 change at any time over the socket (draw.setMode); the server keeps the
- *                 seconds in the allowed range; seconds below the shortest interval are not sent,
- *                 a plain message says why (D12).
+ * Responsibility: a big "Draw next" for host draws (also Space while no field has focus), usable
+ *                 only while the round runs, the previous speed window has closed (D10) and the
+ *                 timed interval since the last draw has passed, with a seconds countdown until
+ *                 then (D13); hidden in the pause between rounds (D21). A "Host draws" / "Timed
+ *                 draws" switch (../components/DrawModeSwitch) and the timed-draw seconds change
+ *                 at any time over the socket (draw.setMode); the server clamps the seconds;
+ *                 values below the shortest interval are not sent, a message says why (D12).
  * Depends on:     react, ../components/DrawModeSwitch, ../game/labels, ../game/socket,
  *                 ../game/useLiveMatch (types), ../playback (types), ../types,
  *                 ../useSecondsUntil, ./TimingFields

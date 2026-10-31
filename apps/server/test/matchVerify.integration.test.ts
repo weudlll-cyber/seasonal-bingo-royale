@@ -3,18 +3,15 @@
  * @module server/test
  * @brief  "Verify this match": the seed is revealed after the end, never before (HTTP and WS).
  *
- * Responsibility: a classic match played to its end over the engine: before the start and
- *                 while it runs, GET /verify answers 409 MATCH_NOT_OVER; afterwards it
- *                 reveals the seed whose sha256 is the stored commitment, and the server's
- *                 recomputation equals the played match (every draw in the log, every card
- *                 dealt). No socket frame and no answer sent before the end (the whole
- *                 body of each, 409 and state alike) carries the seed; the whole answer
- *                 after the end carries neither the sealed seed nor the seed key. A
- *                 cancelled match reveals its seed too. A match that is over is recomputed
- *                 once, later answers come from the cache. The route has its own limit: 20
- *                 calls a minute per address, then 429 RATE_LIMITED (tested from an address
- *                 of its own, so the tests run in any order).
- * Depends on:     node:crypto, vitest, ./harness, ./socketKit, ./playToEnd
+ * Responsibility: a classic match played to its end over the engine: GET /verify answers 409
+ *                 MATCH_NOT_OVER before and during play; afterwards it reveals the seed whose
+ *                 sha256 is the commitment, and the recomputation equals the played match (every
+ *                 draw, every card). No frame or answer before the end (whole bodies, 409 and
+ *                 state) carries the seed; the answer after it carries neither sealed seed nor
+ *                 seed key. A cancelled match reveals its seed too. A finished match is
+ *                 recomputed once, then cached. Own limit: 20 calls a minute per address, then
+ *                 429 RATE_LIMITED (tested from its own address, so test order does not matter).
+ * Depends on:     @sbr/contracts, ./harness, ./socketKit, ./playToEnd
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3a
  */
 import { createHash } from 'node:crypto';

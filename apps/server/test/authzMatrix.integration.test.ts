@@ -3,18 +3,16 @@
  * @module server/test
  * @brief  Who may call what: every HTTP route and WS intent × five kinds of caller.
  *
- * Responsibility: for each route the server registers and each intent of the gateway, the
- *                 callers that get through and the ones refused (401/403 with
- *                 SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or CSRF_INVALID; a refused
- *                 socket handshake) — anonymous, guest, player, another host and the
- *                 match's host, each with a fresh session; an allowed caller never meets a
- *                 server failure (5xx, INTERNAL). A route or intent missing from
- *                 the tables fails the test, so a new one cannot go in unreviewed. Bodies are
- *                 chosen so a call that gets through changes as little as possible. One write
- *                 per route group is refused without the CSRF token or with another session's.
- *                 The account and the guest sessions it creates are removed at the end.
- * Depends on:     vitest, fastify (inject), ../src/auth/*, ../src/realtime/intents,
- *                 ./harness, ./socketKit
+ * Responsibility: for each registered route and gateway intent, the callers that get through and
+ *                 those refused (401/403 with SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or
+ *                 CSRF_INVALID; a refused handshake) — anonymous, guest, player, another host and
+ *                 the match's host, each with a fresh session; allowed callers never meet a 5xx
+ *                 or INTERNAL. A route or intent missing from the tables fails the test. Bodies
+ *                 keep a successful call's changes minimal. One write per route group is refused
+ *                 without the CSRF token or with another session's. The account and guest
+ *                 sessions it creates are removed at the end.
+ * Depends on:     fastify (inject), ../src/auth/*, ../src/realtime/intents, ./harness,
+ *                 ./socketKit
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/12-testing-strategy.md §7;
  *                 docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1
  */

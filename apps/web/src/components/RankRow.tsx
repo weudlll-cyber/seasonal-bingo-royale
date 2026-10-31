@@ -9,7 +9,7 @@
  *                 with "out"; and the divider between players still in and those out.
  *                 Season icons have shapes and names, so colour never carries meaning alone.
  * Depends on:     react, ./SeasonIcon, ../types, ./results.css
- * Used by:        ./Standings, ./FinalPlacement, ../game/Interlude
+ * Used by:        ./Standings, ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7.5, §8.4, §13
  */
 import type { ReactElement } from 'react';

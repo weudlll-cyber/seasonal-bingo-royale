@@ -8,7 +8,7 @@
  *                 running matches go on to their end (09 §4). The file's text, if
  *                 any, is the reason shown to players (at most 200 characters). The file is
  *                 checked at most every 2 seconds, so the flag needs no restart.
- * Depends on:     node:fs, node:path
+ * Depends on:     nothing
  * Used by:        ../http/routes/matches, ../http/routes/maintenance, ../http/app
  * Spec:           docs/spec/09-deployment-architecture.md §4
  */

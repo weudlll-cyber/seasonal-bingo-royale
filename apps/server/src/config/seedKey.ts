@@ -6,8 +6,8 @@
  * Responsibility: `SBR_SEED_KEY` (64 hex characters) is required — the server refuses
  *                 to start without it; only development (SBR_DEV=1) and the test suites
  *                 derive a fixed key that protects throw-away data.
- * Depends on:     node:crypto, ./env
- * Used by:        ../http/app
+ * Depends on:     ./env
+ * Used by:        ../http/app, ../cli
  * Spec:           docs/spec/03-security-architecture.md §9; docs/spec/04-database-design.md §3.3
  */
 import { createHash } from 'node:crypto';

@@ -3,19 +3,18 @@
  * @module web/game
  * @brief  A live match on screen: the server's view, kept current over the WebSocket.
  *
- * Responsibility: load GET /matches/:code/state, watch the match room, and on every event
- *                 frame fetch only the events after the seq already held (`since`) and
- *                 append them — a gap too, since that fetch covers it; only a (re)connect
- *                 reloads everything, so nothing is lost and nothing doubled (06 §4, §5, §8).
- *                 A delta without the player list keeps the one held. Record changes (status, start time, draw control) arrive as
- *                 `match`; once an announced start time has passed, the summary is fetched
- *                 once more (D16: it changes by the clock alone). Fetches never overlap. The
- *                 view has the Quick Test's shape, so the
- *                 screens fold it with the same playback logic.
+ * Responsibility: load GET /matches/:code/state, watch the match room, and on every event frame
+ *                 fetch only the events after the seq already held (`since`) and append them — a
+ *                 gap too, since that fetch covers it; only a (re)connect reloads everything, so
+ *                 nothing is lost or doubled (06 §4, §5, §8). A delta without the player list
+ *                 keeps the one held. Record changes (status, start time, draw control) arrive as
+ *                 `match`; once an announced start time has passed, the summary is fetched once
+ *                 more (D16: it changes by the clock alone). Fetches never overlap. The view has
+ *                 the Quick Test's shape, so the screens fold it with the same logic.
  * Depends on:     react, ../shell/http, ./socket, ../types
  * Used by:        ./MatchScreen, ../host/HostConsole, ./HostLink, ./Lobby, ./MatchCancelled,
  *                 ./Registration, ./WaitingRoom, ./labels, ../host/HostDrawControls,
- *                 ../host/HostLobby
+ *                 ../host/HostLobby, ../test/matchFixture
  * Spec:           docs/spec/06-realtime-architecture.md §1, §4, §5; docs/spec/05-api-design.md §2.3
  */
 import { useCallback, useEffect, useRef, useState } from 'react';

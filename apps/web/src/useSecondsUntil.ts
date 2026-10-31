@@ -7,8 +7,8 @@
  *                 round after a cut): whole seconds, rounded up, never below 0; null when
  *                 no moment is known. Display only; the server starts rounds on its own.
  * Depends on:     react
- * Used by:        ./game/WaitingRoom, ./game/Registration, ./components/CutScreen,
- *                 ./host/HostDrawControls
+ * Used by:        ./game/WaitingRoom, ./game/Registration, ./game/Interlude,
+ *                 ./components/CutScreen, ./host/HostDrawControls
  * Spec:           docs/spec/01-game-design.md §7, §13
  */
 import { useEffect, useState } from 'react';
