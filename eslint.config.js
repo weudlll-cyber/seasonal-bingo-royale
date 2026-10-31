@@ -72,6 +72,9 @@ export default defineConfig(
       'apps/web/public/',
       // The load check: a plain Node script against a running stack, outside the TS projects.
       'load/',
+      // Claude Code's local folder (agent worktrees are other checkouts, not this one's
+      // sources); Prettier ignores it as well (.prettierignore).
+      '.claude/',
     ],
   },
   js.configs.recommended,
