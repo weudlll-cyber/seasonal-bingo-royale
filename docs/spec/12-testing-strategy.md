@@ -5,7 +5,7 @@
 ## 1. Principles
 
 - The rules engine is pure, so it is tested exhaustively and fast; infrastructure is tested with real Postgres; the UI is tested with a small set of end-to-end journeys plus component tests.
-- Run only the checks a change can affect: CI selects jobs by changed paths (domain change → domain + application + integration; docs-only change → docs job only).
+- Run only the checks a change can affect while working; CI runs every job on every push (as built: no selection by changed paths, a full run takes a few minutes, 08 §3).
 - Every bug fix starts with a test that fails before the fix.
 - Measurements and load tests are short and direct; no multi-hour soak runs.
 
@@ -46,7 +46,7 @@ Built so far: CI runs `pnpm test:coverage` (domain and application, thresholds i
 18. Bots and players in `auto` marking mode mark every drawn number on the draw; human players in `manual` mode never get a mark they did not tap except by `autoMarkAfter`.
 19. Round end (D10): no round ends before the speed window of its last draw has closed; a tap on that last number inside its window is accepted.
 
-**Case counts.** Properties over single functions (cards, draws, cuts, effects) run 1 000 cases in CI and 100 locally (`FAST_CHECK_RUNS` overrides). Properties that simulate a whole match (invariants 4, 5, 10, 12 in `packages/domain/src/match/match.properties.test.ts` and `royale/royale.properties.test.ts`) are capped at 50 cases also in CI: one case plays a complete match (up to 20 players, all rounds), about 0.1–0.5 s, so 1 000 cases would add several minutes per property to every push; 50 random seeds per push still vary across pushes, because fast-check draws a new seed each run. The draw-control property (invariant 16, `packages/application/src/match/drawControl.properties.test.ts`) plays part of a match per case and runs 30.
+**Case counts.** Properties over single functions (cards, draws, cuts, effects) run 1 000 cases in CI and 100 locally (`FAST_CHECK_RUNS` overrides). Properties that simulate a whole match (invariants 4, 5, 10, 12 in `packages/domain/src/match/match.properties.test.ts` and `royale/royale.properties.test.ts`) are capped at 50 cases also in CI: one case plays a complete match (up to 20 players, all rounds), about 0.1–0.5 s, so 1 000 cases would add several minutes per property to every push; 50 random seeds per push still vary across pushes, because fast-check draws a new seed each run. The draw-control property (invariant 16, `packages/application/src/match/drawControl.properties.test.ts`) plays part of a match per case and runs 30. Invariant 19 and the last clause of 17 (`packages/domain/src/match/roundEnd.properties.test.ts`) replay 8 small matches per game type and ask the domain at every draw and round end, under a second in all; the time-dependent rest of 17 and invariant 18 are covered by example tests (`missedNumbers.test.ts`, `quicktestMarking.test.ts`).
 
 ## 4. E2E journeys
 
