@@ -8,15 +8,25 @@
  *                 nor the round's draw order in any plain form; a second server on the same
  *                 database (a restart mid-match) reads them back and its next draw is the
  *                 next number of the round's order; a server with another seed key refuses
- *                 to start instead of failing later.
- * Depends on:     node:crypto, vitest, ./harness, ./session
+ *                 to start instead of failing later; the backup drill's check opens the
+ *                 newest sealed seed with the suite's key only, and finds none to open
+ *                 before any match exists.
+ * Depends on:     node:crypto, vitest, ./harness, ./session, ../src/match/sealedSeedCheck
  * Spec:           docs/spec/03-security-architecture.md §9; docs/spec/04-database-design.md §3.3
  */
 import { randomBytes } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { openOneSealedSeed } from '../src/match/sealedSeedCheck.js';
+import {
+  buildOn,
+  startHarness,
+  stopHarness,
+  SUITE_TIMEOUT_MS,
+  TEST_SEED_KEY,
+  type Harness,
+} from './harness.js';
 import { signIn } from './session.js';
 
 let harness: Harness;
@@ -105,6 +115,11 @@ async function checkRestart(
 }
 
 describe('match secrets at rest (03 §9)', () => {
+  // First in the file, while the suite's database holds no match yet.
+  it('reports no sealed seed to open on a database without matches', async () => {
+    await expect(openOneSealedSeed(harness.pool, randomBytes(32))).resolves.toBe('none');
+  });
+
   it('stores neither the seed nor the draw order readable, and a restart draws on', async () => {
     const id = await runningMatch();
     const { state } = await harness.built.match.engine.runner.current(id);
@@ -117,6 +132,16 @@ describe('match secrets at rest (03 §9)', () => {
     }
     await checkRestart(id, seed, order, draws);
   }, 120_000);
+
+  // The backup drill's proof (sbr restore --drill): the key opens one stored sealed seed.
+  it('opens the newest sealed seed with the right key only', async () => {
+    await expect(openOneSealedSeed(harness.pool, Buffer.from(TEST_SEED_KEY, 'hex'))).resolves.toBe(
+      'opened',
+    );
+    await expect(openOneSealedSeed(harness.pool, randomBytes(32))).rejects.toThrow(
+      'SBR_SEED_KEY does not open the stored match secrets',
+    );
+  });
 
   it('refuses to start with another seed key', async () => {
     const other = randomBytes(32).toString('hex');

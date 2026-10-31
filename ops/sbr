@@ -5,15 +5,17 @@
 #
 # Responsibility: one command per task of 09 §4 for the environment of the install record
 #                 (or --env): status (type, address, image, containers, health, last
-#                 backup, timer, maintenance); update <git ref> (backup, plain pre-update
-#                 dump for a rollback, image built from the ref, restart, the app migrates on
-#                 start, app images no environment uses pruned); confirm (the update works:
-#                 the plain pre-update dump and the rollback data are deleted); rollback
-#                 (backup of the current state, confirmation, previous image and ref, and the
-#                 pre-update dump restored when the update migrated the schema — everything
-#                 since the update is then lost); backup; restore <file> and restore --drill
-#                 <file> (--identity <age key file> for encrypted backups, --force-env for
-#                 another environment's backup); logs [service]; admin create-super (the
+#                 backup and a failed scheduled one, timer, maintenance); update <git ref>
+#                 (refused while the last update is unconfirmed; image built from the ref,
+#                 then backup and plain pre-update dump for a rollback, restart, the app
+#                 migrates on start, app images no environment uses pruned); confirm (the
+#                 update works: the plain pre-update dump and the rollback data are deleted);
+#                 rollback (backup of the current state, confirmation, the pre-update dump
+#                 restored when the update migrated the schema — everything since the update
+#                 is then lost —, previous image and ref; a failed restore starts the app
+#                 again unchanged); backup; restore <file> and restore --drill <file>
+#                 (--identity <age key file> for encrypted backups, --force-env for another
+#                 environment's backup or seed key); logs [service]; admin create-super (the
 #                 first admin, password asked inside the app, never echoed); maintenance
 #                 on ["reason"]|off (a flag file the app reads: no new matches, running ones
 #                 finish; players see the maintenance page with the reason).
@@ -34,19 +36,18 @@ source "$HERE/lib/website.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
 
-ROLLBACK_DIR=/var/lib/sbr
-
 usage() {
   cat <<'EOF'
 usage: sbr [--env prod|staging] [--yes] <command>
   status                         what runs, its health and the last backup
-  update <git ref>               backup, build the ref, restart (migrations run on start)
+  update <git ref>               build the ref, backup, restart (migrations run on start);
+                                 refused until the last update is confirmed or rolled back
   confirm                        the update works: delete the pre-update dump and rollback data
   rollback                       back to the image (and data) before the last update
   backup                         encrypted backup now
   restore <file> [--identity k]  put a backup back (k: your age key file for .age files;
-          [--force-env]          --force-env: the backup is of another environment)
-  restore --drill <file> [...]   restore into a throw-away database and check it
+          [--force-env]          --force-env: another environment's backup or seed key)
+  restore --drill <file> [...]   restore into a throw-away database and check it, seed key too
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
@@ -70,8 +71,11 @@ cmd_status() {
     last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' | sort | tail -1)
   fi
   info "last backup: ${last:-none yet}"
+  if [[ -f $SBR_STATE/$env/backup-failed ]]; then
+    warn "the scheduled backup FAILED at $(cat "$SBR_STATE/$env/backup-failed") (journalctl -u sbr-backup@$env); the next good backup clears this"
+  fi
   info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
-  [[ -f $ROLLBACK_DIR/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
+  [[ -f $SBR_STATE/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
   if compose "$env" exec -T app test -f /data/maintenance 2>/dev/null; then
     info "maintenance: ON (no new matches) $(compose "$env" exec -T app cat /data/maintenance 2>/dev/null)"
   else
@@ -102,13 +106,17 @@ migrations() { compose "$1" exec -T postgres psql -U sbr -d sbr -tA -c 'SELECT c
 images_in_use() {
   local file
   for file in "$SBR_ETC"/*.env; do env_value "$file" SBR_IMAGE; done
-  for file in "$ROLLBACK_DIR"/*/rollback.conf; do [[ -f $file ]] && env_value "$file" PREVIOUS_IMAGE; done
+  for file in "$SBR_STATE"/*/rollback.conf; do [[ -f $file ]] && env_value "$file" PREVIOUS_IMAGE; done
   return 0
 }
 
 cmd_update() {
-  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$ROLLBACK_DIR/$1" conf="$SBR_ETC/install.conf"
+  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$SBR_STATE/$1" conf="$SBR_ETC/install.conf"
   [[ -n $ref ]] || die "usage: sbr update <git ref>"
+  # One update at a time: a second one would overwrite the rollback data of the first (audit M6).
+  [[ ! -f $dir/rollback.conf ]] || die "the last update is not confirmed yet: sbr confirm (it works) or sbr rollback first"
+  # The image first (minutes), then backup and dump: they hold the data right before the switch.
+  build_image "$(env_value "$conf" SBR_REPO)" "$ref"
   do_backup "$env"
   info "Backup before the update: $BACKUP_FILE"
   install -d -m 0700 "$dir"
@@ -118,7 +126,6 @@ cmd_update() {
   mv "$dir/pre-update.dump.partial" "$dir/pre-update.dump"
   printf 'PREVIOUS_IMAGE=%s\nPREVIOUS_REF=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" \
     "$(env_value "$conf" SBR_REF)" "$(migrations "$env")" | put_file "$dir/rollback.conf" 0600
-  build_image "$(env_value "$conf" SBR_REPO)" "$ref"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
   set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d
@@ -130,7 +137,7 @@ cmd_update() {
 }
 
 cmd_confirm() {
-  local dir="$ROLLBACK_DIR/$1"
+  local dir="$SBR_STATE/$1"
   [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
   rm -f "$dir/pre-update.dump" "$dir/rollback.conf"
   # shellcheck disable=SC2046 # one image name per word
@@ -139,7 +146,7 @@ cmd_confirm() {
 }
 
 cmd_rollback() {
-  local env=$1 dir="$ROLLBACK_DIR/$1" file="$SBR_ETC/$1.env" restore=0
+  local env=$1 dir="$SBR_STATE/$1" file="$SBR_ETC/$1.env" restore=0
   [[ -f $dir/rollback.conf ]] || die "no update to roll back"
   local previous_image previous_ref before now
   previous_image=$(env_value "$dir/rollback.conf" PREVIOUS_IMAGE)
@@ -154,14 +161,17 @@ cmd_rollback() {
   fi
   do_backup "$env"
   info "Backup of the current state: $BACKUP_FILE"
-  set_env_value "$file" SBR_IMAGE "$previous_image"
-  if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
+  # The database first: if its restore fails, nothing else changed and the app (still the
+  # updated image) is started again on the untouched data (audit H3).
   if ((restore)); then
     info "Restoring the dump taken before the update."
-    compose "$env" stop app
+    stop_app "$env"
     restore_database "$env" "$dir/pre-update.dump"
   fi
+  set_env_value "$file" SBR_IMAGE "$previous_image"
+  if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
   compose "$env" up -d
+  restart_app_done
   wait_ready "$env"
   rm -f "$dir/rollback.conf" "$dir/pre-update.dump"
   info "Rolled back to $previous_image (ref ${previous_ref:-unknown})."
@@ -186,7 +196,7 @@ cmd_restore() {
     shift
   done
   [[ -f $file ]] || die "usage: sbr restore [--drill] <file> [--identity <age key file>] [--force-env]"
-  if ((drill)); then do_drill "$file" "$identity"; else do_restore "$env" "$file" "$identity" "$force_env"; fi
+  if ((drill)); then do_drill "$env" "$file" "$identity"; else do_restore "$env" "$file" "$identity" "$force_env"; fi
 }
 
 cmd_admin() {

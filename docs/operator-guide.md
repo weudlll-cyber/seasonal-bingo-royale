@@ -66,7 +66,7 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off.
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files and the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
 
 1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
@@ -86,8 +86,8 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    scp $HOME\sbr-age-key.txt <you>@<VPS address>:sbr-age-key.txt
    ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
-   It restores into a throw-away database and says how many accounts, matches and events came back.
-5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod) unless you add `--force-env`.
+   It restores into a throw-away database, says how many accounts, matches and events came back, and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
+5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
 
 ## 6. Updating and rolling back
 
@@ -95,7 +95,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It first takes a backup and a plain database dump for a rollback, then builds and starts the new version (the game is away for a few seconds; running matches continue).
+   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback and starts the new version (the game is away for a few seconds; running matches continue). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
 2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
    ```
    sudo sbr confirm
