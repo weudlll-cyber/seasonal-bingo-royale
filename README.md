@@ -2,7 +2,7 @@
 
 Multiplayer Bingo with battle-royale elimination and the four Seasonal Tokens seasons as a core mechanic. Realtime and asynchronous play, standalone or embedded in a host website.
 
-**Status:** specification complete; on master: the Quick Test, a first draft of the real game, a one-command VPS installer and the fixes of the 2026-10-23 audit.
+**Status:** specification complete; on master: the Quick Test, a first draft of the real game (with "Verify this match" and the recap between royale rounds), a one-command VPS installer with encrypted backups, and the fixes of the audits of 2026-10-23 and 2026-10-31.
 
 Quick start: Node 22+ and pnpm, then `pnpm install` and `pnpm verify`. Details: [CONTRIBUTING.md](CONTRIBUTING.md).
 

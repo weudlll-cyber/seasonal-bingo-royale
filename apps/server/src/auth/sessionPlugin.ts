@@ -31,6 +31,8 @@ declare module 'fastify' {
     // The route starts a session, like the ones in SESSION_STARTERS (the development quick
     // sign-in marks itself, so its path stays out of the production bundle).
     sessionStarter?: boolean;
+    // A development route outside any session (the load check's clean-up): no CSRF token.
+    noCsrf?: boolean;
   }
 }
 
@@ -54,8 +56,6 @@ const SESSION_STARTERS = new Set([
   '/api/v1/auth/login',
   '/api/v1/auth/guest',
 ]);
-// Development only and outside any session: the load check's cleanup (no CSRF token).
-const DEV_UNSESSIONED = new Set(['/api/v1/dev/load-accounts']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export async function registerSessions(
@@ -86,7 +86,7 @@ async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<
   // No route matched: no handler runs, the answer is 404.
   if (request.routeOptions.url === undefined) return;
   const path = request.url.split('?')[0] ?? '';
-  if (DEV_UNSESSIONED.has(path)) return;
+  if (request.routeOptions.config.noCsrf === true) return;
   if (startsSession(request, path)) {
     if (!(request.headers['content-type'] ?? '').startsWith('application/json')) {
       await reply.status(415).send({ code: 'JSON_REQUIRED' });
