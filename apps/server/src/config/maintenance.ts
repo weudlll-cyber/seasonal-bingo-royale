@@ -4,7 +4,8 @@
  * @brief  The maintenance flag: a file in the data directory the operator sets with `sbr maintenance on`.
  *
  * Responsibility: while <SBR_DATA_DIR>/maintenance exists, no new match is created or
- *                 started; running matches go on to their end (09 §4). The file's text, if
+ *                 started, also not automatically (the engine holds the start, D22);
+ *                 running matches go on to their end (09 §4). The file's text, if
  *                 any, is the reason shown to players (at most 200 characters). The file is
  *                 checked at most every 2 seconds, so the flag needs no restart.
  * Depends on:     node:fs, node:path

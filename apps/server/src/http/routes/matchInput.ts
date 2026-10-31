@@ -58,6 +58,7 @@ export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInpu
 
 const CONFLICT = new Set([
   'MATCH_NOT_IN_LOBBY',
+  'MATCH_STARTING',
   'MATCH_FULL',
   'DRAW_MODE_AUTO',
   'DRAW_NOT_ALLOWED',
@@ -71,8 +72,10 @@ export function sendEngineError(reply: FastifyReply, error: unknown): FastifyRep
   if (error instanceof z.ZodError) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
   if (error instanceof MatchNotFound) return reply.status(404).send({ code: 'NOT_FOUND' });
   if (error instanceof MatchError) {
-    // `sbr maintenance on`: try again later.
-    if (error.code === 'MAINTENANCE') return reply.status(503).send({ code: error.code });
+    // `sbr maintenance on`: try again later; the operator's reason is shown (D22).
+    if (error.code === 'MAINTENANCE') {
+      return reply.status(503).send({ code: error.code, reason: error.reason });
+    }
     return reply.status(CONFLICT.has(error.code) ? 409 : 422).send({ code: error.code });
   }
   throw error;

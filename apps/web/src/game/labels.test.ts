@@ -4,9 +4,10 @@
  * @brief  The plain-English builders: grammar, prize names, unknown reasons and codes (POLISH-1).
  *
  * Responsibility: a cut line says "1 goes on, 1 is out" for one player; prize keys become
- *                 words; an unknown round-end reason or server code never shows itself.
+ *                 words; an unknown round-end reason or server code never shows itself; a
+ *                 refusal under maintenance carries the operator's reason (D22).
  * Depends on:     vitest, ./labels
- * Spec:           docs/spec/01-game-design.md §3a.1, §7.3, §7.4, §13
+ * Spec:           docs/spec/01-game-design.md §3a.1, §7.3, §7.4, §7.6 (D22), §13
  */
 import { describe, expect, it } from 'vitest';
 
@@ -33,5 +34,13 @@ describe('plain-English labels', () => {
       roundEndLine({ roundIndex: 0, reason: 'someNewReason', draws: 3, lastScorer: null }),
     ).toBe('Round 1 over');
     expect(problemText('SOME_NEW_CODE')).toBe('Something went wrong — please try again.');
+  });
+
+  it("says why a start is refused under maintenance, with the operator's reason (D22)", () => {
+    expect(problemText('MAINTENANCE', 'Update at 22:00')).toBe(
+      'Maintenance is on — matches cannot start now. Update at 22:00',
+    );
+    expect(problemText('MAINTENANCE')).toBe('Maintenance is on — matches cannot start now.');
+    expect(problemText('MATCH_STARTING')).toBe('The countdown is already running.');
   });
 });

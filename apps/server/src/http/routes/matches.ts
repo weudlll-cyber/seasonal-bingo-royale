@@ -33,7 +33,8 @@ export interface MatchRouteDeps {
   readonly engine: MatchEngine;
   readonly store: PgMatchStore;
   readonly dev: boolean;
-  // `sbr maintenance on`: no new match is created or started (../../config/maintenance).
+  // `sbr maintenance on`: no new match is created (../../config/maintenance); the engine
+  // holds every start (D22).
   readonly maintenance: MaintenanceCheck;
 }
 
@@ -134,7 +135,10 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (accountId === null) return reply;
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    if (deps.maintenance() !== null) return reply.status(503).send({ code: 'MAINTENANCE' });
+    const maintenance = deps.maintenance();
+    if (maintenance !== null) {
+      return reply.status(503).send({ code: 'MAINTENANCE', reason: maintenance.reason });
+    }
     // The fast test profile exists in development builds only.
     if (parsed.data.testProfile !== undefined && !deps.dev) {
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });

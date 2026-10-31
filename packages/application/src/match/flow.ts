@@ -18,7 +18,14 @@
  */
 import { nextStep } from '@sbr/domain';
 
-import type { Clock, LoadedMatch, MatchStore, ScheduledAction, Scheduler } from './ports.js';
+import type {
+  Clock,
+  LoadedMatch,
+  MaintenanceReader,
+  MatchStore,
+  ScheduledAction,
+  Scheduler,
+} from './ports.js';
 import type { MatchRunner } from './runner.js';
 import { autoStart } from './startRules.js';
 
@@ -27,6 +34,8 @@ export interface FlowDeps {
   readonly store: MatchStore;
   readonly scheduler: Scheduler;
   readonly clock: Clock;
+  // Holds the automatic starts while maintenance is on (./startRules, D22).
+  readonly maintenance: MaintenanceReader;
 }
 
 export async function runAction(deps: FlowDeps, action: ScheduledAction): Promise<void> {

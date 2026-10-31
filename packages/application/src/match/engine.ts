@@ -35,6 +35,7 @@ import { prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
 import type {
   Clock,
   DrawMode,
+  MaintenanceReader,
   MatchEventBus,
   MatchRecord,
   MatchStore,
@@ -52,7 +53,11 @@ import {
 import { withinDrawRange } from './timing.js';
 
 export class MatchError extends Error {
-  constructor(readonly code: string) {
+  constructor(
+    readonly code: string,
+    // Shown with the code, e.g. the operator's maintenance reason.
+    readonly reason: string | null = null,
+  ) {
     super(code);
   }
 }
@@ -62,6 +67,7 @@ interface EngineDeps {
   readonly scheduler: Scheduler;
   readonly bus: MatchEventBus;
   readonly clock: Clock;
+  readonly maintenance: MaintenanceReader;
   readonly randomSeed: () => Uint8Array;
   readonly randomCode: () => string;
 }
@@ -77,6 +83,7 @@ export class MatchEngine {
       store: deps.store,
       scheduler: deps.scheduler,
       clock: deps.clock,
+      maintenance: deps.maintenance,
     };
   }
 
@@ -148,6 +155,11 @@ export class MatchEngine {
     return this.runner.serial(matchId, async () => {
       const m = await this.runner.current(matchId);
       if (m.record.status !== 'lobby') throw new MatchError('MATCH_NOT_IN_LOBBY');
+      // The countdown already runs (audit M4): a second Start would schedule a second start.
+      if (m.record.startsAt !== null) throw new MatchError('MATCH_STARTING');
+      // D22: not while maintenance is on; the host sees the operator's reason.
+      const maintenance = this.deps.maintenance();
+      if (maintenance !== null) throw new MatchError('MAINTENANCE', maintenance.reason);
       if (m.state.playerOrder.length < minPlayersOf(m)) throw new MatchError('NOT_ENOUGH_PLAYERS');
       const startsAt = this.deps.clock.now() + countdownMs;
       await scheduleStart(this.flow, matchId, startsAt);

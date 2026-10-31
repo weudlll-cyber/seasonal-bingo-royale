@@ -105,7 +105,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    sudo sbr rollback
    ```
    It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
-4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end. Afterwards `sudo sbr maintenance off`.
+4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end; matches set to start at a time or when full wait in their lobby and start once you turn maintenance off. Afterwards `sudo sbr maintenance off`.
 5. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
 
 ## 7. Hardening checklist

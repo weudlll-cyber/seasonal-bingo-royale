@@ -15,7 +15,7 @@
  */
 import { randomBytes, randomInt } from 'node:crypto';
 
-import { MatchEngine } from '@sbr/application';
+import { MatchEngine, type MaintenanceReader } from '@sbr/application';
 import { SEED_BYTES } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
@@ -34,7 +34,12 @@ export interface MatchRuntime {
   startScheduler(): Promise<readonly string[]>;
 }
 
-export function createMatchRuntime(pool: DbPool, seedKey: Buffer): MatchRuntime {
+// `maintenance` holds the automatic starts while `sbr maintenance on` is set (D22).
+export function createMatchRuntime(
+  pool: DbPool,
+  seedKey: Buffer,
+  maintenance: MaintenanceReader,
+): MatchRuntime {
   const store = new PgMatchStore(pool, seedKey);
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();
@@ -43,6 +48,7 @@ export function createMatchRuntime(pool: DbPool, seedKey: Buffer): MatchRuntime 
     scheduler,
     bus,
     clock: { now: () => Date.now() },
+    maintenance,
     randomSeed: () => new Uint8Array(randomBytes(SEED_BYTES)),
     randomCode: () =>
       Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''),

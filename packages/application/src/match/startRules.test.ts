@@ -168,3 +168,63 @@ describe("the ruleset's start minimum (01 §7.6)", () => {
     expect(store.records.get(m.id)?.startsAt).toBe(clock.t + 10_000);
   });
 });
+
+describe('maintenance holds every start (D22)', () => {
+  it('holds the automatic start at the set time and runs it once maintenance is off', async () => {
+    const t = await announced(true);
+    await t.engine.fillWithBots(t.id, 4);
+    t.maintenance.on = true;
+    await t.scheduler.runUntil(t.engine, t.clock, t.at + 60_000);
+    expect(t.status()).toBe('lobby');
+    expect(t.store.records.get(t.id)?.startsAt).toBeNull();
+    expect(t.autoPending()).toBe(true);
+    t.maintenance.on = false;
+    await t.scheduler.runUntil(t.engine, t.clock, t.clock.t + 5_000);
+    expect(t.store.records.get(t.id)?.startsAt).not.toBeNull();
+    await t.scheduler.runUntil(t.engine, t.clock, t.clock.t + 10_000);
+    expect(t.status()).toBe('running');
+  });
+
+  it('holds start-when-full and checks it again once maintenance is off', async () => {
+    const { store, scheduler, clock, engine, maintenance } = fakeEngine();
+    const m = await engine.create(
+      { ...base, maxPlayers: 4, startRule: { kind: 'whenFull' } },
+      null,
+    );
+    maintenance.on = true;
+    await engine.fillWithBots(m.id, 4);
+    await scheduler.runUntil(engine, clock, clock.t + 60_000);
+    expect(store.records.get(m.id)?.startsAt).toBeNull();
+    expect(store.records.get(m.id)?.status).toBe('lobby');
+    maintenance.on = false;
+    await scheduler.runUntil(engine, clock, clock.t + 5_000);
+    expect(store.records.get(m.id)?.startsAt).not.toBeNull();
+    await scheduler.runUntil(engine, clock, clock.t + 10_000);
+    expect(store.records.get(m.id)?.status).toBe('running');
+  });
+
+  it("refuses the host's Start with the operator's reason", async () => {
+    const t = await announced(false);
+    await t.engine.fillWithBots(t.id, 4);
+    t.maintenance.on = true;
+    t.maintenance.reason = 'Update at 22:00';
+    await expect(t.engine.start(t.id, 10_000)).rejects.toEqual(
+      new MatchError('MAINTENANCE', 'Update at 22:00'),
+    );
+    expect(t.store.records.get(t.id)?.startsAt).toBeNull();
+    t.maintenance.on = false;
+    await t.engine.start(t.id, 10_000);
+    expect(t.store.records.get(t.id)?.startsAt).toBe(t.clock.t + 10_000);
+  });
+});
+
+describe('a second Start during the countdown (audit M4)', () => {
+  it('is refused with MATCH_STARTING and schedules nothing more', async () => {
+    const t = await announced(false);
+    await t.engine.fillWithBots(t.id, 4);
+    await t.engine.start(t.id, 10_000);
+    await expect(t.engine.start(t.id, 10_000)).rejects.toEqual(new MatchError('MATCH_STARTING'));
+    const starts = t.scheduler.pending.filter((a) => a.kind === 'start_match');
+    expect(starts).toHaveLength(1);
+  });
+});

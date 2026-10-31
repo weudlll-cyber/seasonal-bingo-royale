@@ -6,7 +6,8 @@
  * Responsibility: the engine's ports without a database: the store folds its events with
  *                 the domain's evolve and checks the expected seq; the scheduler keeps due
  *                 actions and `runDue` executes them in due order while advancing the clock,
- *                 as PgScheduler does; `fakeEngine` wires an engine to them. Test support only.
+ *                 as PgScheduler does; `fakeEngine` wires an engine to them, with a
+ *                 maintenance switch (`maintenance.on`, D22). Test support only.
  * Depends on:     @sbr/domain, ./ports, ./engine
  * Used by:        ./engine.test.ts, ./startRules.test.ts
  * Spec:           docs/spec/12-testing-strategy.md §2
@@ -141,6 +142,7 @@ class MemoryScheduler implements Scheduler {
 
 // An engine on the in-memory ports, with every event the bus publishes and its time.
 export function fakeEngine() {
+  const maintenance = { on: false, reason: null as string | null };
   const store = new MemoryStore();
   const scheduler = new MemoryScheduler();
   const clock = new ManualClock();
@@ -156,8 +158,9 @@ export function fakeEngine() {
       changed: () => undefined,
     },
     clock,
+    maintenance: () => (maintenance.on ? { reason: maintenance.reason } : null),
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
   });
-  return { store, scheduler, clock, engine, published };
+  return { store, scheduler, clock, engine, published, maintenance };
 }

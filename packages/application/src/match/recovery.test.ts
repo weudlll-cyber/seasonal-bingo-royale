@@ -95,6 +95,7 @@ describe('a crash after a round end (audit H2)', () => {
       scheduler: f.scheduler,
       bus: { publish: () => undefined, changed: () => undefined },
       clock: f.clock,
+      maintenance: () => null,
       randomSeed: () => new Uint8Array(32).fill(7),
       randomCode: () => 'CODE2',
     });

@@ -1,7 +1,7 @@
 /**
  * @file   packages/application/src/match/ports.ts
  * @module application/match
- * @brief  Ports of the live match engine: store, scheduler, event bus, clock (02 §3, §5).
+ * @brief  Ports of the live match engine: store, scheduler, event bus, clock, maintenance (02 §3, §5).
  *
  * Responsibility: the shapes the engine needs from the outside world. The server adapts
  *                 them to PostgreSQL (event log, projections, scheduled_actions) and to the
@@ -112,7 +112,8 @@ export type ActionKind =
   | 'draw'
   | 'close_speed_window'
   | 'auto_mark'
-  // At the announced start time minus the countdown: start if enough players (D16).
+  // At the announced start time: start if enough players (D16); also a start held by
+  // maintenance, checked again until maintenance is off (D22).
   | 'auto_start';
 
 export interface ScheduledAction {
@@ -137,3 +138,6 @@ export interface MatchEventBus {
 export interface Clock {
   now(): number;
 }
+
+// `sbr maintenance on`: null while maintenance is off; the operator's reason, if any (D22).
+export type MaintenanceReader = () => { readonly reason: string | null } | null;

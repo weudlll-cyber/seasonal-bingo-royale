@@ -41,7 +41,7 @@ export function HostLobby({
         setMessage(null);
       })
       .catch((e: unknown) => {
-        setMessage(problemText(e instanceof ApiError ? e.code : ''));
+        setMessage(e instanceof ApiError ? problemText(e.code, e.reason) : problemText(''));
       });
   };
   return (

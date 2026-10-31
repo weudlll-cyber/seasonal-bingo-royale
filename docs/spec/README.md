@@ -82,6 +82,7 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D19 | Players needed to start (2026-10-23) | 2, read from the ruleset's `lobby.minPlayers` by Start and by the automatic start ([01](01-game-design.md) §7.6). |
 | D20 | Interlude between royale rounds (2026-10-27) | The pause between two royale rounds shows a recap of the round just played (top three, climber, cut and shield saves, Season Complete, fastest tapper, facts). Fun only: no points, shields or effects, no change to any ranking ([01](01-game-design.md) §7). |
 | D21 | Ending a timed pause early (2026-10-29) | The default pause between royale rounds is 15 s (minimum 3 s). During a timed pause the host can start the next round for everyone with one click (“Start next round now”); players' Previous/Next only flip the recap cards on their own screen. “The host starts the next round” (D14) is unchanged ([01](01-game-design.md) §7). |
+| D22 | Maintenance holds every start (2026-10-31) | While maintenance is on nothing starts by itself: no automatic start at a set start time and no start when full; such a match waits in its lobby, and when maintenance is turned off a due automatic start runs (or start when full is checked again). The host's Start is refused while maintenance is on (503 `MAINTENANCE`, as when creating a match) with the reason shown. Running matches finish as before ([01](01-game-design.md) §7.6). |
 
 ## 5. Open
 

@@ -249,6 +249,8 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 
 ## 8. Scoring and seasons
 
+**Maintenance holds every start (D22, 2026-10-31):** While maintenance is on (`sbr maintenance on`), nothing starts by itself: neither the automatic start at a set start time nor “start when full”. Such a match waits in its lobby; when maintenance is turned off, a due automatic start runs (or “start when full” is checked again). The host's “Start match” is refused while maintenance is on, with the same error as creating a match (503 `MAINTENANCE`) and the operator's reason shown. Running matches finish as before.
+
 ### 8.1 Base points (defaults)
 
 | Event | Points |

@@ -4,7 +4,8 @@
  * @brief  The maintenance flag follows its file, checked at most every 2 seconds.
  *
  * Responsibility: off without the file; on within 2 seconds of `sbr maintenance on`
- *                 creating it, off again within 2 seconds of its removal.
+ *                 creating it, off again within 2 seconds of its removal, and on again
+ *                 with a new reason when it is created once more.
  * Depends on:     vitest, node:fs, ./maintenance
  * Spec:           docs/spec/09-deployment-architecture.md §4
  */
@@ -30,6 +31,10 @@ describe('the maintenance flag', () => {
     rmSync(path.join(dir, 'maintenance'));
     t = 4_000;
     expect(on()).toBeNull();
+    // On again, with the new reason.
+    writeFileSync(path.join(dir, 'maintenance'), 'Second update');
+    t = 6_000;
+    expect(on()).toEqual({ reason: 'Second update' });
     rmSync(dir, { recursive: true, force: true });
   });
 

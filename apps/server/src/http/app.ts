@@ -80,7 +80,8 @@ function createFastify(env: Env): FastifyInstance {
 
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
-  const match = createMatchRuntime(deps.pool, seedKey);
+  const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
+  const match = createMatchRuntime(deps.pool, seedKey, maintenance);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();
@@ -110,7 +111,6 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   });
   // Development only: quick sign-in as host or player (never in a production build).
   if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
-  const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
   registerMaintenance(fastify, maintenance);
   registerMatchRoutes(fastify, {
     pool: deps.pool,
