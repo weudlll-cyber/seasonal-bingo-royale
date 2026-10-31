@@ -7,6 +7,7 @@
  *                 and the dev sign-in route, each throwing when called. The app calls them
  *                 only with SBR_DEV=1, which a production install never sets; a name missing
  *                 here fails the build, not the server.
+ * Depends on:     nothing
  * Used by:        ./build.mjs (dev-stub plugin)
  * Spec:           docs/spec/09-deployment-architecture.md §1
  */

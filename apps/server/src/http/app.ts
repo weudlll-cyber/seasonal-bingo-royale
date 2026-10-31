@@ -9,7 +9,7 @@
  *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies; first
  *                 of all, refuse a seed key that does not open the stored match secrets.
  *                 The caller owns the lifecycle (listen, scheduler, close, pool disposal).
- * Depends on:     fastify, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
+ * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
  *                 ../auth/sessionPlugin, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ./plugins/problem,
  *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
@@ -19,6 +19,7 @@
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
@@ -78,9 +79,19 @@ function createFastify(env: Env): FastifyInstance {
   });
 }
 
+// Per-route limits for the routes that ask for one (config.rateLimit: Verify, the load
+// check's clean-up); the API-wide limit lives in the sessions (../auth/sessionPlugin).
+async function registerRouteLimits(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: () => ({ statusCode: 429, code: 'RATE_LIMITED', message: 'Too many' }),
+  });
+}
+
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
-  const match = createMatchRuntime(deps.pool, seedKey);
+  const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
+  const match = createMatchRuntime(deps.pool, seedKey, maintenance);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();
@@ -89,6 +100,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const isDev = deps.env.SBR_DEV;
   await registerSecurityHeaders(fastify);
   registerProblemDetails(fastify);
+  await registerRouteLimits(fastify);
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
@@ -110,7 +122,6 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   });
   // Development only: quick sign-in as host or player (never in a production build).
   if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
-  const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
   registerMaintenance(fastify, maintenance);
   registerMatchRoutes(fastify, {
     pool: deps.pool,
@@ -120,7 +131,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     maintenance,
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
-  await registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
+  registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,
     engine: match.engine,

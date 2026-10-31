@@ -66,7 +66,7 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off.
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files and the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
 
 1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
@@ -86,8 +86,8 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    scp $HOME\sbr-age-key.txt <you>@<VPS address>:sbr-age-key.txt
    ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
-   It restores into a throw-away database and says how many accounts, matches and events came back.
-5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod) unless you add `--force-env`.
+   It restores into a throw-away database, says how many accounts, matches and events came back, and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
+5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
 
 ## 6. Updating and rolling back
 
@@ -95,7 +95,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It first takes a backup and a plain database dump for a rollback, then builds and starts the new version (the game is away for a few seconds; running matches continue).
+   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback and starts the new version (the game is away for a few seconds; running matches continue). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
 2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
    ```
    sudo sbr confirm
@@ -105,7 +105,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    sudo sbr rollback
    ```
    It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
-4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end. Afterwards `sudo sbr maintenance off`.
+4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end; matches set to start at a time or when full wait in their lobby and start once you turn maintenance off. Afterwards `sudo sbr maintenance off`.
 5. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
 
 ## 7. Hardening checklist
@@ -116,11 +116,11 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 4. fail2ban for SSH: `apt install fail2ban`.
 5. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
 6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
-7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses (`SBR_TRUSTED_PROXIES` in `/etc/sbr/prod.env`).
+7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses as well: run the installer again with `--trusted-proxies <range>,<range>,…` (Cloudflare's published ranges). They are added to the proxy the install type trusts and kept on later runs; `--trusted-proxies none` removes them.
 
 ## 8. Good to know
 
-- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets and your earlier answers, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
+- Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
 - Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login.

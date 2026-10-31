@@ -3,25 +3,29 @@
  * @module application/match
  * @brief  The timed flow of a live match: what each scheduled action does and schedules next.
  *
- * Responsibility: start_match starts the match and its first round; auto_start begins the
- *                 countdown of a set start time (./startRules, D16); start_round deals the
- *                 cards and, with timed draws, schedules the first draw one interval
- *                 later; a draw schedules the missed-number auto-mark (when people tap
- *                 under autoMarkAfter) and the close of its speed window; the window close
- *                 checks the round end — a round ended this way is cut and the next round
- *                 starts after a pause (its start time is recorded in the event log and goes
- *                 to the screens as nextRoundAt), the next stage begins or the match finishes — or,
- *                 with timed draws, schedules the next draw one interval after this one.
- *                 Host draws follow the same path from the host's Draw next (D8, D10).
- *                 The host starts the next round when the match waits for them (D14) or
- *                 ends a timed pause early, replacing its scheduled start (D21).
+ * Responsibility: what each scheduled action does and schedules next: start_match, auto_start
+ *                 (./startRules, D16), start_round (first timed draw), a draw (auto-mark and
+ *                 window close), the window close (round end and cut in one batch, then a
+ *                 pause and the next round, the next stage or the finish; else the next
+ *                 timed draw). Steps derive from the state, so a retried action or the
+ *                 start-up sweep (resumeMatch) continues a match after a crash (02 §5.3).
+ *                 Host draws take the same path (D8, D10); the host starts the next round
+ *                 after a host pause (D14) or ends a timed pause early (D21).
  * Depends on:     @sbr/domain, ./ports, ./runner, ./startRules
  * Used by:        ./engine, ../index, ./startRules
- * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D14, D21); docs/spec/06-realtime-architecture.md §5
+ * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D14, D21);
+ *                 docs/spec/02-software-architecture.md §5.3; docs/spec/06-realtime-architecture.md §5
  */
 import { nextStep } from '@sbr/domain';
 
-import type { Clock, LoadedMatch, MatchStore, ScheduledAction, Scheduler } from './ports.js';
+import type {
+  Clock,
+  LoadedMatch,
+  MaintenanceReader,
+  MatchStore,
+  ScheduledAction,
+  Scheduler,
+} from './ports.js';
 import type { MatchRunner } from './runner.js';
 import { autoStart } from './startRules.js';
 
@@ -30,6 +34,8 @@ export interface FlowDeps {
   readonly store: MatchStore;
   readonly scheduler: Scheduler;
   readonly clock: Clock;
+  // Holds the automatic starts while maintenance is on (./startRules, D22).
+  readonly maintenance: MaintenanceReader;
 }
 
 export async function runAction(deps: FlowDeps, action: ScheduledAction): Promise<void> {
@@ -110,6 +116,8 @@ async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
     return;
   }
   const dueAt = deps.clock.now() + pause.ms;
+  // Replaced, not doubled, when a retry or the start-up sweep (resumeMatch) gets here.
+  await deps.scheduler.cancel(matchId, 'start_round');
   await deps.scheduler.schedule({ matchId, kind: 'start_round', dueAt });
   // In the event log, so the countdown on the cut screen survives a restart.
   await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: dueAt }]);
@@ -148,13 +156,15 @@ export async function startNextRound(deps: FlowDeps, matchId: string): Promise<b
 }
 
 async function startRound(deps: FlowDeps, matchId: string): Promise<void> {
-  const produced = await deps.runner.apply(matchId, [{ type: 'startRound' }]);
-  if (produced.length === 0) return;
+  await deps.runner.apply(matchId, [{ type: 'startRound' }]);
   const m = await deps.runner.current(matchId);
-  if (m.record.settings.drawMode === 'auto') {
-    const dueAt = deps.clock.now() + m.record.settings.drawIntervalMs;
-    await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
-  }
+  const round = m.state.currentRound;
+  if (m.record.settings.drawMode !== 'auto' || round === null || round.ended) return;
+  // Also on a retry after a crash: a round without a draw yet gets its first timed draw.
+  if (round.draws.length > 0) return;
+  const dueAt = deps.clock.now() + m.record.settings.drawIntervalMs;
+  await deps.scheduler.cancel(matchId, 'draw');
+  await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
 }
 
 // When the next number may be drawn: the match's timed-draw interval after the round's
@@ -196,19 +206,35 @@ export async function draw(deps: FlowDeps, matchId: string): Promise<boolean> {
   return true;
 }
 
+// The round end and its cut go in one batch, one transaction, so no crash leaves an ended
+// round uncut. What follows is derived from the state: a retried close, or the start-up
+// sweep (resumeMatch), continues a match that stopped between the steps (audit H2).
 async function closeWindow(deps: FlowDeps, matchId: string, drawIndex: number): Promise<void> {
-  const produced = await deps.runner.apply(matchId, [
+  await deps.runner.apply(matchId, [
     { type: 'closeSpeedWindow', drawIndex },
     { type: 'endRound' },
+    { type: 'applyCut' },
   ]);
-  if (produced.some((e) => e.type === 'roundEnded')) {
-    await deps.runner.apply(matchId, [{ type: 'applyCut' }]);
-    await advance(deps, matchId, true);
-    return;
-  }
   const m = await deps.runner.current(matchId);
-  if (m.record.settings.drawMode !== 'auto') return;
+  if (awaitsNextStep(m)) return advance(deps, matchId, true);
+  if (m.record.settings.drawMode !== 'auto' || !canDraw(m)) return;
+  if (drawIndex !== (m.state.currentRound?.draws.length ?? 0) - 1) return;
   const drawnAt = m.drawTimes[drawIndex] ?? deps.clock.now();
   const dueAt = Math.max(deps.clock.now(), drawnAt + m.record.settings.drawIntervalMs);
+  // Replaced, not doubled, when a retry schedules it again.
+  await deps.scheduler.cancel(matchId, 'draw');
   await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
+}
+
+// A round (and its cut) is over but nothing follows yet: no next stage, finish or pause.
+// A timed pause has its start time in the event log; a host pause has nothing to schedule.
+function awaitsNextStep(m: LoadedMatch): boolean {
+  const round = m.state.currentRound;
+  if (m.state.phase !== 'running' || round === null || !round.ended) return false;
+  return !(m.record.settings.roundPause.kind === 'wait' && m.state.nextRoundAt !== null);
+}
+
+// At start-up, for every running match: the step lost in a crash after a round end.
+export async function resumeMatch(deps: FlowDeps, matchId: string): Promise<void> {
+  if (awaitsNextStep(await deps.runner.current(matchId))) await advance(deps, matchId, true);
 }

@@ -9,7 +9,7 @@
  *                 (since the held seq); a gap fetches the new events too, never the whole
  *                 log again; a delta without the player list keeps the one held; events are
  *                 never held twice.
- * Depends on:     @testing-library/react, vitest, ./useLiveMatch, ../test/matchFixture,
+ * Depends on:     @testing-library/react, ./useLiveMatch, ../test/matchFixture,
  *                 ../test/quickTestFixture
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8
  */

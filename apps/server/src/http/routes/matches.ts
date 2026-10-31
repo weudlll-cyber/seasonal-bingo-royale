@@ -13,7 +13,7 @@
  *                 engine become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./matchHost, ./matchInput, ./matchViews,
- *                 ../../view/liveViews
+ *                 ../../view/liveViews, ../../view/playerNames
  * Used by:        ../app, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
@@ -25,6 +25,7 @@ import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerHostRoutes } from './matchHost.js';
 import { LiveViews } from '../../view/liveViews.js';
+import { playerNames } from '../../view/playerNames.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
 
@@ -33,7 +34,8 @@ export interface MatchRouteDeps {
   readonly engine: MatchEngine;
   readonly store: PgMatchStore;
   readonly dev: boolean;
-  // `sbr maintenance on`: no new match is created or started (../../config/maintenance).
+  // `sbr maintenance on`: no new match is created (../../config/maintenance); the engine
+  // holds every start (D22).
   readonly maintenance: MaintenanceCheck;
 }
 
@@ -59,21 +61,6 @@ export async function matchIdByCode(pool: DbPool, code: string): Promise<string 
   return r.rows[0]?.id ?? null;
 }
 
-// Display name of every player; bots keep their id; a deleted account shows as "deleted
-// player" with a short tag that keeps names apart — never the account id (audit S10).
-async function playerNames(pool: DbPool, matchId: string): Promise<Record<string, string>> {
-  const r = await pool.query<{ player_id: string; name: string }>(
-    `SELECT e.player_id,
-            CASE WHEN a.display_name IS NOT NULL THEN a.display_name
-                 WHEN e.is_bot THEN e.player_id
-                 ELSE 'deleted player ' || substr(md5(e.player_id), 1, 4) END AS name
-       FROM sbr.match_entries e LEFT JOIN sbr.accounts a ON a.id = e.account_id
-      WHERE e.match_id = $1`,
-    [matchId],
-  );
-  return Object.fromEntries(r.rows.map((row) => [row.player_id, row.name]));
-}
-
 // The marks of a round the players tapped themselves (the round recap's fastest tapper).
 async function manualTaps(pool: DbPool, matchId: string, roundIndex: number): Promise<string[]> {
   const r = await pool.query<{ key: string }>(
@@ -94,7 +81,7 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;
-    return { matches: matches.map((m) => matchSummary(m, viewer)) };
+    return { matches: matches.map((m) => matchSummary(m, viewer, deps.engine.startHeld(m))) };
   });
 }
 
@@ -122,7 +109,8 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       );
       // The recap of the royale round just played, during the pause after it (D20).
       const recap = await views.recapFor(m, entry);
-      return liveView({ match: m, entry, me: request.session?.accountId ?? null, since, recap });
+      const me = request.session?.accountId ?? null;
+      return liveView({ match: m, entry, me, since, recap, startHeld: deps.engine.startHeld(m) });
     },
   );
 }
@@ -134,7 +122,10 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (accountId === null) return reply;
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    if (deps.maintenance() !== null) return reply.status(503).send({ code: 'MAINTENANCE' });
+    const maintenance = deps.maintenance();
+    if (maintenance !== null) {
+      return reply.status(503).send({ code: 'MAINTENANCE', reason: maintenance.reason });
+    }
     // The fast test profile exists in development builds only.
     if (parsed.data.testProfile !== undefined && !deps.dev) {
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });
@@ -149,7 +140,8 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
   app.get<{ Params: { code: string } }>('/api/v1/matches/:code', async (request, reply) => {
     const id = await matchIdByCode(deps.pool, request.params.code);
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-    return matchSummary(await deps.engine.runner.current(id), request.session?.accountId ?? null);
+    const m = await deps.engine.runner.current(id);
+    return matchSummary(m, request.session?.accountId ?? null, deps.engine.startHeld(m));
   });
   registerStateRoute(app, deps);
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {

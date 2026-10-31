@@ -4,15 +4,14 @@
  * @brief  The owner's status panels and cards, or a few bot cards without an owner (WP-08).
  *
  * Responsibility: per owner account, the status panel (points, rank, effects and seasons,
- *                 all from the server) above that owner's cards. When the owner taps, a
- *                 note states the Quick Test limitation: the match is
- *                 computed on the server before playback, so points, standings and cuts
- *                 count the owner's cards as marked after the delay (01 §6). An
- *                 eliminated owner's cards disappear after the round of the cut. Without an
- *                 owner card, shows the first bot cards read-only.
+ *                 all from the server; `OwnerStatusFor` wires it once for the Quick Test
+ *                 and the live match) above that owner's cards. When the owner taps, a note
+ *                 states the Quick Test limitation: points, standings and cuts count the
+ *                 owner's cards as marked after the delay (01 §6). An eliminated owner's
+ *                 cards disappear after the round of the cut. Without an owner card, the
+ *                 first bot cards show read-only.
  * Depends on:     react, ./CardGrid, ./OwnerCard, ./OwnerStatusPanel, ../playback, ../types
- * Used by:        ./Playback; ownerRank and inPlay also by the live match screen,
- *                 ../game/MatchScreen
+ * Used by:        ./Playback; OwnerStatusFor and inPlay also by ../game/MatchScreen
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -21,7 +20,7 @@ import { CardGrid } from './CardGrid.js';
 import { OwnerCard } from './OwnerCard.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import type { PlaybackView } from '../playback.js';
-import type { QuickTestResult } from '../types.js';
+import { secondsText, type QuickTestResult } from '../types.js';
 
 interface OwnerAreaProps {
   readonly result: QuickTestResult;
@@ -45,15 +44,7 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
       <div style={gridStyle}>
         {view.owners.map((owner) => (
           <div key={owner.accountId} style={{ display: 'grid', gap: '0.4rem' }}>
-            <OwnerStatusPanel
-              accountId={owner.accountId}
-              points={owner.points}
-              rank={ownerRank(result, view, owner.accountId)}
-              status={view.ownerStatus[owner.accountId] ?? null}
-              effectSeasons={result.effectSeasons}
-              showSeasons={result.gameType === 'royale'}
-              outInCut={owner.eliminatedCut}
-            />
+            <OwnerStatusFor result={result} view={view} owner={owner} />
             {/* After the round of the cut an eliminated owner has no card in play. */}
             {inPlay(owner, view)
               ? owner.cards.map((card, cardIndex) => (
@@ -77,6 +68,29 @@ export function OwnerArea({ result, view }: OwnerAreaProps): ReactElement {
 }
 
 // An owner's cards are shown while the owner is in the match and, after a cut, until
+// The owner's status panel wired from the view, for the Quick Test and the live match.
+export function OwnerStatusFor({
+  result,
+  view,
+  owner,
+}: {
+  readonly result: QuickTestResult;
+  readonly view: PlaybackView;
+  readonly owner: PlaybackView['owners'][number];
+}): ReactElement {
+  return (
+    <OwnerStatusPanel
+      accountId={owner.accountId}
+      points={owner.points}
+      rank={ownerRank(result, view, owner.accountId)}
+      status={view.ownerStatus[owner.accountId] ?? null}
+      effectSeasons={result.effectSeasons}
+      showSeasons={result.gameType === 'royale'}
+      outInCut={owner.eliminatedCut}
+    />
+  );
+}
+
 // the round of the cut is over: later rounds deal no card to an eliminated owner (found
 // by the acceptance play-through: the old card stayed with marks for numbers not drawn
 // in the current round, and in tap mode it could be tapped).
@@ -85,7 +99,7 @@ export function inPlay(owner: PlaybackView['owners'][number], view: PlaybackView
 }
 
 function LimitationNote({ result }: { result: QuickTestResult }): ReactElement {
-  const delay = `${String(result.ownerAutoMarkDelayMs / 1000)} s`;
+  const delay = `${secondsText(result.ownerAutoMarkDelayMs)} s`;
   const shows =
     result.missedNumbers.kind === 'autoMarkAfter'
       ? `what you tapped and what was marked for you after ${delay}`

@@ -3,23 +3,25 @@
  * @module server/realtime
  * @brief  Client → server intents of the gateway with replay protection and limits (06 §4.1).
  *
- * Responsibility: every intent is `{ t, seq, data }` with an acknowledgement `{ ok, data }`
- *                 or `{ ok: false, code }`. `seq` must grow strictly per socket; duplicates
- *                 and out-of-order intents are dropped (`REPLAYED`). Limits per socket: 10
- *                 intents a second overall, marks 4 a second, draw.next 2 a second (03 §13).
- *                 Intents: match.watch / match.unwatch (at most 3 match rooms), mark (players,
- *                 manual marking), draw.next, round.next (D14, D21) and draw.setMode (the
- *                 match's creator with match.manage, D8); `INTENT_TYPES` lists them all and
- *                 any other `t` answers UNKNOWN_INTENT.
- * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ./gateway (types)
+ * Responsibility: every intent is `{ t, seq, data }`, acknowledged `{ ok, data }` or `{ ok:
+ *                 false, code }`. `seq` must grow strictly per socket, else `REPLAYED`.
+ *                 Per-socket limits: 10 intents a second, marks 4, draw.next 2 (03 §13). Intents
+ *                 (`INTENT_TYPES`): match.watch / match.unwatch (at most 3 rooms), mark (players,
+ *                 manual marking), draw.next, round.next (D14, D21), draw.setMode (creator with
+ *                 match.manage, D8); any other `t` answers UNKNOWN_INTENT. Host intents re-read
+ *                 the session (../auth/sessions refreshSession): expired or revoked answers
+ *                 UNAUTHORIZED (./gateway then closes the socket), a lost match.manage FORBIDDEN.
+ * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ../auth/sessions,
+ *                 ./gateway (types)
  * Used by:        ./gateway
- * Spec:           docs/spec/06-realtime-architecture.md §4.1, §8; docs/spec/03-security-architecture.md §13
+ * Spec:           docs/spec/06-realtime-architecture.md §2.3, §4.1, §8; docs/spec/03-security-architecture.md §3, §13
  */
 import { MatchError, MatchNotFound } from '@sbr/application';
 import type { Socket } from 'socket.io';
 import { z } from 'zod';
 
 import { RateLimiter } from '../auth/rateLimit.js';
+import { refreshSession } from '../auth/sessions.js';
 import type { GatewayDeps, SocketData } from './gateway.js';
 
 export interface IntentContext {
@@ -28,8 +30,11 @@ export interface IntentContext {
   readonly deps: GatewayDeps;
 }
 
-type Answer =
+export type Answer =
   { readonly ok: true; readonly data?: unknown } | { readonly ok: false; readonly code: string };
+
+// The answer to an intent whose session has ended since the connect; the socket closes.
+export const SESSION_ENDED = 'UNAUTHORIZED';
 
 const envelope = z.object({
   t: z.string(),
@@ -165,7 +170,13 @@ async function mark(ctx: IntentContext, body: z.infer<typeof markData>): Promise
   return ok ? { ok: true } : { ok: false, code: 'MARK_REJECTED' };
 }
 
+// A host intent re-reads the session first (03 §3): one that expired or was revoked since
+// the connect answers UNAUTHORIZED (the gateway then closes the socket); a lost role or
+// permission counts at once.
 async function hostedMatch(ctx: IntentContext, code: string): Promise<string> {
+  const session = await refreshSession(ctx.deps.pool, ctx.data.session.id);
+  if (session === null) throw new MatchError(SESSION_ENDED);
+  ctx.data.session = session;
   allowed(ctx, 'match.manage');
   const id = await matchId(ctx, code);
   const m = await ctx.deps.engine.runner.current(id);

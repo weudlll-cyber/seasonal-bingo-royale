@@ -12,7 +12,7 @@
  *                 shows exactly one new number; the owner's rank equals the final place
  *                 at the end; after a restart nothing of the previous run remains.
  * Depends on:     @playwright/test, ./snapshot
- * Used by:        ./play.ts, ./acceptance.spec.ts
+ * Used by:        ./play
  * Spec:           docs/spec/01-game-design.md §5–§8, §13; docs/spec/12-testing-strategy.md §8
  */
 import { expect } from '@playwright/test';

@@ -11,7 +11,7 @@
  *                 keeps 7:1 (the hero element); the host's Draw next keeps 4.5:1 enabled and
  *                 disabled; and the motion file turns every animation off under
  *                 prefers-reduced-motion.
- * Depends on:     node:fs, vitest, @sbr/ui/tokens.css, @sbr/ui/motion.css (raw), ./host/host.css
+ * Depends on:     @sbr/ui/tokens.css, @sbr/ui/motion.css (raw), ./host/host.css
  * Spec:           docs/spec/01-game-design.md §13 (WCAG 2.2 AA)
  */
 import { readFileSync } from 'node:fs';

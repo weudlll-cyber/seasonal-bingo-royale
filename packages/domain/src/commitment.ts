@@ -7,7 +7,7 @@
  *                 (01 §9, 04 §3.3 `matches.seed_commitment`) and verify a published
  *                 seed against it. The verify helper uses crypto.timingSafeEqual so a
  *                 later verification endpoint cannot leak byte-by-byte comparison.
- * Depends on:     node:crypto
+ * Depends on:     nothing
  * Used by:        ./index, apps/server/src/match/pgMatchStore (commitSeed), ./verifyMatch
  *                 (verifyCommitment)
  * Spec:           docs/spec/01-game-design.md §9

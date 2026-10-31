@@ -3,17 +3,14 @@
  * @module server/view
  * @brief  Prepares a match event log for the player client (Quick Test and live match).
  *
- * Responsibility: (1) rename the internal player ids (simulation p000…, account ids) to
- *                 the names the client shows (owner-01 / bot-02 in the Quick Test, display
- *                 names in a live match) in every event, so the client can match events to
- *                 players, and list the ids a batch names (the gateway's name lookup);
- *                 (2) replay the log with the domain's evolve — at once, or extended with
- *                 new events as they come (`LiveReplay`, one per live match) — and record
- *                 each tracked player's effect status (active multiplier/growth with
- *                 remaining draws, shield charges, seasons collected) whenever it changes,
- *                 every player's points after each stage start (score carry) and first-
- *                 round card, so the client renders them and never computes them
- *                 (CLAUDE.md: the server decides, the client renders).
+ * Responsibility: (1) rename internal player ids (simulation p000…, account ids) in every event
+ *                 to the names the client shows (owner-01 / bot-02 in the Quick Test, display
+ *                 names live), and list the ids a batch names (the gateway's name lookup);
+ *                 (2) replay the log with the domain's evolve — at once or incrementally
+ *                 (`LiveReplay`, one per live match) — recording each tracked player's effect
+ *                 status (multiplier/growth with remaining draws, shields, seasons) on change,
+ *                 every player's points after each stage start and first-round card, so the
+ *                 client renders them and never computes them (CLAUDE.md).
  * Depends on:     @sbr/domain, @sbr/contracts (view types)
  * Used by:        ./clientView, ./liveViews, ../realtime/gateway, ../http/routes/matchViews
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08

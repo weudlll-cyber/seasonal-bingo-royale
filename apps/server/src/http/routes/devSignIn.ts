@@ -50,7 +50,8 @@ export function registerDevSignIn(
   app: FastifyInstance,
   deps: { readonly pool: DbPool; readonly cookie: CookieConfig; readonly sessionEnds: SessionEnds },
 ): void {
-  app.post('/api/v1/dev/sign-in', async (request, reply) => {
+  // Starts a session: no CSRF token yet (../../auth/sessionPlugin).
+  app.post('/api/v1/dev/sign-in', { config: { sessionStarter: true } }, async (request, reply) => {
     const parsed = body.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     const who = devAccount(parsed.data.as);
@@ -64,7 +65,10 @@ export function registerDevSignIn(
     return reply.status(200).send({ accountId, displayName: who.displayName });
   });
   // The load check removes its accounts afterwards (their sessions and roles go with them).
-  app.delete('/api/v1/dev/load-accounts', async (_request, reply) => {
+  // Outside any session, so without a CSRF token (../../auth/sessionPlugin); a few calls a
+  // minute are plenty for one load run.
+  const config = { noCsrf: true, rateLimit: { max: 5, timeWindow: 60_000 } };
+  app.delete('/api/v1/dev/load-accounts', { config }, async (_request, reply) => {
     const rows = await deps.pool.query<{ id: string }>(
       `SELECT id FROM sbr.accounts WHERE display_name LIKE 'dev-load-%'`,
     );

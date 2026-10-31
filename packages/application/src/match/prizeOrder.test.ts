@@ -7,7 +7,7 @@
  *                 its own copy of the built-in prize order; this layer sees both and
  *                 fails when the copy and @sbr/contracts (the one source for web, e2e
  *                 and the rulesets) drift apart.
- * Depends on:     vitest, @sbr/contracts, @sbr/domain
+ * Depends on:     @sbr/contracts, @sbr/domain
  * Spec:           docs/spec/01-game-design.md §3a.1; docs/spec/02-software-architecture.md §3
  */
 import { BUILTIN_PRIZE_KEYS } from '@sbr/contracts';

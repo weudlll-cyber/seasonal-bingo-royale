@@ -3,16 +3,14 @@
  * @module server/auth
  * @brief  Session cookie, request.session, CSRF check and the general API rate limit (03 §3, §8, §13).
  *
- * Responsibility: register @fastify/cookie; on every /api request load the session named
- *                 by the cookie into `request.session` (null when absent or dead); on
- *                 state-changing /api requests require the `X-CSRF-Token` header to equal
- *                 the session's token (constant-time), except the routes that create the
- *                 first session (register, login, guest, dev sign-in), which accept only
- *                 JSON bodies so a cross-site form cannot reach them; limit every session
- *                 to 120 API calls a minute, and requests without a session to 600 a minute
- *                 per address. Cookie name, path and Secure flag follow 03 §3
- *                 (`__Host-` at the root, `__Secure-` with the base path, plain in development).
- * Depends on:     fastify, @fastify/cookie, node:crypto, ./sessions, ./rateLimit, ../db/pool
+ * Responsibility: register @fastify/cookie; load the session named by the cookie into
+ *                 `request.session` on every /api request; on state-changing ones require
+ *                 `X-CSRF-Token` equal to the session's token (constant-time), except the
+ *                 routes that start a session (register, login, guest, and the dev sign-in,
+ *                 marked by its route config), which accept JSON only, and unmatched routes
+ *                 (404); limit a session to 120 API calls a minute, requests without one to
+ *                 600 per address. Cookie name, path and Secure flag follow 03 §3.
+ * Depends on:     fastify, @fastify/cookie, ./sessions, ./rateLimit, ../db/pool
  * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn
  * Spec:           docs/spec/03-security-architecture.md §3, §8, §13
  */
@@ -28,6 +26,13 @@ import { findSession, type Session } from './sessions.js';
 declare module 'fastify' {
   interface FastifyRequest {
     session: Session | null;
+  }
+  interface FastifyContextConfig {
+    // The route starts a session, like the ones in SESSION_STARTERS (the development quick
+    // sign-in marks itself, so its path stays out of the production bundle).
+    sessionStarter?: boolean;
+    // A development route outside any session (the load check's clean-up): no CSRF token.
+    noCsrf?: boolean;
   }
 }
 
@@ -50,10 +55,7 @@ const SESSION_STARTERS = new Set([
   '/api/v1/auth/register',
   '/api/v1/auth/login',
   '/api/v1/auth/guest',
-  '/api/v1/dev/sign-in',
 ]);
-// Development only and outside any session: the load check's cleanup (no CSRF token).
-const DEV_UNSESSIONED = new Set(['/api/v1/dev/load-accounts']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export async function registerSessions(
@@ -81,9 +83,11 @@ export async function registerSessions(
 
 async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   if (SAFE_METHODS.has(request.method)) return;
+  // No route matched: no handler runs, the answer is 404.
+  if (request.routeOptions.url === undefined) return;
   const path = request.url.split('?')[0] ?? '';
-  if (DEV_UNSESSIONED.has(path)) return;
-  if (SESSION_STARTERS.has(path)) {
+  if (request.routeOptions.config.noCsrf === true) return;
+  if (startsSession(request, path)) {
     if (!(request.headers['content-type'] ?? '').startsWith('application/json')) {
       await reply.status(415).send({ code: 'JSON_REQUIRED' });
     }
@@ -94,6 +98,10 @@ async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<
   if (typeof sent !== 'string' || expected === undefined || !sameToken(sent, expected)) {
     await reply.status(403).send({ code: 'CSRF_INVALID' });
   }
+}
+
+function startsSession(request: FastifyRequest, path: string): boolean {
+  return SESSION_STARTERS.has(path) || request.routeOptions.config.sessionStarter === true;
 }
 
 function sameToken(a: string, b: string): boolean {

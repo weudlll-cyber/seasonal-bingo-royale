@@ -6,7 +6,7 @@
  * Responsibility: sign in through POST /api/v1/dev/sign-in, read the CSRF token from GET
  *                 /api/v1/session, and send both with every request, as a browser does.
  * Depends on:     fastify (inject)
- * Used by:        ./*.integration.test.ts
+ * Used by:        ./firstRound, ./socketKit, the integration tests in this folder
  * Spec:           docs/spec/03-security-architecture.md §3, §8
  */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';

@@ -3,13 +3,12 @@
  * @module e2e/acceptance
  * @brief  Screenshots of every round recap card (D20) for the host and a player, both themes and sizes.
  *
- * Responsibility: a royale with the published default rules and "the host starts the next
- *                 round" (D14): player 1 joins and taps each of their numbers at once (so the
- *                 recap names a fastest tapper), bots fill the field, the host draws through
- *                 the first two rounds to the pause after the cut. There, on the host console
- *                 and on the player's screen, every recap card is shown in turn (stepped with
- *                 Next, which also restarts its time, so it stays while it is captured) and
- *                 saved light and dark at 1280×800 and 390×844 to reports/screens/latest/ as
+ * Responsibility: a royale with the published default rules and "the host starts the next round"
+ *                 (D14): player 1 taps each number at once (so the recap names a fastest tapper),
+ *                 bots fill the field, the host draws through two rounds to the pause after the
+ *                 cut. There, on host console and player screen, every recap card is shown in
+ *                 turn (stepped with Next, which restarts its time) and saved light and dark at
+ *                 1280×800 and 390×844 to reports/screens/latest/ as
  *                 interlude-<card>-<host|player>-<desktop|phone>-<light|dark>.jpg. The match is
  *                 stopped at the end. Runs only with SBR_ACCEPTANCE=1 (about ten minutes).
  * Depends on:     @playwright/test, ../realGame, ../screens
@@ -121,7 +120,8 @@ test('every round recap card, host and player, both themes and sizes', async ({ 
     await expect(player.getByTestId('interlude')).toBeVisible({ timeout: 10_000 });
     const hostCards = await shootCards(host, 'host');
     const playerCards = await shootCards(player, 'player');
-    console.log(`INTERLUDE cards ${JSON.stringify({ hostCards, playerCards })}`);
+    // Evidence for the report, in the form of the other specs: TAG, the match, the facts.
+    console.log(`INTERLUDE ${code} ${JSON.stringify({ hostCards, playerCards })}`);
     expect(hostCards).toContain('cut');
     expect(playerCards).toEqual(hostCards);
   } finally {

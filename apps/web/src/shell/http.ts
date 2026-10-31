@@ -8,7 +8,8 @@
  *                 call (03 §8), JSON in and out, and an ApiError carrying the server's
  *                 error code.
  * Depends on:     nothing
- * Used by:        ./session, ../game/*, ../host/*, ../account/accountText, ../api
+ * Used by:        ./session, ./useMaintenance, ./DevTools, ../game/*, ../host/*,
+ *                 ../account/accountText, ../api
  * Spec:           docs/spec/05-api-design.md §1; docs/spec/03-security-architecture.md §8
  */
 

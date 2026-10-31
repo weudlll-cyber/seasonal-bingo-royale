@@ -14,7 +14,7 @@
  *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
  */
-import { ballLabel, type GameType } from '../types.js';
+import { ballLabel, secondsText as seconds, type GameType } from '../types.js';
 import type { PlaybackView } from '../playback.js';
 import type { LiveState, MatchSummary } from './useLiveMatch.js';
 
@@ -34,8 +34,6 @@ export function statusName(status: MatchSummary['status']): string {
   };
   return names[status];
 }
-
-const seconds = (ms: number): string => String(Math.round(ms / 100) / 10);
 
 export function drawLine(settings: MatchSummary['settings']): string {
   return settings.drawMode === 'auto'
@@ -149,7 +147,12 @@ export const abortLine = (reason: string, by: 'host' | 'system' = 'host'): strin
   `Match cancelled by the ${by}: ${reason}`;
 
 // A server error code in plain words; unknown codes get a general sentence, never the code.
-export function problemText(code: string): string {
+// Maintenance adds the operator's reason when there is one (D22).
+export function problemText(code: string, reason: string | null = null): string {
+  if (code === 'MAINTENANCE') {
+    const base = 'Maintenance is on — matches cannot start now.';
+    return reason === null ? base : `${base} ${reason}`;
+  }
   const texts: Record<string, string> = {
     DRAW_MODE_AUTO: 'Draws are timed — switch to Host draws first.',
     DRAW_NOT_ALLOWED: "Wait until the last number's window has closed.",
@@ -157,6 +160,7 @@ export function problemText(code: string): string {
     NOT_YOUR_MATCH: 'Only the host can do that.',
     MATCH_FULL: 'The match is full.',
     MATCH_NOT_IN_LOBBY: 'The match has already started.',
+    MATCH_STARTING: 'The countdown is already running.',
     NOT_ENOUGH_PLAYERS: 'Not enough players have joined to start yet.',
     RATE_LIMITED: 'Too many presses — wait a moment.',
     MARK_REJECTED: 'the tap was not accepted.',

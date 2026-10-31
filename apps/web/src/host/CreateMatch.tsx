@@ -4,15 +4,13 @@
  * @brief  The host creates a match from a published default ruleset (11 §3.2, draft depth).
  *
  * Responsibility: above the form, the host's open and running matches (./YourMatches); then
- *                 title, game type, prizes for the classic types (the five defaults
- *                 ticked), draws (timed every N seconds, or host presses Draw next — the
- *                 Quick Test's field), missed numbers (marked after N seconds, or left open —
- *                 the Quick Test's field), the leaderboard switch (on for royale, off for the
- *                 classic types by default), max players, the pause between royale rounds
- *                 (D14) and the start rule (the host starts it, at a set time, or when every
- *                 place is taken; a 10-second countdown either way).
- *                 Seconds between draws below the shortest interval (D12) show a plain
- *                 message and keep the form from being sent. POST /matches, then the console.
+ *                 title, game type, prizes for classic types (five defaults ticked), draws (timed
+ *                 every N seconds, or host presses Draw next), missed numbers (marked after N
+ *                 seconds, or left open) — both the Quick Test's fields —, the leaderboard switch
+ *                 (default on for royale, off for classic), max players, the royale round pause
+ *                 (D14) and the start rule (host starts, set time, or full; 10-second countdown).
+ *                 Draw intervals below the shortest (D12) show a plain message and block sending.
+ *                 POST /matches, then the console.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
  *                 ../shell/http, ../shell/router, @sbr/contracts (prize list), ../game/labels,
  *                 ./createForm (values, defaults, D12 check, request body), ./TimingFields,
@@ -235,7 +233,7 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
           <input
             type="checkbox"
             data-testid="create-fast"
-            checked={values.fast}
+            checked={values.fast === true}
             onChange={(e) => {
               set('fast', e.target.checked);
             }}

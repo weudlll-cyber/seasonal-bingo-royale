@@ -39,7 +39,7 @@ seasonal-bingo-royale/
 │  │     ├─ royale/             cut.ts, jackpot.ts, finalRanking.ts (stage plan in match/stagePlan.ts)
 │  │     ├─ classic/            classicPlacement.ts, prizeCatalogue.ts
 │  │     ├─ match/              matchState.ts, commands.ts, events.ts, decide.ts, evolve.ts, simulate.ts, …
-│  │     └─ index.ts
+│  │     └─ index.ts  commitment.ts  gameType.ts  verifyMatch.ts
 │  ├─ application/              Use cases + ports
 │  │  └─ src/
 │  │     ├─ match/              engine.ts, flow.ts, runner.ts, create.ts, startRules.ts, ports.ts (Clock,
@@ -67,12 +67,17 @@ seasonal-bingo-royale/
 │  ├─ web/                      Player client (also the embed target)
 │  │  └─ src/  shell/ (frame, router, session)  game/ (lobby, match)  host/  account/
 │  │           components/ (Quick Test and shared views)  test/ (fixtures)
+│  │           main.tsx  App.tsx  api.ts  types.ts  drawControl.ts  manualMarking.ts
+│  │           playback.ts  playbackScoring.ts  playbackTypes.ts  seasonIcons.ts
+│  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts  useSecondsUntil.ts
+│  │           motion.css
 │  │           leaderboard/  profile/  chat/  embed/  strings.ts  (planned)
 │  ├─ admin/                    Admin client (empty shell until WP-19)
 │  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)  (planned)
 │  └─ embed-loader/             embed.js (tiny, no deps; empty shell until WP-25)
 ├─ e2e/                         Playwright specs + fixtures
 ├─ load/                        drawLatency.mjs (200-player check); k6 scenarios (planned)
+├─ reports/                     Run, audit and review reports (dated); screens/ (screenshots)
 ├─ ops/
 │  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.dev.yml  Caddyfile
 │  ├─ pull-backups.sh  pull-backups.ps1  (the restore drill is `sbr restore --drill`)
@@ -120,7 +125,12 @@ Every source file (TS, TSX, SQL, shell, YAML workflow) starts with:
  */
 ```
 
-`@brief` one line; `Responsibility` max three lines; `Spec` points at the governing section. Header and inline comments are updated in the same commit as the code they describe.
+`@brief` one line; `Responsibility` at most eight lines; `Spec` points at the governing section. Header and inline comments are updated in the same commit as the code they describe.
+
+`Depends on` and `Used by` list the real imports in both directions, by the conventions:
+
+- Test files (`*.test.ts(x)`, `*.spec.ts`, `*.integration.test.ts`) that import a module are not listed in that module's `Used by`. A test helper whose only importers are tests says so in words ("the integration tests in this folder (test helper)").
+- `node:*` built-ins and `vitest` are not listed in `Depends on`. A file left with no other dependency says `nothing`.
 
 ## 4. Naming
 

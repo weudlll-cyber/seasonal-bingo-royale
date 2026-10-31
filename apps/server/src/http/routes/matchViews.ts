@@ -3,22 +3,14 @@
  * @module server/http
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
- * Responsibility: the summary (code, title, game type, status — finished or aborted as soon
- *                 as the event log says so —, settings, player count,
- *                 prizes, countdown end, next round's start, when Draw next unlocks, whether
- *                 the match waits for its host or for players at its start time (D16),
- *                 creator, whether the viewer hosts it) and the live
- *                 view the player and host screens fold with the Quick Test's playback logic: the same payload as
- *                 the Quick Test (../../view/clientView) built from the public event log
- *                 (seed removed, 01 §9), with every player named by display name and the
- *                 caller as the owner, from the match's shared replay (../../view/liveViews).
- *                 `since` limits the events to those after a seq, so a client that already
- *                 holds the start of the log fetches only the rest; such a delta leaves out
- *                 the player list unless a join, the first round's start or the finish is
- *                 among its events (the client keeps the list it holds). Round starts carry
- *                 only the viewer's own cards and no draw order; the player list only the
- *                 viewer's first-round card (NIGHT-5). During the pause after a royale round
- *                 the view carries that round's recap (`recaps`, D20), the same for every viewer.
+ * Responsibility: the summary (code, title, type, status per the event log, settings, players,
+ *                 prizes, countdown, next round, Draw next unlock, waiting for host or players
+ *                 (D16), creator, if the viewer hosts) and the live view: the Quick Test payload
+ *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
+ *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
+ *                 only later events, no player list unless a join, first round start or finish is
+ *                 among them. Round starts and the player list carry only the viewer's cards, no
+ *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20).
  * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
  *                 @sbr/domain, ../../view/clientEvents
  * Used by:        ./matches, ../../realtime/gateway
@@ -40,7 +32,8 @@ import type { LiveEntry } from '../../view/liveViews.js';
 
 // `youHost` tells the viewer whether they created (and so may run) this match; null when
 // the summary goes to a whole room (the client keeps what it knew).
-export function matchSummary(m: LoadedMatch, viewer: string | null) {
+// `startHeld`: maintenance holds the automatic start (MatchEngine.startHeld, D22).
+export function matchSummary(m: LoadedMatch, viewer: string | null, startHeld: boolean) {
   const r = m.record;
   return {
     id: r.id,
@@ -63,6 +56,7 @@ export function matchSummary(m: LoadedMatch, viewer: string | null) {
     minPlayers: minPlayersOf(m),
     // The automatic start found too few players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
+    startHeld,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
 }
@@ -82,6 +76,7 @@ interface LiveViewInput {
   readonly since: number;
   // The recap of the royale round just played, during the pause after it (D20).
   readonly recap: RoundRecap | null;
+  readonly startHeld: boolean;
 }
 
 // Events after which the screens need the player list again: a join, the first round's
@@ -95,7 +90,7 @@ function changesPlayers(e: DomainEvent): boolean {
   );
 }
 
-export function liveView({ match: m, entry, me, since, recap }: LiveViewInput) {
+export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveViewInput) {
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
@@ -125,7 +120,7 @@ export function liveView({ match: m, entry, me, since, recap }: LiveViewInput) {
   const { players, ...rest } = view;
   const recaps = recap === null ? {} : { recaps: [recap] };
   return {
-    match: matchSummary(m, me),
+    match: matchSummary(m, me, startHeld),
     seq: replay.length,
     since,
     me: viewer,

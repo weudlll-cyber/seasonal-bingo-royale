@@ -6,7 +6,7 @@
  * Responsibility: a tap on a number not drawn yet, on the free centre or on a cell already
  *                 marked produces no event (01 §6, 12 §6 anti-cheat); nobody joins after the
  *                 start; an ended match takes no abort and no draw.
- * Depends on:     vitest, ../index, ../../test/builders, ../../test/drive
+ * Depends on:     ../index, ../../test/builders, ../../test/drive
  * Spec:           docs/spec/01-game-design.md §6, §7; docs/spec/12-testing-strategy.md §6
  */
 import { describe, expect, it } from 'vitest';

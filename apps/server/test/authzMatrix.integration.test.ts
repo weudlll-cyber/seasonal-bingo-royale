@@ -3,16 +3,16 @@
  * @module server/test
  * @brief  Who may call what: every HTTP route and WS intent × five kinds of caller.
  *
- * Responsibility: for each route the server registers and each intent of the gateway, the
- *                 callers that get through and the ones refused (401/403 with
- *                 SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or CSRF_INVALID; a refused
- *                 socket handshake) — anonymous, guest, player, another host and the
- *                 match's host, each with a fresh session. A route or intent missing from
- *                 the tables fails the test, so a new one cannot go in unreviewed. Bodies are
- *                 chosen so a call that gets through changes as little as possible. One write
- *                 per route group is refused without the CSRF token or with another session's.
- * Depends on:     vitest, fastify (inject), ../src/auth/*, ../src/realtime/intents,
- *                 ./harness, ./socketKit
+ * Responsibility: for each registered route and gateway intent, the callers that get through and
+ *                 those refused (401/403 with SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or
+ *                 CSRF_INVALID; a refused handshake) — anonymous, guest, player, another host and
+ *                 the match's host, each with a fresh session; allowed callers never meet a 5xx
+ *                 or INTERNAL. A route or intent missing from the tables fails the test. Bodies
+ *                 keep a successful call's changes minimal. One write per route group is refused
+ *                 without the CSRF token or with another session's. The account and guest
+ *                 sessions it creates are removed at the end.
+ * Depends on:     fastify (inject), ../src/auth/*, ../src/realtime/intents, ./harness,
+ *                 ./socketKit
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/12-testing-strategy.md §7;
  *                 docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1
  */
@@ -26,7 +26,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { createSession } from '../src/auth/sessions.js';
 import { INTENT_TYPES } from '../src/realtime/intents.js';
-import { buildOn, stopOpenMatches, SUITE_TIMEOUT_MS } from './harness.js';
+import {
+  buildOn,
+  guestSessions,
+  removeGuests,
+  stopOpenMatches,
+  SUITE_TIMEOUT_MS,
+} from './harness.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
 type Role = 'anonymous' | 'guest' | 'player' | 'otherHost' | 'host';
@@ -138,6 +144,8 @@ beforeAll(async () => {
 afterAll(async () => {
   await stopOpenMatches(kit.harness);
   if (otherHostId !== '') await deleteAccount(kit.harness.pool, otherHostId);
+  await removeGuests(kit.harness);
+  expect(await guestSessions(kit.harness)).toBe(0);
   await kit.close();
 }, SUITE_TIMEOUT_MS);
 
@@ -227,7 +235,8 @@ describe('the authorization matrix: HTTP routes', () => {
       for (const role of ROLES) {
         const r = await call(role, route);
         const allowed = route.allow.includes(role);
-        if (refused(r.status, r.code) === allowed) {
+        // An allowed caller is let through and the server does not fail (no 5xx).
+        if (refused(r.status, r.code) === allowed || (allowed && r.status >= 500)) {
           wrong.push(
             `${route.method} ${route.path} as ${role}: ${String(r.status)} ${String(r.code)}`,
           );
@@ -254,7 +263,8 @@ describe('the authorization matrix: WS intents', () => {
         const answer = await kit.send(socket, t, intent.data(code));
         socket.disconnect();
         const isRefused = !answer.ok && REFUSALS.has(answer.code ?? '');
-        if (isRefused === intent.allow.includes(role)) {
+        const failed = !answer.ok && answer.code === 'INTERNAL';
+        if (isRefused === intent.allow.includes(role) || failed) {
           wrong.push(`${t} as ${role}: ${answer.ok ? 'ok' : (answer.code ?? '?')}`);
         }
       }

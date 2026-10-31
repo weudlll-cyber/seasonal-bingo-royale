@@ -3,14 +3,14 @@
  * @module e2e/acceptance
  * @brief  Screenshots of a timed pause between royale rounds (D21) for the host and a player.
  *
- * Responsibility: a royale with the fast test profile, host draws and a two-minute pause:
- *                 player 1 joins, bots fill the field, the host draws through the first round.
- *                 In the pause the host console offers "Start next round now" and shows
- *                 neither Draw next nor its line, and the player sees "Round over" in place
- *                 of the last number. Both are saved light and dark at 1280×800 and 390×844
- *                 to reports/screens/latest/ as pause-<host|player>-<desktop|phone>-<theme>.jpg.
- *                 Then the host ends the pause: round 2 starts on both screens at once. The
- *                 match is stopped at the end. Runs only with SBR_ACCEPTANCE=1.
+ * Responsibility: a royale (fast test profile, host draws, two-minute pause): player 1
+ *                 joins, bots fill the field, the host draws through round 1. In the pause
+ *                 the console offers "Start next round now" without Draw next or its line,
+ *                 the player sees "Round over" for the last number, and neither ticker
+ *                 highlights a newest number. Both are saved light and dark at 1280×800 and
+ *                 390×844 to reports/screens/latest/pause-<host|player>-<size>-<theme>.jpg.
+ *                 The host ends the pause: round 2 starts on both screens; the match is
+ *                 stopped. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../realGame, ../screens
  * Spec:           docs/spec/01-game-design.md §7 (D20, D21)
  */
@@ -70,6 +70,9 @@ test('a timed pause on the host console and a player screen, ended early by the 
     await expect(host.getByTestId('host-draw-next')).toHaveCount(0);
     await expect(host.getByText(/Draw next opens/)).toHaveCount(0);
     await expect(player.getByTestId('current-ball')).toHaveText('Round over', { timeout: 10_000 });
+    // The ticker highlights no number as the newest during the pause (it read as "tap now").
+    await expect(host.getByTestId('draw-newest')).toHaveCount(0);
+    await expect(player.getByTestId('draw-newest')).toHaveCount(0);
     await captureLook(host, SHOTS_DIR, 'pause-host', host.getByTestId('host-next-round-panel'));
     await captureLook(player, SHOTS_DIR, 'pause-player', player.getByTestId('current-ball'));
     await now.click();

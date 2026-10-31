@@ -7,9 +7,8 @@
  *                 ruleset document and its defaults, the game-type enum, the classic prize
  *                 catalogue, and the view the player client folds (Quick Test and live
  *                 match); later WPs add HTTP/WS envelopes and other config documents.
- * Depends on:     zod, ./config/*, ./view/*, ./config/defaults/index
- * Used by:        apps/server, apps/web, apps/admin, packages/application, packages/domain,
- *                 ./config/ruleset.test
+ * Depends on:     ./config/*, ./config/defaults/*, ./view/*
+ * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 
@@ -18,12 +17,14 @@ export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,
   DEFAULT_PRIZE_SELECTION,
+  MAX_PRIZES,
+  PRIZE_KEY_MAX_LENGTH,
+  PrizeKeySchema,
+  PrizeListSchema,
 } from './config/prizes.js';
 export {
   REALTIME_DRAW_INTERVAL_MS,
   DEFAULT_AUTO_MARK_DELAY_MS,
-  DEFAULT_ROUND_PAUSE_MS,
-  MIN_ROUND_PAUSE_MS,
   START_COUNTDOWN_MS,
   MIN_START_AHEAD_MS,
   MAX_START_AHEAD_MS,
@@ -38,6 +39,7 @@ export {
   royaleAsyncDefault,
   royaleRealtimeDefault,
 } from './config/defaults/index.js';
+export { DEFAULT_ROUND_PAUSE_MS, MIN_ROUND_PAUSE_MS } from './config/defaults/roundPause.js';
 export {
   SEASON_NAMES,
   type Card,

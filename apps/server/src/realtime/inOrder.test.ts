@@ -6,7 +6,7 @@
  * Responsibility: an unwatch that takes longer than the watch sent right after it must
  *                 still finish first (the order the client meant), and a failing call does
  *                 not stop the ones after it.
- * Depends on:     vitest, ./inOrder
+ * Depends on:     ./inOrder
  * Spec:           docs/spec/06-realtime-architecture.md §4.1
  */
 import { describe, expect, it } from 'vitest';

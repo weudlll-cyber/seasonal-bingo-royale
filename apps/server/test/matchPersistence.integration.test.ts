@@ -3,17 +3,15 @@
  * @module server/test
  * @brief  Match persistence and the scheduler survive a restart mid-match (WP-10).
  *
- * Responsibility: the host creates a classic match over HTTP, a player joins, bots fill it
- *                 to 20, it starts; server A runs timed draws, then stops mid-match; server
- *                 B on the same database picks the scheduled work up and draws on. No event
- *                 is lost or duplicated (seq 1..N without gaps, each round's draws follow
- *                 its sequence, every draw's speed window closes before the next draw), the
- *                 snapshot plus tail rebuilds the same state as a full replay, bots' marks
- *                 are projected, the event log rejects changes, a stale writer is refused,
- *                 marks older than 90 days are purged, the next round's start time during
- *                 the pause between rounds survives a restart (event log), and a match set
- *                 to start at a time starts then on a server that came up after it was set.
- * Depends on:     vitest, ./harness, ./session, @sbr/domain, ../src/match/*, ../src/index
+ * Responsibility: a classic match is created over HTTP, a player joins, bots fill it to 20, it
+ *                 starts; server A runs timed draws and stops mid-match; server B on the same
+ *                 database takes over. No event is lost or duplicated (seq 1..N gapless, draws
+ *                 follow each round's sequence, each speed window closes before the next draw);
+ *                 snapshot plus tail equals a full replay; bots' marks are projected; the event
+ *                 log rejects changes; a stale writer is refused; marks over 90 days old are
+ *                 purged; the next round's start time survives a restart in the pause; a timed
+ *                 start fires on a server started after it was set.
+ * Depends on:     ./harness, ./session, @sbr/domain, ../src/match/*, ../src/index
  * Spec:           docs/spec/02-software-architecture.md §5.2–§5.4; docs/spec/04-database-design.md §3.3
  */
 import { createInitialMatchState, evolve, type DomainEvent } from '@sbr/domain';
@@ -75,12 +73,12 @@ describe('restart mid-match', () => {
   it('continues on a second server without losing or doubling an event', async () => {
     const a = harness.built;
     await setUpMatch(a);
-    a.match.startScheduler();
+    await a.match.startScheduler();
     await waitForDraws(3, 30_000);
     await a.match.scheduler.stop();
     const before = await drawCount();
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
-    b.match.startScheduler();
+    await b.match.startScheduler();
     await waitForDraws(before + 3, 40_000);
     await b.match.scheduler.stop();
     await b.fastify.close();
@@ -241,7 +239,7 @@ describe('start at a set time across a restart', () => {
     expect(summary.settings.startRule).toEqual({ kind: 'at', at, auto: true });
     // The restart: a new server on the same database, nothing in memory, its scheduler on.
     const b = await buildOn(harness.pool, harness.container.getConnectionUri());
-    b.match.startScheduler();
+    await b.match.startScheduler();
     const status = async () => (await b.match.store.load(id))?.record.status;
     expect((await b.match.store.load(id))?.record.settings.startRule).toEqual({
       kind: 'at',

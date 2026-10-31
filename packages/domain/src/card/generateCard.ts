@@ -11,7 +11,7 @@
  *                 (01 §3a). The free centre is on when `freeCenter` is true. Each
  *                 column's numbers ascend from top to bottom around those cells (D7).
  * Depends on:     ../draw/drbg, ./cardTypes, ../gameType, ../draw/pool
- * Used by:        ../match/* (future), tests, ../index
+ * Used by:        ../match/decideCards, ../verifyMatch, ../index
  * Spec:           docs/spec/01-game-design.md §4, §3a, docs/spec/12-testing-strategy.md §3
  */
 import { createDrbg, type Drbg } from '../draw/drbg.js';

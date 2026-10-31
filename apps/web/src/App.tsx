@@ -10,7 +10,7 @@
  *                 over. All strings in English (01 §13); animations respect
  *                 prefers-reduced-motion (handled per component).
  * Depends on:     react, ./api, ./types, ./playback, ./drawControl, ./useDrawTicker,
- *                 ./components/*
+ *                 ./game/interludePlan (types), ./components/*
  * Used by:        ./shell/AppShell
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §3, §5, §13
  */

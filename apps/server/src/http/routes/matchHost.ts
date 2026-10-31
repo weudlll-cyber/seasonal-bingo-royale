@@ -4,22 +4,19 @@
  * @brief  Host routes of a match: start, draw next, draw mode, abort, bots; the mark fallback.
  *
  * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1),
- *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 503 MAINTENANCE
- *                 while the flag is on), POST /draw-next (host mode, D8, D13), POST
- *                 /next-round (when the match waits for the host, D14, or to end a timed
- *                 pause early, D21), POST /draw-mode
- *                 { mode, intervalMs } at any time, POST /auto-start { auto } while the
- *                 match waits to start (D16), POST /abort { reason }.
- *                 Development builds add POST /bots { upTo } to fill the lobby with bots and
- *                 POST /dev-system-abort { reason } to end a match as the system (D17).
- *                 POST /marks { cardIndex, cell } lets a player without a socket tap.
- * Depends on:     fastify, zod, ./matches, ./matchInput, @sbr/application, @sbr/contracts
+ *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 409
+ *                 MATCH_STARTING while it runs, 503 MAINTENANCE with the reason, D22), POST
+ *                 /draw-next (D8, D13), POST /next-round (D14, D21), POST /draw-mode
+ *                 { mode, intervalMs }, POST /auto-start { auto } (D16), POST /abort
+ *                 { reason }. Development builds add POST /bots { upTo } and POST
+ *                 /dev-system-abort { reason } (D17). POST /marks { cardIndex, cell } lets a
+ *                 player without a socket tap.
+ * Depends on:     fastify, zod, ./matches, ./matchInput, @sbr/contracts
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1;
  *                 docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { MatchError } from '@sbr/application';
 import { START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
@@ -74,10 +71,10 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
       }
     });
   };
-  host('/api/v1/matches/:code/start', async (id) => {
-    if (deps.maintenance() !== null) throw new MatchError('MAINTENANCE');
-    return { startsAt: await deps.engine.start(id, START_COUNTDOWN_MS) };
-  });
+  // Refused while maintenance is on (D22) or while the countdown runs (MATCH_STARTING).
+  host('/api/v1/matches/:code/start', async (id) => ({
+    startsAt: await deps.engine.start(id, START_COUNTDOWN_MS),
+  }));
   host('/api/v1/matches/:code/draw-next', (id) => deps.engine.drawNext(id));
   host('/api/v1/matches/:code/next-round', (id) => deps.engine.startNextRound(id));
   host('/api/v1/matches/:code/draw-mode', async (id, request) => {

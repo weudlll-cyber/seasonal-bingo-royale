@@ -8,10 +8,7 @@
  *                 the four defaults in contracts/config/defaults, but keeps the
  *                 domain layer free of a cross-layer import.
  * Depends on:     @sbr/domain (types only), ../src/index
- * Used by:        packages/domain/src/match/match.test.ts and sibling tests,
- *                 ../src/match/classicFlow.test, ../src/match/lastNumber.test,
- *                 ../src/match/lifecycle.test, ../src/match/match.properties.test,
- *                 ../src/match/missedNumbers.test, ../src/royale/royale.properties.test
+ * Used by:        the domain tests (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §7
  */
 import {

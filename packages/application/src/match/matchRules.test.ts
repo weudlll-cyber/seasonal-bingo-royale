@@ -9,7 +9,7 @@
  *                 start switch and "next round" are refused outside their moment; a tap on
  *                 the free centre or on an undrawn number marks nothing (12 §6); an unknown
  *                 match is reported as such.
- * Depends on:     vitest, ./engine, ./fakes, ./runner
+ * Depends on:     ./engine, ./fakes, ./runner
  * Spec:           docs/spec/01-game-design.md §3a.1, §6, §7.1, §7.6; docs/spec/12-testing-strategy.md §6
  */
 import { describe, expect, it } from 'vitest';

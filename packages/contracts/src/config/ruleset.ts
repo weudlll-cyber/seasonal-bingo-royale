@@ -15,7 +15,7 @@
 import { z } from 'zod';
 
 import { GameTypeSchema, isClassic } from './gameType.js';
-import { BuiltinPrizeKeySchema, PrizeListSchema } from './prizes.js';
+import { BuiltinPrizeKeySchema, PrizeKeySchema, PrizeListSchema } from './prizes.js';
 
 const ModeSchema = z.enum(['realtime', 'async']);
 const MarkingModeSchema = z.enum(['auto', 'manual']);
@@ -45,13 +45,6 @@ export function shortestDrawIntervalMs(
   const longestTap = Math.max(speedWindowMs, autoMarkDelayMs ?? 0);
   return Math.max(REALTIME_DRAW_INTERVAL_MS.min, longestTap + GAP_AFTER_TAP_TIME_MS);
 }
-
-// Pause between royale rounds when the match waits on its own (D14): chosen at creation,
-// 15 s by default (D21: the recap's three most important cards) and at least 3 s; the
-// host may end it early. The other choice is "host starts the next round". The same for
-// both royale defaults (realtime and async).
-export const DEFAULT_ROUND_PAUSE_MS = 15_000;
-export const MIN_ROUND_PAUSE_MS = 3_000;
 
 // Start rules (01 §7.6): the countdown the players see before the first round, and how far
 // ahead a set start time may lie (at least a minute, at most a week; form and server alike).
@@ -149,7 +142,7 @@ const StageSchema = z.object({
   cut: CutRuleSchema.optional(),
   scoreCarry: ScoreCarrySchema,
   stageMultiplier: z.number().min(0.1).max(10),
-  activePatterns: z.array(BuiltinPrizeKeySchema.or(z.string().min(1))).nonempty(),
+  activePatterns: z.array(BuiltinPrizeKeySchema.or(PrizeKeySchema)).nonempty(),
 });
 
 const ScoringSchema = z.object({

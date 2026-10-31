@@ -6,7 +6,7 @@
  * Responsibility: the engine publishes every committed batch; the WebSocket gateway
  *                 subscribes and fans it out to the match room. One process for now; the
  *                 Redis pub/sub adapter is the scale-out step (06 §9).
- * Depends on:     node:events, @sbr/application (types)
+ * Depends on:     @sbr/application (types)
  * Used by:        ../realtime/gateway, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §3; docs/spec/06-realtime-architecture.md §5, §9
  */

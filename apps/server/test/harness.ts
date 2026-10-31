@@ -8,9 +8,10 @@
  *                 one seed key for every app on the database;
  *                 `buildOn` builds a second app on the same database. Every test file
  *                 aborts the matches it left open and stops its own container (12 §7:
- *                 data created by a test is removed), also when a test failed.
+ *                 data created by a test is removed), also when a test failed; the suites
+ *                 that create guests remove their guest sessions (removeGuests).
  * Depends on:     @testcontainers/postgresql, ../src/index
- * Used by:        ./*.integration.test.ts
+ * Used by:        ./firstRound, ./socketKit, the integration tests in this folder
  * Spec:           docs/spec/12-testing-strategy.md §2, §7
  */
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
@@ -22,7 +23,7 @@ export const SUITE_TIMEOUT_MS = 180_000;
 
 // One seed key for every app on a suite's database, development and production builds
 // alike: the stored match secrets are sealed with it, and another key refuses to start.
-const TEST_SEED_KEY = 'ab'.repeat(32);
+export const TEST_SEED_KEY = 'ab'.repeat(32);
 
 export interface Harness {
   readonly container: StartedPostgreSqlContainer;
@@ -75,6 +76,19 @@ export async function stopOpenMatches(h: Harness): Promise<string[]> {
       .catch(() => h.built.match.engine.abort(id, 'test cleanup', 'system'));
   }
   return open.rows.map((r) => r.id);
+}
+
+// A guest has no account: its session row is all a guest is. The suites that create guests
+// remove them at the end (12 §7); every guest session in the suite's own database is one
+// the suite created.
+export async function removeGuests(h: Harness): Promise<void> {
+  await h.pool.query("DELETE FROM sbr.sessions WHERE kind = 'guest'");
+}
+
+// How many guest sessions the suite's database holds (none once removeGuests ran).
+export async function guestSessions(h: Harness): Promise<number> {
+  const r = await h.pool.query("SELECT 1 FROM sbr.sessions WHERE kind = 'guest'");
+  return r.rowCount ?? 0;
 }
 
 export async function stopHarness(h: Harness): Promise<void> {

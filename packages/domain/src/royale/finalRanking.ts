@@ -7,10 +7,11 @@
  *                 activated, last-scoring-draw and finally join timestamp; return a
  *                 total order 1..N (invariant 8 of 12 §3). Eliminated players carry
  *                 their elimination order so they rank below every finalist.
- * Depends on:     nothing
+ * Depends on:     ./tieBreak
  * Used by:        ../index, ../match/decide, ../match/decideRanking
  * Spec:           docs/spec/01-game-design.md §8.4, §7.5, docs/spec/12-testing-strategy.md §3 inv. 8
  */
+import { byTieBreak } from './tieBreak.js';
 
 export interface RankedPlayer {
   readonly accountId: string;
@@ -45,15 +46,5 @@ function compare(a: RankedPlayer, b: RankedPlayer): number {
       return b.eliminatedAtRound - a.eliminatedAtRound;
     }
   }
-  return byScore(a, b);
-}
-
-function byScore(a: RankedPlayer, b: RankedPlayer): number {
-  if (a.points !== b.points) return b.points - a.points;
-  if (a.patterns !== b.patterns) return b.patterns - a.patterns;
-  if (a.seasonsActivated !== b.seasonsActivated) return b.seasonsActivated - a.seasonsActivated;
-  const dA = a.lastScoringDraw ?? Number.POSITIVE_INFINITY;
-  const dB = b.lastScoringDraw ?? Number.POSITIVE_INFINITY;
-  if (dA !== dB) return dA - dB;
-  return a.joinedAt - b.joinedAt;
+  return byTieBreak(a, b);
 }

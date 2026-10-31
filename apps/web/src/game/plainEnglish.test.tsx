@@ -10,7 +10,7 @@
  *                 abort; fail if any raw reason, event type, prize key or game type name
  *                 shows in the DOM text, and check the plain lines themselves; the player
  *                 screen holds one match log, newest first.
- * Depends on:     @testing-library/react, vitest, ./MatchScreen, ../host/HostConsole,
+ * Depends on:     @testing-library/react, ./MatchScreen, ../host/HostConsole,
  *                 ../components/Playback, ../playback, @sbr/contracts (prize list),
  *                 ../test/quickTestFixture, ../shell/session, ../types
  * Spec:           docs/spec/01-game-design.md §7.3, §7.4, §8.3, §13

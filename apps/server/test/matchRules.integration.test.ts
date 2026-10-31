@@ -7,8 +7,10 @@
  *                 a player can neither draw nor start it (POLISH-1); the royale pause choice
  *                 is stored, only the host may start the next round and only while the match
  *                 waits (D14); the development fast profile gives royale its short ruleset and
- *                 keeps the classic default. The matches it opens are aborted at the end.
- * Depends on:     vitest, ./harness, ./socketKit
+ *                 keeps the classic default; an overlong prize key is refused with 400, and
+ *                 the database refuses one written past the API. The matches it opens are
+ *                 aborted at the end.
+ * Depends on:     ./harness, ./socketKit
  * Spec:           docs/spec/01-game-design.md §7.1; docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -76,6 +78,26 @@ describe('pause between royale rounds (D14)', () => {
       ok: false,
       code: 'NOT_WAITING_FOR_HOST',
     });
+  });
+});
+
+describe('prize text is capped (05 §2.3)', () => {
+  it('refuses an overlong prize key over HTTP, and the database refuses one too', async () => {
+    const r = await kit.host.post('/api/v1/matches', {
+      title: 'prizes',
+      gameType: 'classic',
+      prizes: ['fullCard', 'x'.repeat(10_000)],
+      drawMode: 'host',
+      missedNumbers: { kind: 'noAutoMark' },
+      maxPlayers: 8,
+    });
+    expect([r.statusCode, r.json<{ code: string }>().code]).toEqual([400, 'VALIDATION_FAILED']);
+    const code = await kit.createMatch('host');
+    const stored = kit.harness.pool.query(
+      'UPDATE sbr.matches SET prizes = ARRAY[$2::text] WHERE code = $1',
+      [code, 'x'.repeat(33)],
+    );
+    await expect(stored).rejects.toThrow(/matches_prizes_capped/);
   });
 });
 

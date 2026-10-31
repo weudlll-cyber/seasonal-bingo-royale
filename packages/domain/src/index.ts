@@ -6,25 +6,18 @@
  * Responsibility: expose the WP-05 pieces — DRBG, draw sequence, card generation,
  *                 pattern detection and the seed commitment. Later WPs add scoring,
  *                 seasons, royale structure and the match state machine.
- * Depends on:     node:crypto only (through ./draw/drbg and ./commitment), ./card/cardTypes,
+ * Depends on:     ./commitment, ./draw/drbg, ./card/cardTypes,
  *                 ./card/generateCard, ./card/patterns, ./classic/classicPlacement,
  *                 ./classic/prizeCatalogue, ./draw/drawSequence, ./draw/pool, ./gameType,
  *                 ./match/commands, ./match/decide, ./match/decideRanking, ./match/events,
  *                 ./match/evolve, ./match/flow, ./match/lifecycleTypes, ./match/markResolver,
  *                 ./match/matchState, ./match/simulate, ./royale/cut, ./royale/finalRanking,
- *                 ./royale/jackpot, ./scoring/basePoints, ./scoring/patternScoring,
+ *                 ./royale/jackpot, ./royale/tieBreak, ./scoring/basePoints, ./scoring/patternScoring,
  *                 ./scoring/speedBonus, ./seasons/applyEffect, ./seasons/effectCatalog,
  *                 ./seasons/effectState, ./seasons/seasonComplete, ./seasons/tickEffects,
  *                 ./verifyMatch
- * Used by:        packages/application, apps/server, ./card/card.properties.test,
- *                 ./card/card.test, ./classic/classic.test, ./commitment.test,
- *                 ./draw/draw.properties.test, ./draw/draw.test, ./match/classicFlow.test,
- *                 ./match/lastNumber.test, ./match/lifecycle.test,
- *                 ./match/match.properties.test, ./match/match.test,
- *                 ./match/missedNumbers.test, ./royale/royale.properties.test,
- *                 ./royale/royale.test, ./scoring/scoring.test,
- *                 ./seasons/effects.properties.test, ./seasons/seasons.test, ./verifyMatch.test,
- *                 ../test/arbitraries, ../test/builders, ../test/drive
+ * Used by:        packages/application, apps/server, ../test/arbitraries, ../test/builders,
+ *                 ../test/drive
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §4, §5, §9
  */
 
@@ -90,6 +83,7 @@ export {
 } from './seasons/seasonComplete.js';
 export { finalRanking, type Placement, type RankedPlayer } from './royale/finalRanking.js';
 export { applyCut, type Candidate, type CutResult, type CutRule } from './royale/cut.js';
+export { byTieBreak, type TieBreakScore } from './royale/tieBreak.js';
 export { jackpotValue, type JackpotCfg } from './royale/jackpot.js';
 export {
   classicPlacement,
@@ -155,7 +149,7 @@ export type {
 } from './match/events.js';
 export { decide, type DecideCtx } from './match/decide.js';
 export { evolve, createInitialMatchState } from './match/evolve.js';
-export { countBits } from './match/decideRanking.js';
+export { candidateOf, countBits } from './match/decideRanking.js';
 export { type MarkInput } from './match/markResolver.js';
 export {
   simulateMatch,

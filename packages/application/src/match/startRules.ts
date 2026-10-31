@@ -3,16 +3,17 @@
  * @module application/match
  * @brief  How a match starts: the host's Start, a set time, or when every place is taken (01 §7.6).
  *
- * Responsibility: check a set start time (at least a minute ahead, at most a week).
- *                 A set time is an announcement (D16): the host can always start; with the
- *                 automatic start on, the persistent scheduler (so a restart keeps it) runs
- *                 `auto_start` at the time, which begins the countdown when the ruleset's
- *                 minimum (lobby.minPlayers, `minPlayersOf`) has joined and otherwise leaves
- *                 the match waiting in the lobby (`tooFewAtStart`). Under "start when full" the last place
- *                 taken begins the countdown. Every start runs the same countdown.
+ * Responsibility: check a set start time (at least a minute ahead, at most a week). A set
+ *                 time is an announcement (D16): the host can always start; with the
+ *                 automatic start on, the persistent scheduler runs `auto_start` at the
+ *                 time, which begins the countdown with the ruleset's minimum
+ *                 (`minPlayersOf`) and otherwise leaves the match waiting (`tooFewAtStart`).
+ *                 Under "start when full" the last place taken begins the countdown. While
+ *                 maintenance is on neither starts by itself: the start is held and checked
+ *                 again every 5 s (D22). Every start runs the same countdown.
  * Depends on:     @sbr/contracts, ./flow (types), ./ports
  * Used by:        ./engine, ./flow, apps/server (summary), ../index
- * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
+ * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
  */
 import { MAX_START_AHEAD_MS, MIN_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 
@@ -38,12 +39,31 @@ export async function scheduleStart(
   await deps.scheduler.schedule({ matchId, kind: 'start_match', dueAt: startsAt });
 }
 
-// After a join: under "start when full" the last place begins the countdown.
+// How often a start held by maintenance looks again whether maintenance is off (D22).
+const HELD_START_RETRY_MS = 5_000;
+
+// After a join: under "start when full" the last place begins the countdown; while
+// maintenance is on the start is held (D22).
 export async function startIfFull(deps: FlowDeps, m: LoadedMatch): Promise<void> {
-  const full = m.state.playerOrder.length >= m.record.maxPlayers;
-  if (m.record.settings.startRule.kind !== 'whenFull' || !full || m.record.startsAt !== null)
-    return;
+  if (!fullAndWaiting(m)) return;
+  if (await heldByMaintenance(deps, m.record.id)) return;
   await scheduleStart(deps, m.record.id, deps.clock.now() + START_COUNTDOWN_MS);
+}
+
+function fullAndWaiting(m: LoadedMatch): boolean {
+  const full = m.state.playerOrder.length >= m.record.maxPlayers;
+  return m.record.settings.startRule.kind === 'whenFull' && full && m.record.startsAt === null;
+}
+
+// D22: while maintenance is on nothing starts by itself. The start waits in the lobby
+// and is checked again through the persistent scheduler, so it runs (or start-when-full
+// is checked again) soon after maintenance is turned off, also after a restart.
+async function heldByMaintenance(deps: FlowDeps, matchId: string): Promise<boolean> {
+  if (deps.maintenance() === null) return false;
+  await deps.scheduler.cancel(matchId, 'auto_start');
+  const dueAt = deps.clock.now() + HELD_START_RETRY_MS;
+  await deps.scheduler.schedule({ matchId, kind: 'auto_start', dueAt });
+  return true;
 }
 
 // Schedules (or drops) the automatic start at the set time; when that has passed (the host
@@ -62,12 +82,14 @@ export function minPlayersOf(m: LoadedMatch): number {
 
 // The automatic start is due (at the set time, or later when switched on late): with
 // enough players (minPlayersOf) the countdown begins; with fewer the match waits for its
-// host, who sees why.
+// host, who sees why. A start held by maintenance comes here too (D22).
 export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> {
   const m = await deps.runner.current(matchId);
   const rule = m.record.settings.startRule;
   if (m.record.status !== 'lobby' || m.record.startsAt !== null) return;
+  if (rule.kind === 'whenFull') return startIfFull(deps, m);
   if (rule.kind !== 'at' || !rule.auto) return;
+  if (await heldByMaintenance(deps, matchId)) return;
   if (m.state.playerOrder.length < minPlayersOf(m)) {
     // Nothing changes but the time: the screens hear of it and show the notice.
     deps.runner.update(matchId, (x) => x);
@@ -76,7 +98,8 @@ export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> 
   await scheduleStart(deps, matchId, deps.clock.now() + START_COUNTDOWN_MS);
 }
 
-// The automatic start came and found too few players: the match waits (D16).
+// The automatic start came and found too few players: the match waits (D16). With enough
+// players a start time that has passed means maintenance holds it (startHeld, D22).
 export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
   const rule = m.record.settings.startRule;
   return (
@@ -84,6 +107,16 @@ export function tooFewAtStart(m: LoadedMatch, now: number): boolean {
     rule.auto &&
     m.record.status === 'lobby' &&
     m.record.startsAt === null &&
-    now >= rule.at
+    now >= rule.at &&
+    m.state.playerOrder.length < minPlayersOf(m)
   );
+}
+
+// D22: maintenance holds a start that would have begun by itself: an automatic start
+// whose time has come, or start when full with every place taken. The screens say so.
+export function startHeld(m: LoadedMatch, now: number, maintenanceOn: boolean): boolean {
+  if (!maintenanceOn || m.record.status !== 'lobby' || m.record.startsAt !== null) return false;
+  const rule = m.record.settings.startRule;
+  if (rule.kind === 'at') return rule.auto && now >= rule.at;
+  return fullAndWaiting(m);
 }

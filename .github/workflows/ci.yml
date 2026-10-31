@@ -2,9 +2,10 @@
 # @module ci
 # @brief  CI: verify, security scans, docs links, browser tests and the container image.
 #
-# Responsibility: run what "pnpm verify" runs and the domain/application coverage, the
-#                 dependency/secret scans, the license check of the production
-#                 dependencies, the markdown link check and the Playwright suite in three
+# Responsibility: run what "pnpm verify" runs, the domain/application coverage, the
+#                 server's integration coverage report, the dependency/secret scans, the
+#                 license check of the production dependencies, the markdown link check
+#                 and the Playwright suite in three
 #                 browsers on every push; on the way to master also the image build, scan
 #                 and size check. Any red job blocks merge.
 # Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/
@@ -21,8 +22,11 @@ permissions:
   contents: read
 
 concurrency:
-  # One group per branch and event, so a push and its PR do not cancel each other.
-  group: ci-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  # One group per branch and event, so a push and its PR do not cancel each other. On
+  # master one group per commit: in a shared group a later merge would still cancel the
+  # earlier merge's run while it waits (GitHub keeps one pending run per group), even
+  # without cancel-in-progress.
+  group: ci-${{ github.event_name }}-${{ github.ref == 'refs/heads/master' && github.sha || github.head_ref || github.ref_name }}
   # Every merge commit on master must get its own finished run.
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
@@ -43,6 +47,15 @@ jobs:
       - run: pnpm verify
       # Domain and application coverage against the thresholds in vitest.config.ts (12 §2).
       - run: pnpm test:coverage
+
+  coverage-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # The server code the integration tests reach, per file and in total (12 §2); a report
+      # in the job log, no threshold yet. Beside verify, so it adds no waiting time.
+      - run: pnpm test:integration:coverage
 
   security:
     runs-on: ubuntu-latest

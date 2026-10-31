@@ -12,9 +12,9 @@
  *                 no motion under prefers-reduced-motion; an eliminated player and a
  *                 spectator seeing it too; the Quick Test showing the same recap at its
  *                 round end.
- * Depends on:     @testing-library/react, vitest, @sbr/contracts (types), ./Interlude,
- *                 ./interludePlan, ./MatchScreen, ../host/HostConsole, ../components/Playback,
- *                 ../playback, ../test/*
+ * Depends on:     @testing-library/react, @sbr/contracts (types), ./Interlude, ./interludePlan,
+ *                 ./MatchScreen, ../host/HostConsole, ../components/Playback, ../playback,
+ *                 ../test/*
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import type { RoundRecap } from '@sbr/contracts';

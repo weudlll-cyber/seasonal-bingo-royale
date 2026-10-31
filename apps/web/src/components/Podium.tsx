@@ -7,14 +7,14 @@
  *                 the viewer's own step highlighted; extracted from the final placement so
  *                 the round recap's top three (D20) uses the same podium.
  * Depends on:     react, ./results.css
- * Used by:        ./FinalPlacement, ../game/Interlude
+ * Used by:        ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7 (D20), §7.5, §13
  */
 import type { ReactElement } from 'react';
 
 import './results.css';
 
-export interface PodiumEntry {
+interface PodiumEntry {
   readonly place: number;
   readonly name: string;
   readonly note: string;

@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run packages/domain packages/application --coverage",
+    "test:integration:coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "e2e": "playwright test -c e2e/playwright.config.ts",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
   },

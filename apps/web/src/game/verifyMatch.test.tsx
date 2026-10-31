@@ -8,8 +8,7 @@
  *                 one row per round; an answer that does not verify says "Does not match" and
  *                 marks the round that differs; before the end the page says the seed comes
  *                 after the match; an unknown code says so; the route is #/verify/<code>.
- * Depends on:     @testing-library/react, vitest, @sbr/contracts (types), ./VerifyMatch,
- *                 ../shell/router
+ * Depends on:     @testing-library/react, @sbr/contracts (types), ./VerifyMatch, ../shell/router
  * Spec:           docs/spec/01-game-design.md §9
  */
 import type { MatchVerificationView } from '@sbr/contracts';

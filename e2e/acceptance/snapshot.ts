@@ -8,7 +8,7 @@
  *                 standings, the cut screen, the match log and the final placement, so
  *                 every check after a draw works on one consistent picture of the page.
  * Depends on:     @playwright/test
- * Used by:        ./play.ts, ./checks.ts, ./acceptance.spec.ts
+ * Used by:        ./play, ./checks
  * Spec:           docs/spec/01-game-design.md §5–§8, §13; docs/spec/12-testing-strategy.md §8
  */
 import type { Page } from '@playwright/test';

@@ -10,8 +10,8 @@
  *                 when there are none; "Open host console" shows only for the host; the
  *                 console in the lobby says the match is open and gives its code (LOOK-1);
  *                 a player on #/host/<code> sees no controls.
- * Depends on:     @testing-library/react, vitest, ../game/Lobby, ../game/HostLink,
- *                 ./YourMatches, ./HostConsole, ../test/matchFixture, ../game/useLiveMatch,
+ * Depends on:     @testing-library/react, ../game/Lobby, ../game/HostLink, ./YourMatches,
+ *                 ./HostConsole, ../test/matchFixture, ../game/useLiveMatch,
  *                 ../test/quickTestFixture, ../shell/session
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */

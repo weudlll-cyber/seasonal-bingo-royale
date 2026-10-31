@@ -3,18 +3,14 @@
  * @module web/host
  * @brief  The host's console for one match: lobby, start, live draw control, results (05 §3).
  *
- * Responsibility: in the lobby, ./HostLobby (notice, players, bots, start rules, Start);
- *                 a match ended without a result shows its end page (../game/MatchCancelled,
- *                 D17); while running, the current and recent numbers, a big Draw next
- *                 (also on the Space key while no field has focus; usable only with host
- *                 draws and after the previous number's speed window closed, D10), the
- *                 timed/host switch and the seconds at any time (D8), "Start next round"
- *                 while the match waits for the host between rounds (D14) or "Start next
- *                 round now" in a timed pause (D21; Draw next and its line are hidden then),
- *                 with the recap of the round below it (../game/Interlude, D20), standings with active
- *                 players first, prizes awarded, the match log (newest first) with cut
- *                 results, and abort with a reason (./AbortMatch); at the end the final placement on top. Pause applies to asynchronous
- *                 matches only and is not offered here (realtime).
+ * Responsibility: lobby: ./HostLobby (notice, players, bots, start rules, Start); a match ended
+ *                 without a result shows ../game/MatchCancelled (D17). Running: current and
+ *                 recent numbers, Draw next (also Space outside fields; host draws only, after
+ *                 the speed window, D10), the timed/host switch, seconds (D8), "Start next round"
+ *                 when the host must start it (D14) or "Start next round now" in a timed pause
+ *                 (D21, Draw next hidden), the round recap (../game/Interlude, D20), standings
+ *                 (active first), prizes, log (newest first) with cuts, abort with a reason
+ *                 (./AbortMatch); final placement on top at the end. No pause (async only).
  * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./host.css, ../shell/router
  * Used by:        ../shell/AppShell
@@ -104,6 +100,7 @@ function HostLive({
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
           showWindow={!view.finished}
+          paused={view.roundOver && !view.finished}
         />
         <BetweenRounds live={live} view={view} />
         {running ? <HostDrawControls live={live} view={view} /> : null}

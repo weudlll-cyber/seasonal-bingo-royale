@@ -9,7 +9,7 @@
  *                 "Starts at 22:25 (in 12 min)" (with the day on another day) and who starts
  *                 it (D16), and counts down live; "start when full" says how many places are
  *                 left; "Starting…" and the countdown appear only while the real countdown runs.
- * Depends on:     @testing-library/react, vitest, ./Registration, ./Lobby, ./MatchScreen,
+ * Depends on:     @testing-library/react, ./Registration, ./Lobby, ./MatchScreen,
  *                 ../host/HostConsole, ../test/matchFixture, ./useLiveMatch
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
@@ -88,6 +88,13 @@ describe('the registration status', () => {
     );
     expect(registrationText(withRule({ kind: 'whenFull' }, { players: 7 }), NOW)).toBe(
       '1 place left',
+    );
+  });
+
+  it('says when maintenance holds a start that is due (D22)', () => {
+    const due = withRule({ kind: 'at', at: AT, auto: true }, { startHeld: true });
+    expect(registrationText(due, AT + 60_000)).toBe(
+      'Held by maintenance — starts when maintenance ends',
     );
   });
 });

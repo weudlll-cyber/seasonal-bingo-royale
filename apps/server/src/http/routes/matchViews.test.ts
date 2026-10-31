@@ -8,7 +8,7 @@
  *                 later round start, carries no player list and stays small; a round start
  *                 carries only the viewer's own cards (none for the host) and no draw order,
  *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
- * Depends on:     vitest, @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
+ * Depends on:     @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/05-api-design.md §2.3
  */
 import {
@@ -60,7 +60,7 @@ async function viewSince(since: number, seq = stored.length, viewer: string | nu
     manualTaps: () => Promise.resolve([]),
   });
   const entry = await views.entryFor(match);
-  return liveView({ match, entry, me: viewer, since, recap: null }).view;
+  return liveView({ match, entry, me: viewer, since, recap: null, startHeld: false }).view;
 }
 
 // How many players the view lists; null when it leaves the list out.
@@ -131,6 +131,6 @@ describe('the summary of an ended match (NIGHT-5)', () => {
   it('says finished as soon as the event log has the finish, before the record follows', () => {
     // The simulated match has finished; its record still says running.
     const m = { record: { ...record, status: 'running' }, state: sim.state, seq: 1 };
-    expect(matchSummary(m as unknown as LoadedMatch, null).status).toBe('finished');
+    expect(matchSummary(m as unknown as LoadedMatch, null, false).status).toBe('finished');
   });
 });

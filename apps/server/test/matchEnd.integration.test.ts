@@ -7,7 +7,7 @@
  *                 match as aborted; host and player read the same `matchAborted` event with
  *                 the reason and `by` ('host' or 'system') from the state endpoint; a second
  *                 abort of an ended match changes nothing.
- * Depends on:     vitest, ./harness, ./session
+ * Depends on:     ./harness, ./session
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.3
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

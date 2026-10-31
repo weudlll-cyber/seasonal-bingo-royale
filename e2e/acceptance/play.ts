@@ -12,7 +12,7 @@
  *                 a tap after the round end is refused.
  *                 Every new picture of the page goes through ./checks.
  * Depends on:     @playwright/test, ./snapshot, ./checks
- * Used by:        ./acceptance.spec.ts
+ * Used by:        the acceptance Playwright specs (test helper)
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/12-testing-strategy.md §8
  */
 import { expect, type Page } from '@playwright/test';

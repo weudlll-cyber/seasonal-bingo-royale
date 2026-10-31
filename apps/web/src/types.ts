@@ -6,11 +6,11 @@
  * Responsibility: re-export the wire shapes of the Quick Test and live match view, which
  *                 live in @sbr/contracts (one source for server and client), and the small
  *                 display helpers on them: the season of a symbol, a ball's label with its
- *                 column letter, a season's colour token.
+ *                 column letter, a season's colour token, milliseconds as seconds.
  * Depends on:     @sbr/contracts
  * Used by:        ./App, ./playback, ./manualMarking, ./components/*, ./game/*, ./host/*,
  *                 ./api, ./drawControl, ./playbackScoring, ./playbackTypes, ./seasonIcons,
- *                 ./useDrawTicker
+ *                 ./useDrawTicker, ./test/quickTestFixture
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §5, §13
  */
 import { SEASON_NAMES, type Season } from '@sbr/contracts';
@@ -36,6 +36,9 @@ export function seasonOfSymbol(item: number): Season | null {
 
 // Column letters in card order; column ranges B 1–15, I 16–30, N 31–45, G 46–60, O 61–75.
 export const BINGO_LETTERS = ['B', 'I', 'N', 'G', 'O'] as const;
+
+// Milliseconds as seconds for a sentence, to one decimal at most ("3", "2.5").
+export const secondsText = (ms: number): string => String(Math.round(ms / 100) / 10);
 
 // A drawn number with its column letter, e.g. "G 52" (01 §5, D7). Symbols have no
 // letter: their label is the season's name ("Winter"), shown next to the icon.

@@ -8,7 +8,7 @@
  *                 points with the event number they belong to, so the play-through compares
  *                 each screen with the server instead of with another screen or a clock.
  * Depends on:     @playwright/test
- * Used by:        ./realGame.spec.ts
+ * Used by:        ./recap
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/05-api-design.md §2.3a
  */
 import type { Page } from '@playwright/test';

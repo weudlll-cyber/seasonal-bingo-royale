@@ -9,7 +9,7 @@
  *                 the royale timed match switches draw mode mid-match, the royale host match
  *                 lets the host start every next round (D14).
  * Depends on:     ../realGame (types)
- * Used by:        ./realGame.spec.ts
+ * Used by:        the acceptance Playwright specs (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/01-game-design.md §5, §7.1
  */
 import type { NewMatch } from '../realGame.js';

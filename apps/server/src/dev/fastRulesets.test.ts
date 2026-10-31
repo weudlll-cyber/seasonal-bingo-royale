@@ -7,7 +7,7 @@
  *                 comparison with a copy taken before); the fast royale passes the ruleset
  *                 schema, plays one round per stage with 12 draws and a first-row final;
  *                 the classic types have no fast ruleset (their defaults apply).
- * Depends on:     vitest, @sbr/contracts, ./fastRulesets
+ * Depends on:     @sbr/contracts, ./fastRulesets
  * Spec:           docs/spec/12-testing-strategy.md §4, §8
  */
 import { DEFAULT_RULESETS, RulesetSchema, royaleRealtimeDefault } from '@sbr/contracts';

@@ -12,7 +12,7 @@
  *                 button reads "Keep playing" for a survivor and "Watch" for an eliminated
  *                 player.
  * Depends on:     @playwright/test, ./livePlayer (types)
- * Used by:        ./realGame.spec.ts
+ * Used by:        the acceptance Playwright specs (test helper)
  * Spec:           docs/spec/01-game-design.md §5, §7.1, §13 (D12–D15)
  */
 import { expect, type Page } from '@playwright/test';

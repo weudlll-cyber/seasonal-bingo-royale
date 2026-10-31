@@ -3,28 +3,28 @@
  * @module server/view
  * @brief  Builds the recap of a royale round from the match's own events (D20).
  *
- * Responsibility: replay the events with the domain's evolve and, for one round, collect:
- *                 the points each active player scored in it (their total at the round's
- *                 end less their total at its start, so multipliers and score carry are the
- *                 domain's), the standings place before and after it (by total points among
- *                 the round's players, ties by join order), Season Complete, the numbers
- *                 drawn, the cut that follows (out, shield saves, players left) and each
- *                 player's own taps: the time from a number's draw to the tap, from the
- *                 events' stored times, for the marks stored as the player's own (`manualTaps`,
- *                 from sbr.marks; bots and auto-marks mark on the draw and are not taps).
- *                 Items with no content are left out. Pure: the same events give the same
+ * Responsibility: replay the events with the domain's evolve and, for one round, collect: each
+ *                 active player's points in it (total at its end less total at its start, so
+ *                 multipliers and carry are the domain's), standings place before and after
+ *                 (among its players, cut tie-break, 01 §8.4), Season Complete, numbers drawn,
+ *                 the following cut (out, shield saves, left) and each player's own taps
+ *                 (`manualTaps` from sbr.marks: draw-to-tap time from stored event times; bots
+ *                 and auto-marks are not taps). Empty items are left out. Pure: same events, same
  *                 recap, also after a restart. Fun only: nothing here changes a score.
  * Depends on:     @sbr/contracts (types), @sbr/domain
- * Used by:        ./liveViews, ../dev/quicktest, ./roundRecap.test
+ * Used by:        ./liveViews, ../dev/quicktest
  * Spec:           docs/spec/01-game-design.md §7 (D20); docs/spec/05-api-design.md §2.3a
  */
 import type { RecapScorer, RoundRecap } from '@sbr/contracts';
 import {
+  byTieBreak,
+  candidateOf,
   createInitialMatchState,
   evolve,
   type CutApplied,
   type DomainEvent,
   type MatchState,
+  type TieBreakScore,
 } from '@sbr/domain';
 
 // An event and, in a live match, when it was stored (epoch ms).
@@ -33,7 +33,7 @@ export interface TimedEvent {
   readonly at?: number;
 }
 
-export interface RecapInput {
+interface RecapInput {
   readonly events: readonly TimedEvent[];
   readonly roundIndex: number;
   // Internal player id → the name the screens show.
@@ -46,13 +46,21 @@ export interface RecapInput {
 const TOP = 3;
 const CUT_NAMES = 8;
 const MIN_TAPS = 5;
+// Never used for a player of the round (every one has a score); keeps the sort total.
+const NO_SCORE: TieBreakScore = {
+  points: 0,
+  patterns: 0,
+  seasonsActivated: 0,
+  lastScoringDraw: null,
+  joinedAt: Number.POSITIVE_INFINITY,
+};
 
 // What one pass over the events collects about the round.
 interface RoundFacts {
   state: MatchState;
   active: readonly string[];
-  start: ReadonlyMap<string, number>;
-  end: ReadonlyMap<string, number> | null;
+  start: ReadonlyMap<string, TieBreakScore>;
+  end: ReadonlyMap<string, TieBreakScore> | null;
   drawTimes: number[];
   draws: number;
   taps: Map<string, number[]>;
@@ -68,11 +76,13 @@ export function buildRoundRecap(input: RecapInput): RoundRecap | null {
   const end = facts.end;
   const name = (id: string): string => input.idMap.get(id) ?? id;
   const order = facts.state.playerOrder;
+  const pointsIn = (scores: ReadonlyMap<string, TieBreakScore>, id: string): number =>
+    scores.get(id)?.points ?? 0;
   const scored = new Map(
-    facts.active.map((id) => [id, (end.get(id) ?? 0) - (facts.start.get(id) ?? 0)]),
+    facts.active.map((id) => [id, pointsIn(end, id) - pointsIn(facts.start, id)]),
   );
-  const after = places(facts.active, end, order);
-  const before = places(facts.active, facts.start, order);
+  const after = places(facts.active, end);
+  const before = places(facts.active, facts.start);
   const top: RecapScorer[] = topScorers(facts.active, scored, after).map((id) => ({
     name: name(id),
     points: scored.get(id) ?? 0,
@@ -196,19 +206,18 @@ function drawTimeOf(
   return facts.drawTimes[round.draws.indexOf(cell.value)] ?? null;
 }
 
-function totals(state: MatchState, ids: readonly string[]): ReadonlyMap<string, number> {
-  return new Map(ids.map((id) => [id, state.players[id]?.points ?? 0]));
+// Each player's standing at one moment: the fields of the 01 §8.4 tie-break chain.
+function totals(state: MatchState, ids: readonly string[]): ReadonlyMap<string, TieBreakScore> {
+  return new Map(ids.map((id) => [id, candidateOf(state, id)]));
 }
 
-// Standings places (1-based) by total points, ties by join order.
+// Standings places (1-based), ties broken as the cut breaks them (byTieBreak, 01 §8.4).
 function places(
   ids: readonly string[],
-  points: ReadonlyMap<string, number>,
-  order: readonly string[],
+  scores: ReadonlyMap<string, TieBreakScore>,
 ): ReadonlyMap<string, number> {
-  const ranked = [...ids].sort(
-    (a, b) => (points.get(b) ?? 0) - (points.get(a) ?? 0) || order.indexOf(a) - order.indexOf(b),
-  );
+  const score = (id: string): TieBreakScore => scores.get(id) ?? NO_SCORE;
+  const ranked = [...ids].sort((a, b) => byTieBreak(score(a), score(b)));
   return new Map(ranked.map((id, i) => [id, i + 1]));
 }
 

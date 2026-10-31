@@ -8,7 +8,7 @@
  *                 fails the commitment and the recomputation, even with a commitment made
  *                 for it; a changed draw or a changed card in the log fails its round; a
  *                 log without `lobbyOpened` does not verify.
- * Depends on:     vitest, ./index, ../test/builders
+ * Depends on:     ./index, ../test/builders
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/12-testing-strategy.md §3 invariant 11
  */
 import { describe, expect, it } from 'vitest';

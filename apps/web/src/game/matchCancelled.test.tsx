@@ -10,7 +10,7 @@
  *                 (01 §9), and for the host
  *                 "Host another match" — never the arena; the lobby lists the cancelled match
  *                 with a link to that page.
- * Depends on:     @testing-library/react, vitest, ./MatchScreen, ./Lobby, ../host/HostConsole,
+ * Depends on:     @testing-library/react, ./MatchScreen, ./Lobby, ../host/HostConsole,
  *                 ../test/matchFixture, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §13
  */

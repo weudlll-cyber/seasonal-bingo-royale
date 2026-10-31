@@ -3,18 +3,14 @@
  * @module server/view
  * @brief  One replay per live match, extended with new events, shared by every screen's fetch.
  *
- * Responsibility: keep for each match a `LiveReplay` of all players (renamed events, every
- *                 player's status timeline, stage baselines, first-round cards) and extend
- *                 it with only the events logged since the last request, up to the match's
- *                 current seq. A screen's fetch then picks its viewer's slice instead of
- *                 replaying the whole log (the 200-player check: NIGHT-3 piece 5). Updates
- *                 of one match run one at a time; the match's command queue is not used, so
- *                 fetches never hold up draws and taps. The names are read again, and the
- *                 replay rebuilt, when the player list changed (lobby joins). During the pause
- *                 after a royale round the round's recap (./roundRecap, D20) is built from the
- *                 same events with their stored times and the stored own taps, once per round
- *                 and event count, so every screen gets the same recap and a restarted server
- *                 rebuilds it from the log.
+ * Responsibility: keep per match a `LiveReplay` of all players (renamed events, status timelines,
+ *                 stage baselines, first-round cards), extended only by events since the last
+ *                 request; a fetch picks its viewer's slice instead of replaying the log (NIGHT-3
+ *                 piece 5). Updates per match run one at a time outside the command queue, never
+ *                 delaying draws or taps. A changed player list (lobby joins) rereads names and
+ *                 rebuilds the replay. In a royale round pause the recap (./roundRecap, D20) is
+ *                 built from the stored event times and own taps, once per round and event count:
+ *                 the same for every screen, rebuilt from the log after a restart.
  * Depends on:     @sbr/application (types), @sbr/contracts (types), ../match/codec,
  *                 ./clientEvents, ./roundRecap
  * Used by:        ../http/routes/matches, ../http/routes/matchViews

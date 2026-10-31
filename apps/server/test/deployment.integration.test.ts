@@ -3,18 +3,17 @@
  * @module server/test
  * @brief  The production build: no development routes; health, client and WebSocket under a base path.
  *
- * Responsibility: a production app has none of the development features — the quick
- *                 sign-in, the load-account clean-up, the Quick Test, the fast test rules,
- *                 the bot fill and the system-abort route all answer 404 (or refuse the fast
- *                 profile); an organizer signs in with a password. An app under
- *                 /games/bingo/ answers /healthz, /readyz and the client's index.html there
- *                 and opens the WebSocket on /games/bingo/ws for its public origin. While the
- *                 maintenance flag file exists, no match is created or started (503), a
- *                 running match plays on, and GET /maintenance tells every client, with the
- *                 operator's reason.
- * Depends on:     vitest, socket.io-client, node:fs, ./harness, ../src/auth/accounts,
- *                 ../src/index, ./session, fastify
- * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/08-devops-architecture.md §4
+ * Responsibility: a production app has none of the development features (quick sign-in,
+ *                 load-account clean-up, Quick Test, fast rules, bot fill, system abort:
+ *                 404); an organizer signs in with a password. Under /games/bingo/ the app
+ *                 answers /healthz, /readyz, index.html and the WebSocket. With the
+ *                 maintenance flag file no match is created or started (503 with the reason),
+ *                 start-when-full is held until the flag goes (D22), a running match plays
+ *                 on, and GET /maintenance tells every client.
+ * Depends on:     socket.io-client, ./harness, ../src/auth/accounts, ../src/index, ./session,
+ *                 fastify
+ * Spec:           docs/spec/09-deployment-architecture.md §1, §4; docs/spec/08-devops-architecture.md §4;
+ *                 docs/spec/01-game-design.md §7.6 (D22)
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -138,8 +137,8 @@ describe('under a base path (website installs, 09 §1)', () => {
   }, 60_000);
 });
 
-describe('maintenance (sbr maintenance on, 09 §4)', () => {
-  it('refuses a new match and a start while the flag file exists', async () => {
+describe('maintenance (sbr maintenance on, 09 §4, D22)', () => {
+  it('refuses a new match and a start, holds start-when-full, and releases it', async () => {
     const data = mkdtempSync(path.join(tmpdir(), 'sbr-data-'));
     const app = await buildOn(harness.pool, harness.container.getConnectionUri(), {
       SBR_DATA_DIR: data,
@@ -152,28 +151,44 @@ describe('maintenance (sbr maintenance on, 09 §4)', () => {
       missedNumbers: { kind: 'noAutoMark' },
       maxPlayers: 8,
     };
-    // Timed commands (the countdown's end) run, as on a real server.
-    app.match.startScheduler();
+    // Timed commands (the countdown's end, held starts) run, as on a real server.
+    await app.match.startScheduler();
     const status = async () => (await app.fastify.inject('/api/v1/maintenance')).json<unknown>();
+    const startsAt = async (c: string) =>
+      (await host.get(`/api/v1/matches/${c}`)).json<{ startsAt: number | null }>().startsAt;
     expect(await status()).toEqual({ on: false, reason: null });
     const { code } = (await host.post('/api/v1/matches', match)).json<{ code: string }>();
     await host.post(`/api/v1/matches/${code}/bots`, { upTo: 4 });
+    const whenFull = { ...match, maxPlayers: 4, startRule: { kind: 'whenFull' } };
+    const full = (await host.post('/api/v1/matches', whenFull)).json<{ code: string }>().code;
     // A match already running when maintenance begins.
     const running = (await host.post('/api/v1/matches', match)).json<{ code: string }>().code;
     await host.post(`/api/v1/matches/${running}/bots`, { upTo: 4 });
     await host.post(`/api/v1/matches/${running}/start`, {});
     writeFileSync(path.join(data, 'maintenance'), 'Database upgrade');
     // The app looks at the file at most every 2 seconds.
-    await new Promise((resolve) => setTimeout(resolve, 2_100));
-    expect(await status()).toEqual({ on: true, reason: 'Database upgrade' });
-    expect((await host.post('/api/v1/matches', match)).json()).toEqual({ code: 'MAINTENANCE' });
+    await expect.poll(status, { timeout: 3_000 }).toEqual({ on: true, reason: 'Database upgrade' });
+    const refused = { code: 'MAINTENANCE', reason: 'Database upgrade' };
+    expect((await host.post('/api/v1/matches', match)).json()).toEqual(refused);
     const start = await host.post(`/api/v1/matches/${code}/start`, {});
-    expect([start.statusCode, start.json()]).toEqual([503, { code: 'MAINTENANCE' }]);
+    expect([start.statusCode, start.json()]).toEqual([503, refused]);
+    // The last place taken under maintenance: the start is held (D22).
+    await host.post(`/api/v1/matches/${full}/bots`, { upTo: 4 });
+    expect(await startsAt(full)).toBeNull();
     // The running match plays on: after its countdown the host still draws.
-    await new Promise((resolve) => setTimeout(resolve, 10_500));
-    expect((await host.post(`/api/v1/matches/${running}/draw-next`, {})).statusCode).toBe(200);
-    await host.post(`/api/v1/matches/${code}/abort`, { reason: 'test cleanup' });
-    await host.post(`/api/v1/matches/${running}/abort`, { reason: 'test cleanup' });
+    await expect
+      .poll(async () => (await host.post(`/api/v1/matches/${running}/draw-next`, {})).statusCode, {
+        timeout: 15_000,
+        interval: 500,
+      })
+      .toBe(200);
+    expect(await startsAt(full)).toBeNull();
+    // Maintenance off: the held start-when-full is checked again and its countdown begins.
+    rmSync(path.join(data, 'maintenance'));
+    await expect.poll(() => startsAt(full), { timeout: 10_000, interval: 250 }).not.toBeNull();
+    for (const c of [code, full, running]) {
+      await host.post(`/api/v1/matches/${c}/abort`, { reason: 'test cleanup' });
+    }
     await app.match.scheduler.stop();
     await app.fastify.close();
     rmSync(data, { recursive: true, force: true });

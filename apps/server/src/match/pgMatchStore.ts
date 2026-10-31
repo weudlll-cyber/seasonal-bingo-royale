@@ -3,17 +3,16 @@
  * @module server/match
  * @brief  PostgreSQL adapter of the match store: event log, snapshots, projections (02 §5.2).
  *
- * Responsibility: insert a match (seed encrypted, commitment public); check at startup that
- *                 the seed key opens what is stored; events and snapshots are written and
- *                 read in the codec's stored encoding (match secrets sealed); load a match from
- *                 its latest snapshot plus the event tail, with the draw times of the
- *                 current round; append a batch in one transaction — version check on the
- *                 matches row (optimistic concurrency), events with consecutive seq, the
- *                 projections, and a snapshot every 25 events (the last 3 are kept); set
- *                 the status, the draw control and the start rule (D16) on the row.
+ * Responsibility: insert a match (seed encrypted and bound to the match id, commitment public);
+ *                 check at startup that the seed key opens what is stored; write and read events
+ *                 and snapshots in the codec's stored encoding; load a match from its latest
+ *                 snapshot plus the event tail, with the current round's draw times; append a
+ *                 batch in one transaction (version check on the matches row, consecutive seq,
+ *                 projections, a snapshot every 25 events, last 3 kept); set the status, draw
+ *                 control and start rule (D16) on the row.
  * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records,
  *                 ../db/pool
- * Used by:        ../http/routes/matches, ./runtime
+ * Used by:        ../http/routes/matches, ../http/routes/matchVerify, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §5.2; docs/spec/04-database-design.md §3.3
  */
 import type {
@@ -35,7 +34,14 @@ import {
 } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
-import { decodeStored, decryptSeed, encodeStored, encryptSeed } from './codec.js';
+import {
+  decodeStored,
+  encodeStored,
+  encryptSeed,
+  openSeedColumn,
+  SEED_COLUMN_VERSION,
+  type SeedColumn,
+} from './codec.js';
 import { project } from './projections.js';
 import { recordFrom, type MatchRow } from './records.js';
 
@@ -53,13 +59,13 @@ export class PgMatchStore implements MatchStore {
   // stops the server at once instead of failing on the first match it loads. No secret is
   // named in the error.
   async checkKey(): Promise<void> {
-    const r = await this.pool.query<{ seed_enc: Buffer }>(
-      'SELECT seed_enc FROM sbr.matches ORDER BY created_at DESC LIMIT 1',
+    const r = await this.pool.query<SeedColumn>(
+      'SELECT id, seed_enc, seed_enc_version FROM sbr.matches ORDER BY created_at DESC LIMIT 1',
     );
-    const sealed = r.rows[0]?.seed_enc;
-    if (sealed === undefined) return;
+    const newest = r.rows[0];
+    if (newest === undefined) return;
     try {
-      decryptSeed(sealed, this.seedKey);
+      openSeedColumn(newest, this.seedKey);
     } catch {
       throw new Error('SBR_SEED_KEY does not open the stored match secrets (wrong key?)');
     }
@@ -71,8 +77,8 @@ export class PgMatchStore implements MatchStore {
       `INSERT INTO sbr.matches (id, code, title, game_type, ruleset_name, ruleset, max_players,
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
          missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms,
-         start_rule, start_at, start_auto)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+         start_rule, start_at, start_auto, seed_enc_version)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
       [
         r.id,
         r.code,
@@ -82,7 +88,8 @@ export class PgMatchStore implements MatchStore {
         JSON.stringify(r.ruleset),
         r.maxPlayers,
         Buffer.from(commitSeed(r.seed)),
-        encryptSeed(r.seed, this.seedKey),
+        // Sealed for this match only (AAD), and marked so (./codec SEED_COLUMN_VERSION).
+        encryptSeed(r.seed, this.seedKey, r.id),
         r.prizes,
         r.countsForLeaderboard,
         s.markingMode,
@@ -96,6 +103,7 @@ export class PgMatchStore implements MatchStore {
         // The announced time is in the row from the start, so a load reads the rule back.
         s.startRule.kind === 'at' ? new Date(s.startRule.at) : null,
         s.startRule.kind === 'at' && s.startRule.auto,
+        SEED_COLUMN_VERSION,
       ],
     );
   }
@@ -114,7 +122,7 @@ export class PgMatchStore implements MatchStore {
     let state =
       base === undefined
         ? createInitialMatchState()
-        : (decodeStored(base.state, this.seedKey) as MatchState);
+        : (decodeStored(base.state, this.seedKey, matchId) as MatchState);
     let seq = base === undefined ? 0 : Number(base.seq);
     for (const e of await this.events(matchId, seq)) {
       state = evolve(state, e.event);
@@ -131,7 +139,7 @@ export class PgMatchStore implements MatchStore {
     );
     return result.rows.map((r) => ({
       seq: Number(r.seq),
-      event: decodeStored(r.payload, this.seedKey) as DomainEvent,
+      event: decodeStored(r.payload, this.seedKey, matchId) as DomainEvent,
       occurredAt: r.occurred_at.getTime(),
     }));
   }
@@ -170,7 +178,7 @@ export class PgMatchStore implements MatchStore {
           input.matchId,
           stored.map((s) => s.seq),
           stored.map((s) => s.event.type),
-          stored.map((s) => encodeStored(s.event, this.seedKey)),
+          stored.map((s) => encodeStored(s.event, this.seedKey, input.matchId)),
           input.at,
           input.actorAccountId,
         ],
@@ -186,7 +194,7 @@ export class PgMatchStore implements MatchStore {
           client,
           input.matchId,
           lastSeq,
-          encodeStored(input.stateAfter, this.seedKey),
+          encodeStored(input.stateAfter, this.seedKey, input.matchId),
         );
       }
       await client.query('COMMIT');

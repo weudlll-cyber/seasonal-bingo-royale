@@ -1,17 +1,20 @@
 /**
  * @file   apps/server/src/cli.ts
  * @module server
- * @brief  Operator commands run inside the app container: create the first admin account.
+ * @brief  Operator commands run inside the app image: create the first admin, check the seed key.
  *
- * Responsibility: `create-super --email <e-mail> --name <display name>` asks for the
- *                 password (not echoed on a terminal; read from standard input otherwise),
- *                 checks it against the password rules and creates an account with the
- *                 roles super_admin and organizer (every host permission). Until the admin
- *                 app with its bootstrap page exists (WP-19), this is how the first admin
- *                 is made (`sbr admin create-super`). The password is never printed or logged.
- * Depends on:     ./config/env, ./db/pool, ./auth/accounts, ./auth/password, node:readline
- * Used by:        ops/sbr (docker compose exec app node dist/cli.js …)
- * Spec:           docs/spec/09-deployment-architecture.md §4, §5; docs/spec/03-security-architecture.md §2.1
+ * Responsibility: `create-super --email <e-mail> --name <display name>` asks for the password
+ *                 (not echoed on a terminal, else read from standard input), checks the password
+ *                 rules and creates an account with roles super_admin and organizer (every host
+ *                 permission); until the admin app's bootstrap page exists (WP-19) this makes the
+ *                 first admin (`sbr admin create-super`). The password is never printed or
+ *                 logged. `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
+ *                 with SBR_SEED_KEY (exit 1 when it fails); the backup drill runs it on the
+ *                 restored copy (`sbr restore --drill`).
+ * Depends on:     ./config/env, ./config/seedKey, ./db/pool, ./auth/accounts, ./auth/password,
+ *                 ./match/sealedSeedCheck
+ * Used by:        ops/sbr (docker compose exec app node dist/cli.js …), ops/lib/backup.sh (drill)
+ * Spec:           docs/spec/09-deployment-architecture.md §4–§6; docs/spec/03-security-architecture.md §2.1
  */
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
@@ -19,7 +22,9 @@ import { Writable } from 'node:stream';
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
 import { loadEnv } from './config/env.js';
+import { seedKeyFrom } from './config/seedKey.js';
 import { createPool } from './db/pool.js';
+import { openOneSealedSeed } from './match/sealedSeedCheck.js';
 
 function flag(args: readonly string[], name: string): string | null {
   const at = args.indexOf(name);
@@ -76,11 +81,39 @@ async function createSuper(args: readonly string[]): Promise<number> {
   }
 }
 
-const [command, ...rest] = process.argv.slice(2);
-const run = command === 'create-super' ? createSuper(rest) : Promise.resolve(-1);
+// The seed key opens what the database stores: one sealed seed is decrypted (the drill's proof).
+async function checkSeedKey(): Promise<number> {
+  const env = loadEnv();
+  const pool = createPool(env.DATABASE_URL);
+  try {
+    const result = await openOneSealedSeed(pool, seedKeyFrom(env));
+    console.log(
+      result === 'opened'
+        ? 'the seed key opens the newest sealed match seed'
+        : 'no sealed match seed stored yet (nothing for the seed key to open)',
+    );
+    return 0;
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    return 1;
+  } finally {
+    await pool.end();
+  }
+}
+
+const COMMANDS = new Map<string, (args: readonly string[]) => Promise<number>>([
+  ['create-super', createSuper],
+  ['check-seed-key', checkSeedKey],
+]);
+
+const [command = '', ...rest] = process.argv.slice(2);
+const chosen = COMMANDS.get(command);
+const run = chosen === undefined ? Promise.resolve(-1) : chosen(rest);
 run.then(
   (code) => {
-    if (code === -1) console.error('commands: create-super --email <e-mail> --name <name>');
+    if (code === -1) {
+      console.error('commands: create-super --email <e-mail> --name <name> | check-seed-key');
+    }
     process.exit(code === -1 ? 2 : code);
   },
   (error: unknown) => {

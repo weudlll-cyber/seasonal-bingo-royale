@@ -3,21 +3,19 @@
  * @module web
  * @brief  Manual-marking rules of the Quick Test: tap, speed bonus, missed numbers (01 §6).
  *
- * Responsibility: pure state transitions for the owner's taps on one card. A tap on a
- *                 drawn cell marks it; inside the speed window it earns the decaying
- *                 speed bonus, later it marks without bonus. A tap on an undrawn cell is
- *                 refused, and so is every tap once the round has ended. A drawn cell left
- *                 open follows the starter's missed-number
- *                 rule: under autoMarkAfter it is marked without bonus once the delay has
- *                 passed, under noAutoMark it stays open until tapped. The owner's points
- *                 come from the server; this file only tracks marks and the bonus the
- *                 taps earned, which the Quick Test does not count (the match is computed
- *                 before playback). Production marking is validated by the server (WP-15).
+ * Responsibility: pure state transitions for the owner's taps on one card. A tap on a drawn cell
+ *                 marks it, with the decaying speed bonus inside the speed window, without it
+ *                 later; taps on undrawn cells and after the round end are refused. A drawn cell
+ *                 left open follows the starter's missed-number rule: autoMarkAfter marks it
+ *                 without bonus after the delay, noAutoMark leaves it open until tapped. Points
+ *                 come from the server; this file tracks marks and the bonus taps earned, which
+ *                 the Quick Test does not count (it computes the match before playback).
+ *                 Production marking is validated by the server (WP-15).
  * Depends on:     ./types
  * Used by:        ./components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §6, §8.1; docs/spec/15-implementation-plan.md WP-08
  */
-import type { Cell, MissedNumbers } from './types.js';
+import { secondsText, type Cell, type MissedNumbers } from './types.js';
 
 export interface ManualRules {
   readonly maxSpeedBonus: number;
@@ -148,12 +146,8 @@ export function feedbackText(feedback: Feedback | null): string {
     case 'roundOver':
       return 'Round over — no more taps';
     case 'autoMarked':
-      return `Marked ${String(feedback.count)} for you without bonus (after ${seconds(feedback.delayMs)} s)`;
+      return `Marked ${String(feedback.count)} for you without bonus (after ${secondsText(feedback.delayMs)} s)`;
   }
-}
-
-function seconds(ms: number): string {
-  return String(Math.round(ms / 100) / 10);
 }
 
 function withMark(marks: readonly boolean[], index: number): readonly boolean[] {

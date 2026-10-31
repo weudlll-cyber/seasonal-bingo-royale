@@ -4,12 +4,13 @@
  * @brief  The signed-in session for the whole client: who, permissions, CSRF token.
  *
  * Responsibility: load GET /session on start, keep its CSRF token for ./http, and offer
- *                 the development quick sign-in (host or player 1–3, 05 §2.1) and sign-out.
+ *                 sign-in, registration and sign-out (the development quick sign-in lives
+ *                 in ./DevTools, outside the production bundle, and calls `refresh`).
  *                 Only the newest refresh sets the session (an older answer arriving late
  *                 never undoes a sign-in). Screens read it through `useSession`.
  * Depends on:     react, ./http, ../game/socket
- * Used by:        ./AppShell and every screen that needs the account, ../account/Register,
- *                 ../account/SignIn, ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools
+ * Used by:        ./AppShell, ../account/Register, ../account/SignIn, ../game/Lobby,
+ *                 ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §3, §8
  */
 import {
@@ -34,12 +35,9 @@ interface SessionInfo {
   readonly csrfToken: string | null;
 }
 
-export type DevIdentity = 'host' | 'player-1' | 'player-2' | 'player-3';
-
 interface SessionContextValue {
   readonly session: SessionInfo | null;
   readonly refresh: () => Promise<void>;
-  readonly devSignIn: (as: DevIdentity) => Promise<void>;
   readonly signOut: () => Promise<void>;
   // Local accounts (05 §2.1); both throw ApiError with the server's code on refusal.
   readonly signIn: (email: string, password: string) => Promise<void>;
@@ -80,11 +78,6 @@ export function SessionProvider({ children }: { children: ReactNode }): ReactEle
     () => ({
       session,
       refresh,
-      devSignIn: async (as) => {
-        await api('/dev/sign-in', { method: 'POST', body: { as } });
-        resetSocket(); // the socket reconnects with the new session cookie
-        await refresh();
-      },
       signOut: async () => {
         await api('/auth/logout', { method: 'POST', body: {} });
         resetSocket();

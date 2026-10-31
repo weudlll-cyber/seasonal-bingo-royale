@@ -7,7 +7,7 @@
  *                 rulesets of every game type, rejects the shape mismatches of 01 §3a
  *                 (prizes-on-royale, stages-on-classic, …), and the four shipped defaults
  *                 round-trip (docs/spec/04-database-design.md §6).
- * Depends on:     ./ruleset, ./defaults, ../index
+ * Depends on:     ../index (./ruleset and ./defaults through it)
  * Spec:           docs/spec/15-implementation-plan.md WP-04, docs/spec/01-game-design.md §3a
  */
 import { describe, expect, it } from 'vitest';

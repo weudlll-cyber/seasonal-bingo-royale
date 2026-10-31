@@ -3,22 +3,24 @@
  * @module server/test
  * @brief  "Verify this match": the seed is revealed after the end, never before (HTTP and WS).
  *
- * Responsibility: a classic match played to its end over the engine: before the start and
- *                 while it runs, GET /verify answers 409 MATCH_NOT_OVER; afterwards it
- *                 reveals the seed whose sha256 is the stored commitment, and the server's
- *                 recomputation equals the played match (every draw in the log, every card
- *                 dealt). No socket frame and no state answer sent before the end carries
- *                 the seed. A cancelled match reveals its seed too. The route has its own
- *                 limit: 20 calls a minute per address, then 429 RATE_LIMITED.
- * Depends on:     node:crypto, vitest, ./socketKit
+ * Responsibility: a classic match played to its end over the engine: GET /verify answers 409
+ *                 MATCH_NOT_OVER before and during play; afterwards it reveals the seed whose
+ *                 sha256 is the commitment, and the recomputation equals the played match (every
+ *                 draw, every card). No frame or answer before the end (whole bodies, 409 and
+ *                 state) carries the seed; the answer after it carries neither sealed seed nor
+ *                 seed key. A cancelled match reveals its seed too. A finished match is
+ *                 recomputed once, then cached. Own limit: 20 calls a minute per address, then
+ *                 429 RATE_LIMITED (tested from its own address, so test order does not matter).
+ * Depends on:     @sbr/contracts, ./harness, ./socketKit, ./playToEnd
  * Spec:           docs/spec/01-game-design.md §9; docs/spec/05-api-design.md §2.3a
  */
 import { createHash } from 'node:crypto';
 
 import type { MatchVerificationView } from '@sbr/contracts';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
-import { SUITE_TIMEOUT_MS } from './harness.js';
+import { SUITE_TIMEOUT_MS, TEST_SEED_KEY } from './harness.js';
+import { playToEnd } from './playToEnd.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
 
 let kit: SocketKit;
@@ -30,19 +32,6 @@ afterAll(async () => {
   await kit.close();
 }, SUITE_TIMEOUT_MS);
 
-// Draws and closes speed windows straight through the engine until the match has ended.
-async function playToEnd(id: string): Promise<void> {
-  const engine = kit.harness.built.match.engine;
-  for (let i = 0; i < 200; i += 1) {
-    const m = await engine.runner.current(id);
-    if (m.record.status === 'finished') return;
-    await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
-    const drawIndex = ((await engine.runner.current(id)).state.currentRound?.draws.length ?? 0) - 1;
-    await engine.handle({ matchId: id, kind: 'close_speed_window', dueAt: Date.now(), drawIndex });
-  }
-  throw new Error('the match did not end');
-}
-
 async function logged(id: string, type: string): Promise<Record<string, unknown>[]> {
   const r = await kit.harness.pool.query<{ payload: Record<string, unknown> }>(
     'SELECT payload FROM sbr.match_events WHERE match_id = $1 AND type = $2 ORDER BY seq',
@@ -51,13 +40,14 @@ async function logged(id: string, type: string): Promise<Record<string, unknown>
   return r.rows.map((row) => row.payload);
 }
 
-// The ways a seed could travel in JSON: hex, base64, a byte list (an array or a Buffer's
-// `data`), a typed array's `{"0":…}` object, or any `seed` field that is not empty.
-function leaks(text: string, seed: Buffer): string[] {
-  const bytes = [...seed];
+// The ways a secret could travel in JSON: hex, base64, a byte list (an array or a Buffer's
+// `data`), a typed array's `{"0":…}` object, or (`seedField`) any `seed` field that is not
+// empty.
+function leaks(text: string, secret: Buffer, seedField = true): string[] {
+  const bytes = [...secret];
   const forms = {
-    hex: seed.toString('hex'),
-    base64: seed.toString('base64'),
+    hex: secret.toString('hex'),
+    base64: secret.toString('base64'),
     byteList: bytes.join(','),
     byteObject: bytes.map((b, i) => `"${String(i)}":${String(b)}`).join(','),
   };
@@ -65,7 +55,7 @@ function leaks(text: string, seed: Buffer): string[] {
     text.includes(form) ? [name] : [],
   );
   const filled = /"seed":(?!\{\}|\[\]|""|\{"type":"Buffer","data":\[\]\})/.test(text);
-  return filled ? [...found, 'seed field'] : found;
+  return filled && seedField ? [...found, 'seed field'] : found;
 }
 
 describe('verify this match (01 §9)', () => {
@@ -79,6 +69,7 @@ describe('verify this match (01 §9)', () => {
     watcher.onAny((_name: string, ...args: unknown[]) => frames.push(args));
     expect((await kit.send(watcher, 'match.watch', { code })).ok).toBe(true);
     const notYet = await kit.player.get(`/api/v1/matches/${code}/verify`);
+    const answered = [notYet.body];
     expect([notYet.statusCode, notYet.json<{ code: string }>().code]).toEqual([
       409,
       'MATCH_NOT_OVER',
@@ -88,10 +79,12 @@ describe('verify this match (01 §9)', () => {
     await engine.start(id, 0);
     await engine.handle({ matchId: id, kind: 'start_match', dueAt: Date.now() });
     await engine.handle({ matchId: id, kind: 'draw', dueAt: Date.now() });
-    expect((await kit.host.get(`/api/v1/matches/${code}/verify`)).statusCode).toBe(409);
-    const runningState = (await kit.player.get(`/api/v1/matches/${code}/state`)).body;
-    await playToEnd(id);
-    const sentBeforeEnd = JSON.stringify(frames) + runningState;
+    const running = await kit.host.get(`/api/v1/matches/${code}/verify`);
+    expect(running.statusCode).toBe(409);
+    answered.push(running.body, (await kit.player.get(`/api/v1/matches/${code}/state`)).body);
+    await playToEnd(engine, id);
+    // Every frame and the whole body of every answer sent before the end.
+    const sentBeforeEnd = JSON.stringify(frames) + answered.join('');
 
     const answer = await kit.player.get(`/api/v1/matches/${code}/verify`);
     expect(answer.statusCode).toBe(200);
@@ -99,8 +92,8 @@ describe('verify this match (01 §9)', () => {
     expect(v.verified).toBe(true);
     expect(v.status).toBe('finished');
     // The revealed seed is the committed one: sha256(seed) is the commitment stored at open.
-    const stored = await kit.harness.pool.query<{ seed_commitment: Buffer }>(
-      'SELECT seed_commitment FROM sbr.matches WHERE id = $1',
+    const stored = await kit.harness.pool.query<{ seed_commitment: Buffer; seed_enc: Buffer }>(
+      'SELECT seed_commitment, seed_enc FROM sbr.matches WHERE id = $1',
       [id],
     );
     expect(v.commitment).toBe(stored.rows[0]?.seed_commitment.toString('hex'));
@@ -116,6 +109,11 @@ describe('verify this match (01 §9)', () => {
     expect(v.rounds.every((r) => r.drawOrderMatches && r.drawsMatch && r.cardsMatch)).toBe(true);
     // Nothing sent before the end carried the seed, in any form.
     expect(leaks(sentBeforeEnd, seed)).toEqual([]);
+    // The whole answer after the end carries the seed, but neither the sealed seed nor the key.
+    const key = Buffer.from(TEST_SEED_KEY, 'hex');
+    for (const secret of [stored.rows[0]?.seed_enc ?? Buffer.alloc(1), key]) {
+      expect(leaks(answer.body, secret, false)).toEqual([]);
+    }
   }, 120_000);
 });
 
@@ -139,14 +137,36 @@ describe('verify: a cancelled match, an unknown code', () => {
   it('answers 404 for an unknown code', async () => {
     expect((await kit.player.get('/api/v1/matches/NOPE99/verify')).statusCode).toBe(404);
   });
+
+  it('recomputes a match that is over once, then answers from its cache', async () => {
+    const code = await kit.createMatch('host');
+    await kit.host.post(`/api/v1/matches/${code}/abort`, { reason: 'test' });
+    const id = (await kit.host.get(`/api/v1/matches/${code}`)).json<{ id: string }>().id;
+    const store = kit.harness.built.match.store;
+    const reads = vi.spyOn(store, 'events');
+    try {
+      const first = await kit.player.get(`/api/v1/matches/${code}/verify`);
+      const second = await kit.host.get(`/api/v1/matches/${code}/verify`);
+      expect(second.body).toBe(first.body);
+      expect(reads.mock.calls.filter(([matchId]) => matchId === id)).toHaveLength(1);
+    } finally {
+      reads.mockRestore();
+    }
+  });
 });
 
-// Runs last in this file: it uses up this address's verify budget.
+// From an address of its own, so the budget it uses up is no other test's (any order works).
 describe('verify: its own rate limit (03 §13)', () => {
   it('answers 429 RATE_LIMITED after 20 calls a minute from one address', async () => {
     const answers = [];
     for (let i = 0; i < 25; i += 1) {
-      answers.push(await kit.player.get('/api/v1/matches/NOPE99/verify'));
+      answers.push(
+        await kit.harness.built.fastify.inject({
+          method: 'GET',
+          url: '/api/v1/matches/NOPE99/verify',
+          remoteAddress: '10.40.0.1',
+        }),
+      );
     }
     const limited = answers.filter((a) => a.statusCode === 429);
     expect(answers.length - limited.length).toBeLessThanOrEqual(20);

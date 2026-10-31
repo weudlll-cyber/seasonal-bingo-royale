@@ -3,16 +3,12 @@
  * @module web
  * @brief  One of the owner's cards: taps, speed bonus, missed-number rule (WP-08, 01 §6).
  *
- * Responsibility: render the owner's card of the current round with its season cells.
- *                 When the owner taps (`manual`), a tap or Enter/Space on a drawn cell
- *                 marks it; the rules live in ../manualMarking: speed bonus inside the
- *                 window, a late tap without bonus, refusal of undrawn cells, and the
- *                 starter's missed-number rule (marked for the owner after the delay, or
- *                 left open). The speed bonus is shown apart from the points, because the
- *                 Quick Test computes the match before playback and cannot count it. In
- *                 `auto` mode the card shows the server's marks. The parent remounts it per round
- *                 (new card, new marks); between the round end and the next round the
- *                 last number stays on screen and every tap is refused.
+ * Responsibility: render the owner's card of the current round with its season cells. With
+ *                 `manual` a tap or Enter/Space on a drawn cell marks it under ../manualMarking
+ *                 (speed bonus, late tap, refused undrawn cells, missed-number rule). The speed
+ *                 bonus shows apart from the points, as the Quick Test computes the match before
+ *                 playback. With `auto` the card shows the server's marks. The parent remounts it
+ *                 per round; between rounds the last number stays and every tap is refused.
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
  * Used by:        ./OwnerArea; TapGrid also by the live card (../game/LiveCard)
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08

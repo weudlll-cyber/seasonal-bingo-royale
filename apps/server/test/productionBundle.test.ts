@@ -8,7 +8,7 @@
  *                 aside: they quote the sources, comments included) contains a marker of
  *                 development code: the Quick Test route or page, the dev sign-in menu,
  *                 or the development server address.
- * Depends on:     vitest, node:child_process, node:fs
+ * Depends on:     nothing (runs ../build.mjs and the web client's vite build)
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/03-security-architecture.md §13
  */
 import { spawnSync } from 'node:child_process';
@@ -18,7 +18,13 @@ import path from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-const DEV_MARKERS = ['dev/quicktest', 'dev-sign-in', 'Quick Test', '127.0.0.1:3900'];
+const DEV_MARKERS = [
+  'dev/quicktest',
+  'dev-sign-in',
+  '/dev/sign-in',
+  'Quick Test',
+  '127.0.0.1:3900',
+];
 const SERVER_DIR = path.resolve(import.meta.dirname, '..');
 const WEB_DIR = path.resolve(SERVER_DIR, '../web');
 const out = mkdtempSync(path.join(tmpdir(), 'sbr-bundle-'));
