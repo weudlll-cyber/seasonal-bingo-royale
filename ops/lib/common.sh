@@ -7,21 +7,33 @@
 #                 asks (never in --yes mode) and a yes/no confirmation; running a command or
 #                 only showing it (--dry-run); writing a file only when its content changed
 #                 (so a second install run changes nothing), atomically; reading a value of
-#                 an env file or replacing one value in it; removing work files and throw-away containers on exit; and
-#                 running Docker Compose for one environment with the right files.
+#                 an env file or replacing one value in it; a host as a URL writes it (IPv6
+#                 in brackets); removing work files and
+#                 throw-away containers on exit, and starting an app stopped by stop_app
+#                 again when the script fails before restart_app_done; running Docker
+#                 Compose for one environment with the right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
 
 SBR_ROOT=${SBR_ROOT:-/opt/sbr}
 SBR_ETC=${SBR_ETC:-/etc/sbr}
 SBR_BACKUPS=${SBR_BACKUPS:-/var/backups/sbr}
+# Per environment: the rollback data of an unconfirmed update, the backup-failed mark.
+SBR_STATE=${SBR_STATE:-/var/lib/sbr}
 SBR_CHANGES=0
 SBR_DRY_RUN=${SBR_DRY_RUN:-0}
 SBR_TMP_PATHS=()
 SBR_TMP_CONTAINERS=()
+SBR_RESTART_APP=''
 
-# Work files and throw-away containers go when the script ends, also after an error.
+# Work files and throw-away containers go when the script ends, also after an error. A
+# script that stopped the app (restore, rollback) and then fails starts it again (audit H3).
 sbr_cleanup() {
+  local status=$?
+  if ((status != 0)) && [[ -n $SBR_RESTART_APP ]]; then
+    warn "stopped with an error: starting the app of $SBR_RESTART_APP again"
+    compose "$SBR_RESTART_APP" start app || warn "the app did not start: sbr status, sbr logs app"
+  fi
   ((${#SBR_TMP_PATHS[@]})) && rm -rf "${SBR_TMP_PATHS[@]}"
   ((${#SBR_TMP_CONTAINERS[@]})) && docker rm -f "${SBR_TMP_CONTAINERS[@]}" >/dev/null 2>&1
   return 0
@@ -29,6 +41,12 @@ sbr_cleanup() {
 trap sbr_cleanup EXIT
 cleanup_path() { SBR_TMP_PATHS+=("$1"); }
 cleanup_container() { SBR_TMP_CONTAINERS+=("$1"); }
+# stop_app <env>: stops the app until restart_app_done; a failure in between starts it again.
+stop_app() {
+  SBR_RESTART_APP=$1
+  compose "$1" stop app
+}
+restart_app_done() { SBR_RESTART_APP=''; }
 
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -63,6 +81,12 @@ confirm() {
 env_value() {
   [[ -f $1 ]] || return 0
   sed -n "s/^$2=//p" "$1" | head -1 | sed -E "s/^'(.*)'\$/\1/"
+}
+
+# url_host <host>: the host as a URL writes it; an IPv6 address goes in brackets
+# (https://[2001:db8::1]/), a domain or IPv4 address stays as it is.
+url_host() {
+  if [[ $1 == *:* && $1 != \[* ]]; then printf '[%s]' "$1"; else printf '%s' "$1"; fi
 }
 
 # set_env_value <file> <key> <value>: replaces one line, single-quoted, atomically.

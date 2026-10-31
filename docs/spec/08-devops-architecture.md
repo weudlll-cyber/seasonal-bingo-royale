@@ -71,6 +71,8 @@ Actions pinned by SHA, `permissions: contents: read` default, no secrets availab
 
 As built (2026-10-24): `lint`, `unit` and `integration` run as one job `verify` (`pnpm verify`) followed by the coverage step, about 3 minutes; the job `coverage-integration` runs the integration tests once more beside it for the server's coverage report (2026-10-31); `security` and `docs` well under a minute; `e2e` about 4 minutes per browser, the three in parallel. A full run on a branch push takes about 4 minutes (before: 10–47 minutes, of which up to 38 were spent installing browser libraries with apt, and the browsers ran one after another on one runner). There is no build to reuse between jobs: the e2e jobs run the development server and client, `image` builds the container on the way to master only.
 
+Concurrency: a newer push to a branch cancels the branch's older run; on `master` every commit has its own concurrency group and is never cancelled, so each merge commit gets a finished run even when merges follow each other quickly.
+
 Note for operators of this repo: a green local check is not a green CI — after every merge to `master` the CI run for the merge commit is checked (`gh run list --branch master`).
 
 ## 4. Containers

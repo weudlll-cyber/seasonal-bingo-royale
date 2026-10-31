@@ -6,12 +6,13 @@
 # Responsibility: find the website's Caddy (compose project "seasonal-site", service
 #                 "caddy", as its docs/DEPLOYMENT.md sets it up in deploy/site/) and from it
 #                 the Docker network (seasonal-site_default, else its only one, else asked),
-#                 that network's subnet as the trusted proxy range and the website's domain
-#                 (SITE_DOMAIN); stop with a plain message when the website is not running
-#                 (a dry run on a server without Docker yet only shows the step).
-#                 Write the snippet that routes /games/bingo/* (HTTP and WebSocket) to the
-#                 app and print how to add it to the website's Caddyfile. The installer never
-#                 edits the website's files.
+#                 every subnet of that network (IPv4 and IPv6) as the trusted proxy ranges
+#                 and the website's domain (SITE_DOMAIN); stop with a plain message when the
+#                 website is not running (a dry run on a server without Docker yet only
+#                 shows the step). Write the snippet that routes /games/bingo/* (HTTP and
+#                 WebSocket) to the app, with /games/bingo/metrics answered 404 inside that
+#                 route, and print how to add it to the website's Caddyfile. The installer
+#                 never edits the website's files.
 # Used by:        ops/install.sh, ops/sbr (status)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §8
 
@@ -23,7 +24,11 @@ website_caddy() {
     --filter label=com.docker.compose.service=caddy --format '{{.Names}}' | head -1
 }
 
-network_subnet() { docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{end}}' "$1" | awk '{ print $1 }'; }
+# network_subnets <network>: every IPAM subnet of the network (IPv4 and IPv6), comma-separated
+# as SBR_TRUSTED_PROXIES takes them: Caddy may reach the app from any of them.
+network_subnets() {
+  docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{end}}' "$1" | xargs | tr ' ' ','
+}
 
 # choose_network <caddy>: the compose default network of the website when Caddy is on it,
 # else its only network; with several, ask (or --website-network in unattended runs).
@@ -58,8 +63,9 @@ detect_website() {
     die "the Seasonal Entertainment website is not running on this server (no Caddy container of the compose project \"$WEBSITE_PROJECT\"). Install the website first (its docs/DEPLOYMENT.md), then run this installer again with --type website."
   fi
   choose_network "$caddy"
-  # The whole network's range: Caddy keeps working for the app after it is recreated.
-  SBR_TRUSTED_PROXIES=$(network_subnet "$SBR_WEBSITE_NETWORK")
+  # The whole network's ranges: Caddy keeps working for the app after it is recreated.
+  SBR_TRUSTED_PROXIES=$(network_subnets "$SBR_WEBSITE_NETWORK")
+  [[ -n $SBR_TRUSTED_PROXIES ]] || die "the network $SBR_WEBSITE_NETWORK has no subnet to trust (docker network inspect $SBR_WEBSITE_NETWORK)"
   if [[ -z ${SBR_WEBSITE_DOMAIN:-} ]]; then
     SBR_WEBSITE_DOMAIN=$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$caddy" | sed -n 's/^SITE_DOMAIN=//p')
   fi
@@ -72,13 +78,16 @@ write_snippet() {
   local env=$1 target="$SBR_ROOT/website-bingo.caddy"
   put_file "$target" 0644 <<EOF
 # Seasonal Bingo Royale under /games/bingo (written by ops/install.sh, environment $env).
-# Belongs inside the website's {\$SITE_DOMAIN} block: before its catch-all reverse_proxy,
-# Caddy runs "handle" first, so these paths go to the bingo app, the rest to the site.
+# Belongs inside the website's {\$SITE_DOMAIN} block, anywhere: Caddy sorts the directives
+# itself, and "handle /games/bingo/*" (a path matcher) runs before the site's catch-all
+# (a "handle" without a matcher, or a plain reverse_proxy), so these paths go to the bingo
+# app and the rest to the site.
 redir /games/bingo /games/bingo/ 308
-# Metrics stay inside the server (the app refuses proxied requests to them as well).
-@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
-respond @sbr_metrics 404
 handle /games/bingo/* {
+	# Metrics stay inside the server (the app refuses proxied requests to them as well).
+	# Inside the handle: a respond beside it would run only after the handle had proxied.
+	@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
+	respond @sbr_metrics 404
 	# HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
 	reverse_proxy sbr-bingo-$env:3000
 }
