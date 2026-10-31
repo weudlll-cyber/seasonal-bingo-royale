@@ -7,7 +7,8 @@
  *                 callers that get through and the ones refused (401/403 with
  *                 SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or CSRF_INVALID; a refused
  *                 socket handshake) — anonymous, guest, player, another host and the
- *                 match's host, each with a fresh session. A route or intent missing from
+ *                 match's host, each with a fresh session; an allowed caller never meets a
+ *                 server failure (5xx, INTERNAL). A route or intent missing from
  *                 the tables fails the test, so a new one cannot go in unreviewed. Bodies are
  *                 chosen so a call that gets through changes as little as possible. One write
  *                 per route group is refused without the CSRF token or with another session's.
@@ -227,7 +228,8 @@ describe('the authorization matrix: HTTP routes', () => {
       for (const role of ROLES) {
         const r = await call(role, route);
         const allowed = route.allow.includes(role);
-        if (refused(r.status, r.code) === allowed) {
+        // An allowed caller is let through and the server does not fail (no 5xx).
+        if (refused(r.status, r.code) === allowed || (allowed && r.status >= 500)) {
           wrong.push(
             `${route.method} ${route.path} as ${role}: ${String(r.status)} ${String(r.code)}`,
           );
@@ -254,7 +256,8 @@ describe('the authorization matrix: WS intents', () => {
         const answer = await kit.send(socket, t, intent.data(code));
         socket.disconnect();
         const isRefused = !answer.ok && REFUSALS.has(answer.code ?? '');
-        if (isRefused === intent.allow.includes(role)) {
+        const failed = !answer.ok && answer.code === 'INTERNAL';
+        if (isRefused === intent.allow.includes(role) || failed) {
           wrong.push(`${t} as ${role}: ${answer.ok ? 'ok' : (answer.code ?? '?')}`);
         }
       }
