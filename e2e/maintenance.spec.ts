@@ -10,7 +10,7 @@
  *                 afterwards, also when a step fails. Runs alone after the other specs of its
  *                 browser (the flag affects every test on the server). In Chromium the page
  *                 and the banner are saved at desktop and phone size in both themes.
- * Depends on:     @playwright/test, node:fs, ./devStack, ./realGame, ./screens
+ * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -53,7 +53,9 @@ test('maintenance: the page, the host banner, and a running match that plays on'
     mkdirSync(path.dirname(FLAG), { recursive: true });
     writeFileSync(FLAG, REASON);
     // The server looks at the flag at most every 2 s, the client asks every 30 s and on load.
-    await host.waitForTimeout(2_100);
+    await expect
+      .poll(async () => (await host.request.get('/api/v1/maintenance')).json(), { timeout: 5_000 })
+      .toEqual({ on: true, reason: REASON });
     // A fresh load asks at once (an open page would within 30 s).
     await host.goto('/#/');
     await host.reload();

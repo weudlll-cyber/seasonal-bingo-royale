@@ -6,11 +6,11 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 ### Implementation
 
-- Work packages (docs/spec/15-implementation-plan.md): WP-01 to WP-08 done; WP-09 to WP-13 and WP-27 at first-draft depth on branches, their remainders below; WP-14 to WP-26 and WP-28 to WP-30 not started
+- Work packages (docs/spec/15-implementation-plan.md): WP-01 to WP-08 done; WP-09 to WP-13 and WP-27 at first-draft depth on master, their remainders below; WP-14 to WP-26 and WP-28 to WP-30 not started
 - Realtime classic rounds: rule for players still tapping when a prize is decided on a draw (to be decided with the owner before WP-12)
 - WP-09 remainder: e-mail verification flow (tokens, Mailpit), TOTP 2FA and recovery codes, password reset, session list and revoke (`/me/sessions`), the bundled top-100k breached-password list (admin session lifetimes: built in AUDIT-1); flags `SBR_FEATURE_EMAIL_VERIFICATION` / `SBR_FEATURE_TWO_FACTOR` stay off until then
 - Real game, first-draft remainder (WP-12 to WP-14): guest watching from the shell, chat, sounds, asynchronous matches and pause, visibility and series, choosing a ruleset version, the admin app (`apps/admin`), leaderboards and profiles, the away summary
-- WP-11 remainder: zod message schemas in `packages/contracts/ws`, the `/admin` namespace and dashboard ticks, per-player rooms (`match:<id>:player:<accountId>`), batched `standings.delta`, socket and IP caps (06 §8), the role-change push (06 §2.3; the logout push is built), Redis adapter
+- WP-11 remainder: zod message schemas in `packages/contracts/ws`, the `/admin` namespace and dashboard ticks, per-player rooms (`match:<id>:player:<accountId>`), batched `standings.delta`, socket and IP caps (06 §8), the role-change push (06 §2.3; the logout push is built, and every host intent re-checks the session and the host role since AUDIT-2), Redis adapter
 - WP-10 remainder (first draft keeps them in the event log or simplified): tables `rounds`, `cards`, `draws`, `prize_awards` as read models; `ruleset_version_id` once rulesets are versioned (WP-20; the draft stores the frozen ruleset document); manual marks off the aggregate path (02 §5.4: recorded in `marks` and folded at the next draw); `last_seen_event_seq` and the away summary
 
 - WP-27 remainder (the install draft is done, see part two): publish signed release images and let the installer pull and verify them with cosign instead of building on the server; the one-time bootstrap token and `/admin/setup` page (with the admin app, WP-19; until then `sbr admin create-super`); sending e-mail with the stored SMTP settings; staging beside prod on one server (09 §7; today one environment per server, the installer refuses a second)

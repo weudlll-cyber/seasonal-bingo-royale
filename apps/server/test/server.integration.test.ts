@@ -7,7 +7,7 @@
  *                 Fastify app, and check that /healthz, /readyz, /metrics, the placeholder
  *                 page and a 404 all behave as the specification says — including the
  *                 security headers (03 §13, 12 §6) and the problem+json content type.
- * Depends on:     vitest, ./harness, ../src/index, fastify
+ * Depends on:     ./harness, ../src/index, fastify
  * Spec:           docs/spec/12-testing-strategy.md §2, docs/spec/15-implementation-plan.md WP-03
  */
 import type { FastifyInstance } from 'fastify';
@@ -61,7 +61,7 @@ describe('server integration', () => {
     const response = await app().inject({ method: 'GET', url: '/' });
     expect(response.headers['content-security-policy']).toContain("default-src 'self'");
     expect(response.headers['x-content-type-options']).toBe('nosniff');
-    expect(response.headers['x-frame-options']).toBeDefined();
+    expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
     expect(response.headers['referrer-policy']).toBe('no-referrer');
   });
 

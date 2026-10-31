@@ -8,9 +8,8 @@
  *                 match goes on); the page's theme is put back afterwards.
  *                 `captureLook` adds the desktop (1280×800) and phone (390×844) size, and can
  *                 bring one element into view first.
- * Depends on:     @playwright/test, node:path, ./devStack
- * Used by:        ./hostNav.spec.ts, ./acceptance/realGame.spec.ts, ./account.spec,
- *                 ./createFormPhone.spec, ./startScreens.spec, ./maintenance.spec, ./verifyMatch.spec
+ * Depends on:     @playwright/test, ./devStack
+ * Used by:        the Playwright specs (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/01-game-design.md §13
  */
 import path from 'node:path';
@@ -32,8 +31,10 @@ const themeNow = (page: Page) =>
 async function setTheme(page: Page, theme: string): Promise<void> {
   if ((await themeNow(page)) !== theme) await page.getByTestId('theme-toggle').click();
   await expect.poll(() => themeNow(page)).toBe(theme);
-  // Buttons fade their background (160 ms): the picture waits until the fade is done.
-  await page.waitForTimeout(400);
+  // Buttons fade their background (160 ms): the picture waits until no fade is running.
+  await page.waitForFunction(() =>
+    document.getAnimations().every((a) => a.playState !== 'running'),
+  );
 }
 
 // <name>-light.jpg and <name>-dark.jpg. `show`, when given, is brought to the middle of the
