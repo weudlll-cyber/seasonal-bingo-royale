@@ -79,6 +79,7 @@ function Arena({
             draws={view.drawsSoFar}
             speedWindowMs={result.speedWindowMs}
             showWindow={!view.finished}
+            paused={view.roundOver && !view.finished}
           />
           {owner !== undefined ? <OwnCards live={live} view={view} /> : <Spectating />}
         </section>

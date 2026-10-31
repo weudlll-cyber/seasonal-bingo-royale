@@ -104,6 +104,7 @@ function HostLive({
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
           showWindow={!view.finished}
+          paused={view.roundOver && !view.finished}
         />
         <BetweenRounds live={live} view={view} />
         {running ? <HostDrawControls live={live} view={view} /> : null}

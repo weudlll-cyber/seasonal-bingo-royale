@@ -66,7 +66,11 @@ export function Playback({
       ) : null}
       {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
       <Banners banners={view.banners} />
-      <DrawTicker draws={view.drawsSoFar} speedWindowMs={result.speedWindowMs} />
+      <DrawTicker
+        draws={view.drawsSoFar}
+        speedWindowMs={result.speedWindowMs}
+        paused={view.roundOver && !view.finished}
+      />
       <OwnerArea result={result} view={view} />
       <Standings view={view} showSeasons={result.gameType === 'royale'} />
       {view.finished ? <FinalPlacement result={result} view={view} /> : null}

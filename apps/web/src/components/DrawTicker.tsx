@@ -5,11 +5,12 @@
  *
  * Responsibility: render every draw of the round so far, numbers with their column
  *                 letter ("G 52", D7); classicSeasons symbols (101–104) show the original
- *                 season icon with its name. The newest draw fades in
- *                 unless the viewer prefers reduced motion.
+ *                 season icon with its name. The newest draw is highlighted and fades in
+ *                 unless the viewer prefers reduced motion; in the pause between rounds
+ *                 none is highlighted, so the last number does not read as "tap now".
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
- * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §13
+ * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
  */
 import type { ReactElement } from 'react';
 
@@ -22,15 +23,18 @@ interface DrawTickerProps {
   readonly speedWindowMs: number;
   // The speed-window line; hidden once the match is over.
   readonly showWindow?: boolean;
+  // The pause between rounds: no draw is highlighted as the newest.
+  readonly paused?: boolean;
 }
 
 export function DrawTicker({
   draws,
   speedWindowMs,
   showWindow = true,
+  paused = false,
 }: DrawTickerProps): ReactElement {
   const reduced = useReducedMotion();
-  const newest = draws.length - 1;
+  const newest = paused ? -1 : draws.length - 1;
   return (
     <div>
       {showWindow ? (

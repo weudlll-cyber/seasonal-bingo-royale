@@ -2,17 +2,18 @@
 /**
  * @file   apps/web/src/host/rules.test.tsx
  * @module web/host
- * @brief  The owner's timing rules on screen: D12 (shortest interval), D13 (Draw next lock), D14 (pause).
+ * @brief  The owner's timing rules on screen: D12 (interval), D13 (Draw next lock), D14 and D21 (pause).
  *
  * Responsibility: the create form refuses seconds below 1 s more than the longest tap time
  *                 with a plain message and sends the royale pause choice; the live seconds
  *                 field does not send a too-short interval; Draw next counts down while it
  *                 is locked; the console offers "Start next round" and players read
- *                 "Waiting for the host to start round N" while the match waits for the host.
- * Depends on:     @testing-library/react, vitest, ./CreateMatch, ./HostDrawControls,
+ *                 "Waiting for the host to start round N" while the match waits for the host;
+ *                 in a timed pause (D21) no Draw next, "Round over" and no newest number.
+ * Depends on:     @testing-library/react, ./CreateMatch, ./HostDrawControls,
  *                 ./HostConsole, ../game/MatchScreen, ../test/matchFixture, ../test/quickTestFixture,
  *                 ../game/useLiveMatch, ./createForm, ../playback
- * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D13, D14)
+ * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D13, D14, D21)
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -168,16 +169,20 @@ describe('D21: a 15 s pause the host can end early', () => {
     expect(screen.queryByTestId('host-draw-next')).toBeNull();
     expect(screen.queryByText(/Draw next opens/)).toBeNull();
     expect(screen.queryByTestId('host-next-round')).toBeNull();
+    expect(screen.queryByTestId('draw-newest')).toBeNull();
     fireEvent.click(screen.getByTestId('host-next-round-now'));
     expect(sent).toHaveBeenCalledWith('round.next', { code: 'RULES1' });
   });
 
-  it('shows players "Round over" instead of the last ball until the next first draw', async () => {
+  it('shows players "Round over" and no newest number until the next first draw', async () => {
     serve(timed({ youHost: false }), inPause);
     await show(<MatchScreen code="RULES1" />);
     const ball = screen.getByTestId('current-ball');
     expect(ball.textContent).toBe('Round over');
     expect(ball.getAttribute('data-item')).toBeNull();
+    // The ticker keeps the round's numbers but highlights none as the newest.
+    expect(screen.getByTestId('draw-ticker').children.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('draw-newest')).toBeNull();
     cleanup();
     // The next round started, no number drawn yet.
     serve(timed({ youHost: false, nextRoundAt: null }), {
