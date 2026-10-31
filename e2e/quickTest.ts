@@ -32,6 +32,11 @@ export interface RunSettings {
 export async function startRun(page: Page, settings: RunSettings): Promise<void> {
   // The Quick Test lives at #/quicktest in the app shell (development builds).
   await page.goto('/#/quicktest');
+  // On a page that already ran (same hash, no reload) the form is folded: reopen it.
+  const change = page.getByTestId('simulation-change');
+  if ((await change.count()) > 0 && (await change.textContent()) === 'Change settings') {
+    await change.click();
+  }
   await page.getByTestId('game-type').selectOption(settings.gameType);
   await page.getByTestId('seed').fill(settings.seed);
   await page.getByTestId('bot-count').fill(String(settings.bots));
