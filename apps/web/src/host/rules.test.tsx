@@ -120,7 +120,6 @@ describe('D14: the pause between royale rounds', () => {
       leaderboard: null,
       maxPlayers: 20,
       pause: { kind: 'host' },
-      fast: false,
       start: { kind: 'host' },
     });
     expect(body.roundPause).toEqual({ kind: 'host' });

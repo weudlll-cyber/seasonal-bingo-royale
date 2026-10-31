@@ -4,8 +4,9 @@
  * @brief  The create form's values, their defaults, the D12 check and the POST /matches body.
  *
  * Responsibility: what the host fills in (title, game type, prizes, draws, missed numbers,
- *                 leaderboard, max players, royale pause, start rule, the development-only fast test
- *                 profile), the starting values, the message for seconds below the shortest
+ *                 leaderboard, max players, royale pause, start rule; in development builds
+ *                 only the fast test profile), the starting values, the message for seconds
+ *                 below the shortest
  *                 interval (D12), and the request body (05 §2.3; the server clamps seconds
  *                 and delays into range as well).
  * Depends on:     @sbr/contracts (prize list), ../components/StartMarkingField, ../drawControl,
@@ -44,8 +45,9 @@ export interface FormValues {
   readonly maxPlayers: number;
   // Royale: wait N seconds between rounds, or the host starts each one (D14).
   readonly pause: RoundPauseChoice;
-  // Development only: the server's fast test profile (short royale for the play-through).
-  readonly fast: boolean;
+  // Development only: the server's fast test profile (short royale for the play-through);
+  // never set, and never sent, in a production build.
+  readonly fast?: boolean;
   // How the match starts (01 §7.6).
   readonly start: StartRuleChoice;
 }
@@ -59,7 +61,6 @@ export const INITIAL: FormValues = {
   leaderboard: null,
   maxPlayers: 20,
   pause: INITIAL_PAUSE,
-  fast: false,
   start: { kind: 'host' },
 };
 
@@ -86,7 +87,8 @@ export function createBody(v: FormValues) {
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
     maxPlayers: Math.min(200, Math.max(2, v.maxPlayers)),
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
-    ...(v.fast ? { testProfile: 'fast' as const } : {}),
+    // Vite makes DEV false in a production build, which then drops this line.
+    ...(import.meta.env.DEV && v.fast === true ? { testProfile: 'fast' as const } : {}),
     startRule: toStartRule(v.start, Date.now()) ?? { kind: 'host' as const },
   };
 }

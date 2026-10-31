@@ -18,7 +18,13 @@ import path from 'node:path';
 
 import { afterAll, describe, expect, it } from 'vitest';
 
-const DEV_MARKERS = ['dev/quicktest', 'dev-sign-in', 'Quick Test', '127.0.0.1:3900'];
+const DEV_MARKERS = [
+  'dev/quicktest',
+  'dev-sign-in',
+  '/dev/sign-in',
+  'Quick Test',
+  '127.0.0.1:3900',
+];
 const SERVER_DIR = path.resolve(import.meta.dirname, '..');
 const WEB_DIR = path.resolve(SERVER_DIR, '../web');
 const out = mkdtempSync(path.join(tmpdir(), 'sbr-bundle-'));

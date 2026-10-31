@@ -235,7 +235,7 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
           <input
             type="checkbox"
             data-testid="create-fast"
-            checked={values.fast}
+            checked={values.fast === true}
             onChange={(e) => {
               set('fast', e.target.checked);
             }}
