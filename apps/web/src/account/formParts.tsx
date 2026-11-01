@@ -7,7 +7,7 @@
  *                 server call once (busy while it runs), shows the refusal as a sentence
  *                 (./accountText) and goes to the lobby when it succeeds; `FormError`.
  * Depends on:     react, ../shell/router, ./accountText
- * Used by:        ./SignIn, ./Register
+ * Used by:        ./SignIn, ./Register, ./AccountPage
  * Spec:           docs/spec/05-api-design.md §2.1
  */
 import { useState, type ReactElement, type SyntheticEvent } from 'react';

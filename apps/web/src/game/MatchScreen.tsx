@@ -9,11 +9,11 @@
  *                 effects, seasons, shield; standings active first; classic prize list; one match
  *                 log, newest first); the cut screen with the next-round countdown or "Waiting
  *                 for the host to start round N" (D14) over the round recap (./Interlude, D20,
- *                 for everyone); the spectator note once out; the final placement on top;
- *                 ./MatchCancelled for a match without result (D17). Remounted per match code.
+ *                 for everyone); the spectator note once out; the final placement on top; names
+ *                 link to profiles; ./MatchCancelled for a match without result (D17).
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
- *                 ./EndActions, ./game.css
+ *                 ./EndActions, ../league/playerHref, ./game.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -25,6 +25,7 @@ import { inPlay, OwnerStatusFor } from '../components/OwnerArea.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
 import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
+import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { CurrentBall } from './CurrentBall.js';
 import { EndActions } from './EndActions.js';
@@ -85,7 +86,11 @@ function Arena({
           {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
           {/* At the end the final placement above replaces the live standings. */}
           {view.finished ? null : (
-            <Standings view={view} showSeasons={result.gameType === 'royale'} />
+            <Standings
+              view={view}
+              showSeasons={result.gameType === 'royale'}
+              profileHref={playerHref}
+            />
           )}
           <MatchLog banners={view.banners} />
         </aside>
@@ -107,7 +112,7 @@ function ArenaNotice({
   if (view.finished) {
     return (
       <>
-        <FinalPlacement result={live.view} view={view} />
+        <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
         <EndActions host={false} code={live.match.code} />
       </>
     );

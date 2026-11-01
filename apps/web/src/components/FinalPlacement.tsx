@@ -8,7 +8,8 @@
  *                 row): royale shows points and seasons, eliminated players dimmed with
  *                 "out" below a divider, ranked by when they went out (01 §7.5); classic
  *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
- *                 states how places are decided.
+ *                 states how places are decided. Names link to profiles when the screen
+ *                 passes `profileHref` (the live match screen).
  * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
@@ -17,14 +18,18 @@ import type { ReactElement } from 'react';
 
 import type { PlaybackProps } from './Playback.js';
 import { Podium } from './Podium.js';
-import { OutDivider, RankRow } from './RankRow.js';
+import { OutDivider, RankRow, type ProfileHref } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
 import type { PlaybackView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 
 type Placed = QuickTestResult['players'][number];
 
-export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
+export function FinalPlacement({
+  result,
+  view,
+  profileHref,
+}: PlaybackProps & { readonly profileHref?: ProfileHref | undefined }): ReactElement {
   const byId = new Map(view.standings.map((p) => [p.accountId, p]));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
   const owner = sorted.find((p) => p.isOwner);
@@ -33,6 +38,7 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   const row = (p: Placed) => ({
     note: finalNote(result, view, p),
+    href: profileHref?.(p.accountId) ?? null,
     out: byId.get(p.accountId)?.eliminated === true,
     attrs: {
       'data-testid': `final-row-${String(p.place)}`,
@@ -55,6 +61,7 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
         entries={podium.map((p) => ({
           place: p.place,
           name: p.accountId,
+          href: row(p).href,
           note: row(p).note,
           own: p.isOwner,
           attrs: row(p).attrs,

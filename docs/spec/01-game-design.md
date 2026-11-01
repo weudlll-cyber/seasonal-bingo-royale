@@ -346,6 +346,8 @@ Leaderboard integrity rules are in [03-security-architecture.md](03-security-arc
 
 Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly.
 
+- As built (WP-15 first draft): league points per the default table (`LEADERBOARD_DEFAULTS` in `packages/contracts`; finalists are royale players never eliminated; the finish bonus goes to everyone with a final place) only from finished matches with the switch on, no bots and at least 8 distinct humans with a confirmed e-mail address; written once per match in the finish projection. Season boards are calendar quarters in UTC named Winter (Jan–Mar), Spring, Summer, Autumn and the year. The Season Complete badge is given in any finished match. The profile (`#/players/<name>`) counts every finished match, also those with bots, and says per recent match whether it gave league points and if not why; no avatars yet. Player names in the live standings and the final placement link to the profile (never bots).
+
 ## 11. Realtime vs. asynchronous — what differs
 
 Everything is the same engine. Only these ruleset values differ by default:

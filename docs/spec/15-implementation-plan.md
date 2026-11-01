@@ -82,6 +82,7 @@ Accept: E2E journey 2 with time-travel hook. Owner sees: away summary after a si
 **WP-15 Leaderboards, profiles, badges**
 Spec: 01 §10, 04 §3.4, 05 §2.2, §2.4. Periods, league awards (idempotent), boards, profiles, badges, account deletion/export.
 Accept: integration tests for awarding once; min-players rule. Owner sees: season board and profile pages.
+As built (first draft, branch feat/leaderboards): migration 0009 (periods with the all-time period seeded, season periods per calendar quarter created on the first award, league entries and awards, badges with `season-complete`); awards and the Season Complete badge written in the `matchFinished` projection transaction, idempotent (`apps/server/src/leaderboard/awards.ts`, rules in `packages/application/src/leaderboard`, defaults `LEADERBOARD_DEFAULTS`); a match counts only with the switch on, no bots and ≥ 8 verified humans; `GET /leaderboards`, `/leaderboards/:periodId`, `/leaderboards/:periodId/me`, `/players/:displayName`, `/me/export`; web pages `#/leaderboard`, `#/players/<name>`, `#/account` (export, deletion) and profile links in the live standings and final placement. Left for later: adjustments, `player_profiles` and avatars, `GET`/`PATCH /me`, the match board, the admin's leaderboard settings (WP-20).
 
 **WP-16 Notifications and verification page**
 Spec: 06 §6, 05 §2.3, §2.5, 01 §9. In-app notifications, e-mail digest, Web Push, verify bundle and page.

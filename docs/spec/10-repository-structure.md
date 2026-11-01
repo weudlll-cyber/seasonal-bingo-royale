@@ -44,11 +44,13 @@ seasonal-bingo-royale/
 │  │  └─ src/
 │  │     ├─ match/              engine.ts, flow.ts, runner.ts, create.ts, startRules.ts, ports.ts (Clock,
 │  │     │                      MatchStore, Scheduler, EventBus), fakes.ts
-│  │     ├─ identity/  config/  leaderboard/  chat/  notification/  audit/  (planned)
+│  │     ├─ leaderboard/        leaguePoints.ts (who counts, points per place), seasonPeriod.ts
+│  │     ├─ identity/  config/  chat/  notification/  audit/  (planned)
 │  │     └─ index.ts
 │  ├─ contracts/                Zod schemas shared by server and clients
 │  │  └─ src/  config/ (ruleset schema, prizes, defaults/)  view/ (the client view)
-│  │           http/  ws/  events/  errors.ts  (planned)
+│  │           http/ (leaderboard, profile and export answers)
+│  │           ws/  events/  errors.ts  (planned)
 │  └─ ui/                       Shared React components + design tokens (web + admin)
 ├─ apps/
 │  ├─ server/
@@ -60,6 +62,7 @@ seasonal-bingo-royale/
 │  │  │  ├─ realtime/           gateway.ts, intents.ts, inOrder.ts
 │  │  │  ├─ match/              runtime, pgMatchStore, pgScheduler, codec, projections, retention
 │  │  │  ├─ view/               the client view built from the event log
+│  │  │  ├─ leaderboard/        league awards and badges (finish projection), boards, profiles, export
 │  │  │  ├─ db/                 pool.ts, migrator.ts, migrations/ (SQL)
 │  │  │  ├─ dev/                Quick Test runner, fast test rulesets (development only)
 │  │  │  └─ identity/  security/  notify/  (planned: OIDC, JWT handoff, uploads, mail, push)
@@ -71,7 +74,8 @@ seasonal-bingo-royale/
 │  │           playback.ts  playbackScoring.ts  playbackTypes.ts  seasonIcons.ts
 │  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts  useSecondsUntil.ts
 │  │           motion.css
-│  │           leaderboard/  profile/  chat/  embed/  strings.ts  (planned)
+│  │           league/ (leaderboard and profile pages, profile links)
+│  │           chat/  embed/  strings.ts  (planned)
 │  ├─ admin/                    Admin client (empty shell until WP-19)
 │  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)  (planned)
 │  └─ embed-loader/             embed.js (tiny, no deps; empty shell until WP-25)

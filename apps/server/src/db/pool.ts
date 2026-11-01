@@ -12,7 +12,9 @@
  *                 ../http/routes/auth, ../http/routes/devSignIn, ../http/routes/matches,
  *                 ../http/routes/matchVerify, ../index, ../match/pgMatchStore,
  *                 ../match/pgScheduler, ../match/retention, ../match/runtime,
- *                 ../match/sealedSeedCheck, ../realtime/gateway, ../view/playerNames
+ *                 ../match/sealedSeedCheck, ../realtime/gateway, ../view/playerNames,
+ *                 ../http/routes/leaderboards, ../http/routes/profiles, ../leaderboard/boards,
+ *                 ../leaderboard/profiles, ../leaderboard/accountExport
  * Spec:           docs/spec/04-database-design.md §1, docs/spec/02-software-architecture.md §7
  */
 import pg from 'pg';

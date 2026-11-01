@@ -5,16 +5,17 @@
  *
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
- *                 auth, the live match engine and its routes onto a fresh Fastify instance,
- *                 under the base path (SBR_BASE_PATH) and behind the trusted proxies; first
- *                 of all, refuse a seed key that does not open the stored match secrets.
+ *                 auth, the live match engine and its routes, the leaderboards and profiles
+ *                 onto a fresh Fastify instance, under the base path (SBR_BASE_PATH) and
+ *                 behind the trusted proxies; first of all, refuse a seed key that does not
+ *                 open the stored match secrets.
  *                 The caller owns the lifecycle (listen, scheduler, close, pool disposal).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
  *                 ../auth/sessionPlugin, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ./plugins/problem,
  *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
- *                 ./routes/health, ./routes/maintenance, ./routes/matches, ./routes/matchVerify,
- *                 ./routes/metrics, ./routes/placeholder,
+ *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
+ *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
  *                 ./routes/quicktest, ./routes/webClient, ../match/runtime, ../realtime/gateway
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
@@ -36,11 +37,13 @@ import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerDevSignIn } from './routes/devSignIn.js';
 import { registerHealth } from './routes/health.js';
+import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
 import { registerMatchRoutes } from './routes/matches.js';
 import { registerVerifyRoute } from './routes/matchVerify.js';
 import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
+import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
 import { registerWebClient } from './routes/webClient.js';
 
@@ -132,6 +135,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
   registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
+  registerLeaderboardRoutes(fastify, { pool: deps.pool });
+  registerProfileRoutes(fastify, { pool: deps.pool });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,
     engine: match.engine,

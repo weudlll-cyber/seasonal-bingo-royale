@@ -4,8 +4,9 @@
  * @brief  Public entry point of @sbr/application.
  *
  * Responsibility: use cases (commands and queries) and the ports they depend on: the
- *                 live match engine and the ruleset mapping it shares with the Quick Test.
- * Depends on:     ./match/*
+ *                 live match engine and the ruleset mapping it shares with the Quick Test;
+ *                 the league-points rules and the season period of the leaderboards.
+ * Depends on:     ./match/*, ./leaderboard/*
  * Used by:        apps/server
  * Spec:           docs/spec/02-software-architecture.md §3
  */
@@ -18,3 +19,5 @@ export { minPlayersOf, tooFewAtStart } from './match/startRules.js';
 export { MatchNotFound } from './match/runner.js';
 export type { CreateMatchInput } from './match/create.js';
 export type * from './match/ports.js';
+export { leagueAwards, type LeagueEntryInput } from './leaderboard/leaguePoints.js';
+export { seasonPeriodOf } from './leaderboard/seasonPeriod.js';

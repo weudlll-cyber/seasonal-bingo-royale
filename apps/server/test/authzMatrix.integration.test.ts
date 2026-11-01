@@ -67,6 +67,12 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/matches/:code/state', allow: ROLES },
   // Anyone; before the end the answer is 409 MATCH_NOT_OVER, not a refusal.
   { method: 'GET', path: '/api/v1/matches/:code/verify', allow: ROLES },
+  // The boards and profiles are public; an unknown period or name is 404, not a refusal.
+  { method: 'GET', path: '/api/v1/leaderboards', allow: ROLES },
+  { method: 'GET', path: '/api/v1/leaderboards/:periodId', allow: ROLES },
+  { method: 'GET', path: '/api/v1/leaderboards/:periodId/me', allow: ACCOUNTS },
+  { method: 'GET', path: '/api/v1/players/:displayName', allow: ROLES },
+  { method: 'GET', path: '/api/v1/me/export', allow: ACCOUNTS },
   // Session starters take no CSRF token; the bodies are refused before anything is made.
   { method: 'POST', path: '/api/v1/auth/register', body: {}, allow: ROLES },
   {

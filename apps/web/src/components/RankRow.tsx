@@ -6,7 +6,8 @@
  * Responsibility: the row the standings and the final placement share: rank, name, the
  *                 four season icons with the collected ones lit (royale), the points or
  *                 another note, the viewer's own row highlighted, an eliminated row dimmed
- *                 with "out"; and the divider between players still in and those out.
+ *                 with "out", the name as a profile link where the screen gives one; and the
+ *                 divider between players still in and those out.
  *                 Season icons have shapes and names, so colour never carries meaning alone.
  * Depends on:     react, ./SeasonIcon, ../types, ./results.css
  * Used by:        ./Standings, ./FinalPlacement, ../game/InterludeCards
@@ -18,9 +19,14 @@ import { SeasonIcon } from './SeasonIcon.js';
 import { SEASON_NAMES, type Season } from '../types.js';
 import './results.css';
 
+// The profile link of a shown name, or null for a name without a profile (bots).
+export type ProfileHref = (name: string) => string | null;
+
 interface RankRowProps {
   readonly rank: number;
   readonly name: string;
+  // The player's profile (live match screen only); plain text without it.
+  readonly href?: string | null | undefined;
   // Points ("120 pts") or, in classic types, the prizes won.
   readonly note: string;
   // The seasons collected (royale), null where seasons do not exist.
@@ -38,7 +44,7 @@ export function RankRow(props: RankRowProps): ReactElement {
     <li className={className} {...props.attrs}>
       <span className="rank-num">#{rank}</span>
       <span className="rank-name">
-        {name}
+        {props.href == null ? name : <a href={props.href}>{name}</a>}
         {own ? <span className="sbr-visually-hidden"> (you)</span> : null}
       </span>
       {seasons === null ? null : <SeasonSet seasons={seasons} />}

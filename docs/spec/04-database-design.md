@@ -159,6 +159,8 @@ one entry in `prizes`.
 **league_awards** — `period_id`, `account_id`, `match_id`, `points int`, `place int`; PK `(period_id, account_id, match_id)` (idempotent: a match awards once).
 **leaderboard_adjustments** — `id`, `period_id`, `account_id`, `delta int`, `reason text NOT NULL`, `actor_account_id`, `created_at`. Visible on the player’s profile.
 
+As built (WP-15 first draft, migration 0009): `leaderboard_periods` (UNIQUE `(kind, starts_at)`, the all-time period seeded; a season period is one calendar quarter in UTC, created on the first award in it, older active seasons closed then), `league_entries`, `league_awards`, `badges` (seeded with `season-complete` only) and `badges_awarded` (`match_id` NOT NULL, since it is part of the key). Every row of an account is deleted with the account (ON DELETE CASCADE). Left out until code uses them: `leaderboard_adjustments` and `player_profiles` (profile figures are computed on read from `match_entries`, `matches`, `league_awards` and `badges_awarded`; no avatars yet).
+
 ### 3.5 Chat & moderation
 
 **chat_rooms** — `id`, `kind` (`lobby`, `match`, `system`), `match_id NULL UNIQUE`, `slow_mode_seconds int`, `locked bool`, `created_at`.

@@ -5,9 +5,10 @@
  *
  * Responsibility: Zod schemas and inferred types shared by server and clients: the
  *                 ruleset document and its defaults, the game-type enum, the classic prize
- *                 catalogue, and the view the player client folds (Quick Test and live
- *                 match); later WPs add HTTP/WS envelopes and other config documents.
- * Depends on:     ./config/*, ./config/defaults/*, ./view/*
+ *                 catalogue, the leaderboard defaults, the view the player client folds
+ *                 (Quick Test and live match) and the leaderboard, profile and export
+ *                 answers; later WPs add WS envelopes and other config documents.
+ * Depends on:     ./config/*, ./config/defaults/*, ./view/*, ./http/*
  * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
@@ -34,6 +35,8 @@ export {
 } from './config/ruleset.js';
 export {
   DEFAULT_RULESETS,
+  LEADERBOARD_DEFAULTS,
+  type LeaderboardConfig,
   classicRealtimeDefault,
   classicSeasonsRealtimeDefault,
   royaleAsyncDefault,
@@ -56,3 +59,15 @@ export {
 } from './view/clientView.js';
 export { type MatchVerificationView, type RoundVerification } from './view/verification.js';
 export { type RecapScorer, type RoundRecap } from './view/roundRecap.js';
+export type {
+  AccountExport,
+  LeaderboardAround,
+  LeaderboardPage,
+  LeaderboardPeriod,
+  LeaderboardPeriods,
+  LeaderboardRow,
+  LeagueOutcome,
+  PlayerProfile,
+  ProfileBadge,
+  ProfileMatch,
+} from './http/leaderboard.js';

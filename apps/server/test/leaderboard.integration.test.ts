@@ -1,0 +1,248 @@
+/**
+ * @file   apps/server/test/leaderboard.integration.test.ts
+ * @module server/test
+ * @brief  League points are awarded once, only by matches that count; boards, profile, export, deletion.
+ *
+ * Responsibility: classic matches (leaderboard flag on) played to their end through the engine:
+ *                 8 verified humans award points in the season and the all-time period;
+ *                 running the finish projection again, also on a second app after a "restart",
+ *                 changes nothing; 7 verified humans, a bot among 8, or one unverified among 8
+ *                 award nothing (03 §11). The board, the caller's row, the public profile and
+ *                 the export show it; Season Complete badges are given once; DELETE /me
+ *                 removes the account's league rows. The test deletes the accounts it made.
+ * Depends on:     ../src/auth/*, ../src/leaderboard/awards, ./harness, ./playToEnd, ./session
+ * Spec:           docs/spec/03-security-architecture.md §11; docs/spec/01-game-design.md §8.3, §10;
+ *                 docs/spec/04-database-design.md §3.4; docs/spec/05-api-design.md §2.2, §2.4
+ */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
+import { createSession } from '../src/auth/sessions.js';
+import { awardFinishedMatch } from '../src/leaderboard/awards.js';
+import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { playToEnd } from './playToEnd.js';
+import { signIn, type Client } from './session.js';
+
+const PASSWORD = 'correct horse battery staple';
+let harness: Harness;
+let host: Client;
+const made: string[] = [];
+
+beforeAll(async () => {
+  harness = await startHarness();
+  host = await signIn(harness.built.fastify, 'host');
+}, SUITE_TIMEOUT_MS);
+afterAll(async () => {
+  for (const id of made) await deleteAccount(harness.pool, id);
+  await stopHarness(harness);
+}, SUITE_TIMEOUT_MS);
+
+// A new player account, its e-mail confirmed or not.
+async function account(verified: boolean): Promise<string> {
+  const n = made.length + 1;
+  const r = await registerAccount(harness.pool, {
+    email: `league-${String(n)}@example.com`,
+    displayName: `league${String(n)}`,
+    password: PASSWORD,
+  });
+  if (!r.ok) throw new Error('registration failed');
+  made.push(r.id);
+  if (verified) {
+    await harness.pool.query('UPDATE sbr.accounts SET email_verified_at = now() WHERE id = $1', [
+      r.id,
+    ]);
+  }
+  return r.id;
+}
+
+const accounts = async (n: number, verified = true) => {
+  const ids: string[] = [];
+  for (let i = 0; i < n; i += 1) ids.push(await account(verified));
+  return ids;
+};
+
+// A classic match that counts for the leaderboard, joined by `players` (and `bots` bots),
+// played to its end; returns the match id.
+async function play(players: readonly string[], bots = 0): Promise<string> {
+  const created = await host.post('/api/v1/matches', {
+    title: 'League match',
+    gameType: 'classic',
+    prizes: ['fullCard'],
+    drawMode: 'host',
+    missedNumbers: { kind: 'noAutoMark' },
+    maxPlayers: 20,
+    countsForLeaderboard: true,
+  });
+  const { id } = created.json<{ id: string }>();
+  const engine = harness.built.match.engine;
+  for (const p of players) await engine.join(id, p, true);
+  if (bots > 0) await engine.fillWithBots(id, players.length + bots);
+  await engine.start(id, 0);
+  await engine.handle({ matchId: id, kind: 'start_match', dueAt: Date.now() });
+  await playToEnd(engine, id);
+  return id;
+}
+
+const awardsOf = async (matchId: string) =>
+  (await harness.pool.query('SELECT 1 FROM sbr.league_awards WHERE match_id = $1', [matchId]))
+    .rowCount;
+
+async function entries(): Promise<Record<string, unknown>[]> {
+  const r = await harness.pool.query<Record<string, unknown>>(
+    `SELECT period_id, account_id, points, wins, season_completes, matches
+       FROM sbr.league_entries ORDER BY period_id, account_id`,
+  );
+  return r.rows;
+}
+
+// The finish projection once more, as a replay would run it, on `app`'s store.
+async function projectFinishAgain(matchId: string, app = harness.built): Promise<void> {
+  const loaded = await app.match.store.load(matchId);
+  if (loaded === null) throw new Error('match not found');
+  const client = await harness.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await awardFinishedMatch(client, { matchId, at: Date.now(), state: loaded.state });
+    await client.query('COMMIT');
+  } finally {
+    client.release();
+  }
+}
+
+async function clientOf(accountId: string) {
+  const s = await createSession(harness.pool, accountId, null);
+  const headers = { cookie: `sbr_session=${s.token}`, 'x-csrf-token': s.csrfToken };
+  const app = harness.built.fastify;
+  return {
+    get: (url: string) => app.inject({ method: 'GET', url, headers }),
+    delete: (url: string, body: object) =>
+      app.inject({ method: 'DELETE', url, headers, payload: body }),
+  };
+}
+
+// The match that counted and its 8 players, shared by the tests below (they run in order).
+let counted = '';
+let players: string[] = [];
+
+describe('league points (03 §11, 01 §10)', () => {
+  it('a match of 8 verified humans awards once, in the season and the all-time period', async () => {
+    players = await accounts(8);
+    counted = await play(players);
+    expect(await awardsOf(counted)).toBe(16);
+    const before = await entries();
+    expect(before).toHaveLength(16);
+    const periods = await harness.pool.query<{ kind: string; status: string }>(
+      'SELECT kind, status FROM sbr.leaderboard_periods ORDER BY kind',
+    );
+    expect(periods.rows).toEqual([
+      { kind: 'all_time', status: 'active' },
+      { kind: 'season', status: 'active' },
+    ]);
+    // A replay of the finish, and the same after a restart (a second app on the database).
+    await projectFinishAgain(counted);
+    const restarted = await buildOn(harness.pool, harness.container.getConnectionUri());
+    await projectFinishAgain(counted, restarted);
+    await restarted.fastify.close();
+    expect(await awardsOf(counted)).toBe(16);
+    expect(await entries()).toEqual(before);
+  });
+
+  it('7 verified humans award nothing', async () => {
+    expect(await awardsOf(await play(players.slice(0, 7)))).toBe(0);
+  });
+
+  it('a bot among 8 verified humans awards nothing', async () => {
+    expect(await awardsOf(await play(players, 1))).toBe(0);
+  });
+
+  it('one unverified player among 8 awards nothing', async () => {
+    const unverified = await account(false);
+    expect(await awardsOf(await play([...players.slice(0, 7), unverified]))).toBe(0);
+  });
+});
+
+describe('what the players see (05 §2.2, §2.4)', () => {
+  it('shows the board, the own row, the profile and the export', async () => {
+    const me = await clientOf(players[0] ?? '');
+    const periods = (await me.get('/api/v1/leaderboards')).json<{
+      items: { id: string; kind: string }[];
+    }>().items;
+    expect(periods.map((p) => p.kind)).toEqual(['season', 'all_time']);
+    const season = periods[0]?.id ?? '';
+    const board = (await me.get(`/api/v1/leaderboards/${season}`)).json<{
+      items: { rank: number; points: number; isYou: boolean }[];
+      nextCursor: string | null;
+    }>();
+    expect(board.items.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(board.items[0]?.points).toBeGreaterThanOrEqual(board.items[7]?.points ?? 0);
+    expect(board.items.filter((r) => r.isYou)).toHaveLength(1);
+    expect(board.nextCursor).toBeNull();
+    const around = (await me.get(`/api/v1/leaderboards/${season}/me`)).json<{
+      items: { isYou: boolean }[];
+    }>();
+    expect(around.items.some((r) => r.isYou)).toBe(true);
+    expect((await me.get('/api/v1/leaderboards/not-a-period')).statusCode).toBe(404);
+    const profile = (await me.get('/api/v1/players/LEAGUE1')).json<{
+      displayName: string;
+      matchesPlayed: number;
+      recentMatches: { league: string }[];
+    }>();
+    expect(profile.displayName).toBe('league1');
+    expect(profile.matchesPlayed).toBe(4);
+    // Newest first: one unverified among 8, a bot, 7 players, the match that counted.
+    expect(profile.recentMatches.map((m) => m.league)).toEqual([
+      'tooFewPlayers',
+      'bots',
+      'tooFewPlayers',
+      'counted',
+    ]);
+    expect(JSON.stringify(profile)).not.toContain('@example.com');
+    const data = (await me.get('/api/v1/me/export')).json<{
+      account: { email: string };
+      matches: unknown[];
+      leagueAwards: unknown[];
+    }>();
+    expect(data.account.email).toBe('league-1@example.com');
+    expect([data.matches.length, data.leagueAwards.length]).toEqual([4, 2]);
+  });
+});
+
+describe('badges and account deletion (01 §8.3, 05 §2.2)', () => {
+  it('gives a Season Complete badge once per player and match, counted or not', async () => {
+    const loaded = await harness.built.match.store.load(counted);
+    if (loaded === null) throw new Error('match not found');
+    const who = players[1] ?? '';
+    const p = loaded.state.players[who];
+    if (p === undefined) throw new Error('player not found');
+    const state = {
+      ...loaded.state,
+      players: { ...loaded.state.players, [who]: { ...p, seasonCompleteFired: true } },
+    };
+    for (let i = 0; i < 2; i += 1) {
+      const client = await harness.pool.connect();
+      await client.query('BEGIN');
+      await awardFinishedMatch(client, { matchId: counted, at: Date.now(), state });
+      await client.query('COMMIT');
+      client.release();
+    }
+    const badges = await harness.pool.query(
+      'SELECT account_id FROM sbr.badges_awarded WHERE match_id = $1',
+      [counted],
+    );
+    expect(badges.rows).toEqual([{ account_id: who }]);
+  });
+
+  it('DELETE /me removes the league rows and badges of the account', async () => {
+    const who = players[1] ?? '';
+    const r = await (await clientOf(who)).delete('/api/v1/me', { password: PASSWORD });
+    expect(r.statusCode).toBe(204);
+    made.splice(made.indexOf(who), 1);
+    for (const table of ['league_entries', 'league_awards', 'badges_awarded']) {
+      const left = await harness.pool.query(`SELECT 1 FROM sbr.${table} WHERE account_id = $1`, [
+        who,
+      ]);
+      expect(left.rowCount, table).toBe(0);
+    }
+    expect(await awardsOf(counted)).toBe(14);
+  });
+});
