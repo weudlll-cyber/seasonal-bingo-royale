@@ -26,8 +26,8 @@ permissions:
   contents: read
 
 concurrency:
-  # One group per branch and event, so a push and its PR do not cancel each other. On
-  # master one group per commit: in a shared group a later merge would still cancel the
+  # One group per pull request (a newer push cancels its older run). On master one group
+  # per commit: in a shared group a later merge would still cancel the
   # earlier merge's run while it waits (GitHub keeps one pending run per group), even
   # without cancel-in-progress.
   group: ci-${{ github.event_name }}-${{ github.ref == 'refs/heads/master' && github.sha || github.head_ref || github.ref_name }}
