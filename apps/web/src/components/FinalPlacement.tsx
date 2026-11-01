@@ -35,6 +35,9 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
   const row = (p: Placed) => ({
     note: finalNote(result, view, byId.get(p.accountId), p),
     out: byId.get(p.accountId)?.eliminated === true,
+    // A royale out row says "out in cut K · P pts" itself (D23).
+    outNoted:
+      result.gameType === 'royale' && (byId.get(p.accountId)?.eliminatedCut ?? null) !== null,
     attrs: {
       'data-testid': `final-row-${String(p.place)}`,
       'data-place': p.place,

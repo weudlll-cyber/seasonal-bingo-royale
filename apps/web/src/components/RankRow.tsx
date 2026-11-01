@@ -32,6 +32,8 @@ interface RankRowProps {
   readonly attrs: Readonly<Record<string, string | number>>;
   // Makes the name a button (a watcher follows this player, D24).
   readonly onSelect?: (() => void) | undefined;
+  // The note already says the player is out ("out in cut 2 · 515 pts"): no "out" badge.
+  readonly outNoted?: boolean;
 }
 
 export function RankRow(props: RankRowProps): ReactElement {
@@ -53,7 +55,7 @@ export function RankRow(props: RankRowProps): ReactElement {
       )}
       {seasons === null ? null : <SeasonSet seasons={seasons} />}
       <span className="rank-note">{note}</span>
-      {out ? <span className="rank-out">out</span> : null}
+      {out && props.outNoted !== true ? <span className="rank-out">out</span> : null}
     </li>
   );
 }

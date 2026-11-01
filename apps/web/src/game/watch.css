@@ -73,7 +73,8 @@
 /* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. */
 @media (min-width: 960px) {
   .watch-card.live-card {
-    --cell-size: min(3.4rem, calc((50cqh - 5.6rem) / 5), calc((50cqw - 2.2rem) / 5));
+    /* Two cards high: each with padding, a heading of up to two lines and the letters. */
+    --cell-size: min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5));
     --cell-font: max(0.75rem, calc(var(--cell-size) * 0.36));
   }
 

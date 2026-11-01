@@ -77,8 +77,15 @@
 }
 
 .arena-ticker .draw-ticker {
-  max-height: 4.4rem;
+  /* Two whole rows of numbers (each 1.75rem, 0.25rem apart); scrolled to the newest. */
+  max-height: 3.75rem;
   overflow-y: auto;
+}
+
+.arena-ticker .draw-ticker > * {
+  box-sizing: border-box;
+  height: 1.75rem;
+  line-height: 1.55rem;
 }
 
 .arena-cards {
@@ -170,6 +177,13 @@
     min-height: 20rem;
   }
 
+  /* In a pause the recap stands above: the play area keeps a readable height and the page
+     may scroll (only a running round must fit, 01 §13). */
+  .arena:has(.interlude) .arena-grid {
+    flex-basis: 32rem;
+    min-height: 32rem;
+  }
+
   .arena-play {
     grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
     grid-template-rows: auto auto minmax(0, 1fr);
@@ -190,8 +204,9 @@
     width: min(100%, 9rem);
   }
 
+  /* Four whole rows. */
   .arena-ticker .draw-ticker {
-    max-height: 7rem;
+    max-height: 7.75rem;
   }
 
   .arena-events {

@@ -21,6 +21,17 @@
   background: var(--color-surface-2);
 }
 
+/* Desktop: one compact line (text, then the button) so the play area keeps its height. */
+@media (min-width: 960px) {
+  .cut-screen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
 .cut-screen.is-out {
   border-color: var(--color-border-strong);
 }
@@ -108,6 +119,11 @@
 @media (max-width: 480px) {
   .rank-row {
     font-size: var(--font-size-small);
+  }
+
+  /* An out row keeps its name and "out in cut K · P pts"; its seasons no longer count. */
+  .rank-row.is-out .rank-seasons {
+    display: none;
   }
 }
 

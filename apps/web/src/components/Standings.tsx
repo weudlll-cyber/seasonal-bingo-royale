@@ -68,10 +68,10 @@ interface RowProps {
 }
 
 function PlayerRow({ rank, player, showSeasons, outNote, onFollow }: RowProps): ReactElement {
-  const note =
-    outNote && player.eliminatedCut !== null
-      ? `out in cut ${String(player.eliminatedCut)} · ${String(player.outPoints ?? player.points)} pts`
-      : `${String(player.points)} pts`;
+  const noted = outNote && player.eliminatedCut !== null;
+  const note = noted
+    ? `out in cut ${String(player.eliminatedCut)} · ${String(player.outPoints ?? player.points)} pts`
+    : `${String(player.points)} pts`;
   return (
     <RankRow
       rank={rank}
@@ -80,6 +80,7 @@ function PlayerRow({ rank, player, showSeasons, outNote, onFollow }: RowProps): 
       seasons={showSeasons ? player.seasons : null}
       own={player.isOwner}
       out={player.eliminated}
+      outNoted={noted}
       onSelect={
         onFollow === undefined || player.eliminated
           ? undefined
