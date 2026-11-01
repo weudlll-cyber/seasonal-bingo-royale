@@ -138,5 +138,5 @@ export function update(state: FoldState, id: string, change: (p: PlayerView) => 
 }
 
 export function pushBanner(state: FoldState, key: string, text: string): void {
-  state.banners.push({ key, text });
+  state.banners.push({ key, text, round: state.roundIndex });
 }

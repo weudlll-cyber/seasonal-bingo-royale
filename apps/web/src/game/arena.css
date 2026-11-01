@@ -7,7 +7,8 @@
  *                 card; from 960 px the arena fills the window below the top bar: ball, drawn
  *                 numbers and the newest lines beside the card, which takes its cell size from
  *                 the space it has, the side column beside them with the standings filling the
- *                 rest, so the page does not scroll during a round, 01 §13), the player's card
+ *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
+ *                 itself, so the page does not scroll during a round, 01 §13), the player's card
  *                 as the hero element in card colours with large, thumb-sized cells (at least
  *                 44 px on a 360 px phone), also worn by the seed check's cards
  *                 (../components/OwnerCard) and the watched cards (./watch.css). Colours and
@@ -64,11 +65,10 @@
 
 .arena-ball {
   grid-area: ball;
-  --font-size-ball: 2.6rem;
 }
 
 .arena-ball .ball {
-  width: 6rem;
+  --ball-size: 6rem;
 }
 
 .arena-ticker {
@@ -148,7 +148,7 @@
   }
 
   .arena-ball .ball {
-    width: 5.5rem;
+    --ball-size: 5.5rem;
   }
 
   .arena-ticker p {
@@ -160,7 +160,8 @@
    title, rules and notices on top, then the play area beside the side column with what is
    left. In the play area the ball, the drawn numbers and the newest lines sit beside the
    card, which takes its cell size from its box (container units), so it is always whole.
-   In the side column the standings take the rest of the height and scroll inside. */
+   In the side column the standings take the rest of the height and scroll inside; the
+   other panels scroll inside themselves when the window is short. */
 @media (min-width: 960px) {
   /* A column: title, rules and whatever notices there are, then the play area with the
      rest of the height (never less than 20rem; a tall recap in a pause may scroll). */
@@ -195,13 +196,10 @@
     min-height: 0;
   }
 
-  .arena-ball {
-    justify-self: center;
-    --font-size-ball: clamp(2.6rem, 1.6rem + 2.4vw, 4.2rem);
-  }
-
+  /* A size of its own, never a share of its cell (a share of the shrink-to-fit cell made
+     the ball as narrow as its number); the column is at least 11rem wide. */
   .arena-ball .ball {
-    width: min(100%, 9rem);
+    --ball-size: min(9rem, 18vh);
   }
 
   /* Four whole rows. */
@@ -228,17 +226,26 @@
     --cell-font: max(0.85rem, calc(var(--cell-size) * 0.36));
   }
 
+  /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
+     height while it fits, else scroll inside themselves; the standings keep room for the
+     top 3 rows and the viewer's own row in its strip, and get the rest. */
   .arena-side {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--space-1);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .arena-side > * {
+    flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
   }
 
-  .arena-side .standings-panel {
-    flex: 1 1 10rem;
-    min-height: 9rem;
+  .arena-side > .standings-panel {
+    flex: 1 0 14rem;
+    overflow: hidden;
   }
 
   .arena-rules {

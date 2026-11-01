@@ -7,7 +7,8 @@
  *
  * Responsibility: the royale patterns panel lists the stage's patterns with their points, the
  *                 viewer's tick and who was first (+50 %) or "still open"; the newest 3 event
- *                 lines sit apart from the full log, which expands; the final's notice says all
+ *                 lines sit apart from the full log, which expands; a new round's lines sit under
+ *                 a separator naming it, an earlier round's dimmed below, the log grouped by round; the final's notice says all
  *                 finalists start at 0 and how the final is won, can be closed and goes after the
  *                 first draws; the standings group "Still in", and in the final "In the final" and
  *                 "Out of the match" with the cut and the points at that moment; only players
@@ -18,7 +19,7 @@
  *                 ./Standings, ../game/WatchCards, ../playback, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7.5, §8.1, §13 (D23, D24)
  */
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FinalNotice } from './FinalNotice.js';
@@ -61,12 +62,44 @@ describe('patterns this round', () => {
 
 describe('newest event lines', () => {
   it('shows the newest 3 lines and keeps the whole log one click away', () => {
-    const banners = ['a', 'b', 'c', 'd', 'e'].map((t) => ({ key: t, text: `line ${t}` }));
+    const banners = ['a', 'b', 'c', 'd', 'e'].map((t) => ({ key: t, text: `line ${t}`, round: 0 }));
     render(<RecentEvents banners={banners} />);
     const recent = [...screen.getByTestId('recent-events').querySelectorAll('li')];
     expect(recent.map((li) => li.textContent)).toEqual(['line e', 'line d', 'line c']);
     expect(screen.getByTestId('match-log').querySelectorAll('li')).toHaveLength(5);
     expect(screen.getByText('Whole match log (5)')).toBeTruthy();
+    // One round only: no separator.
+    expect(screen.queryAllByTestId('round-separator')).toHaveLength(0);
+  });
+
+  it('puts a new round under its own separator, the earlier round dimmed below', () => {
+    const line = (key: string, round: number) => ({ key, text: key, round });
+    const banners = [line('Round 1 over', 0), line('Cut 1', 0), line('bot-02 completed 1 row', 1)];
+    render(<RecentEvents banners={banners} />);
+    const recent = screen.getByTestId('recent-events');
+    const items = [...recent.querySelectorAll('li')];
+    expect(items.map((li) => li.textContent)).toEqual([
+      'bot-02 completed 1 row',
+      'Cut 1',
+      'Round 1 over',
+    ]);
+    expect(items.map((li) => li.classList.contains('is-earlier'))).toEqual([false, true, true]);
+    const [top] = within(recent).getAllByTestId('round-separator');
+    expect(top?.textContent).toBe('Round 2');
+    // The separator sits above the new round's lines.
+    expect(recent.firstElementChild).toBe(top);
+    // The whole log: newest first, every round under its own separator.
+    const log = screen.getByTestId('match-log');
+    expect(
+      within(log)
+        .getAllByTestId('round-separator')
+        .map((s) => s.textContent),
+    ).toEqual(['Round 2', 'Round 1']);
+    expect([...log.querySelectorAll('li')].map((li) => li.textContent)).toEqual([
+      'bot-02 completed 1 row',
+      'Cut 1',
+      'Round 1 over',
+    ]);
   });
 });
 

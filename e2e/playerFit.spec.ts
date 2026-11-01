@@ -3,20 +3,18 @@
  * @module e2e
  * @brief  No page scroll during a round: player screen, spectator screen and host console.
  *
- * Responsibility: during a running round of a real match (host draws, the host playing along
- *                 with bots; royale with 11 and with 40 players, classic with 11) the page does
- *                 not scroll at 1280×720, 1366×768, 1536×730 and 1920×950: the ball, the drawn
- *                 numbers, the whole card (player) or the watched cards (spectator, D24), Draw
- *                 next (console) and the standings panel lie inside the window, the viewer's
- *                 own row visible in the standings and no two standings rows covering each other.
- *                 On a 390×844 phone the ball, the drawn
- *                 numbers and the card(s) are in view. Chromium saves the player screen at each
- *                 size in both themes (player-fit-*). The match is aborted afterwards, also on
- *                 failure.
+ * Responsibility: in a running round of a real match (host draws, the host playing along; royale
+ *                 with 11 and 40 players, classic with 11), at 1280×720 up to 1920×950 (1890×850
+ *                 included): no page scroll, the key elements in the window, standings rows apart,
+ *                 the ball's text inside it, the side column not scrolling itself with the top 3
+ *                 and the own row whole (royale player: two effects, a shield and two seasons
+ *                 filled in by the spec); on a phone the ball, numbers and card(s) in view. One
+ *                 measurement per screen and size (WebKit round trips are slow). Chromium saves
+ *                 player-fit-*. The match is aborted afterwards, also on failure.
  * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens
  * Spec:           docs/spec/01-game-design.md §13
  */
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import {
   closeContexts,
@@ -27,13 +25,21 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
-import { expectRowsApart } from './layoutChecks.js';
+import {
+  expectBallFitsIn,
+  expectBoxesInWindow,
+  expectInWindow,
+  expectOwnPlaceIn,
+  expectRowsApartIn,
+  layoutReport,
+} from './layoutChecks.js';
 import { captureThemes, SHOTS_DIR } from './screens.js';
 
 const DESKTOPS = [
   { name: '1280x720', size: { width: 1280, height: 720 } },
   { name: '1366x768', size: { width: 1366, height: 768 } },
   { name: '1536x730', size: { width: 1536, height: 730 } },
+  { name: '1890x850', size: { width: 1890, height: 850 } },
   { name: '1920x950', size: { width: 1920, height: 950 } },
 ] as const;
 const PHONE = { name: 'phone', size: { width: 390, height: 844 } } as const;
@@ -42,26 +48,6 @@ test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
 
-// The element's box lies wholly inside the window (the page scrolled to the top).
-async function expectInside(page: Page, what: string, el: Locator): Promise<void> {
-  const box = await el.boundingBox();
-  const view = page.viewportSize();
-  expect(box, `${what} is on the page`).not.toBeNull();
-  if (box === null || view === null) return;
-  expect(box.y, `${what} top`).toBeGreaterThanOrEqual(0);
-  expect(box.x, `${what} left`).toBeGreaterThanOrEqual(0);
-  expect(box.y + box.height, `${what} bottom`).toBeLessThanOrEqual(view.height + 0.5);
-  expect(box.x + box.width, `${what} right`).toBeLessThanOrEqual(view.width + 0.5);
-}
-
-async function expectNoPageScroll(page: Page, what: string): Promise<void> {
-  const { scroll, inner } = await page.evaluate(() => ({
-    scroll: document.scrollingElement?.scrollHeight ?? 0,
-    inner: window.innerHeight,
-  }));
-  expect(scroll, `${what}: page height within the window`).toBeLessThanOrEqual(inner);
-}
-
 async function atSize(page: Page, size: { width: number; height: number }): Promise<void> {
   await page.setViewportSize(size);
   await page.evaluate(() => {
@@ -69,39 +55,81 @@ async function atSize(page: Page, size: { width: number; height: number }): Prom
   });
 }
 
-// What each screen must show in one window; `own` is the viewer's standings row, if any.
+// What each screen must show in one window (selectors; the last match is measured).
 const SCREENS = {
-  player: (p: Page) => [
-    ['ball', p.getByTestId('current-ball')],
-    ['drawn numbers', p.getByTestId('draw-ticker')],
-    ['card', p.locator('.live-card').first()],
-    ['standings', p.getByTestId('standings-panel')],
+  player: {
+    ball: '[data-testid="current-ball"]',
+    'drawn numbers': '[data-testid="draw-ticker"]',
+    card: '.own-cards .live-card',
+    standings: '[data-testid="standings-panel"]',
     // The row in the list, or its copy below the list while the list has it out of view.
-    ['own row', p.locator('[data-testid="standings-panel"] .rank-row.is-own').last()],
-  ],
-  spectator: (p: Page) => [
-    ['ball', p.getByTestId('current-ball')],
-    ['drawn numbers', p.getByTestId('draw-ticker')],
-    ['watched cards', p.getByTestId('watch-cards')],
-    ['standings', p.getByTestId('standings-panel')],
-  ],
-  console: (p: Page) => [
-    ['ball', p.getByTestId('current-ball')],
-    ['drawn numbers', p.getByTestId('draw-ticker')],
-    ['Draw next', p.getByTestId('host-draw-next')],
-    ['standings', p.getByTestId('standings-panel')],
-  ],
-} as const satisfies Record<string, (p: Page) => (readonly [string, Locator])[]>;
+    'own row': '[data-testid="standings-panel"] .rank-row.is-own',
+  },
+  spectator: {
+    ball: '[data-testid="current-ball"]',
+    'drawn numbers': '[data-testid="draw-ticker"]',
+    'watched cards': '[data-testid="watch-cards"]',
+    standings: '[data-testid="standings-panel"]',
+  },
+  console: {
+    ball: '[data-testid="current-ball"]',
+    'drawn numbers': '[data-testid="draw-ticker"]',
+    'Draw next': '[data-testid="host-draw-next"]',
+    standings: '[data-testid="standings-panel"]',
+  },
+} as const satisfies Record<string, Record<string, string>>;
 
+// One measurement per size (WebKit spends seconds on every round trip to the page).
 async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: string) {
   for (const { name, size } of DESKTOPS) {
     await atSize(page, size);
-    await expectNoPageScroll(page, `${label} ${screen} ${name}`);
-    for (const [what, el] of SCREENS[screen](page)) {
-      await expectInside(page, `${label} ${screen} ${name} ${what}`, el);
-    }
-    await expectRowsApart(page, `${label} ${screen} ${name}`);
+    const what = `${label} ${screen} ${name}`;
+    const report = await layoutReport(page, SCREENS[screen]);
+    expectInWindow(report, what);
+    expectRowsApartIn(report, what);
+    expectBallFitsIn(report, what);
+    if (screen !== 'console') expectOwnPlaceIn(report, what);
   }
+}
+
+// On a phone: the ball (its text inside), the drawn numbers and the card(s) in view.
+async function checkPhone(page: Page, screen: 'player' | 'spectator', label: string) {
+  await atSize(page, PHONE.size);
+  const first3 = Object.fromEntries(Object.entries(SCREENS[screen]).slice(0, 3));
+  const report = await layoutReport(page, first3);
+  const what = `${label} ${screen} phone`;
+  expectBoxesInWindow(report, what);
+  expectBallFitsIn(report, what);
+}
+
+// The viewer's status as the server sends it, with the Summer boost and the Spring growth
+// active, a Winter shield charge and two seasons collected: the fullest side column.
+async function withEffects(page: Page): Promise<void> {
+  await page.route('**/api/v1/matches/*/state*', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      view: {
+        events: unknown[];
+        players?: { accountId: string; isOwner: boolean }[];
+        ownerStatus: Record<string, unknown[]>;
+      };
+    };
+    const { view } = body;
+    for (const owner of (view.players ?? []).filter((p) => p.isOwner)) {
+      const list = view.ownerStatus[owner.accountId] ?? [];
+      view.ownerStatus[owner.accountId] = [
+        ...list,
+        {
+          step: view.events.length,
+          multiplier: { factor: 1.5, remainingDraws: 5 },
+          growth: { pointsPerMark: 2, remainingDraws: 4 },
+          shieldCharges: 1,
+          seasons: ['spring', 'summer'],
+        },
+      ];
+    }
+    await route.fulfill({ response, json: body });
+  });
 }
 
 const CASES = [
@@ -136,22 +164,18 @@ for (const { gameType, players } of CASES) {
       await checkDesktops(host, 'console', label);
       const player = await (await browser.newContext()).newPage();
       await signIn(player, 'host');
+      if (gameType === 'royale') await withEffects(player);
       await player.goto(`/#/match/${code}`);
       await expect(player.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
+      if (gameType === 'royale') await expect(player.getByTestId('effect-growth')).toBeVisible();
       await checkDesktops(player, 'player', label);
       const watcher = await (await browser.newContext()).newPage();
       await signIn(watcher, 'player-1');
       await watcher.goto(`/#/match/${code}`);
       await expect(watcher.getByTestId('watch-cards')).toBeVisible({ timeout: 20_000 });
       await checkDesktops(watcher, 'spectator', label);
-      await atSize(player, PHONE.size);
-      for (const [what, el] of SCREENS.player(player).slice(0, 3)) {
-        await expectInside(player, `${label} player phone ${what}`, el);
-      }
-      await atSize(watcher, PHONE.size);
-      for (const [what, el] of SCREENS.spectator(watcher).slice(0, 3)) {
-        await expectInside(watcher, `${label} spectator phone ${what}`, el);
-      }
+      await checkPhone(player, 'player', label);
+      await checkPhone(watcher, 'spectator', label);
       if (info.project.name === 'chromium' && gameType === 'royale' && players === 11) {
         for (const { name, size } of [...DESKTOPS, PHONE]) {
           await atSize(player, size);

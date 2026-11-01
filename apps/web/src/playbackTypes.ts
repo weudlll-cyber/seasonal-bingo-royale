@@ -17,6 +17,8 @@ import type { Card, OwnerStatus, Season } from './types.js';
 export interface Banner {
   readonly key: string;
   readonly text: string;
+  // The match-wide round the line belongs to (a cut belongs to the round it ended).
+  readonly round: number;
 }
 
 export interface PlayerView {
