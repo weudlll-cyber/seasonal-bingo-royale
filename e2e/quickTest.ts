@@ -30,8 +30,8 @@ export interface RunSettings {
 }
 
 export async function startRun(page: Page, settings: RunSettings): Promise<void> {
-  // The Quick Test lives at #/quicktest in the app shell (development builds).
-  await page.goto('/#/quicktest');
+  // The seed check lives at #/quicktest/seed in the app shell (development builds).
+  await page.goto('/#/quicktest/seed');
   // On a page that already ran (same hash, no reload) the form is folded: reopen it.
   const change = page.getByTestId('simulation-change');
   if ((await change.count()) > 0 && (await change.textContent()) === 'Change settings') {
@@ -52,11 +52,9 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
   for (const key of BUILTIN_PRIZE_KEYS) {
     await page.getByTestId(`start-prize-${key}`).setChecked(prizes.has(key));
   }
-  // The draw choice exists in both sections of the test page: the simulation's.
-  const simulation = page.getByTestId('simulation');
-  await simulation.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
+  await page.getByTestId('start-draw-mode').selectOption(settings.drawMode ?? 'auto');
   if (settings.intervalSec !== undefined) {
-    await simulation.getByTestId('start-draw-interval').fill(String(settings.intervalSec));
+    await page.getByTestId('start-draw-interval').fill(String(settings.intervalSec));
   }
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('stage-banner')).toBeVisible();

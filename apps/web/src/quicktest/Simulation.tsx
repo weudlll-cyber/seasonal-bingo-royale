@@ -1,9 +1,12 @@
 /**
  * @file   apps/web/src/quicktest/Simulation.tsx
  * @module web/quicktest
- * @brief  Section B of the test page: the seed simulation, played back in this browser (WP-08).
+ * @brief  "Check a game by seed" on the test page: the seed simulation, replayed in this browser (WP-08).
  *
- * Responsibility: the start form until the first run; after a run it folds to one line (game
+ * Responsibility: titled "Seed check (simulation)", a computed replay and not a live game; laid
+ *                 out apart from the player screen: settings on the left, the replay on the
+ *                 right from 960 px (stacked on a phone; ./quicktest.css). The start form
+ *                 until the first run; after a run it folds to one line (game
  *                 type, seed) with "Change settings", and only the live draw control remains
  *                 (`auto` interval or `host` "Draw next", switchable during play, D8) — never
  *                 two draw controls at once. Plays the match back one draw at a time
@@ -36,23 +39,25 @@ export function Simulation(): ReactElement {
   const effectiveSec =
     result === null ? (control.intervalSec ?? 5) : autoIntervalMs(control, result) / 1000;
   return (
-    <section className="sbr-panel sbr-stack test-section" data-testid="simulation">
-      <h2>B — Seed simulation</h2>
-      <p className="sbr-muted">
-        A fast simulated replay of one seed in this browser, with no waiting room: for reproducing a
-        game by its seed.
-      </p>
-      <div hidden={!formOpen}>
-        <StartForm onStart={run} busy={busy} />
-      </div>
-      {error !== null ? <p className="lobby-error">Error: {error}</p> : null}
-      {ran !== null ? <RunLine ran={ran} formOpen={formOpen} onToggle={setFormOpen} /> : null}
-      {result === null || view === null ? (
-        <p className="sbr-muted">Nothing yet. Fill in the form and press Run simulation.</p>
-      ) : (
-        <div className="sim-grid">
+    <section className="sbr-stack test-section" data-testid="simulation">
+      <header className="sbr-stack test-intro">
+        <h1>Seed check (simulation)</h1>
+        <p>
+          A computed replay of one seed, played back in this browser: not a live game, with no
+          waiting room and no other people. Use it to reproduce a game or check its scoring.
+        </p>
+      </header>
+      <div className="seed-grid">
+        {/* Settings on the left (on a phone above): the form until a run, then its folded
+            line and the one live draw control. */}
+        <div className="sbr-panel sbr-stack seed-settings">
+          <div hidden={!formOpen}>
+            <StartForm onStart={run} busy={busy} />
+          </div>
+          {error !== null ? <p className="lobby-error">Error: {error}</p> : null}
+          {ran !== null ? <RunLine ran={ran} formOpen={formOpen} onToggle={setFormOpen} /> : null}
           {/* One draw control at a time: the form's while it is open, else the live one. */}
-          {formOpen ? null : (
+          {formOpen || result === null || view === null ? null : (
             <DrawControls
               control={control}
               effectiveSec={effectiveSec}
@@ -61,9 +66,15 @@ export function Simulation(): ReactElement {
               onDrawNext={drawNext}
             />
           )}
-          <Playback key={runId} result={result} view={view} pause={pauseOf(control, result)} />
         </div>
-      )}
+        <div className="seed-replay">
+          {result === null || view === null ? (
+            <p className="sbr-muted">Nothing yet. Fill in the settings and press Run simulation.</p>
+          ) : (
+            <Playback key={runId} result={result} view={view} pause={pauseOf(control, result)} />
+          )}
+        </div>
+      </div>
     </section>
   );
 }

@@ -13,7 +13,7 @@
  *                 ./MatchCancelled for a match without result (D17). Remounted per match code.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
- *                 ./EndActions, ./game.css
+ *                 ./EndActions, ./arena.css, ./game.css
  * Used by:        ../shell/AppShell, ../quicktest/TestMatchReady
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -35,6 +35,7 @@ import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
+import './arena.css';
 import './game.css';
 
 export function MatchScreen({ code }: { readonly code: string }): ReactElement {
@@ -61,22 +62,32 @@ function Arena({
     // data-seq: the server's event number this screen shows (the play-through compares it).
     <div className="arena" data-testid="arena" data-seq={live.seq}>
       <ArenaHeader live={live} view={view} />
+      {/* Under the title on desktop, below the play area on a phone (arena.css). */}
+      <p className="sbr-muted arena-rules">{rulesLine(live.match)}</p>
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
+        {/* Ball, drawn numbers and the whole card in view at once: the ball beside the
+            numbers on a phone, beside the card on desktop (arena.css). */}
         <section className="arena-play">
-          <CurrentBall
-            draws={view.drawsSoFar}
-            speedWindowMs={result.speedWindowMs}
-            roundOver={view.roundOver}
-            finished={view.finished}
-          />
-          <DrawTicker
-            draws={view.drawsSoFar}
-            speedWindowMs={result.speedWindowMs}
-            showWindow={!view.finished}
-            paused={view.roundOver && !view.finished}
-          />
-          {owner !== undefined ? <OwnCards live={live} view={view} /> : <Spectating />}
+          <div className="arena-ball">
+            <CurrentBall
+              draws={view.drawsSoFar}
+              speedWindowMs={result.speedWindowMs}
+              roundOver={view.roundOver}
+              finished={view.finished}
+            />
+          </div>
+          <div className="arena-ticker">
+            <DrawTicker
+              draws={view.drawsSoFar}
+              speedWindowMs={result.speedWindowMs}
+              showWindow={!view.finished}
+              paused={view.roundOver && !view.finished}
+            />
+          </div>
+          <div className="arena-cards">
+            {owner !== undefined ? <OwnCards live={live} view={view} /> : <Spectating />}
+          </div>
         </section>
         <aside className="arena-side">
           {owner !== undefined ? (
@@ -179,7 +190,7 @@ function Spectating(): ReactElement {
   );
 }
 
-// Title, progress (stage, round, draw), the rules in plain words, host link and LIVE.
+// Title, progress (stage, round, draw), host link and LIVE; the rules line follows it.
 function ArenaHeader({
   live,
   view,
@@ -194,7 +205,6 @@ function ArenaHeader({
         <p className="sbr-muted" data-testid="arena-progress">
           {progressText(live, view)}
         </p>
-        <p className="sbr-muted">{rulesLine(live.match)}</p>
       </div>
       <div className="sbr-row">
         <HostLink match={live.match} />

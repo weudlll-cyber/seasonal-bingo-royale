@@ -1,20 +1,20 @@
 /**
  * @file   apps/web/src/quicktest/TestMatchReady.tsx
  * @module web/quicktest
- * @brief  The test match's guide: "What happens next", and the open match with its live screen.
+ * @brief  The test match's guide: "What happens next", and the match when this tab stays here.
  *
  * Responsibility: the numbered steps from waiting room to result (start, draws, playing along
- *                 and royale rounds as chosen; with the match code once it exists); the ready
- *                 panel with the code, "Open host console" in a new tab, the match on its own
- *                 page, "New test match", and the live match screen (../game/MatchScreen) as
- *                 every player sees it; the message of a failed setup step.
- * Depends on:     react, ../game/MatchScreen, ../shell/router, ./testMatchSetup (types)
+ *                 and royale rounds as chosen; with the match code once it exists); the panel
+ *                 shown only when this tab did not go to the match (the browser blocked the
+ *                 console tab, or a step after creating failed): the code, "Open host console"
+ *                 in a new tab, "Go to the waiting room" and "New test match"; the message of
+ *                 a failed setup step. Nothing of the live match is rendered on the test page.
+ * Depends on:     react, ../shell/router, ./testMatchSetup (types)
  * Used by:        ./TestMatch
  * Spec:           docs/spec/01-game-design.md §7.6, §13
  */
 import type { ReactElement } from 'react';
 
-import { MatchScreen } from '../game/MatchScreen.js';
 import { hrefOf } from '../shell/router.js';
 import type { TestMatchValues } from './testMatchSetup.js';
 
@@ -69,8 +69,8 @@ export function NextSteps({
   );
 }
 
-// The match exists: its code, the console in a new tab, and the live screen right here.
-export function ReadyPanel({
+// The match exists but this tab stayed here: the code and the two ways on.
+export function OpenedPanel({
   code,
   values,
   error,
@@ -85,6 +85,7 @@ export function ReadyPanel({
     <div className="sbr-stack" data-testid="test-match-ready" data-code={code}>
       <p className="open-notice" role="status">
         Test match <strong data-testid="test-match-code">{code}</strong> is open.
+        {error === null ? ' Your browser blocked the console’s tab: open it with the link.' : ''}
       </p>
       <div className="sbr-row">
         <a
@@ -94,10 +95,10 @@ export function ReadyPanel({
           rel="noopener"
           data-testid="test-match-console"
         >
-          Open host console (new tab)
+          Open host console
         </a>
-        <a className="sbr-btn" href={hrefOf({ name: 'match', code })}>
-          Match on its own page
+        <a className="sbr-btn" href={hrefOf({ name: 'match', code })} data-testid="test-match-go">
+          Go to the waiting room
         </a>
         <button type="button" className="sbr-btn" data-testid="test-match-new" onClick={onNew}>
           New test match
@@ -105,9 +106,6 @@ export function ReadyPanel({
       </div>
       <SetupError error={error} />
       <NextSteps values={values} code={code} />
-      <div className="test-live">
-        <MatchScreen key={code} code={code} />
-      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * @file   apps/web/src/quicktest/testMatchSetup.test.tsx
+ * @file   apps/web/src/quicktest/testMatch.test.tsx
  * @module web/quicktest
  * @brief  The test page's real test match: request body, call order, sign-in, maintenance, guide.
  *
@@ -8,9 +8,10 @@
  *                 "Now" the host's start; the bots field's limits follow "I play along"; the
  *                 calls run create → join → bots (→ start for "Now"); signed out the section
  *                 offers the dev host sign-in instead of the form; maintenance disables the
- *                 button with the reason; the waiting room opens once the bots are in (a
- *                 failed later step still shows the code); then the code, the console in a
- *                 new tab and the numbered steps.
+ *                 button with the reason; the form shows the numbered steps; Create opens a
+ *                 tab in the click itself, sends it to the host console and this tab to the
+ *                 match's normal player route once the bots are in; a blocked tab or a failed
+ *                 later step stays here with the code, the console link and the waiting room.
  * Depends on:     @testing-library/react, ./testMatchSetup, ./TestMatch, ../shell/session,
  *                 ../shell/useMaintenance
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
@@ -32,7 +33,19 @@ vi.mock('../game/socket.js', () => ({
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.location.hash = '';
 });
+
+// window.open as the browser answers it: a tab whose address the page sets, or null (blocked).
+function stubOpen(blocked = false): {
+  readonly open: ReturnType<typeof vi.fn>;
+  readonly tab: { location: { href: string }; close: ReturnType<typeof vi.fn> };
+} {
+  const tab = { location: { href: '' }, close: vi.fn() };
+  const open = vi.fn(() => (blocked ? null : tab));
+  vi.stubGlobal('open', open);
+  return { open, tab };
+}
 
 const HOST = ['match.join', 'match.create', 'match.manage'];
 
@@ -144,23 +157,43 @@ const settle = () =>
   });
 
 describe('section A while it sets the match up', () => {
-  it('opens the waiting room only once the bots are in', async () => {
+  it('opens the console tab in the click and goes to the waiting room once the bots are in', async () => {
+    const { open, tab } = stubOpen();
     const release = serveSlowBots(false);
     await showSection({ on: false, reason: null });
     fireEvent.click(screen.getByTestId('test-match-create'));
+    // In the click itself, so the browser does not block it.
+    expect(open).toHaveBeenCalledTimes(1);
     await settle();
-    expect(screen.queryByTestId('test-match-ready')).toBeNull();
+    expect(window.location.hash).not.toBe('#/match/TEST01');
     release();
     await settle();
-    expect(screen.getByTestId('test-match-ready')).toBeTruthy();
+    expect(tab.location.href).toMatch(/#\/host\/TEST01$/);
+    expect(window.location.hash).toBe('#/match/TEST01');
+  });
+
+  it('stays with the code, the console and the waiting room when the tab is blocked', async () => {
+    stubOpen(true);
+    serve(HOST);
+    await showSection({ on: false, reason: null });
+    fireEvent.click(screen.getByTestId('test-match-create'));
+    await settle();
+    expect(window.location.hash).not.toBe('#/match/TEST01');
+    expect(screen.getByTestId('test-match-code').textContent).toBe('TEST01');
+    const console = screen.getByTestId('test-match-console');
+    expect(console.getAttribute('href')).toBe('#/host/TEST01');
+    expect(console.getAttribute('target')).toBe('_blank');
+    expect(screen.getByTestId('test-match-go').getAttribute('href')).toBe('#/match/TEST01');
   });
 
   it('still shows the code with the message when a step after creating fails', async () => {
+    stubOpen();
     const release = serveSlowBots(true);
     await showSection({ on: false, reason: null });
     fireEvent.click(screen.getByTestId('test-match-create'));
     release();
     await settle();
+    expect(window.location.hash).not.toBe('#/match/TEST01');
     expect(screen.getByTestId('test-match-code').textContent).toBe('TEST01');
     expect(screen.getByTestId('test-match-error').textContent).toContain('Could not set up');
   });
@@ -183,20 +216,12 @@ describe('section A on the page', () => {
     );
   });
 
-  it('shows the code, the console in a new tab and the steps after creating', async () => {
+  it('shows the numbered steps under the form', async () => {
     serve(HOST);
     await showSection({ on: false, reason: null });
     expect(screen.getByTestId('test-match-bots').getAttribute('max')).toBe('199');
-    fireEvent.click(screen.getByTestId('test-match-create'));
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    });
-    expect(screen.getByTestId('test-match-code').textContent).toBe('TEST01');
-    const console = screen.getByTestId('test-match-console');
-    expect(console.getAttribute('href')).toBe('#/host/TEST01');
-    expect(console.getAttribute('target')).toBe('_blank');
     const steps = screen.getByTestId('test-match-steps');
-    expect(steps.textContent).toContain('What happens next — match TEST01');
+    expect(steps.textContent).toContain('What happens next');
     expect(steps.querySelectorAll('li').length).toBe(6);
   });
 });

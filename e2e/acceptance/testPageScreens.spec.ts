@@ -1,15 +1,16 @@
 /**
  * @file   e2e/acceptance/testPageScreens.spec.ts
  * @module e2e/acceptance
- * @brief  The test page played end to end, with its screenshots (QUICKTEST-GUIDE).
+ * @brief  The test page played end to end, with its screenshots (QUICKTEST-GUIDE, -2).
  *
- * Responsibility: A, royale "In 1 minute", host draws, 7 bots, playing along (short royale
- *                 rounds): waiting room with the start countdown, start, taps, cut, pause
- *                 with recap ended by "Start next round now" from the console tab, result;
- *                 A, classic, timed draws, "Now": countdown, taps, result; B, the seed
- *                 simulation with seed spring-garden, classicSeasons then royale; the console's
- *                 Start match during maintenance. Saves test-match-*, simulation-running-* and
- *                 console-maintenance-start-* at both sizes in both themes. Every match is
+ * Responsibility: "Play a test match", royale "In 1 minute", host draws, 7 bots, playing
+ *                 along (short royale rounds): Create opens the console tab and turns this tab
+ *                 into the normal player route; waiting room with the start countdown, start,
+ *                 taps, cut, pause with recap ended by "Start next round now" from the console
+ *                 tab, result; classic, timed draws, "Now": countdown, taps, result; "Check a
+ *                 game by seed" with seed spring-garden, classicSeasons then royale; the
+ *                 console's Start match during maintenance. Saves test-match-*, seed-check-*
+ *                 and console-maintenance-start-* at both sizes in both themes. Every match is
  *                 aborted if it has not ended. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../devStack, ../realGame, ../screens, ./liveSnap
  * Spec:           docs/spec/01-game-design.md §7 (D20, D21), §7.6 (D16, D22), §13
@@ -44,19 +45,27 @@ interface TestMatchChoice {
   readonly drawMode: 'host' | 'auto';
 }
 
-// Section A as the owner fills it in; returns the match code.
-async function createTestMatch(page: Page, c: TestMatchChoice): Promise<string> {
-  await page.goto('/#/quicktest');
+// "Play a test match" as the owner fills it in: Create opens the console in a new tab and
+// sends this tab to the match's player route. Returns the code and the console tab.
+async function createTestMatch(
+  page: Page,
+  c: TestMatchChoice,
+): Promise<{ readonly code: string; readonly consolePage: Page }> {
+  await page.goto('/#/quicktest/play');
   await page.getByTestId('test-match-sign-in-host').click({ timeout: 20_000 });
   await page.getByTestId('test-match-game-type').selectOption(c.gameType);
   await page.getByTestId('test-match-start').selectOption(c.start);
   await page.getByTestId('test-match-bots').fill(String(c.bots));
-  // The draw choice exists in both sections of the page: section A's.
-  await page.getByTestId('test-match-form').getByTestId('start-draw-mode').selectOption(c.drawMode);
+  await page.getByTestId('start-draw-mode').selectOption(c.drawMode);
   if (c.gameType === 'royale') await page.getByTestId('test-match-fast').check();
-  await page.getByTestId('test-match-create').click();
+  const [consolePage] = await Promise.all([
+    page.context().waitForEvent('page'),
+    page.getByTestId('test-match-create').click(),
+  ]);
+  await expect(page).toHaveURL(/#\/match\/[A-Z0-9]{4,}$/, { timeout: 20_000 });
   await expect(page.getByTestId('waiting-room')).toBeVisible({ timeout: 20_000 });
-  return (await page.getByTestId('test-match-code').textContent()) ?? '';
+  await expect(consolePage.getByTestId('host-console')).toBeVisible({ timeout: 20_000 });
+  return { code: page.url().split('/').pop() ?? '', consolePage };
 }
 
 // The owner taps the current number when it is on their card and still open.
@@ -87,8 +96,7 @@ async function playRoyale(owner: Page, consolePage: Page): Promise<void> {
     await drawNext(consolePage);
     await tapCurrent(owner);
     draws += 1;
-    if (draws === 6)
-      await captureLook(owner, SHOTS_DIR, 'test-match-playing', owner.getByTestId('arena'));
+    if (draws === 6) await captureLook(owner, SHOTS_DIR, 'test-match-playing');
   }
   throw new Error('the royale did not end');
 }
@@ -110,20 +118,16 @@ test('A: royale in 1 minute with host draws, 7 bots, playing along, to the resul
   test.setTimeout(15 * 60_000);
   const context = await browser.newContext({ viewport: DESKTOP });
   const owner = await context.newPage();
-  const code = await createTestMatch(owner, {
+  const { code, consolePage } = await createTestMatch(owner, {
     gameType: 'royale',
     start: 'in1',
     bots: 7,
     drawMode: 'host',
   });
   try {
+    await expect(owner.getByTestId('registration')).toContainText('(in 1 min)');
     await expect(owner.getByTestId('registration')).toContainText('starts automatically');
     await captureLook(owner, SHOTS_DIR, 'test-match-waiting', owner.getByTestId('waiting-room'));
-    const [consolePage] = await Promise.all([
-      context.waitForEvent('page'),
-      owner.getByTestId('test-match-console').click(),
-    ]);
-    await expect(consolePage.getByTestId('host-console')).toBeVisible({ timeout: 20_000 });
     await captureLook(consolePage, SHOTS_DIR, 'test-match-console-lobby');
     // The automatic start at the set time, then the 10-second countdown on the owner's screen.
     await expect(owner.getByTestId('countdown')).toBeVisible({ timeout: 90_000 });
@@ -139,7 +143,7 @@ test('A: royale in 1 minute with host draws, 7 bots, playing along, to the resul
 test('A: classic now with timed draws, playing along, to the result', async ({ browser }) => {
   test.setTimeout(15 * 60_000);
   const owner = await (await browser.newContext({ viewport: DESKTOP })).newPage();
-  const code = await createTestMatch(owner, {
+  const { code } = await createTestMatch(owner, {
     gameType: 'classic',
     start: 'now',
     bots: 3,
@@ -159,18 +163,18 @@ test('A: classic now with timed draws, playing along, to the result', async ({ b
   }
 });
 
-test('B: the seed simulation, spring-garden in classicSeasons then royale', async ({ page }) => {
+test('seed check: spring-garden in classicSeasons then royale', async ({ page }) => {
   test.setTimeout(5 * 60_000);
   await page.setViewportSize(DESKTOP);
-  await page.goto('/#/quicktest');
+  await page.goto('/#/quicktest/seed');
   await page.getByTestId('seed').fill('spring-garden', { timeout: 20_000 });
   await page.getByTestId('game-type').selectOption('classicSeasons');
-  await page.getByTestId('simulation').getByTestId('start-draw-mode').selectOption('host');
+  await page.getByTestId('start-draw-mode').selectOption('host');
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('simulation-summary')).toContainText('seed spring-garden');
-  await expect(page.getByTestId('simulation').getByTestId('start-draw-mode')).toBeHidden();
+  await expect(page.getByTestId('start-draw-mode')).toBeHidden();
   for (let i = 0; i < 5; i += 1) await page.getByTestId('draw-next').click();
-  await captureLook(page, SHOTS_DIR, 'simulation-running', page.getByTestId('simulation'));
+  await captureLook(page, SHOTS_DIR, 'seed-check');
   await page.getByTestId('simulation-change').click();
   await expect(page.getByTestId('draw-next')).toHaveCount(0);
   await page.getByTestId('game-type').selectOption('royale');
@@ -178,6 +182,7 @@ test('B: the seed simulation, spring-garden in classicSeasons then royale', asyn
   await expect(page.getByTestId('simulation-summary')).toContainText('Battle royale');
   await page.getByRole('button', { name: 'Skip to end' }).click();
   await expect(page.getByTestId('final-placement')).toBeVisible({ timeout: 60_000 });
+  await captureLook(page, SHOTS_DIR, 'seed-check-royale-result');
 });
 
 test('the console during maintenance: Start match disabled with the reason', async ({

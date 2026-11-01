@@ -1,0 +1,291 @@
+/**
+ * @file   apps/web/src/game/arena.css
+ * @module web/game
+ * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
+ *
+ * Responsibility: the arena layout (play column beside the side column from 960 px, stacked
+ *                 on phones; in the play column ball, drawn numbers and the whole card fit one
+ *                 window, 01 §13), the current number as a large ball with a draining
+ *                 speed-window bar, the player's card as the hero element in card colours with
+ *                 large, thumb-sized cells (at least 44 px on a 360 px phone), also worn by the
+ *                 seed check's cards (../components/OwnerCard). Colours and sizes from @sbr/ui
+ *                 tokens.
+ * Used by:        ./MatchScreen, ../host/HostConsole (header, ball), ../components/OwnerCard
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+/* Arena */
+.arena {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.arena-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.arena-head p {
+  margin: 0.25rem 0 0;
+}
+
+.arena-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.arena-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The play area keeps the ball, the drawn numbers and the whole card in one window during
+   a round (QUICKTEST-GUIDE-2). Phone: a smaller ball beside the numbers, the card below,
+   the rules line after the play area. The numbers row is capped and scrolls to the newest
+   (../components/DrawTicker), so a long round does not push the card down. */
+.arena-play {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'ball ticker'
+    'cards cards';
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.arena-ball {
+  grid-area: ball;
+  --font-size-ball: 2.6rem;
+}
+
+.arena-ball .ball {
+  width: 6rem;
+}
+
+.arena-ticker {
+  grid-area: ticker;
+  min-width: 0;
+}
+
+.arena-ticker .draw-ticker {
+  max-height: 4.4rem;
+  overflow-y: auto;
+}
+
+.arena-cards {
+  grid-area: cards;
+  min-width: 0;
+}
+
+.arena-rules {
+  order: 1;
+  margin: 0;
+}
+
+/* The player's header (not the host console's): the host link and LIVE stay one compact
+   line beside the title on a phone. */
+.arena > .arena-head .sbr-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .arena {
+    gap: var(--space-2);
+  }
+
+  /* Title and host link/LIVE on one line, the progress line under both at full width. */
+  .arena > .arena-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-1);
+  }
+
+  .arena > .arena-head > div:first-child {
+    display: contents;
+  }
+
+  .arena > .arena-head h1 {
+    margin: 0;
+    font-size: var(--font-size-lead);
+  }
+
+  .arena > .arena-head [data-testid='arena-progress'] {
+    grid-column: 1 / -1;
+    font-size: var(--font-size-small);
+  }
+
+  .arena > .arena-head .sbr-row {
+    grid-area: 1 / 2;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  .arena > .arena-head .sbr-btn {
+    padding: 0 0.6rem;
+    font-size: var(--font-size-small);
+  }
+
+  .arena-ball .ball {
+    width: 5.5rem;
+  }
+
+  .arena-ticker p {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* Desktop: the play area beside the side column; in it the ball above the numbers, both
+   beside the card; the rules line back under the title. */
+@media (min-width: 960px) {
+  .arena-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr);
+    align-items: start;
+  }
+
+  .arena-play {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      'ball cards'
+      'ticker cards';
+    align-items: start;
+  }
+
+  .arena-ball {
+    --font-size-ball: clamp(3rem, 2rem + 3vw, 4.5rem);
+  }
+
+  .arena-ball .ball {
+    width: min(100%, 10rem);
+  }
+
+  .arena-ticker .draw-ticker {
+    max-height: 9rem;
+  }
+
+  .arena-rules {
+    order: 0;
+    margin-top: calc(0.25rem - var(--space-3));
+  }
+}
+
+/* The current number */
+.ball-wrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+.ball {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: clamp(8rem, 30vw, 11rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-ball) 45%, #c9d1dc);
+  color: var(--color-ball-ink);
+  box-shadow:
+    var(--shadow-raised),
+    inset 0 -8px 18px rgb(0 0 0 / 18%);
+  line-height: 1;
+}
+
+.ball--empty {
+  width: auto;
+  aspect-ratio: auto;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.ball-letter {
+  font-size: calc(var(--font-size-ball) * 0.38);
+  font-weight: var(--font-weight-strong);
+  color: var(--color-text-muted);
+  filter: brightness(0.5);
+}
+
+.ball-number {
+  font-size: var(--font-size-ball);
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.03em;
+}
+
+.ball-note {
+  margin: 0;
+}
+
+.window-bar {
+  width: min(14rem, 70%);
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.window-bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-autumn);
+  transform-origin: left;
+  animation: sbr-window linear forwards;
+}
+
+@keyframes sbr-window {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* The player's card: the hero element */
+.own-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.live-card {
+  --cell-size: clamp(2.9rem, 15vw, 4.1rem);
+  --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
+  --cell-weight: 700;
+  --cell-radius: 10px;
+  --cell-bg: var(--color-bingo-card);
+  --cell-free-bg: var(--color-bingo-card-line);
+  --cell-ink: var(--color-bingo-card-ink);
+  --cell-marked-bg: var(--color-bingo-card-marked);
+  --cell-marked-ink: var(--color-bingo-card-marked-ink);
+  --cell-marked-ring: var(--color-autumn);
+
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--color-bingo-card);
+  color: var(--color-bingo-card-ink);
+  box-shadow: var(--shadow-raised);
+}
+
+.live-card > div {
+  gap: 6px !important;
+}
+
+.live-card-feedback {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--color-bingo-card-ink);
+  font-weight: var(--font-weight-strong);
+}

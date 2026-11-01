@@ -6,7 +6,7 @@
  * Responsibility: when the server says the signed-in account hosts this match (`youHost`),
  *                 show a clear link to the host console; for everyone else nothing.
  * Depends on:     react, ../shell/router, ./useLiveMatch (types)
- * Used by:        ./MatchScreen, ./WaitingRoom
+ * Used by:        ./MatchScreen (the arena; not the waiting room)
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';

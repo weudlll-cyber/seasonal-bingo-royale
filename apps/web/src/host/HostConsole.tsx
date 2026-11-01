@@ -27,6 +27,7 @@ import { currentRecap, Interlude } from '../game/Interlude.js';
 import { EndActions } from '../game/EndActions.js';
 import { MatchCancelled } from '../game/MatchCancelled.js';
 import { intent } from '../game/socket.js';
+import '../game/arena.css';
 import '../game/game.css';
 import './host.css';
 import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';

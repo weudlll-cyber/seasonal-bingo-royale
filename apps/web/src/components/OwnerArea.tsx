@@ -134,6 +134,6 @@ function BotCards({ view }: { view: PlaybackView }): ReactElement {
 
 const gridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 22rem), 1fr))',
   gap: '1rem',
 };

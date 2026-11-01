@@ -1,13 +1,14 @@
 /**
  * @file   apps/web/src/quicktest/TestMatch.tsx
  * @module web/quicktest
- * @brief  Section A of the test page: a real test match with bots, played like the real game.
+ * @brief  "Play a test match" on the test page: a real test match with bots, as players see it.
  *
  * Responsibility: for the dev host, the form (game type, start now or in N minutes, bots,
- *                 draws, "I play along", short royale rounds) and "Create test match" (./testMatchSetup)
- *                 with "What happens next" under it; then ./TestMatchReady (code, console, live
- *                 screen). Signed out or not the host: the dev "Sign in as host" instead of the
- *                 form. Maintenance on: the reason, and the button disabled (D22).
+ *                 draws, "I play along", short royale rounds) and "Create test match" (./testMatchSetup:
+ *                 the console in a new tab, this tab to the match's player route) with "What
+ *                 happens next" under it; ./TestMatchReady's panel when this tab stays (tab
+ *                 blocked, a step failed). Signed out or not the host: the dev "Sign in as host"
+ *                 instead of the form. Maintenance on: the reason, and the button disabled (D22).
  * Depends on:     react, ./testMatchSetup, ./TestMatchReady, ../components/StartDrawField,
  *                 ../game/labels, ../host/createForm, ../host/host.css, ../shell/DevTools,
  *                 ../shell/session, ../shell/useMaintenance, ./quicktest.css
@@ -31,7 +32,7 @@ import {
   type TestMatchValues,
   useCreateTestMatch,
 } from './testMatchSetup.js';
-import { NextSteps, ReadyPanel, SetupError } from './TestMatchReady.js';
+import { NextSteps, OpenedPanel, SetupError } from './TestMatchReady.js';
 import './quicktest.css';
 
 export function TestMatchSection(): ReactElement {
@@ -42,10 +43,10 @@ export function TestMatchSection(): ReactElement {
   const [error, setError] = useState<string | null>(null);
   return (
     <section className="sbr-panel sbr-stack test-section" data-testid="test-match">
-      <h2>A — Real test match</h2>
-      <p className="sbr-muted">
-        A live match on this server with bots: waiting room, countdown, cards, cuts and result
-        exactly as players see them.
+      <h2>Play a test match</h2>
+      <p>
+        A live match on this server with bots. This tab becomes your player screen, exactly as
+        players see it; the host console opens in a new tab.
       </p>
       {!can('match.create') ? (
         <SignInFirst />
@@ -53,12 +54,12 @@ export function TestMatchSection(): ReactElement {
         <TestMatchForm
           values={values}
           onValues={setValues}
-          onCreated={setCode}
+          onOpened={setCode}
           error={error}
           onError={setError}
         />
       ) : (
-        <ReadyPanel
+        <OpenedPanel
           code={code}
           values={values}
           error={error}
@@ -93,7 +94,7 @@ function SignInFirst(): ReactElement {
 interface FormProps {
   readonly values: TestMatchValues;
   readonly onValues: (next: TestMatchValues) => void;
-  readonly onCreated: (code: string) => void;
+  readonly onOpened: (code: string) => void;
   readonly error: string | null;
   readonly onError: (error: string | null) => void;
 }

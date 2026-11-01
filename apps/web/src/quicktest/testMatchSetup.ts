@@ -8,10 +8,11 @@
  *                 of the bots field, the POST /matches body built by the create form's own
  *                 `createBody` (a set start time with "Start automatically", D16), and the
  *                 calls in order: create, join as a player, bots, and for "Now" the host's
- *                 Start with the normal countdown, run by `useCreateTestMatch` for the form.
- *                 No new game mechanism.
+ *                 Start with the normal countdown, run by `useCreateTestMatch` for the form:
+ *                 the host console in a new tab opened in the click, this tab to the match's
+ *                 normal player route. No new game mechanism.
  * Depends on:     react, ../host/createForm, ../drawControl, ../game/labels, ../shell/http,
- *                 ../types
+ *                 ../shell/router, ../types
  * Used by:        ./TestMatch
  * Spec:           docs/spec/01-game-design.md §7.6 (D16); docs/spec/05-api-design.md §2.3, §2.3a
  */
@@ -21,6 +22,7 @@ import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
 import { problemText } from '../game/labels.js';
 import { createBody, INITIAL, MAX_PLAYERS } from '../host/createForm.js';
 import { api, ApiError } from '../shell/http.js';
+import { hrefOf, navigate } from '../shell/router.js';
 import type { GameType } from '../types.js';
 
 // "Now": the host's Start with the 10-second countdown; else a set time N minutes ahead.
@@ -111,28 +113,45 @@ export async function createTestMatch(
   return code;
 }
 
-// Runs the setup once: busy until it ends. The waiting room opens once the setup is done
-// (the bots in, as the steps say); a step that fails after the match exists still opens it,
-// with the message beside the code.
+// The host console's own tab: opened empty inside the click (a window.open after the
+// server's answer would be blocked), sent to the console once the match exists.
+function sendToConsole(tab: Window, code: string): void {
+  tab.location.href = new URL(hrefOf({ name: 'host', code }), window.location.href).href;
+}
+
+// Runs the setup once: busy until it ends. Once the bots are in, this tab goes to the
+// match's normal player route (the waiting room); the console tab already shows the match.
+// A blocked tab, or a step that fails after the match exists, stays here: `onOpened` gets
+// the code for the links, with the message beside it.
 export function useCreateTestMatch(handlers: {
   readonly values: TestMatchValues;
-  readonly onCreated: (code: string) => void;
+  readonly onOpened: (code: string) => void;
   readonly onError: (error: string | null) => void;
 }): { readonly busy: boolean; readonly create: () => void } {
-  const { values, onCreated, onError } = handlers;
+  const { values, onOpened, onError } = handlers;
   const [busy, setBusy] = useState(false);
   const create = (): void => {
     setBusy(true);
     onError(null);
+    const tab = window.open('', '_blank');
     let created: string | null = null;
     createTestMatch(values, (c) => {
       created = c;
+      if (tab !== null) sendToConsole(tab, c);
     })
-      .then(onCreated)
+      .then((code) => {
+        if (tab !== null) {
+          navigate({ name: 'match', code });
+          return;
+        }
+        setBusy(false);
+        onOpened(code);
+      })
       .catch((e: unknown) => {
         setBusy(false);
         onError(e instanceof ApiError ? problemText(e.code, e.reason) : problemText(''));
-        if (created !== null) onCreated(created);
+        if (created !== null) onOpened(created);
+        else tab?.close();
       });
   };
   return { busy, create };

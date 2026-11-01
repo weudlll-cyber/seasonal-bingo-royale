@@ -28,7 +28,7 @@ import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
-import { hrefOf, useRoute, type Route } from './router.js';
+import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
@@ -182,7 +182,7 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'verify':
       return <VerifyMatch key={route.code} code={route.code} />;
     case 'quicktest':
-      return <QuickTestScreen dev={dev} />;
+      return <QuickTestScreen dev={dev} view={route.view} />;
     case 'signIn':
       return <SignIn />;
     case 'register':
@@ -191,11 +191,17 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
 }
 
 // The Quick Test calls a development-only server route; production shows the lobby.
-function QuickTestScreen({ dev }: { readonly dev: boolean }): ReactElement {
+function QuickTestScreen({
+  dev,
+  view,
+}: {
+  readonly dev: boolean;
+  readonly view: QuickTestView | undefined;
+}): ReactElement {
   if (!dev || QuickTest === null) return <Lobby />;
   return (
     <Suspense fallback={null}>
-      <QuickTest />
+      <QuickTest view={view} />
     </Suspense>
   );
 }

@@ -126,9 +126,9 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
   await page.context().close();
 
   // A fresh phone-sized window (mobile emulation keeps its first layout width on resize),
-  // on the Quick Test page: long enough to scroll, and no sign-in needed.
+  // on the seed check page: long enough to scroll, and no sign-in needed.
   const phonePage = await (await browser.newContext({ viewport: PHONE })).newPage();
-  await phonePage.goto('/#/quicktest');
+  await phonePage.goto('/#/quicktest/seed');
   await expect(phonePage.getByTestId('start-run')).toBeVisible();
   const phone = await phonePage.evaluate(async () => {
     window.scrollTo(0, 400);

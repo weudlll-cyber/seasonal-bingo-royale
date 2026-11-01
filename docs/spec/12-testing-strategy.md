@@ -99,4 +99,4 @@ Headroom check: same scenario at 400 players must stay below 1 s p95 draw latenc
 
 ## 8. Manual acceptance (owner)
 
-Every work package that changes something visible ends with what the owner looks at in the browser, which seed (the dev build's **Quick Test** page, "Test a match", offers a real test match — a live match with bots and the waiting room, started now or in a few minutes — and a seed simulation with a seed field that replays a single-player match against bots), and what “correct” looks like. Nothing visible is merged before that check.
+Every work package that changes something visible ends with what the owner looks at in the browser, which seed (the dev build's **Quick Test** page, "Test a match", offers "Play a test match" — a live match with bots, started now or in a few minutes, its host console in a new tab and the test tab as the normal player screen — and "Check a game by seed", a seed simulation that replays a single-player match against bots), and what “correct” looks like. Nothing visible is merged before that check.

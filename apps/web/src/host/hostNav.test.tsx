@@ -7,10 +7,11 @@
  * Responsibility: the lobby shows "Manage" (to #/host/<code>) instead of Join for a match
  *                 the server says the viewer hosts, and the match code on every card; "Your
  *                 matches" lists only the viewer's open or running matches and is hidden
- *                 when there are none; "Open host console" shows only for the host; the
+ *                 when there are none; "Open host console" shows only for the host, and not
+ *                 in the waiting room (the console opens in its own tab, QUICKTEST-GUIDE-2); the
  *                 console in the lobby says the match is open and gives its code (LOOK-1);
  *                 a player on #/host/<code> sees no controls.
- * Depends on:     @testing-library/react, ../game/Lobby, ../game/HostLink, ./YourMatches,
+ * Depends on:     @testing-library/react, ../game/Lobby, ../game/HostLink, ../game/MatchScreen, ./YourMatches,
  *                 ./HostConsole, ../test/matchFixture, ../game/useLiveMatch,
  *                 ../test/quickTestFixture, ../shell/session
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
@@ -20,6 +21,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HostLink } from '../game/HostLink.js';
 import { Lobby } from '../game/Lobby.js';
+import { MatchScreen } from '../game/MatchScreen.js';
 import type { MatchSummary } from '../game/useLiveMatch.js';
 import { matchSummary } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
@@ -99,6 +101,18 @@ describe('host console and host link', () => {
     const { rerender } = render(<HostLink match={summary('A', { youHost: true })} />);
     expect(screen.getByTestId('open-host-console').getAttribute('href')).toBe('#/host/A');
     rerender(<HostLink match={summary('A', { youHost: false })} />);
+    expect(screen.queryByTestId('open-host-console')).toBeNull();
+  });
+
+  it('keeps the host link out of the waiting room', async () => {
+    const match = summary('WAIT01', { youHost: true });
+    serve((url) =>
+      url.endsWith('/session')
+        ? session
+        : { match, seq: 0, since: 0, me: null, view: royaleFixture() },
+    );
+    await show(<MatchScreen code="WAIT01" />);
+    expect(screen.getByTestId('waiting-room')).toBeTruthy();
     expect(screen.queryByTestId('open-host-console')).toBeNull();
   });
 
