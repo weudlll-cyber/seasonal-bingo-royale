@@ -1,0 +1,83 @@
+/**
+ * @file   apps/web/src/game/watch.css
+ * @module web/game
+ * @brief  The cards a player out or a spectator watches (D24): top 4, or one followed player.
+ *
+ * Responsibility: the watched cards in the card look of a player's own card (./arena.css
+ *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
+ *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
+ *                 phone; a followed player's card alone and larger; the heading with place,
+ *                 name, points and "1 to go". Colours and spacing from @sbr/ui tokens.
+ * Used by:        ./WatchCards
+ * Spec:           docs/spec/01-game-design.md §13 (D24)
+ */
+
+.watch-cards {
+  display: grid;
+  gap: var(--space-1);
+  align-content: start;
+  justify-items: center;
+  width: 100%;
+}
+
+.watch-grid {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: var(--space-1);
+  justify-content: center;
+}
+
+.watch-cards.is-following .watch-grid {
+  grid-template-columns: auto;
+}
+
+.watch-card.live-card {
+  --cell-size: 2.4rem;
+  --cell-font: 0.9rem;
+  padding: var(--space-1);
+}
+
+.watch-head {
+  max-width: calc(5 * var(--cell-size) + 1rem);
+  margin: 0;
+  font-size: var(--font-size-small);
+  line-height: 1.3;
+}
+
+.watch-togo {
+  font-weight: var(--font-weight-strong);
+}
+
+.watch-note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* Phone: the first 2 side by side under the ball and the numbers. */
+@media (max-width: 959px) {
+  .watch-card.live-card {
+    --cell-size: calc((100vw - 5.5rem) / 10);
+    --cell-font: 0.8rem;
+  }
+
+  .watch-cards:not(.is-following) .watch-grid > :nth-child(n + 3) {
+    display: none;
+  }
+
+  .watch-cards.is-following .watch-card.live-card {
+    --cell-size: calc((100vw - 5rem) / 5.4);
+    --cell-font: 1rem;
+  }
+}
+
+/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. */
+@media (min-width: 960px) {
+  .watch-card.live-card {
+    --cell-size: min(3.4rem, calc((50cqh - 5.6rem) / 5), calc((50cqw - 2.2rem) / 5));
+    --cell-font: max(0.75rem, calc(var(--cell-size) * 0.36));
+  }
+
+  .watch-cards.is-following .watch-card.live-card {
+    --cell-size: min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5));
+  }
+}

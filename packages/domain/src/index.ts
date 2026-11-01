@@ -47,6 +47,7 @@ export { generateCard, type GenerateCardInput } from './card/generateCard.js';
 export {
   completedPrizeKeys,
   completedPrizes,
+  oneToGoKeys,
   type CompletedPrizes,
   type Mark,
   type MarkMask,

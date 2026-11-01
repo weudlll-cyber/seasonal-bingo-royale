@@ -19,14 +19,18 @@ export {
   SEASON_NAMES,
   type Card,
   type Cell,
+  type CompactCard,
   type DomainEventLike,
+  type Effect,
   type EffectKind,
   type GameType,
   type MarkingMode,
   type MissedNumbers,
   type OwnerStatus,
   type QuickTestResult,
+  type RoundEndRule,
   type Season,
+  type WatchView,
 } from '@sbr/contracts';
 
 // classicSeasons draw items 101–104 are the season symbols (04 §3.4).

@@ -4,7 +4,9 @@
  * @brief  Shapes of the Quick Test playback view-model (WP-08).
  *
  * Responsibility: the view-model the components render: players with their current
- *                 cards and marks, the owner's cut outcome, prize winners, banners.
+ *                 cards and marks, the owner's cut outcome, prize winners, banners, the
+ *                 patterns of the round (first and own), points at elimination and shield
+ *                 saves (from the server's cut facts).
  *                 Kept apart from the fold in ./playback.ts, which re-exports them.
  * Depends on:     ./types
  * Used by:        ./playback, ./playbackScoring, ./standingsOrder
@@ -31,6 +33,21 @@ export interface PlayerView {
   readonly eliminatedRound: number | null;
   // Number of the cut that eliminated the player (1 = first cut), null while in.
   readonly eliminatedCut: number | null;
+  // The player's points at the moment of elimination (server), null while in.
+  readonly outPoints: number | null;
+  // Every cut the Winter shield saved the player in, and how far below the line they were.
+  readonly shieldSaves: readonly ShieldSave[];
+}
+
+export interface ShieldSave {
+  readonly cut: number;
+  readonly placesBelow: number;
+}
+
+// One pattern of the round: who completed it first, and whether the viewer has it.
+export interface RoundPattern {
+  readonly first: string | null;
+  readonly mine: boolean;
 }
 
 export type CutOutcome = 'survived' | 'saved' | 'eliminated';
@@ -38,7 +55,14 @@ export type CutOutcome = 'survived' | 'saved' | 'eliminated';
 export interface CutView {
   // Counts cuts so far; a new value means a new cut screen.
   readonly number: number;
-  readonly owners: readonly { readonly accountId: string; readonly outcome: CutOutcome }[];
+  // The match round the cut followed.
+  readonly round: number;
+  readonly owners: readonly {
+    readonly accountId: string;
+    readonly outcome: CutOutcome;
+    // Saved by the shield: how many places below the cut line the owner was.
+    readonly placesBelow?: number;
+  }[];
 }
 
 export interface PrizeWin {
@@ -62,6 +86,8 @@ export interface PlaybackView {
   // Classic types: winners per prize key, with the draw number that awarded it.
   readonly prizeWinners: Readonly<Record<string, PrizeWin>>;
   readonly banners: readonly Banner[];
+  // The patterns completed in the current round, by prize key (royale, 01 §8.1).
+  readonly roundPatterns: Readonly<Record<string, RoundPattern>>;
   // The current round has ended: its last number is still shown, but taps are closed.
   readonly roundOver: boolean;
   readonly finished: boolean;

@@ -9,7 +9,7 @@
  *                 says so, and in the pause between rounds it says "Round over" in place of
  *                 the last number (D21); at the end of the match the last number stays with
  *                 "Match over". Announced to screen readers.
- * Depends on:     react, ../components/SeasonIcon, ../types, ../useReducedMotion
+ * Depends on:     react, ../components/SeasonIcon, ../types, ../useReducedMotion, ./ball.css
  * Used by:        ./MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D21), §13
  */
@@ -18,6 +18,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { SeasonIcon } from '../components/SeasonIcon.js';
 import { ballLabel, seasonOfSymbol } from '../types.js';
 import { useReducedMotion } from '../useReducedMotion.js';
+import './ball.css';
 
 interface CurrentBallProps {
   readonly draws: readonly number[];

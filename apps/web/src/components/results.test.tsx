@@ -9,7 +9,7 @@
  *                 placement states the owner's place and puts places 1–3 on a podium; the
  *                 match log is hidden while empty; the host's draw-mode switch marks the
  *                 active mode and shows the seconds field for timed draws only.
- * Depends on:     @testing-library/react, ./Standings, ./FinalPlacement, ./Playback,
+ * Depends on:     @testing-library/react, ./Standings, ./FinalPlacement, ./RecentEvents,
  *                 ../host/HostDrawControls, ../playback, ../test/quickTestFixture, ./DrawTicker,
  *                 ../game/useLiveMatch
  * Spec:           docs/spec/01-game-design.md §5, §7.5, §13
@@ -19,7 +19,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DrawTicker } from './DrawTicker.js';
 import { FinalPlacement } from './FinalPlacement.js';
-import { MatchLog } from './Playback.js';
+import { RecentEvents } from './RecentEvents.js';
 import { Standings } from './Standings.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import { HostDrawControls } from '../host/HostDrawControls.js';
@@ -34,9 +34,10 @@ describe('ranked rows', () => {
   it('lists players still in, a divider, then the out rows dimmed with "out"', () => {
     const result = royaleFixture();
     // After the cut: owner-01 is out, both bots go on.
-    render(<Standings view={playbackAt(result, 11)} showSeasons />);
+    render(<Standings result={result} view={playbackAt(result, 11)} />);
     const items = [...screen.getByTestId('standings').children];
     expect(items.map((li) => li.getAttribute('data-testid') ?? li.textContent)).toEqual([
+      'Still in',
       'standing-bot-02',
       'standing-bot-03',
       'Out of the match',
@@ -65,7 +66,7 @@ describe('ranked rows', () => {
   });
 
   it('hides the match log while it is empty', () => {
-    const { container } = render(<MatchLog banners={[]} />);
+    const { container } = render(<RecentEvents banners={[]} />);
     expect(container.innerHTML).toBe('');
   });
 });

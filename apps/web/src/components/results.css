@@ -1,13 +1,12 @@
 /**
  * @file   apps/web/src/components/results.css
  * @module web
- * @brief  Cut screen, ranked rows, podium, prize rows and the match log.
+ * @brief  Cut screen (and the final's notice in its style), ranked rows, podium, prize rows.
  *
  * Responsibility: the shared look of everything that ranks or reports: rows with rank,
  *                 name, season icons and points (own row highlighted, out rows dimmed below
- *                 a divider), the final podium in season colours, the prize rows and the
- *                 match log, newest first, in a scrolling panel. Colours, spacing and radii
- *                 from @sbr/ui tokens only.
+ *                 a divider), the final podium in season colours and the prize rows.
+ *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §7.4, §7.5, §13
  */
 
@@ -43,6 +42,9 @@
 }
 
 .rank-row {
+  /* Holds its visually hidden texts: in a scrolling list they stay clipped with the row
+     instead of making the page taller. */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -225,31 +227,6 @@
 }
 
 .prize-open {
-  color: var(--color-text-muted);
-}
-
-/* The match log: newest first, scrolls inside its panel */
-.match-log ol {
-  display: grid;
-  gap: 2px;
-  max-height: 18rem;
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  list-style: none;
-}
-
-.match-log li {
-  padding: 0.3rem var(--space-1);
-  border-radius: 8px;
-}
-
-.match-log li:first-child {
-  background: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-.match-log li + li {
   color: var(--color-text-muted);
 }
 

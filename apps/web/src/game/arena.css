@@ -3,14 +3,17 @@
  * @module web/game
  * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
  *
- * Responsibility: the arena layout (play column beside the side column from 960 px, stacked
- *                 on phones; in the play column ball, drawn numbers and the whole card fit one
- *                 window, 01 §13), the current number as a large ball with a draining
- *                 speed-window bar, the player's card as the hero element in card colours with
- *                 large, thumb-sized cells (at least 44 px on a 360 px phone), also worn by the
- *                 seed check's cards (../components/OwnerCard). Colours and sizes from @sbr/ui
- *                 tokens.
- * Used by:        ./MatchScreen, ../host/HostConsole (header, ball), ../components/OwnerCard
+ * Responsibility: the arena layout (stacked on phones, ball and drawn numbers above the
+ *                 card; from 960 px the arena fills the window below the top bar: ball, drawn
+ *                 numbers and the newest lines beside the card, which takes its cell size from
+ *                 the space it has, the side column beside them with the standings filling the
+ *                 rest, so the page does not scroll during a round, 01 §13), the player's card
+ *                 as the hero element in card colours with large, thumb-sized cells (at least
+ *                 44 px on a 360 px phone), also worn by the seed check's cards
+ *                 (../components/OwnerCard) and the watched cards (./watch.css). Colours and
+ *                 sizes from @sbr/ui tokens.
+ * Used by:        ./MatchScreen, ../host/HostConsole (header, ball and numbers),
+ *                 ../components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -52,7 +55,8 @@
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
     'ball ticker'
-    'cards cards';
+    'cards cards'
+    'events events';
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
@@ -79,6 +83,11 @@
 
 .arena-cards {
   grid-area: cards;
+  min-width: 0;
+}
+
+.arena-events {
+  grid-area: events;
   min-width: 0;
 }
 
@@ -140,112 +149,86 @@
   }
 }
 
-/* Desktop: the play area beside the side column; in it the ball above the numbers, both
-   beside the card; the rules line back under the title. */
+/* Desktop: the arena fills the window below the top bar (../shell/shell.css .fit-window):
+   title, rules and notices on top, then the play area beside the side column with what is
+   left. In the play area the ball, the drawn numbers and the newest lines sit beside the
+   card, which takes its cell size from its box (container units), so it is always whole.
+   In the side column the standings take the rest of the height and scroll inside. */
 @media (min-width: 960px) {
+  /* A column: title, rules and whatever notices there are, then the play area with the
+     rest of the height (never less than 20rem; a tall recap in a pause may scroll). */
+  .arena {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
   .arena-grid {
-    grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr);
-    align-items: start;
+    flex: 1 1 20rem;
+    grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 20rem;
   }
 
   .arena-play {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas:
       'ball cards'
-      'ticker cards';
+      'ticker cards'
+      'events cards';
     align-items: start;
+    min-height: 0;
   }
 
   .arena-ball {
-    --font-size-ball: clamp(3rem, 2rem + 3vw, 4.5rem);
+    justify-self: center;
+    --font-size-ball: clamp(2.6rem, 1.6rem + 2.4vw, 4.2rem);
   }
 
   .arena-ball .ball {
-    width: min(100%, 10rem);
+    width: min(100%, 9rem);
   }
 
   .arena-ticker .draw-ticker {
-    max-height: 9rem;
+    max-height: 7rem;
+  }
+
+  .arena-events {
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .arena-cards {
+    container-type: size;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Five rows of cells plus the letters, the feedback line and the padding fit the box. */
+  .arena-cards .live-card {
+    --cell-size: min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5));
+    --cell-font: max(0.85rem, calc(var(--cell-size) * 0.36));
+  }
+
+  .arena-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .arena-side .standings-panel {
+    flex: 1 1 10rem;
+    min-height: 9rem;
   }
 
   .arena-rules {
     order: 0;
-    margin-top: calc(0.25rem - var(--space-3));
-  }
-}
-
-/* The current number */
-.ball-wrap {
-  display: grid;
-  justify-items: center;
-  gap: var(--space-1);
-}
-
-.ball {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  width: clamp(8rem, 30vw, 11rem);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-ball) 45%, #c9d1dc);
-  color: var(--color-ball-ink);
-  box-shadow:
-    var(--shadow-raised),
-    inset 0 -8px 18px rgb(0 0 0 / 18%);
-  line-height: 1;
-}
-
-.ball--empty {
-  width: auto;
-  aspect-ratio: auto;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  box-shadow: none;
-}
-
-.ball-letter {
-  font-size: calc(var(--font-size-ball) * 0.38);
-  font-weight: var(--font-weight-strong);
-  color: var(--color-text-muted);
-  filter: brightness(0.5);
-}
-
-.ball-number {
-  font-size: var(--font-size-ball);
-  font-weight: var(--font-weight-heading);
-  letter-spacing: -0.03em;
-}
-
-.ball-note {
-  margin: 0;
-}
-
-.window-bar {
-  width: min(14rem, 70%);
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-2);
-  overflow: hidden;
-}
-
-.window-bar span {
-  display: block;
-  height: 100%;
-  background: var(--color-autumn);
-  transform-origin: left;
-  animation: sbr-window linear forwards;
-}
-
-@keyframes sbr-window {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
+    margin-top: calc(0.25rem - var(--space-2));
   }
 }
 

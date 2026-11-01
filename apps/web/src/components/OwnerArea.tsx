@@ -84,9 +84,10 @@ export function OwnerStatusFor({
       points={owner.points}
       rank={ownerRank(result, view, owner.accountId)}
       status={view.ownerStatus[owner.accountId] ?? null}
-      effectSeasons={result.effectSeasons}
+      rules={result}
       showSeasons={result.gameType === 'royale'}
       outInCut={owner.eliminatedCut}
+      shieldSaves={owner.shieldSaves}
     />
   );
 }

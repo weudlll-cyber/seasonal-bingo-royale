@@ -8,9 +8,11 @@
  *                 recent numbers, Draw next (also Space outside fields; host draws only, after
  *                 the speed window, D10), the timed/host switch, seconds (D8), "Start next round"
  *                 when the host must start it (D14) or "Start next round now" in a timed pause
- *                 (D21, Draw next hidden), the round recap (../game/Interlude, D20), standings
- *                 (active first), prizes, log (newest first) with cuts, abort with a reason
- *                 (./AbortMatch); final placement on top at the end. No pause (async only).
+ *                 (D21, Draw next hidden), the round recap (../game/Interlude, D20), the final's
+ *                 fresh start (D23), the newest 3 event lines with the whole log one click away,
+ *                 standings (active first, grouped, in a bounded panel), prizes, abort with a
+ *                 reason (./AbortMatch); while running it fills the window below the top bar on
+ *                 desktop; final placement on top at the end. No pause (async only).
  * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./host.css, ../shell/router
  * Used by:        ../shell/AppShell
@@ -18,12 +20,12 @@
  */
 import { useState, type ReactElement } from 'react';
 
-import { DrawTicker } from '../components/DrawTicker.js';
+import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
-import { MatchLog, PrizeList } from '../components/Playback.js';
+import { PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
-import { CurrentBall } from '../game/CurrentBall.js';
 import { currentRecap, Interlude } from '../game/Interlude.js';
+import { BallAndNumbers } from '../game/MatchScreen.js';
 import { EndActions } from '../game/EndActions.js';
 import { MatchCancelled } from '../game/MatchCancelled.js';
 import { intent } from '../game/socket.js';
@@ -44,8 +46,14 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
   // Only the match's host gets controls (the server refuses everyone else as well).
   if (live.match.youHost !== true) return <NotYourMatch code={code} />;
   const view = playbackAt(live.view, live.view.events.length);
+  const playing = live.match.status === 'running';
   return (
-    <div className="sbr-stack" data-testid="host-console" data-seq={live.seq}>
+    // fit-window: while the match runs the console fills the window below the top bar.
+    <div
+      className={`sbr-stack host-console${playing ? ' fit-window' : ''}`}
+      data-testid="host-console"
+      data-seq={live.seq}
+    >
       <header className="arena-head">
         <div>
           <h1>{live.match.title}</h1>
@@ -90,31 +98,21 @@ function HostLive({
           <EndActions host code={live.match.code} />
         </div>
       ) : null}
-      <section className="sbr-stack">
-        <CurrentBall
-          draws={view.drawsSoFar}
-          speedWindowMs={result.speedWindowMs}
-          roundOver={view.roundOver}
-          finished={view.finished}
-        />
-        <DrawTicker
-          draws={view.drawsSoFar}
-          speedWindowMs={result.speedWindowMs}
-          showWindow={!view.finished}
-          paused={view.roundOver && !view.finished}
-        />
+      {/* Ball, drawn numbers and the newest lines beside the controls; the standings in
+          a bounded panel beside both (host.css). */}
+      <section className="host-play">
+        <BallAndNumbers result={result} view={view} />
+      </section>
+      <section className="host-controls">
+        <FinalNotice result={result} view={view} />
         <BetweenRounds live={live} view={view} />
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <AbortMatch code={live.match.code} /> : null}
       </section>
-      {/* The log first, so a cut and its result are in view; at the end the final
-          placement replaces the live standings. */}
-      <aside className="sbr-stack">
-        <MatchLog banners={view.banners} />
-        {view.finished ? null : (
-          <Standings view={view} showSeasons={result.gameType === 'royale'} />
-        )}
+      {/* At the end the final placement replaces the live standings. */}
+      <aside className="host-side">
+        {view.finished ? null : <Standings result={result} view={view} />}
       </aside>
     </div>
   );

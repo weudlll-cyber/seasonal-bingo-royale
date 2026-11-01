@@ -25,6 +25,30 @@ export function numberCard(offset: number, seasons = true): Card {
   };
 }
 
+// The default royale season effects (01 §8.2).
+export const SEASON_EFFECTS: QuickTestResult['seasonEffects'] = {
+  spring: { type: 'growth', pointsPerMark: 2, durationDraws: 10 },
+  summer: { type: 'multiplier', factor: 1.5, durationDraws: 8 },
+  autumn: { type: 'harvest', scope: 'row', pointsPerMarked: 15 },
+  winter: { type: 'shield', rankMargin: 3, charges: 1 },
+};
+
+// A qualification round of two draws, then the final.
+const STAGES: QuickTestResult['stagePlan'] = [
+  {
+    kind: 'qualification',
+    rounds: 1,
+    roundEnd: { kind: 'drawCount', draws: 2 },
+    activePatterns: ['rows-1', 'fourCorners'],
+  },
+  {
+    kind: 'final',
+    rounds: 1,
+    roundEnd: { kind: 'firstFullHouse' },
+    activePatterns: ['fullCard'],
+  },
+];
+
 const STATUS: OwnerStatus[] = [
   { step: 0, multiplier: null, growth: null, shieldCharges: 0, seasons: [] },
   {
@@ -61,10 +85,7 @@ export function royaleFixture(
     pointsPerMark: 10,
     maxSpeedBonus: 10,
     tickedPrizes: [],
-    stagePlan: [
-      { kind: 'qualification', rounds: 1 },
-      { kind: 'final', rounds: 1 },
-    ],
+    stagePlan: STAGES,
     ownerAccountIds: ['owner-01'],
     ownerStatus: { 'owner-01': STATUS },
     // The final stage resets the survivors' points (score carry `reset`); owner-01, out
@@ -74,6 +95,12 @@ export function royaleFixture(
       { step: 12, points: { 'owner-01': 10, 'bot-02': 0, 'bot-03': 0 } },
     ],
     effectSeasons: { growth: 'spring', multiplier: 'summer', harvest: 'autumn', shield: 'winter' },
+    seasonEffects: SEASON_EFFECTS,
+    seasonCompletePoints: 300,
+    patternPoints: { 'rows-1': 100, fourCorners: 100, fullCard: 500 },
+    firstBonusPercent: 50,
+    // The cut eliminates owner-01 with its 10 points.
+    cuts: [{ out: { 'owner-01': 10 }, saved: {} }],
     players: [
       player('owner-01', true, 3, 10),
       player('bot-02', false, 1),

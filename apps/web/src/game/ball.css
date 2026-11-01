@@ -1,0 +1,85 @@
+/**
+ * @file   apps/web/src/game/ball.css
+ * @module web/game
+ * @brief  The current number as a large ball with a draining speed-window bar.
+ *
+ * Responsibility: the ball (letter and number, or the empty state before the first draw and
+ *                 in the pause), its note and the bar that runs down over the speed window.
+ *                 Sizes from the --font-size-ball the arena sets. Colours from @sbr/ui tokens.
+ * Used by:        ./CurrentBall
+ * Spec:           docs/spec/01-game-design.md §5, §6, §13
+ */
+
+/* The current number */
+.ball-wrap {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+.ball {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  width: clamp(8rem, 30vw, 11rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-ball) 45%, #c9d1dc);
+  color: var(--color-ball-ink);
+  box-shadow:
+    var(--shadow-raised),
+    inset 0 -8px 18px rgb(0 0 0 / 18%);
+  line-height: 1;
+}
+
+.ball--empty {
+  width: auto;
+  aspect-ratio: auto;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  box-shadow: none;
+}
+
+.ball-letter {
+  font-size: calc(var(--font-size-ball) * 0.38);
+  font-weight: var(--font-weight-strong);
+  color: var(--color-text-muted);
+  filter: brightness(0.5);
+}
+
+.ball-number {
+  font-size: var(--font-size-ball);
+  font-weight: var(--font-weight-heading);
+  letter-spacing: -0.03em;
+}
+
+.ball-note {
+  margin: 0;
+}
+
+.window-bar {
+  width: min(14rem, 70%);
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.window-bar span {
+  display: block;
+  height: 100%;
+  background: var(--color-autumn);
+  transform-origin: left;
+  animation: sbr-window linear forwards;
+}
+
+@keyframes sbr-window {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

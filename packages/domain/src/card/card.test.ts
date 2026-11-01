@@ -21,6 +21,7 @@ import {
   completedPrizeKeys,
   completedPrizes,
   generateCard,
+  oneToGoKeys,
   rowOf,
   SEED_BYTES,
   type Card,
@@ -133,6 +134,32 @@ describe('completedPrizes', () => {
     );
     expect(completedPrizes(marks).corners).toBe(true);
     expect(completedPrizeKeys(marks)).toContain('fourCorners');
+  });
+});
+
+// "1 to go" for the watched cards (D24): the patterns one more mark would complete.
+describe('oneToGoKeys', () => {
+  const marked = (cells: readonly number[]): MarkMask => {
+    const marks = Array<Mark>(CELL_COUNT).fill(false);
+    for (const i of cells) marks[i] = true;
+    return marks;
+  };
+
+  it('names a row with four of five cells marked, not one already complete', () => {
+    expect(oneToGoKeys(marked([5, 6, 7, 8]))).toEqual(['rows-1']);
+    expect(oneToGoKeys(marked([5, 6, 7, 8, 9]))).not.toContain('rows-1');
+  });
+
+  it('names the full card with one cell left, and nothing on an empty card', () => {
+    const allButOne = Array.from({ length: CELL_COUNT - 1 }, (_v, i) => i);
+    expect(oneToGoKeys(marked(allButOne))).toContain('fullCard');
+    expect(oneToGoKeys(marked([]))).toEqual([]);
+  });
+
+  it('names four corners with three corners marked', () => {
+    expect(oneToGoKeys(marked([0, CARD_SIZE - 1, CELL_COUNT - CARD_SIZE]))).toEqual([
+      'fourCorners',
+    ]);
   });
 });
 

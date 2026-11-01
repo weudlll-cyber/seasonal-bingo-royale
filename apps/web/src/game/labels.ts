@@ -135,6 +135,13 @@ export const CUT_NOTE: Readonly<Record<'survived' | 'saved' | 'eliminated', stri
 
 export const seasonCompleteLine = (who: string): string => `${who} collected all four seasons`;
 
+// "bot-02 completed 1 row (+150, first)": the points the server scored, with the bonus.
+export function patternLine(who: string, prizeKey: string, points: number, first: boolean): string {
+  const name = prizeName(prizeKey);
+  const what = /^\d/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1);
+  return `${who} completed ${what} (+${String(points)}${first ? ', first' : ''})`;
+}
+
 export const jackpotLine = (who: string, value: number): string =>
   `${who} won the seasonal jackpot (+${String(value)} points)`;
 

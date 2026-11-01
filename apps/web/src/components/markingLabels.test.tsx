@@ -161,10 +161,10 @@ describe('the owner taps (Quick Test)', () => {
     expect(cell0()).toBe('false');
     // The seasons counter comes from the server (which counts the owner's cards as marked
     // after the delay), never from local taps: spring counts although cell 0 is open.
-    expect(screen.getByTestId('seasons-collected').textContent).toMatch(/1\/4/);
+    expect(screen.getByTestId('seasons-collected').dataset['count']).toBe('1');
     fireEvent.click(screen.getByTestId('owner-cell-0'));
     expect(cell0()).toBe('true');
     expect(screen.getByTestId('owner-feedback').textContent).toBe('Marked late · no speed bonus');
-    expect(screen.getByTestId('seasons-collected').textContent).toMatch(/1\/4/);
+    expect(screen.getByTestId('seasons-collected').dataset['count']).toBe('1');
   });
 });
