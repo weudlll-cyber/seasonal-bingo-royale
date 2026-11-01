@@ -9,15 +9,19 @@
  *                 notice and grouped standings; (B) never tapping (missed numbers left open), so the
  *                 owner is out in cut 1: the top 4 still in, "1 to go", following one player and
  *                 the line when that player goes out (the short fast rules); (C) a classic match.
- *                 The host starts each royale round from the console (D14). Saves clarity-*, watch-*
+ *                 The host starts each royale round from the console (D14). (D) CLARITY-FIXES:
+ *                 the seasons line, the host link in a new tab (D25), the owner out before the
+ *                 final, standings rows apart, the full card's owner 1st on the placement
+ *                 (fixes-* at 1536×730 and on a phone). Saves clarity-*, watch-*
  *                 at 1536×730, 1920×950 and on a phone in both themes. Every match is aborted if it
  *                 has not ended. Runs only with SBR_ACCEPTANCE=1.
- * Depends on:     @playwright/test, ../realGame, ../screens, ./liveSnap
+ * Depends on:     @playwright/test, ../realGame, ../layoutChecks, ../screens, ./liveSnap
  * Spec:           docs/spec/01-game-design.md §7.2, §7.5, §8.2, §13 (D23, D24)
  */
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 
 import { closeContexts, fillAndStart, hostMatch, post, signIn, stopMatch } from '../realGame.js';
+import { expectRowsApart } from '../layoutChecks.js';
 import { captureThemes, SHOTS_DIR } from '../screens.js';
 import { liveSnap } from './liveSnap.js';
 
@@ -32,8 +36,13 @@ test.afterEach(async ({ browser }) => {
 });
 
 // <name>-1536-light.jpg … <name>-phone-dark.jpg; back to 1536×730 afterwards.
-async function shoot(page: Page, name: string, show?: Locator): Promise<void> {
-  for (const { name: size, size: viewport } of SIZES) {
+async function shoot(
+  page: Page,
+  name: string,
+  show?: Locator,
+  sizes: readonly (typeof SIZES)[number][] = SIZES,
+): Promise<void> {
+  for (const { name: size, size: viewport } of sizes) {
     await page.setViewportSize(viewport);
     await captureThemes(page, SHOTS_DIR, `${name}-${size}`, show);
   }
@@ -197,6 +206,63 @@ test('C: classic, the owner taps every number, to the result', async ({ browser 
     await shoot(player, 'clarity-classic');
     await shoot(host, 'clarity-classic-console');
     await until(player, player.getByTestId('final-placement'), tap, 15);
+  } finally {
+    await stopMatch(host, code);
+  }
+});
+
+const FIXES_SIZES = [SIZES[0], SIZES[2]];
+
+test('D: the fixes: seasons line, host link tab, rows apart, the full card 1st', async ({
+  browser,
+}) => {
+  test.setTimeout(45 * 60_000);
+  const tabs = await openMatch(browser, 'royale', 'noAutoMark');
+  const { code, console: host, player } = tabs;
+  const seasons = player.getByTestId('seasons-collected');
+  // Tap until a season is collected, then stop: few points, out before the final.
+  await until(player, seasons.and(player.locator(':not([data-count="0"])')), () =>
+    tapCurrent(player),
+  );
+  await expect(seasons).not.toContainText('–');
+  await shoot(player, 'fixes-seasons-line', seasons, FIXES_SIZES);
+  const [consoleTab] = await Promise.all([
+    player.context().waitForEvent('page'),
+    player.getByTestId('open-host-console').click(),
+  ]);
+  await expect(consoleTab.getByTestId('host-console')).toBeVisible();
+  await expect(player.getByTestId('arena')).toBeVisible();
+  await consoleTab.close();
+  const idle = async () => {
+    await nextRound(tabs);
+    await expectRowsApart(player, 'player screen');
+  };
+  try {
+    await until(player, player.getByTestId('final-notice'), idle, 30);
+    await expect(player.getByTestId('owner-out')).toBeVisible();
+    await host.getByTestId('host-next-round').click();
+    await until(player, player.locator('[data-testid="draw-ticker"] > *:nth-child(4)'), idle);
+    await shoot(
+      player,
+      'fixes-final-standings',
+      player.getByTestId('standings-panel'),
+      FIXES_SIZES,
+    );
+    await until(player, player.getByTestId('final-placement'), idle, 15);
+    // The round-end line names who filled the whole card; that player is 1st.
+    await player.getByText(/^Whole match log/).click();
+    const line = await player
+      .getByTestId('match-log')
+      .getByText(/filled the whole card$/)
+      .innerText();
+    const winner = line.replace(/^Round \d+ over — /, '').replace(/ filled the whole card$/, '');
+    await expect(player.getByTestId('final-row-1')).toContainText(winner);
+    await shoot(
+      player,
+      'fixes-final-placement',
+      player.getByTestId('final-placement'),
+      FIXES_SIZES,
+    );
   } finally {
     await stopMatch(host, code);
   }

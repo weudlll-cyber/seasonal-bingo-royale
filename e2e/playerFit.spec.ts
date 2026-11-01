@@ -13,7 +13,7 @@
  *                 numbers and the card(s) are in view. Chromium saves the player screen at each
  *                 size in both themes (player-fit-*). The match is aborted afterwards, also on
  *                 failure.
- * Depends on:     @playwright/test, ./realGame, ./screens
+ * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
@@ -27,6 +27,7 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+import { expectRowsApart } from './layoutChecks.js';
 import { captureThemes, SHOTS_DIR } from './screens.js';
 
 const DESKTOPS = [
@@ -91,29 +92,6 @@ const SCREENS = {
     ['standings', p.getByTestId('standings-panel')],
   ],
 } as const satisfies Record<string, (p: Page) => (readonly [string, Locator])[]>;
-
-// No two standings rows cover each other where they are seen (each row clipped to the
-// list it scrolls in): the viewer's own row never sits over another row.
-async function expectRowsApart(page: Page, what: string): Promise<void> {
-  const overlaps = await page.evaluate(() => {
-    const seen = [...document.querySelectorAll('[data-testid="standings-panel"] .rank-row')]
-      .map((row) => {
-        const r = row.getBoundingClientRect();
-        const box = (row.closest('ol') ?? row).getBoundingClientRect();
-        const top = Math.max(r.top, box.top);
-        const bottom = Math.min(r.bottom, box.bottom);
-        return { name: row.getAttribute('data-testid') ?? '', top, bottom };
-      })
-      .filter((r) => r.bottom - r.top > 1);
-    return seen.flatMap((a, i) =>
-      seen
-        .slice(i + 1)
-        .filter((b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1)
-        .map((b) => `${a.name} × ${b.name}`),
-    );
-  });
-  expect(overlaps, `${what}: standings rows that cover each other`).toEqual([]);
-}
 
 async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: string) {
   for (const { name, size } of DESKTOPS) {
