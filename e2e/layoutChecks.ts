@@ -8,7 +8,7 @@
  *                 that cover each other where they are seen (each clipped to its list), the
  *                 ball's letter and number against its circle, and whether the side column
  *                 scrolls itself and shows the top 3 rows and the own row whole; the checks
- *                 over such a report.
+ *                 over such a report, repeated until the layout has settled after a resize.
  * Depends on:     @playwright/test
  * Used by:        ./playerFit.spec, ./acceptance/clarityScreens.spec, ./acceptance/polishScreens.spec
  * Spec:           docs/spec/01-game-design.md §13
@@ -184,14 +184,27 @@ export function expectOwnPlaceIn(report: LayoutReport, what: string): void {
   if (report.ownWhole !== null) expect(report.ownWhole, `${what}: the own row whole`).toBe(true);
 }
 
+// Checks over a fresh measurement, repeated for up to 10 s: after a resize the standings
+// move the own row into its strip a few frames later (an IntersectionObserver), and a
+// measurement taken at once saw the row below the window (CI, PR #8).
+export async function settled(check: () => Promise<void>): Promise<void> {
+  await expect(check).toPass({ timeout: 10_000, intervals: [250, 500, 1_000] });
+}
+
 export async function expectRowsApart(page: Page, what: string): Promise<void> {
-  expectRowsApartIn(await layoutReport(page), what);
+  await settled(async () => {
+    expectRowsApartIn(await layoutReport(page), what);
+  });
 }
 
 export async function expectBallFits(page: Page, what: string): Promise<void> {
-  expectBallFitsIn(await layoutReport(page), what);
+  await settled(async () => {
+    expectBallFitsIn(await layoutReport(page), what);
+  });
 }
 
 export async function expectOwnPlaceInView(page: Page, what: string): Promise<void> {
-  expectOwnPlaceIn(await layoutReport(page), what);
+  await settled(async () => {
+    expectOwnPlaceIn(await layoutReport(page), what);
+  });
 }

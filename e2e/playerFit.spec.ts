@@ -32,6 +32,7 @@ import {
   expectOwnPlaceIn,
   expectRowsApartIn,
   layoutReport,
+  settled,
 } from './layoutChecks.js';
 import { captureThemes, SHOTS_DIR } from './screens.js';
 
@@ -79,16 +80,19 @@ const SCREENS = {
   },
 } as const satisfies Record<string, Record<string, string>>;
 
-// One measurement per size (WebKit spends seconds on every round trip to the page).
+// One measurement per size (WebKit spends seconds on every round trip to the page),
+// repeated until the layout has settled after the resize (settled()).
 async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: string) {
   for (const { name, size } of DESKTOPS) {
     await atSize(page, size);
     const what = `${label} ${screen} ${name}`;
-    const report = await layoutReport(page, SCREENS[screen]);
-    expectInWindow(report, what);
-    expectRowsApartIn(report, what);
-    expectBallFitsIn(report, what);
-    if (screen !== 'console') expectOwnPlaceIn(report, what);
+    await settled(async () => {
+      const report = await layoutReport(page, SCREENS[screen]);
+      expectInWindow(report, what);
+      expectRowsApartIn(report, what);
+      expectBallFitsIn(report, what);
+      if (screen !== 'console') expectOwnPlaceIn(report, what);
+    });
   }
 }
 
@@ -96,10 +100,12 @@ async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: st
 async function checkPhone(page: Page, screen: 'player' | 'spectator', label: string) {
   await atSize(page, PHONE.size);
   const first3 = Object.fromEntries(Object.entries(SCREENS[screen]).slice(0, 3));
-  const report = await layoutReport(page, first3);
   const what = `${label} ${screen} phone`;
-  expectBoxesInWindow(report, what);
-  expectBallFitsIn(report, what);
+  await settled(async () => {
+    const report = await layoutReport(page, first3);
+    expectBoxesInWindow(report, what);
+    expectBallFitsIn(report, what);
+  });
 }
 
 // The viewer's status as the server sends it, with the Summer boost and the Spring growth
