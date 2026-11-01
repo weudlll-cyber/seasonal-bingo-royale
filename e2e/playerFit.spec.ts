@@ -110,7 +110,8 @@ for (const { gameType, players } of CASES) {
   test(`no page scroll during a ${gameType} round with ${String(players)} players`, async ({
     browser,
   }, info) => {
-    test.setTimeout(240_000);
+    // Three signed-in tabs at five sizes: WebKit needs the time.
+    test.setTimeout(480_000);
     const host = await (await browser.newContext()).newPage();
     await signIn(host, 'host');
     const code = await hostMatch(host, {

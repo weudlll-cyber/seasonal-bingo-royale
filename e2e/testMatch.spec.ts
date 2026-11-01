@@ -63,7 +63,8 @@ test('test page: a test match opens the console tab and this tab as a player', a
     await expect(page.getByTestId('waiting-players')).toContainText('(you)');
     await expect(page.getByTestId('open-host-console')).toHaveCount(0);
     await expect(page.getByTestId('test-page')).toHaveCount(0);
-    await expect(page.getByTestId('registration')).toContainText('(in 1 min)');
+    // "in 1 min", or the seconds once less than a minute is left (a slow browser).
+    await expect(page.getByTestId('registration')).toContainText(/\(in (1 min|\d{1,2} s)\)/);
     const match = (await (await page.request.get(`/api/v1/matches/${code}`)).json()) as {
       status: string;
       settings: { startRule: { kind: string; auto?: boolean } };
