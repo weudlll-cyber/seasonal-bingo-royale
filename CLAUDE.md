@@ -24,6 +24,7 @@ Everything in this repository is English: code, comments, commit messages, docs,
 - Update header comments, inline comments, docs and line references in the same commit as the code.
 - When a task closes an item, move it in `docs/BACKLOG.md` from part one to part two in the same commit, then align `docs/OPEN.md`.
 - New dependencies: name each one and the reason in the report.
+- Before every push: search the e2e and unit tests for every UI text, test id, route and event wording the commit changed (`rg` over `e2e/` and `**/*.test.*`), run the specs found (Chromium) plus lint and typecheck, and push only when they pass.
 
 ## Git
 
