@@ -3,7 +3,8 @@
  * @module server/match
  * @brief  Wires the live match engine to PostgreSQL, the scheduler and the event bus.
  *
- * Responsibility: build the store, scheduler, bus and engine for one server process;
+ * Responsibility: build the store, scheduler, bus and engine for one server process (the
+ *                 system clock, or the development time-travel clock);
  *                 seeds come from the CSPRNG (01 §9), match codes are six characters
  *                 without look-alikes. `startScheduler` first continues every running match
  *                 that stopped between a round end and its next step (audit H2), then
@@ -15,7 +16,7 @@
  */
 import { randomBytes, randomInt } from 'node:crypto';
 
-import { MatchEngine, type MaintenanceReader } from '@sbr/application';
+import { MatchEngine, type Clock, type MaintenanceReader } from '@sbr/application';
 import { SEED_BYTES } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
@@ -34,11 +35,15 @@ export interface MatchRuntime {
   startScheduler(): Promise<readonly string[]>;
 }
 
-// `maintenance` holds the automatic starts while `sbr maintenance on` is set (D22).
+const SYSTEM_CLOCK: Clock = { now: () => Date.now() };
+
+// `maintenance` holds the automatic starts while `sbr maintenance on` is set (D22);
+// development builds pass their time-travel clock (../dev/devClock).
 export function createMatchRuntime(
   pool: DbPool,
   seedKey: Buffer,
   maintenance: MaintenanceReader,
+  clock: Clock = SYSTEM_CLOCK,
 ): MatchRuntime {
   const store = new PgMatchStore(pool, seedKey);
   const scheduler = new PgScheduler(pool);
@@ -47,7 +52,7 @@ export function createMatchRuntime(
     store,
     scheduler,
     bus,
-    clock: { now: () => Date.now() },
+    clock,
     maintenance,
     randomSeed: () => new Uint8Array(randomBytes(SEED_BYTES)),
     randomCode: () =>

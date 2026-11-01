@@ -3,7 +3,8 @@
  * @module server/match
  * @brief  PostgreSQL adapter of the match store: event log, snapshots, projections (02 §5.2).
  *
- * Responsibility: insert a match (seed encrypted and bound to the match id, commitment public);
+ * Responsibility: insert a match (seed encrypted and bound to the match id, commitment public;
+ *                 mode, time zone and quiet hours of async matches);
  *                 check at startup that the seed key opens what is stored; write and read events
  *                 and snapshots in the codec's stored encoding; load a match from its latest
  *                 snapshot plus the event tail, with the current round's draw times; append a
@@ -77,8 +78,10 @@ export class PgMatchStore implements MatchStore {
       `INSERT INTO sbr.matches (id, code, title, game_type, ruleset_name, ruleset, max_players,
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
          missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms,
-         start_rule, start_at, start_auto, seed_enc_version)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+         start_rule, start_at, start_auto, seed_enc_version, mode, timezone, quiet_start_hour,
+         quiet_end_hour)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
+         $23,$24,$25,$26)`,
       [
         r.id,
         r.code,
@@ -104,6 +107,10 @@ export class PgMatchStore implements MatchStore {
         s.startRule.kind === 'at' ? new Date(s.startRule.at) : null,
         s.startRule.kind === 'at' && s.startRule.auto,
         SEED_COLUMN_VERSION,
+        r.ruleset.mode,
+        s.timeZone,
+        s.quietHours?.startHour ?? null,
+        s.quietHours?.endHour ?? null,
       ],
     );
   }

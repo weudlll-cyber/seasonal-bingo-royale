@@ -3,25 +3,28 @@
  * @module application/match
  * @brief  The timed flow of a live match: what each scheduled action does and schedules next.
  *
- * Responsibility: what each scheduled action does and schedules next: start_match, auto_start
- *                 (./startRules, D16), start_round (first timed draw), a draw (auto-mark and
- *                 window close), the window close (round end and cut in one batch, then a
- *                 pause and the next round, the next stage or the finish; else the next
- *                 timed draw). Steps derive from the state, so a retried action or the
- *                 start-up sweep (resumeMatch) continues a match after a crash (02 §5.3).
- *                 Host draws take the same path (D8, D10); the host starts the next round
- *                 after a host pause (D14) or ends a timed pause early (D21).
- * Depends on:     @sbr/domain, ./ports, ./runner, ./startRules
+ * Responsibility: start_match, auto_start (./startRules, D16), start_round (first timed
+ *                 draw), a draw (auto-mark and window close), the window close (round end and
+ *                 cut in one batch, then a pause and the next round, stage or finish; else the
+ *                 next timed draw; async ones per ./asyncCadence: quiet hours, catch-up). Steps
+ *                 derive from the state, so a retried action or the start-up sweep
+ *                 (resumeMatch) continues a match after a crash (02 §5.3). Host draws take the
+ *                 same path (D8, D10); the host starts the next round after a host pause (D14)
+ *                 or ends a timed pause early (D21).
+ * Depends on:     @sbr/contracts, @sbr/domain, ./asyncCadence, ./ports, ./runner, ./startRules
  * Used by:        ./engine, ../index, ./startRules
  * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D14, D21);
- *                 docs/spec/02-software-architecture.md §5.3; docs/spec/06-realtime-architecture.md §5
+ *                 docs/spec/02-software-architecture.md §5.3; docs/spec/06-realtime-architecture.md §5, §6
  */
+import { ASYNC_CATCH_UP } from '@sbr/contracts';
 import { nextStep } from '@sbr/domain';
 
+import { cadenceOf, firstAsyncDraw, nextAsyncDraw, quietUntil } from './asyncCadence.js';
 import type {
   Clock,
   LoadedMatch,
   MaintenanceReader,
+  MatchRecord,
   MatchStore,
   ScheduledAction,
   Scheduler,
@@ -47,10 +50,11 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
     case 'start_round':
       return startRound(deps, action.matchId);
     case 'draw':
-      await draw(deps, action.matchId);
+      if (await heldByQuietHours(deps, action.matchId)) return;
+      await draw(deps, action.matchId, action.plannedAt);
       return;
     case 'close_speed_window':
-      return closeWindow(deps, action.matchId, action.drawIndex ?? -1);
+      return closeWindow(deps, action);
     case 'auto_mark':
       await deps.runner.apply(
         action.matchId,
@@ -115,7 +119,7 @@ async function pauseBeforeRound(deps: FlowDeps, m: LoadedMatch): Promise<void> {
     deps.runner.update(matchId, (x) => x);
     return;
   }
-  const dueAt = deps.clock.now() + pause.ms;
+  const dueAt = deps.clock.now(matchId) + pause.ms;
   // Replaced, not doubled, when a retry or the start-up sweep (resumeMatch) gets here.
   await deps.scheduler.cancel(matchId, 'start_round');
   await deps.scheduler.schedule({ matchId, kind: 'start_round', dueAt });
@@ -145,7 +149,7 @@ export async function startNextRound(deps: FlowDeps, matchId: string): Promise<b
   if (!inPause(m)) return false;
   if (m.record.settings.roundPause.kind === 'wait') {
     // In the event log: the pause ended now, not at the time first announced.
-    await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: deps.clock.now() }]);
+    await deps.runner.apply(matchId, [{ type: 'scheduleNextRound', at: deps.clock.now(matchId) }]);
   }
   await startRound(deps, matchId);
   // The timed start is replaced, not doubled. Dropped after the round started: if the
@@ -162,9 +166,29 @@ async function startRound(deps: FlowDeps, matchId: string): Promise<void> {
   if (m.record.settings.drawMode !== 'auto' || round === null || round.ended) return;
   // Also on a retry after a crash: a round without a draw yet gets its first timed draw.
   if (round.draws.length > 0) return;
-  const dueAt = deps.clock.now() + m.record.settings.drawIntervalMs;
   await deps.scheduler.cancel(matchId, 'draw');
-  await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
+  await deps.scheduler.schedule(firstTimedDraw(m.record, deps.clock.now(matchId)));
+}
+
+// The first timed draw from now (a round's first, or after switching to timed draws): one
+// interval away; an asynchronous one outside the quiet hours, with its planned time (01 §5).
+export function firstTimedDraw(record: MatchRecord, now: number): ScheduledAction {
+  const matchId = record.id;
+  const c = cadenceOf(record);
+  if (c === null) return { matchId, kind: 'draw', dueAt: now + record.settings.drawIntervalMs };
+  const dueAt = firstAsyncDraw(now, c);
+  return { matchId, kind: 'draw', dueAt, plannedAt: dueAt };
+}
+
+// An asynchronous timed draw that comes due inside the quiet hours (a catch-up, or one
+// planned before a change) waits for their end instead (01 §5).
+async function heldByQuietHours(deps: FlowDeps, matchId: string): Promise<boolean> {
+  const m = await deps.runner.current(matchId);
+  const end = quietUntil(m.record, deps.clock.now(matchId));
+  if (end === null) return false;
+  await deps.scheduler.cancel(matchId, 'draw');
+  await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt: end, plannedAt: end });
+  return true;
 }
 
 // When the next number may be drawn: the match's timed-draw interval after the round's
@@ -184,14 +208,15 @@ export function canDraw(m: LoadedMatch): boolean {
   return round.windowClosedThrough === round.draws.length - 1;
 }
 
-export async function draw(deps: FlowDeps, matchId: string): Promise<boolean> {
+// `plannedAt`: an asynchronous timed draw's planned time, passed on to its window close.
+export async function draw(deps: FlowDeps, matchId: string, plannedAt?: number): Promise<boolean> {
   const before = await deps.runner.current(matchId);
   if (!canDraw(before)) return false;
   const produced = await deps.runner.apply(matchId, [{ type: 'drawNext' }]);
   const made = produced.find((e) => e.type === 'drawMade');
   if (made?.type !== 'drawMade') return false;
   const m = await deps.runner.current(matchId);
-  const now = deps.clock.now();
+  const now = deps.clock.now(matchId);
   const rule = m.record.settings.missedNumbers;
   const tapping = m.record.settings.markingMode === 'manual';
   // Scheduled before the window close: at the same moment the auto-mark runs first, so
@@ -202,14 +227,17 @@ export async function draw(deps: FlowDeps, matchId: string): Promise<boolean> {
   }
   const windowMs = m.record.ruleset.marking.speedWindowMs;
   const close = { matchId, kind: 'close_speed_window', drawIndex: made.drawIndex } as const;
-  await deps.scheduler.schedule({ ...close, dueAt: now + windowMs });
+  const planned = plannedAt === undefined ? {} : { plannedAt };
+  await deps.scheduler.schedule({ ...close, ...planned, dueAt: now + windowMs });
   return true;
 }
 
 // The round end and its cut go in one batch, one transaction, so no crash leaves an ended
 // round uncut. What follows is derived from the state: a retried close, or the start-up
 // sweep (resumeMatch), continues a match that stopped between the steps (audit H2).
-async function closeWindow(deps: FlowDeps, matchId: string, drawIndex: number): Promise<void> {
+async function closeWindow(deps: FlowDeps, action: ScheduledAction): Promise<void> {
+  const { matchId } = action;
+  const drawIndex = action.drawIndex ?? -1;
   await deps.runner.apply(matchId, [
     { type: 'closeSpeedWindow', drawIndex },
     { type: 'endRound' },
@@ -219,11 +247,32 @@ async function closeWindow(deps: FlowDeps, matchId: string, drawIndex: number): 
   if (awaitsNextStep(m)) return advance(deps, matchId, true);
   if (m.record.settings.drawMode !== 'auto' || !canDraw(m)) return;
   if (drawIndex !== (m.state.currentRound?.draws.length ?? 0) - 1) return;
-  const drawnAt = m.drawTimes[drawIndex] ?? deps.clock.now();
-  const dueAt = Math.max(deps.clock.now(), drawnAt + m.record.settings.drawIntervalMs);
   // Replaced, not doubled, when a retry schedules it again.
   await deps.scheduler.cancel(matchId, 'draw');
-  await deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
+  await deps.scheduler.schedule(nextTimedDraw(m, drawIndex, deps.clock.now(matchId), action));
+}
+
+// The timed draw after draw `drawIndex`: one interval after it (realtime), or after its
+// planned time with quiet hours and the catch-up after downtime (async, 06 §6).
+function nextTimedDraw(
+  m: LoadedMatch,
+  drawIndex: number,
+  now: number,
+  close: ScheduledAction,
+): ScheduledAction {
+  const matchId = m.record.id;
+  const drawnAt = m.drawTimes[drawIndex] ?? now;
+  const c = cadenceOf(m.record);
+  if (c === null) {
+    return {
+      matchId,
+      kind: 'draw',
+      dueAt: Math.max(now, drawnAt + m.record.settings.drawIntervalMs),
+    };
+  }
+  const plannedAt = close.plannedAt ?? drawnAt;
+  const next = nextAsyncDraw({ plannedAt, drawnAt, now, cadence: c, catchUp: ASYNC_CATCH_UP });
+  return { matchId, kind: 'draw', ...next };
 }
 
 // A round (and its cut) is over but nothing follows yet: no next stage, finish or pause.

@@ -3,7 +3,7 @@
  * @module application/match
  * @brief  From a published ruleset document (contracts) to the engine's MatchRuleset (domain).
  *
- * Responsibility: pick the realtime default ruleset of a game type, and map a contracts
+ * Responsibility: pick the default ruleset of a game type and mode, and map a contracts
  *                 `Ruleset` plus the starter's marking and missed-number choices onto the
  *                 trimmed `MatchRuleset` the domain lifecycle runs on. Classic rulesets
  *                 have no stages; the domain gets a single placeholder stage. Shared by the
@@ -16,13 +16,16 @@ import {
   BUILTIN_PRIZE_POINTS,
   classicRealtimeDefault,
   classicSeasonsRealtimeDefault,
+  royaleAsyncDefault,
   royaleRealtimeDefault,
   type Ruleset,
 } from '@sbr/contracts';
-import type { GameType, MarkingMode, MatchRuleset, MissedNumbers } from '@sbr/domain';
+import type { GameType, MarkingMode, MatchMode, MatchRuleset, MissedNumbers } from '@sbr/domain';
 
-export function defaultRulesetFor(gameType: GameType): Ruleset {
-  if (gameType === 'royale') return royaleRealtimeDefault;
+// Only the royale has an asynchronous default ruleset (01 §11); ./create refuses an
+// asynchronous classic match.
+export function defaultRulesetFor(gameType: GameType, mode: MatchMode = 'realtime'): Ruleset {
+  if (gameType === 'royale') return mode === 'async' ? royaleAsyncDefault : royaleRealtimeDefault;
   if (gameType === 'classicSeasons') return classicSeasonsRealtimeDefault;
   return classicRealtimeDefault;
 }

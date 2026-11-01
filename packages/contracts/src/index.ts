@@ -6,7 +6,8 @@
  * Responsibility: Zod schemas and inferred types shared by server and clients: the
  *                 ruleset document and its defaults, the game-type enum, the classic prize
  *                 catalogue, the leaderboard defaults, the view the player client folds
- *                 (Quick Test and live match) and the leaderboard, profile and export
+ *                 (Quick Test and live match), the "While you were away" summary, the
+ *                 async catch-up defaults and the leaderboard, profile and export
  *                 answers; later WPs add WS envelopes and other config documents.
  * Depends on:     ./config/*, ./config/defaults/*, ./view/*, ./http/*
  * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
@@ -24,13 +25,16 @@ export {
   PrizeListSchema,
 } from './config/prizes.js';
 export {
+  ASYNC_DRAW_INTERVAL_MS,
   REALTIME_DRAW_INTERVAL_MS,
   DEFAULT_AUTO_MARK_DELAY_MS,
   START_COUNTDOWN_MS,
   MIN_START_AHEAD_MS,
   MAX_START_AHEAD_MS,
   shortestDrawIntervalMs,
+  QuietHoursSchema,
   RulesetSchema,
+  type QuietHours,
   type Ruleset,
 } from './config/ruleset.js';
 export {
@@ -43,6 +47,7 @@ export {
   royaleRealtimeDefault,
 } from './config/defaults/index.js';
 export { DEFAULT_ROUND_PAUSE_MS, MIN_ROUND_PAUSE_MS } from './config/defaults/roundPause.js';
+export { ASYNC_CATCH_UP } from './config/defaults/asyncCatchUp.js';
 export {
   SEASON_NAMES,
   type Card,
@@ -59,6 +64,7 @@ export {
 } from './view/clientView.js';
 export { type MatchVerificationView, type RoundVerification } from './view/verification.js';
 export { type RecapScorer, type RoundRecap } from './view/roundRecap.js';
+export { type AwaySummary } from './view/awaySummary.js';
 export type {
   AccountExport,
   LeaderboardAround,

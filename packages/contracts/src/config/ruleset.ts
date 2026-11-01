@@ -28,6 +28,8 @@ const GeneralSchema = z.object({
 // Allowed realtime draw interval (01 §5): the ruleset value, and the interval a starter
 // or host may set for `auto` draws, stay inside this range.
 export const REALTIME_DRAW_INTERVAL_MS = Object.freeze({ min: 2_000, max: 60_000 });
+// The same for asynchronous matches (01 §5): one minute to one day.
+export const ASYNC_DRAW_INTERVAL_MS = Object.freeze({ min: 60_000, max: 86_400_000 });
 
 // Missed-number delay a match starter gets by default under autoMarkAfter (01 §6); the
 // chosen delay is never shorter than the ruleset speed window.
@@ -52,20 +54,23 @@ export const START_COUNTDOWN_MS = 10_000;
 export const MIN_START_AHEAD_MS = 60_000;
 export const MAX_START_AHEAD_MS = 7 * 24 * 60 * 60_000;
 
+// Quiet hours of an asynchronous match (01 §5): whole hours in the match's time zone,
+// start inclusive, end exclusive; a start after the end wraps past midnight.
+export const QuietHoursSchema = z.object({
+  startHour: z.number().int().min(0).max(23),
+  endHour: z.number().int().min(0).max(23),
+});
+export type QuietHours = z.infer<typeof QuietHoursSchema>;
+
 const DrawsSchema = z.object({
   intervalMsRealtime: z
     .number()
     .int()
     .min(REALTIME_DRAW_INTERVAL_MS.min)
     .max(REALTIME_DRAW_INTERVAL_MS.max),
-  intervalMsAsync: z.number().int().min(60_000).max(86_400_000),
+  intervalMsAsync: z.number().int().min(ASYNC_DRAW_INTERVAL_MS.min).max(ASYNC_DRAW_INTERVAL_MS.max),
   // Quiet hours as half-open interval in local time. Null disables.
-  quietHours: z
-    .object({
-      startHour: z.number().int().min(0).max(23),
-      endHour: z.number().int().min(0).max(23),
-    })
-    .nullable(),
+  quietHours: QuietHoursSchema.nullable(),
 });
 
 const MarkingSchema = z.object({

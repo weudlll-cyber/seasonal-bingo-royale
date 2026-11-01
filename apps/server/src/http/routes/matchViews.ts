@@ -3,9 +3,9 @@
  * @module server/http
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
- * Responsibility: the summary (code, title, type, status per the event log, settings, players,
- *                 prizes, countdown, next round, Draw next unlock, waiting for host or players
- *                 (D16), creator, if the viewer hosts) and the live view: the Quick Test payload
+ * Responsibility: the summary (code, title, type, mode, status per the event log, settings,
+ *                 players, prizes, countdown, next round, Draw next unlock, waiting for host or
+ *                 players (D16), quiet hours until, creator, if the viewer hosts) and the live view: the Quick Test payload
  *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
  *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
  *                 only later events, no player list unless a join, first round start or finish is
@@ -21,6 +21,7 @@ import {
   nextDrawAt,
   tooFewAtStart,
   waitingForHost,
+  type ClockFacts,
   type LoadedMatch,
 } from '@sbr/application';
 import type { RoundRecap } from '@sbr/contracts';
@@ -32,14 +33,17 @@ import type { LiveEntry } from '../../view/liveViews.js';
 
 // `youHost` tells the viewer whether they created (and so may run) this match; null when
 // the summary goes to a whole room (the client keeps what it knew).
-// `startHeld`: maintenance holds the automatic start (MatchEngine.startHeld, D22).
-export function matchSummary(m: LoadedMatch, viewer: string | null, startHeld: boolean) {
+// `clock` (MatchEngine.clockFacts): maintenance holds the automatic start (D22); when the
+// quiet hours of an asynchronous match end, while it is in them (01 §5).
+export function matchSummary(m: LoadedMatch, viewer: string | null, clock: ClockFacts) {
   const r = m.record;
   return {
     id: r.id,
     code: r.code,
     title: r.title,
     gameType: r.gameType,
+    // Realtime or asynchronous (01 §11); settings carry the quiet hours and time zone.
+    mode: r.ruleset.mode,
     status: statusOf(m),
     players: m.state.playerOrder.length,
     maxPlayers: r.maxPlayers,
@@ -56,7 +60,7 @@ export function matchSummary(m: LoadedMatch, viewer: string | null, startHeld: b
     minPlayers: minPlayersOf(m),
     // The automatic start found too few players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
-    startHeld,
+    ...clock,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };
 }
@@ -76,7 +80,7 @@ interface LiveViewInput {
   readonly since: number;
   // The recap of the royale round just played, during the pause after it (D20).
   readonly recap: RoundRecap | null;
-  readonly startHeld: boolean;
+  readonly clock: ClockFacts;
 }
 
 // Events after which the screens need the player list again: a join, the first round's
@@ -90,7 +94,7 @@ function changesPlayers(e: DomainEvent): boolean {
   );
 }
 
-export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveViewInput) {
+export function liveView({ match: m, entry, me, since, recap, clock }: LiveViewInput) {
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
@@ -120,7 +124,7 @@ export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveV
   const { players, ...rest } = view;
   const recaps = recap === null ? {} : { recaps: [recap] };
   return {
-    match: matchSummary(m, me, startHeld),
+    match: matchSummary(m, me, clock),
     seq: replay.length,
     since,
     me: viewer,

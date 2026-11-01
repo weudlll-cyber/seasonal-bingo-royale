@@ -5,6 +5,7 @@
  *
  * Responsibility: use cases (commands and queries) and the ports they depend on: the
  *                 live match engine and the ruleset mapping it shares with the Quick Test;
+ *                 the quiet hours and the "While you were away" summary of async matches;
  *                 the league-points rules and the season period of the leaderboards.
  * Depends on:     ./match/*, ./leaderboard/*
  * Used by:        apps/server
@@ -13,7 +14,10 @@
 
 export { defaultRulesetFor, toMatchRuleset } from './match/rulesets.js';
 export { chosenMissedNumbers, delayOf, drawRange, withinDrawRange } from './match/timing.js';
-export { MatchEngine, MatchError } from './match/engine.js';
+export { MatchEngine, MatchError, type ClockFacts } from './match/engine.js';
+export { quietUntil } from './match/asyncCadence.js';
+export { buildAwaySummary } from './match/awaySummary.js';
+export { isTimeZone } from './match/quietHours.js';
 export { nextDrawAt, waitingForHost } from './match/flow.js';
 export { minPlayersOf, tooFewAtStart } from './match/startRules.js';
 export { MatchNotFound } from './match/runner.js';

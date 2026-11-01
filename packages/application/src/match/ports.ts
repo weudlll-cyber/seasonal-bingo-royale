@@ -11,7 +11,7 @@
  *                 ./runner, ./startRules
  * Spec:           docs/spec/02-software-architecture.md §3, §5.2–§5.4
  */
-import type { Ruleset } from '@sbr/contracts';
+import type { QuietHours, Ruleset } from '@sbr/contracts';
 import type { DomainEvent, GameType, MarkingMode, MatchState, MissedNumbers } from '@sbr/domain';
 
 export type DrawMode = 'auto' | 'host';
@@ -30,6 +30,10 @@ export interface MatchSettings {
   readonly drawIntervalMs: number;
   readonly roundPause: RoundPause;
   readonly startRule: StartRule;
+  // Asynchronous matches (01 §5): no timed draws inside the quiet hours of the match's
+  // IANA time zone; null without quiet hours (always for realtime).
+  readonly quietHours: QuietHours | null;
+  readonly timeZone: string;
 }
 
 // How a match starts (01 §7.6, D16): the host presses Start; a set time, announced, at
@@ -121,6 +125,9 @@ export interface ScheduledAction {
   readonly kind: ActionKind;
   readonly dueAt: number;
   readonly drawIndex?: number;
+  // Asynchronous timed draws: when the draw was planned, carried to its window close, so
+  // the draws missed during downtime are caught up (06 §6, ./asyncCadence).
+  readonly plannedAt?: number;
 }
 
 export interface Scheduler {
@@ -135,8 +142,10 @@ export interface MatchEventBus {
   changed(record: MatchRecord): void;
 }
 
+// The time (epoch ms) as one match sees it. Production ignores the id; the development
+// time travel moves single matches ahead (apps/server/src/dev/devClock).
 export interface Clock {
-  now(): number;
+  now(matchId?: string): number;
 }
 
 // `sbr maintenance on`: null while maintenance is off; the operator's reason, if any (D22).

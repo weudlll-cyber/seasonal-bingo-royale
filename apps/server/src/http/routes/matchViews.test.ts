@@ -33,6 +33,7 @@ const sim = simulateMatch({
 });
 const stored: StoredEvent[] = sim.events.map((event, i) => ({ seq: i + 1, event, occurredAt: i }));
 const me = sim.state.playerOrder[0] ?? '';
+const NO_CLOCK_FACTS = { startHeld: false, quietUntil: null };
 const record = {
   id: 'm',
   gameType: 'royale',
@@ -60,7 +61,7 @@ async function viewSince(since: number, seq = stored.length, viewer: string | nu
     manualTaps: () => Promise.resolve([]),
   });
   const entry = await views.entryFor(match);
-  return liveView({ match, entry, me: viewer, since, recap: null, startHeld: false }).view;
+  return liveView({ match, entry, me: viewer, since, recap: null, clock: NO_CLOCK_FACTS }).view;
 }
 
 // How many players the view lists; null when it leaves the list out.
@@ -131,6 +132,6 @@ describe('the summary of an ended match (NIGHT-5)', () => {
   it('says finished as soon as the event log has the finish, before the record follows', () => {
     // The simulated match has finished; its record still says running.
     const m = { record: { ...record, status: 'running' }, state: sim.state, seq: 1 };
-    expect(matchSummary(m as unknown as LoadedMatch, null, false).status).toBe('finished');
+    expect(matchSummary(m as unknown as LoadedMatch, null, NO_CLOCK_FACTS).status).toBe('finished');
   });
 });

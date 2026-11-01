@@ -4,8 +4,8 @@
  * @brief  The production build: no development routes; health, client and WebSocket under a base path.
  *
  * Responsibility: a production app has none of the development features (quick sign-in,
- *                 load-account clean-up, Quick Test, fast rules, bot fill, system abort:
- *                 404); an organizer signs in with a password. Under /games/bingo/ the app
+ *                 load-account clean-up, Quick Test, fast rules, bot fill, system abort, time
+ *                 travel: 404); an organizer signs in with a password. Under /games/bingo/ the app
  *                 answers /healthz, /readyz, index.html and the WebSocket. With the
  *                 maintenance flag file no match is created or started (503 with the reason),
  *                 start-when-full is held until the flag goes (D22), a running match plays
@@ -92,6 +92,8 @@ describe('the production build (09 §1)', () => {
     expect(
       status(await call('POST', `/api/v1/matches/${code}/dev-system-abort`, abort, headers)),
     ).toBe(404);
+    const ahead = { code, ms: 60_000 };
+    expect(status(await call('POST', '/api/v1/dev/time-travel', ahead, headers))).toBe(404);
     expect(status(await call('POST', `/api/v1/matches/${code}/abort`, abort, headers))).toBe(200);
     await prod.fastify.close();
   }, 60_000);

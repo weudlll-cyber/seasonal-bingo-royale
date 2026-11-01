@@ -4,16 +4,22 @@
  * @brief  Request bodies of the match routes and the HTTP answer to an engine error.
  *
  * Responsibility: the zod schema of POST /matches (05 §2.3, 11 §3.2: title, game type,
- *                 prizes, draw mode and seconds, missed numbers, leaderboard switch, max
- *                 players, pause between royale rounds, and in development the fast test
- *                 profile), its mapping to the engine's CreateMatchInput, and the status
- *                 code for each MatchError (404 unknown match, 409 wrong phase, 503 maintenance, 422 the rest).
+ *                 mode with quiet hours and time zone, prizes, draw mode and interval, missed
+ *                 numbers, leaderboard switch, max players, pause between royale rounds, and
+ *                 in development the fast test profile), its mapping to the engine's
+ *                 CreateMatchInput, and the status code for each MatchError (404 unknown
+ *                 match, 409 wrong phase or quiet hours, 503 maintenance, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application, @sbr/contracts, ../../dev/fastRulesets
  * Used by:        ./matches, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §5; docs/spec/11-admin-panel.md §3.2
  */
-import { MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
-import { MAX_PRIZES, PrizeKeySchema } from '@sbr/contracts';
+import { isTimeZone, MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
+import {
+  ASYNC_DRAW_INTERVAL_MS,
+  MAX_PRIZES,
+  PrizeKeySchema,
+  QuietHoursSchema,
+} from '@sbr/contracts';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 
@@ -22,10 +28,16 @@ import { fastRuleset } from '../../dev/fastRulesets.js';
 export const createBody = z.object({
   title: z.string().trim().min(1).max(60),
   gameType: z.enum(['royale', 'classicSeasons', 'classic']),
+  // Asynchronous matches (01 §11; royale only, the engine refuses others): quiet hours
+  // (null: none; left out: the ruleset's) in the starter's IANA time zone.
+  mode: z.enum(['realtime', 'async']).optional(),
+  quietHours: QuietHoursSchema.nullable().optional(),
+  timeZone: z.string().max(64).refine(isTimeZone).optional(),
   // Each key and the list are capped (@sbr/contracts PrizeKeySchema, MAX_PRIZES).
   prizes: z.array(PrizeKeySchema).max(MAX_PRIZES).optional(),
   drawMode: z.enum(['auto', 'host']),
-  drawIntervalMs: z.number().int().min(1).max(3_600_000).optional(),
+  // Up to a day (async); the engine keeps it in the mode's range (01 §5, D12).
+  drawIntervalMs: z.number().int().min(1).max(ASYNC_DRAW_INTERVAL_MS.max).optional(),
   missedNumbers: z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('autoMarkAfter'), delayMs: z.number().int().min(0).max(60_000) }),
     z.object({ kind: z.literal('noAutoMark') }),
@@ -67,6 +79,7 @@ const CONFLICT = new Set([
   'DRAW_TOO_EARLY',
   'NOT_WAITING_FOR_HOST',
   'NO_START_TIME',
+  'QUIET_HOURS',
 ]);
 // START_TIME_INVALID (a set time too soon or more than a week ahead) answers 422.
 

@@ -3,24 +3,26 @@
  * @module application/match
  * @brief  The live match engine: create, join, bots, start, draw control, marks, abort.
  *
- * Responsibility: realtime match use cases on top of the domain lifecycle: create from the game
- *                 type's published default ruleset with the starter's choices (prizes, draw mode
- *                 and seconds, missed-number rule); join while the lobby is open (dev bots as
- *                 non-tapping players); start after a countdown; scheduled actions via ./flow;
- *                 host draws in host mode (not before the timed interval, D13); start the next
- *                 round when it waits (D14); switch draw mode or seconds anytime (D8, never below
- *                 D12); score a tap with the speed bonus from its draw time (01 §6); `recover`
- *                 after a crash. All commands run through ./runner.
- * Depends on:     @sbr/domain, ./ports, ./runner, ./flow, ./timing,
+ * Responsibility: match use cases on top of the domain lifecycle: create from the published
+ *                 default ruleset of the game type and mode with the starter's choices (./create);
+ *                 join while the lobby is open (dev bots as non-tapping players); start after a
+ *                 countdown; scheduled actions via ./flow; host draws in host mode (not before
+ *                 the timed interval, D13, nor in an async match's quiet hours, 01 §5); start the
+ *                 next round when it waits (D14); switch draw mode or interval anytime (D8, never
+ *                 below D12); score a tap with the speed bonus from its draw time (01 §6);
+ *                 `recover` after a crash. All commands run through ./runner.
+ * Depends on:     @sbr/domain, ./asyncCadence, ./ports, ./runner, ./flow, ./timing,
  *                 ./startRules (set time, start when full), ./create
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes
- * Spec:           docs/spec/01-game-design.md §3–§8; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§5
+ * Spec:           docs/spec/01-game-design.md §3–§8, §11; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§6
  */
 import { speedBonus, type Command } from '@sbr/domain';
 
+import { quietUntil } from './asyncCadence.js';
 import {
   canDraw,
   draw,
+  firstTimedDraw,
   nextDrawAt,
   resumeMatch,
   runAction,
@@ -28,7 +30,7 @@ import {
   stopMatch,
   type FlowDeps,
 } from './flow.js';
-import { prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
+import { modeAllowed, prizesFor, toNewMatch, type CreateMatchInput } from './create.js';
 import type {
   Clock,
   DrawMode,
@@ -61,6 +63,13 @@ export class MatchError extends Error {
   }
 }
 
+// What the screens learn from the match's clock: maintenance holds its automatic start
+// (D22); the quiet hours an asynchronous match is in end at this time (01 §5).
+export interface ClockFacts {
+  readonly startHeld: boolean;
+  readonly quietUntil: number | null;
+}
+
 interface EngineDeps {
   readonly store: MatchStore;
   readonly scheduler: Scheduler;
@@ -89,6 +98,7 @@ export class MatchEngine {
   async create(input: CreateMatchInput, createdBy: string | null): Promise<MatchRecord> {
     const prizes = prizesFor(input);
     if (prizes === null) throw new MatchError('INVALID_PRIZES');
+    if (!modeAllowed(input)) throw new MatchError('ASYNC_ROYALE_ONLY');
     if (!startTimeValid(input.startRule, this.deps.clock.now())) {
       throw new MatchError('START_TIME_INVALID');
     }
@@ -130,7 +140,7 @@ export class MatchEngine {
       }
       if (m.state.players[playerId] !== undefined) return;
       if (m.state.playerOrder.length >= m.record.maxPlayers) throw new MatchError('MATCH_FULL');
-      const joinedAt = this.deps.clock.now();
+      const joinedAt = this.deps.clock.now(matchId);
       const command: Command = human
         ? { type: 'joinMatch', accountId: playerId, joinedAt, human: true }
         : { type: 'joinMatch', accountId: playerId, joinedAt };
@@ -160,7 +170,7 @@ export class MatchEngine {
       const maintenance = this.deps.maintenance();
       if (maintenance !== null) throw new MatchError('MAINTENANCE', maintenance.reason);
       if (m.state.playerOrder.length < minPlayersOf(m)) throw new MatchError('NOT_ENOUGH_PLAYERS');
-      const startsAt = this.deps.clock.now() + countdownMs;
+      const startsAt = this.deps.clock.now(matchId) + countdownMs;
       await scheduleStart(this.flow, matchId, startsAt);
       return startsAt;
     });
@@ -173,7 +183,14 @@ export class MatchEngine {
 
   // Maintenance holds this match's automatic start right now (D22), for the screens.
   startHeld(m: LoadedMatch): boolean {
-    return startHeld(m, this.deps.clock.now(), this.deps.maintenance() !== null);
+    return startHeld(m, this.deps.clock.now(m.record.id), this.deps.maintenance() !== null);
+  }
+
+  clockFacts(m: LoadedMatch): ClockFacts {
+    return {
+      startHeld: this.startHeld(m),
+      quietUntil: quietUntil(m.record, this.deps.clock.now(m.record.id)),
+    };
   }
 
   // At start-up: continues a match that stopped between a round end and its next step.
@@ -186,11 +203,12 @@ export class MatchEngine {
       const m = await this.runner.current(matchId);
       if (m.record.settings.drawMode !== 'host') throw new MatchError('DRAW_MODE_AUTO');
       if (!canDraw(m)) throw new MatchError('DRAW_NOT_ALLOWED');
+      const now = this.deps.clock.now(matchId);
       // D13: not before the next number would have come under timed draws.
       const unlocksAt = nextDrawAt(m);
-      if (unlocksAt !== null && this.deps.clock.now() < unlocksAt) {
-        throw new MatchError('DRAW_TOO_EARLY');
-      }
+      if (unlocksAt !== null && now < unlocksAt) throw new MatchError('DRAW_TOO_EARLY');
+      // No draws inside an asynchronous match's quiet hours (01 §5).
+      if (quietUntil(m.record, now) !== null) throw new MatchError('QUIET_HOURS');
       await draw(this.flow, matchId);
     });
   }
@@ -213,14 +231,15 @@ export class MatchEngine {
         intervalMs ?? m.record.settings.drawIntervalMs,
         windowMs,
         m.record.settings.missedNumbers,
+        m.record.ruleset.mode,
       );
       await this.deps.store.setDrawControl(matchId, drawMode, drawIntervalMs);
       const settings = { ...m.record.settings, drawMode, drawIntervalMs };
       this.runner.update(matchId, (x) => ({ ...x, record: { ...x.record, settings } }));
       await this.deps.scheduler.cancel(matchId, 'draw');
       if (drawMode === 'auto' && canDraw(m)) {
-        const dueAt = this.deps.clock.now() + drawIntervalMs;
-        await this.deps.scheduler.schedule({ matchId, kind: 'draw', dueAt });
+        const now = this.deps.clock.now(matchId);
+        await this.deps.scheduler.schedule(firstTimedDraw({ ...m.record, settings }, now));
       }
       return { ...m.record, settings };
     });
@@ -234,7 +253,7 @@ export class MatchEngine {
       const cell = round?.cards[playerId]?.[cardIndex]?.card.cells[cellIndex];
       if (round === null || cell === undefined || cell.kind === 'free') return false;
       const drawIndex = round.draws.indexOf(cell.value);
-      const delta = this.deps.clock.now() - (m.drawTimes[drawIndex] ?? 0);
+      const delta = this.deps.clock.now(matchId) - (m.drawTimes[drawIndex] ?? 0);
       const windowMs = m.record.ruleset.marking.speedWindowMs;
       const bonus = speedBonus(
         { maxBonus: m.record.ruleset.scoring.maxSpeedBonus, windowMs },

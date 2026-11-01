@@ -9,17 +9,19 @@
  *                 window, the delay the owner's cards are computed with (the owner's
  *                 later taps are not known before playback, so noAutoMark uses the
  *                 default delay), and the timed-draw gap kept inside the allowed range,
- *                 which starts 1 s after the longest tap time (D10, D12).
+ *                 which starts 1 s after the longest tap time (D10, D12); asynchronous
+ *                 matches have their own range (01 §5).
  * Depends on:     @sbr/contracts, @sbr/domain (types)
  * Used by:        ./engine, apps/server/src/dev/quicktest.ts, ../index, ./create
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import {
+  ASYNC_DRAW_INTERVAL_MS,
   DEFAULT_AUTO_MARK_DELAY_MS,
   REALTIME_DRAW_INTERVAL_MS,
   shortestDrawIntervalMs,
 } from '@sbr/contracts';
-import type { MissedNumbers } from '@sbr/domain';
+import type { MatchMode, MissedNumbers } from '@sbr/domain';
 
 // The starter's rule; an autoMarkAfter delay is never shorter than the speed window.
 export function chosenMissedNumbers(
@@ -32,18 +34,26 @@ export function chosenMissedNumbers(
 }
 
 // Allowed timed-draw gap: from 1 s after the match's longest tap time (D12; so the round
-// end and classic prizes are decided before the next number, D10) to the realtime max.
+// end and classic prizes are decided before the next number, D10) to the realtime max;
+// an asynchronous match draws every minute to every day (01 §5).
 export function drawRange(
   speedWindowMs: number,
   missed: MissedNumbers,
+  mode: MatchMode = 'realtime',
 ): { readonly min: number; readonly max: number } {
+  if (mode === 'async') return ASYNC_DRAW_INTERVAL_MS;
   const delay = missed.kind === 'autoMarkAfter' ? missed.delayMs : null;
   return { min: shortestDrawIntervalMs(speedWindowMs, delay), max: REALTIME_DRAW_INTERVAL_MS.max };
 }
 
 // The starter's or host's draw gap, kept inside the allowed range (01 §5, D12).
-export function withinDrawRange(ms: number, speedWindowMs: number, missed: MissedNumbers): number {
-  const { min, max } = drawRange(speedWindowMs, missed);
+export function withinDrawRange(
+  ms: number,
+  speedWindowMs: number,
+  missed: MissedNumbers,
+  mode: MatchMode = 'realtime',
+): number {
+  const { min, max } = drawRange(speedWindowMs, missed, mode);
   return Math.min(max, Math.max(min, ms));
 }
 

@@ -47,7 +47,7 @@ const HELD_START_RETRY_MS = 5_000;
 export async function startIfFull(deps: FlowDeps, m: LoadedMatch): Promise<void> {
   if (!fullAndWaiting(m)) return;
   if (await heldByMaintenance(deps, m.record.id)) return;
-  await scheduleStart(deps, m.record.id, deps.clock.now() + START_COUNTDOWN_MS);
+  await scheduleStart(deps, m.record.id, deps.clock.now(m.record.id) + START_COUNTDOWN_MS);
 }
 
 function fullAndWaiting(m: LoadedMatch): boolean {
@@ -61,7 +61,7 @@ function fullAndWaiting(m: LoadedMatch): boolean {
 async function heldByMaintenance(deps: FlowDeps, matchId: string): Promise<boolean> {
   if (deps.maintenance() === null) return false;
   await deps.scheduler.cancel(matchId, 'auto_start');
-  const dueAt = deps.clock.now() + HELD_START_RETRY_MS;
+  const dueAt = deps.clock.now(matchId) + HELD_START_RETRY_MS;
   await deps.scheduler.schedule({ matchId, kind: 'auto_start', dueAt });
   return true;
 }
@@ -95,7 +95,7 @@ export async function autoStart(deps: FlowDeps, matchId: string): Promise<void> 
     deps.runner.update(matchId, (x) => x);
     return;
   }
-  await scheduleStart(deps, matchId, deps.clock.now() + START_COUNTDOWN_MS);
+  await scheduleStart(deps, matchId, deps.clock.now(matchId) + START_COUNTDOWN_MS);
 }
 
 // The automatic start came and found too few players: the match waits (D16). With enough

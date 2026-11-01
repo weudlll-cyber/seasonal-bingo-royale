@@ -4,12 +4,12 @@
  * @brief  Read models written in the same transaction as the events (02 §5.2, 04 §3.3).
  *
  * Responsibility: from one appended batch and the state after it: new entries for joined
- *                 players (bots have no account), the entry columns of every player the
- *                 batch touched (score, state, elimination round, shield charges, seasons,
- *                 final place), the standings ranks, and one `marks` row per marked cell
- *                 with its source and speed bonus; on `matchFinished` the league points and
- *                 badges (../leaderboard/awards, 03 §11). Batched SQL with unnest, so a draw
- *                 with 200 players is a handful of statements.
+ *                 players (bots have no account; seen up to the join), the entry columns of
+ *                 every player the batch touched (score, state, elimination round, shield
+ *                 charges, seasons, final place), the standings ranks, one `marks` row per
+ *                 marked cell with its source and speed bonus; on `matchFinished` the league
+ *                 points and badges (../leaderboard/awards, 03 §11). Batched SQL with unnest,
+ *                 so a draw with 200 players is a handful of statements.
  * Depends on:     pg (PoolClient), @sbr/domain, @sbr/application (types), ../leaderboard/awards
  * Used by:        ./pgMatchStore
  * Spec:           docs/spec/04-database-design.md §3.3, §3.4; docs/spec/02-software-architecture.md §5.2
@@ -50,11 +50,13 @@ export async function project(client: PoolClient, input: ProjectionInput): Promi
 async function insertEntries(client: PoolClient, input: ProjectionInput): Promise<void> {
   const joined = input.events.flatMap((e) => (e.type === 'playerJoined' ? [e.accountId] : []));
   if (joined.length === 0) return;
+  // A player has seen the match up to the join (the away summary starts there, 01 §11).
   await client.query(
-    `INSERT INTO sbr.match_entries (match_id, player_id, account_id, is_bot)
-     SELECT $1, p, CASE WHEN p ~* $3 THEN p::uuid END, p LIKE 'bot-%' FROM unnest($2::text[]) AS p
+    `INSERT INTO sbr.match_entries (match_id, player_id, account_id, is_bot, last_seen_event_seq)
+     SELECT $1, p, CASE WHEN p ~* $3 THEN p::uuid END, p LIKE 'bot-%', $4
+       FROM unnest($2::text[]) AS p
      ON CONFLICT DO NOTHING`,
-    [input.matchId, joined, UUID.source],
+    [input.matchId, joined, UUID.source, input.seq],
   );
 }
 
