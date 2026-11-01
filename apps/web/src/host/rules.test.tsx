@@ -55,6 +55,8 @@ function summary(over: Partial<MatchSummary> = {}): MatchSummary {
       drawIntervalMs: 6000,
       roundPause: { kind: 'host' },
       startRule: { kind: 'host' },
+      quietHours: null,
+      timeZone: 'UTC',
     },
     youHost: true,
     ...over,
@@ -114,6 +116,7 @@ describe('D14: the pause between royale rounds', () => {
     const body = createBody({
       title: 't',
       gameType: 'royale',
+      pace: { kind: 'realtime' },
       prizes: new Set(),
       draw: { mode: 'host', intervalSec: null, skipped: false },
       missed: { mode: 'manual', missed: 'noAutoMark', delaySec: 3 },

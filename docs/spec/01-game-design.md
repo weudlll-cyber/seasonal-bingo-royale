@@ -153,6 +153,7 @@ flag on.
 | Asynchronous | 15 min | 1 min – 24 h |
 
 - Asynchronous matches may define **quiet hours** (no draws, e.g. 00:00–07:00 in the match’s time zone).
+  **As built (WP-14, first draft):** the quiet hours are whole hours, the start included and the end not; a start after the end wraps past midnight (22:00–06:00). The match's time zone is the host's browser time zone at creation (an IANA name, UTC when unknown). A timed draw that would fall inside the quiet hours comes at their end (on a spring night that skips the end hour, at the first moment after the gap); the host's Draw next is refused inside them; timed draws after that keep the interval from the end. Only the battle royale can be asynchronous (only it has an asynchronous default ruleset). The draw interval of an asynchronous match is set in minutes on the form (1–1440) and shown as minutes or hours.
 - **Draw control (decided 2026-10-20):** whoever starts a match chooses the draw mode:
   - `auto` — the next item is drawn after an interval the starter sets in seconds, within the allowed range of the table above;
   - `host` — the next item is drawn only when the host presses **Draw next**.

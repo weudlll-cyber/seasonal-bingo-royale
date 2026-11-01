@@ -12,7 +12,7 @@
  *                 "start when full" "N places left"; "Starting…" only while the real
  *                 10-second countdown runs. Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
- * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby
+ * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./MatchScreen (whenText)
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';
@@ -35,7 +35,7 @@ function inText(seconds: number): string {
 }
 
 // "at 22:25" today, "on Friday 23 October at 22:25" on another day.
-function whenText(at: number, now: number): string {
+export function whenText(at: number, now: number): string {
   const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(at);
   if (new Date(at).toDateString() === new Date(now).toDateString()) return `at ${time}`;
   const day = new Intl.DateTimeFormat('en-GB', {

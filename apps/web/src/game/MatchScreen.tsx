@@ -4,16 +4,16 @@
  * @brief  A live match for a player or spectator: waiting room, arena, final ranking (WP-12/13).
  *
  * Responsibility: fold the server's live view with the Quick Test playback logic and show: the
- *                 lobby waiting room (players, start countdown); the arena (current number large,
- *                 recent numbers, own cards with taps sent to the server, status: points, rank,
- *                 effects, seasons, shield; standings active first; classic prize list; one match
- *                 log, newest first); the cut screen with the next-round countdown or "Waiting
- *                 for the host to start round N" (D14) over the round recap (./Interlude, D20,
- *                 for everyone); the spectator note once out; the final placement on top; names
- *                 link to profiles; ./MatchCancelled for a match without result (D17).
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
+ *                 waiting room; the arena (current number, recent numbers, own cards with taps sent
+ *                 to the server, status, standings active first, classic prizes, the match log);
+ *                 the cut screen with the next-round countdown or "Waiting for the host to start
+ *                 round N" (D14) over the round recap (./Interlude, D20); the spectator note once
+ *                 out; the final placement on top; names link to profiles; ./MatchCancelled (D17);
+ *                 in an asynchronous match "While you were away" on top (./AwaySummary) and the
+ *                 quiet-hours notice (01 §5, §11).
+ * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./AwaySummary,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
- *                 ./EndActions, ../league/playerHref, ./game.css
+ *                 ./Registration (whenText), ./EndActions, ../league/playerHref, ./game.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -27,6 +27,7 @@ import { MatchLog, PrizeList } from '../components/Playback.js';
 import { Standings } from '../components/Standings.js';
 import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
+import { AwaySummary } from './AwaySummary.js';
 import { CurrentBall } from './CurrentBall.js';
 import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
@@ -34,6 +35,7 @@ import { currentRecap, Interlude } from './Interlude.js';
 import { progressText, rulesLine } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
+import { whenText } from './Registration.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
 import './game.css';
@@ -62,6 +64,8 @@ function Arena({
     // data-seq: the server's event number this screen shows (the play-through compares it).
     <div className="arena" data-testid="arena" data-seq={live.seq}>
       <ArenaHeader live={live} view={view} />
+      {/* An asynchronous match tells a returning player what happened (01 §11). */}
+      {live.match.mode === 'async' ? <AwaySummary code={live.match.code} /> : null}
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
         <section className="arena-play">
@@ -131,6 +135,11 @@ function ArenaNotice({
           me={live.me}
         />
       )}
+      {live.match.quietUntil !== null ? (
+        <p className="sbr-panel" role="status" data-testid="quiet-hours">
+          Quiet hours — the next number comes {whenText(live.match.quietUntil, Date.now())}.
+        </p>
+      ) : null}
       {live.match.waitingForHost ? (
         <p className="sbr-panel" role="status" data-testid="waiting-for-host">
           Waiting for the host to start round {view.currentRound + 2}

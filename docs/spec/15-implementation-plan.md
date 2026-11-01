@@ -78,6 +78,7 @@ Accept: E2E journey 8. Owner sees: kill network in dev tools mid-round → game 
 **WP-14 Asynchronous matches**
 Spec: 01 §5, §11; 06 §6. Async cadence, quiet hours, catch-up, away summary, `last_seen_event_seq`.
 Accept: E2E journey 2 with time-travel hook. Owner sees: away summary after a simulated day.
+As built (first draft, branch feat/async-matches on top of feat/leaderboards): migration 0010 (`timezone`, quiet hours on `matches`); the create form's "Pace" for the royale (`royale-async` ruleset, minutes 1–1440, automatic marking, quiet hours in the host's time zone); quiet hours and catch-up in `packages/application` (`quietHours.ts`, `asyncCadence.ts`, wired in `flow.ts`); `last_seen_event_seq` from the join, acknowledged by `GET /matches/:code/away-summary`; the summary built from the event log (`awaySummary.ts`) and shown on top of the player screen with Dismiss; the engine's clock takes the match id, and development builds run on `apps/server/src/dev/devClock.ts` with `POST /api/v1/dev/time-travel`; E2E `e2e/asyncMatch.spec.ts`. Left for later: notifications (WP-16), late join until the first cut and the 24 h lobby window, asynchronous classic types, `presence.ping`.
 
 **WP-15 Leaderboards, profiles, badges**
 Spec: 01 §10, 04 §3.4, 05 §2.2, §2.4. Periods, league awards (idempotent), boards, profiles, badges, account deletion/export.

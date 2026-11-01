@@ -19,7 +19,7 @@
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { DrawModeSwitch } from '../components/DrawModeSwitch.js';
-import { problemText } from '../game/labels.js';
+import { intervalText, problemText } from '../game/labels.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 import { intervalProblem } from './TimingFields.js';
 import { intent } from '../game/socket.js';
@@ -136,13 +136,14 @@ function useDrawNext(
 
 // The line under Draw next: how to draw, or why it waits (D13).
 function drawHint(hostMode: boolean, canDraw: boolean, intervalMs: number): string {
-  const seconds = String(intervalMs / 1000);
+  // "5 seconds" live, "15 minutes" in an asynchronous match.
+  const interval = intervalText(intervalMs);
   if (!hostMode) {
-    return `Numbers are drawn every ${seconds} seconds. Switch to Host draws to draw them yourself.`;
+    return `Numbers are drawn every ${interval}. Switch to Host draws to draw them yourself.`;
   }
   return canDraw
     ? 'Press Draw next or the Space key.'
-    : `Draw next opens ${seconds} seconds after the last number, as with timed draws.`;
+    : `Draw next opens ${interval} after the last number, as with timed draws.`;
 }
 
 interface ModeSwitchProps {

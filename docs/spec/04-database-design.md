@@ -113,7 +113,8 @@ embed_origins
 | visibility | text | `public`, `unlisted`, `invite` |
 | starts_at | timestamptz NULL | |
 | started_at, finished_at | timestamptz NULL | |
-| timezone | text | for quiet hours |
+| timezone | text | for quiet hours: an IANA name, default `UTC` (0010) |
+| quiet_start_hour, quiet_end_hour | smallint NULL | quiet hours of an `async` match, whole hours 0–23 in `timezone` (start inclusive, end exclusive, a start after the end wraps past midnight); both NULL without quiet hours, always NULL for `realtime` (CHECK, 0010) |
 | seed_commitment | bytea | sha256(seed) |
 | seed_enc | bytea | AES-GCM; readable by API only when `status IN ('finished','aborted')` |
 | seed_enc_version | smallint | 3: `seed_enc` sealed with the match id as AAD (written today); 2: sealed without it (matches stored before, kept as they are) |
@@ -132,7 +133,7 @@ embed_origins
 CHECK: `game_type = 'royale'` ↔ `prizes = '{}'`; a classic type requires at least
 one entry in `prizes`.
 
-**match_entries** — `match_id`, `player_id text` (the account id; development bots have `bot-NN` and no account), `account_id` (NULL for bots), `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
+**match_entries** — `match_id`, `player_id text` (the account id; development bots have `bot-NN` and no account), `account_id` (NULL for bots), `joined_at`, `state` (`active`, `eliminated`, `left`, `kicked`), `eliminated_at_round int NULL`, `final_place int NULL`, `score bigint`, `shield_charges int`, `seasons_activated smallint` (bitmask 4 bits), `season_complete_at_round int NULL`, `last_scoring_draw int NULL`, `last_seen_event_seq bigint` (for “while you were away”; the seq of the join when the entry is written, moved up by the away-summary fetch, 05 §2.3a). PK `(match_id, account_id)`. Index `(account_id, match_id)`.
 
 **match_events** — `match_id`, `seq bigint`, `type text`, `payload jsonb`, `occurred_at`, `actor_account_id NULL`. PK `(match_id, seq)`. Append-only (trigger). Payload schemas per event type in `contracts/events`. Encoding version 3 (`"$v": 3` in the payload, written today) stores the seed of `lobbyOpened` and the `drawSequence` of `roundStarted` as `{ "$sealed": base64 }` (AES-256-GCM with the match id as additional authenticated data, 03 §9); version 2 payloads are sealed the same way without the match id, payloads without `$v` are version 1; both stay as written and are still read. Any other version is refused.
 

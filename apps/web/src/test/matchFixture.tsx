@@ -5,13 +5,15 @@
  *
  * Responsibility: `matchSummary` — an open royale match with host draws, changed by the
  *                 fields a test gives; `serveMatch` stubs fetch with the signed-in host's
- *                 session, the lobby list and the live state of one match; `show` renders inside the
+ *                 session, the lobby list, the away summary and the live state of one match; `show` renders inside the
  *                 session provider and lets the first fetches settle. Test support only.
- * Depends on:     @testing-library/react, ../game/useLiveMatch (types), ./quickTestFixture,
+ * Depends on:     @testing-library/react, @sbr/contracts (types), ../game/useLiveMatch (types),
+ *                 ./quickTestFixture,
  *                 ../shell/session
  * Used by:        the component tests (test helper)
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §2
  */
+import type { AwaySummary } from '@sbr/contracts';
 import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
@@ -25,6 +27,7 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     code: 'MATCH1',
     title: 'Match',
     gameType: 'royale',
+    mode: 'realtime',
     status: 'lobby',
     players: 1,
     maxPlayers: 20,
@@ -37,6 +40,8 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
       drawIntervalMs: 5000,
       roundPause: { kind: 'wait', ms: 6000 },
       startRule: { kind: 'host' },
+      quietHours: null,
+      timeZone: 'UTC',
     },
     startsAt: null,
     nextRoundAt: null,
@@ -44,6 +49,7 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     waitingForHost: false,
     minPlayers: 2,
     tooFewAtStart: false,
+    quietUntil: null,
     youHost: false,
     ...over,
   };
@@ -56,12 +62,17 @@ const HOST_SESSION = {
   csrfToken: 'x',
 };
 
-// Answers the session, the lobby list (this one match) and the match's live state;
-// returns the fetch stub.
-export function serveMatch(match: MatchSummary, view = royaleFixture()): ReturnType<typeof vi.fn> {
+// Answers the session, the lobby list (this one match), the away summary (none unless
+// given) and the match's live state; returns the fetch stub.
+export function serveMatch(
+  match: MatchSummary,
+  view = royaleFixture(),
+  away: AwaySummary | null = null,
+): ReturnType<typeof vi.fn> {
   const answer = (url: string): unknown => {
     if (url.endsWith('/session')) return HOST_SESSION;
     if (url.endsWith('/matches')) return { matches: [match] };
+    if (url.endsWith('/away-summary')) return { summary: away };
     return { match, seq: 0, since: 0, me: 'owner-01', view };
   };
   const fetch = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(answer(url)))));

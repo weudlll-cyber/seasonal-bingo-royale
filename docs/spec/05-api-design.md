@@ -73,10 +73,11 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | Method | Path | Body | Who |
 |---|---|---|---|
 | GET | `/matches` | — | anyone: open and running matches, and those ended in the last day |
-| POST | `/matches` | `{ title, gameType, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }`; `prizes` at most 20 keys of 1–32 characters (`PrizeKeySchema`, `MAX_PRIZES` in `packages/contracts`), else 400 `VALIDATION_FAILED` | `match.create` |
-| GET | `/matches/:code` | — | anyone: the summary (`youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, …) |
+| POST | `/matches` | `{ title, gameType, mode?, quietHours?, timeZone?, prizes?, drawMode, drawIntervalMs?, missedNumbers, countsForLeaderboard?, maxPlayers, roundPause?, startRule? }`; `prizes` at most 20 keys of 1–32 characters (`PrizeKeySchema`, `MAX_PRIZES` in `packages/contracts`), else 400 `VALIDATION_FAILED`; `mode: "async"` (royale only, else 422 `ASYNC_ROYALE_ONLY`) takes the `royale-async` ruleset: `drawIntervalMs` kept within 1 min – 24 h (default 15 min), automatic marking, `quietHours` `{ startHour, endHour }` (whole hours; left out: the ruleset's 00–07; `null`: none) read in `timeZone` (an IANA name, else 400; left out: UTC) | `match.create` |
+| GET | `/matches/:code` | — | anyone: the summary (`mode`, `youHost`, `minPlayers`, `tooFewAtStart`, `nextDrawAt`, `quietUntil` — when the quiet hours the match is in end, else null —, `settings.quietHours`, `settings.timeZone`, …) |
 | GET | `/matches/:code/state?since=` | — | anyone: the view the client folds; a viewer's own cards only; `since` gives a delta; during the pause after a royale round `view.recaps` holds that round's recap (D20, `RoundRecap` in `packages/contracts`), the same for every viewer |
 | POST | `/matches/:code/join` | `{}` | `match.join` |
+| GET | `/matches/:code/away-summary` | — | a player of the match: `{ summary }`, "While you were away" (`AwaySummary` in `packages/contracts`, 01 §11) over the events after the player's `last_seen_event_seq` (set to the join's seq on joining), then acknowledged: the seq moves up to the match's current one; `summary` is null for a realtime match, when nothing was drawn, cut or ended since, and for anyone not playing; a guest 401 |
 | POST | `/matches/:code/marks` | `{ cardIndex, cell }` | `match.join`: the tap without a socket |
 | POST | `/matches/:code/start` | `{}` | the match's host (`match.manage`, created it) |
 | POST | `/matches/:code/draw-next` | `{}` | the host |
@@ -85,11 +86,12 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | POST | `/matches/:code/auto-start` | `{ auto }` | the host, before the start (D16) |
 | POST | `/matches/:code/abort` | `{ reason }` | the host |
 | POST | `/matches/:code/bots` · `/matches/:code/dev-system-abort` | `{ upTo }` · `{ reason }` | development builds only |
+| POST | `/dev/time-travel` | `{ code, ms }` (up to a week) | development builds only, any session: moves that match's clock `ms` ahead and runs the actions due meanwhile, each at its due time (E2E journey 2, 12 §4); answers `{ actions, now }` |
 | DELETE | `/me` | `{ password }` | the signed-in account |
 | GET | `/maintenance` | — | anyone: `{ on, reason }` while `sbr maintenance on` is set (09 §4) |
 | GET | `/matches/:code/verify` | — | anyone, once the match has finished or was cancelled: the commitment and the revealed seed (hex), the ruleset, per round the numbers drawn and whether the draw order, the draws and the cards follow from the seed (counted, no account ids), and `verified`; before the end 409 `MATCH_NOT_OVER` (01 §9); its own limit of 20 calls a minute per address (429 `RATE_LIMITED`), since one answer recomputes the whole match; the answer of a match that is over never changes, so it is computed once and kept in memory (the newest 500 matches; calls arriving together share one computation) |
 
-Answers are `{ code }` on error (problem+json follows with the contracts work): `VALIDATION_FAILED` (400), `SIGN_IN_REQUIRED` (401), `FORBIDDEN`, `NOT_YOUR_MATCH`, `CSRF_INVALID`, `PASSWORD_REQUIRED` (403), `NOT_FOUND` (404), `MATCH_NOT_IN_LOBBY`, `MATCH_FULL`, `DRAW_MODE_AUTO`, `DRAW_NOT_ALLOWED`, `DRAW_TOO_EARLY`, `NOT_WAITING_FOR_HOST`, `NO_START_TIME`, `MATCH_STARTING`, `MATCH_NOT_OVER` (409), `NOT_ENOUGH_PLAYERS`, `START_TIME_INVALID`, `INVALID_PRIZES`, `MARK_REJECTED` (422), `JSON_REQUIRED` (415), `RATE_LIMITED` (429), `MAINTENANCE` (503, `sbr maintenance on`; the body adds the operator's `reason`, D22).
+Answers are `{ code }` on error (problem+json follows with the contracts work): `VALIDATION_FAILED` (400), `SIGN_IN_REQUIRED` (401), `FORBIDDEN`, `NOT_YOUR_MATCH`, `CSRF_INVALID`, `PASSWORD_REQUIRED` (403), `NOT_FOUND` (404), `MATCH_NOT_IN_LOBBY`, `MATCH_FULL`, `DRAW_MODE_AUTO`, `DRAW_NOT_ALLOWED`, `DRAW_TOO_EARLY`, `NOT_WAITING_FOR_HOST`, `NO_START_TIME`, `MATCH_STARTING`, `MATCH_NOT_OVER`, `QUIET_HOURS` (409), `NOT_ENOUGH_PLAYERS`, `START_TIME_INVALID`, `INVALID_PRIZES`, `ASYNC_ROYALE_ONLY`, `MARK_REJECTED` (422), `JSON_REQUIRED` (415), `RATE_LIMITED` (429), `MAINTENANCE` (503, `sbr maintenance on`; the body adds the operator's `reason`, D22).
 
 ### 2.4 Leaderboards
 
