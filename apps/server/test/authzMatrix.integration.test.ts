@@ -65,6 +65,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/matches', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code/state', allow: ROLES },
+  // A player's own summary; any other account gets an empty answer, not a refusal.
+  { method: 'GET', path: '/api/v1/matches/:code/away-summary', allow: ACCOUNTS },
   // Anyone; before the end the answer is 409 MATCH_NOT_OVER, not a refusal.
   { method: 'GET', path: '/api/v1/matches/:code/verify', allow: ROLES },
   // The boards and profiles are public; an unknown period or name is 404, not a refusal.
@@ -85,6 +87,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/dev/sign-in', body: { as: 'nobody' }, allow: ROLES },
   { method: 'DELETE', path: '/api/v1/dev/load-accounts', allow: ROLES },
   { method: 'POST', path: '/dev/quicktest', body: {}, allow: ROLES },
+  // Development only; the empty body is refused before any match moves.
+  { method: 'POST', path: '/api/v1/dev/time-travel', body: {}, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/auth/logout', body: {}, allow: SESSION },
   { method: 'DELETE', path: '/api/v1/me', body: { password: 'not the password' }, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/matches', body: {}, allow: HOSTS },
