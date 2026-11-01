@@ -7,8 +7,8 @@
  *                 wrap, never truncate), the seasons of the match, "Patterns this round", the
  *                 newest 3 event lines with the whole log in a disclosure that scrolls inside
  *                 itself, and the standings panel: it takes the height it is given and scrolls
- *                 its rows inside itself, the viewer's own row kept in view at the panel's edge;
- *                 group labels; names a watcher can select (D24). Colours and spacing from
+ *                 its rows inside itself, the viewer's own row in a strip below the list while
+ *                 the list has it out of view; group labels; names a watcher can select (D24). Colours and spacing from
  *                 @sbr/ui tokens only.
  * Used by:        ./OwnerStatusPanel, ./PatternsPanel, ./RecentEvents, ./Standings
  * Spec:           docs/spec/01-game-design.md §8, §13 (D23, D24)
@@ -160,13 +160,12 @@
   overscroll-behavior: contain;
 }
 
-.standings-panel .rank-row.is-own {
-  position: sticky;
-  top: 0;
-  bottom: 0;
-  z-index: 1;
-  /* The highlight over a solid surface: rows passing behind never show through. */
-  background: linear-gradient(var(--color-active-bg), var(--color-active-bg)), var(--color-surface);
+/* The viewer's row below the list while the list has it out of view (./Standings). */
+.standings-panel .rank-pinned {
+  flex: none;
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid var(--color-border);
 }
 
 .rank-group {

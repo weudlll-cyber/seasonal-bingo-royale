@@ -77,12 +77,18 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     await expect(page.getByTestId('host-console')).toBeVisible();
     await fillAndStart(page, 6);
 
-    // The match screen, and back via Open host console.
+    // The match screen; Open host console opens the console in a new tab and the player
+    // screen stays (D25).
     await page.goto(`/#/match/${code}`);
     await expect(page.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
-    await page.getByTestId('open-host-console').click();
-    await expect(page.getByTestId('host-console')).toBeVisible();
-    await expect(page.getByTestId('host-draw-next')).toBeVisible();
+    const [consoleTab] = await Promise.all([
+      page.context().waitForEvent('page'),
+      page.getByTestId('open-host-console').click(),
+    ]);
+    await expect(consoleTab.getByTestId('host-console')).toBeVisible();
+    await expect(consoleTab.getByTestId('host-draw-next')).toBeVisible();
+    await expect(page.getByTestId('arena')).toBeVisible();
+    await consoleTab.close();
 
     // The same window signed in as a player: no Manage, no host link.
     await signIn(page, 'player-1');

@@ -8,7 +8,8 @@
  *                 not scroll at 1280×720, 1366×768, 1536×730 and 1920×950: the ball, the drawn
  *                 numbers, the whole card (player) or the watched cards (spectator, D24), Draw
  *                 next (console) and the standings panel lie inside the window, the viewer's
- *                 own row visible in the standings. On a 390×844 phone the ball, the drawn
+ *                 own row visible in the standings and no two standings rows covering each other.
+ *                 On a 390×844 phone the ball, the drawn
  *                 numbers and the card(s) are in view. Chromium saves the player screen at each
  *                 size in both themes (player-fit-*). The match is aborted afterwards, also on
  *                 failure.
@@ -74,7 +75,8 @@ const SCREENS = {
     ['drawn numbers', p.getByTestId('draw-ticker')],
     ['card', p.locator('.live-card').first()],
     ['standings', p.getByTestId('standings-panel')],
-    ['own row', p.getByTestId('standing-dev-host')],
+    // The row in the list, or its copy below the list while the list has it out of view.
+    ['own row', p.locator('[data-testid="standings-panel"] .rank-row.is-own').last()],
   ],
   spectator: (p: Page) => [
     ['ball', p.getByTestId('current-ball')],
@@ -90,6 +92,29 @@ const SCREENS = {
   ],
 } as const satisfies Record<string, (p: Page) => (readonly [string, Locator])[]>;
 
+// No two standings rows cover each other where they are seen (each row clipped to the
+// list it scrolls in): the viewer's own row never sits over another row.
+async function expectRowsApart(page: Page, what: string): Promise<void> {
+  const overlaps = await page.evaluate(() => {
+    const seen = [...document.querySelectorAll('[data-testid="standings-panel"] .rank-row')]
+      .map((row) => {
+        const r = row.getBoundingClientRect();
+        const box = (row.closest('ol') ?? row).getBoundingClientRect();
+        const top = Math.max(r.top, box.top);
+        const bottom = Math.min(r.bottom, box.bottom);
+        return { name: row.getAttribute('data-testid') ?? '', top, bottom };
+      })
+      .filter((r) => r.bottom - r.top > 1);
+    return seen.flatMap((a, i) =>
+      seen
+        .slice(i + 1)
+        .filter((b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1)
+        .map((b) => `${a.name} × ${b.name}`),
+    );
+  });
+  expect(overlaps, `${what}: standings rows that cover each other`).toEqual([]);
+}
+
 async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: string) {
   for (const { name, size } of DESKTOPS) {
     await atSize(page, size);
@@ -97,6 +122,7 @@ async function checkDesktops(page: Page, screen: keyof typeof SCREENS, label: st
     for (const [what, el] of SCREENS[screen](page)) {
       await expectInside(page, `${label} ${screen} ${name} ${what}`, el);
     }
+    await expectRowsApart(page, `${label} ${screen} ${name}`);
   }
 }
 

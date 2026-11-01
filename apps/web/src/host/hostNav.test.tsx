@@ -99,7 +99,11 @@ describe('lobby and your matches', () => {
 describe('host console and host link', () => {
   it('shows the host link only to the host', () => {
     const { rerender } = render(<HostLink match={summary('A', { youHost: true })} />);
-    expect(screen.getByTestId('open-host-console').getAttribute('href')).toBe('#/host/A');
+    const link = screen.getByTestId('open-host-console');
+    expect(link.getAttribute('href')).toBe('#/host/A');
+    // D25: a new tab; the player screen stays where it is.
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener');
     rerender(<HostLink match={summary('A', { youHost: false })} />);
     expect(screen.queryByTestId('open-host-console')).toBeNull();
   });

@@ -108,9 +108,9 @@ describe('OwnerStatusPanel', () => {
     const seasons = screen.getByTestId('seasons-collected');
     expect(seasons.dataset['count']).toBe('2');
     expect(seasons.textContent).toContain(
-      'Seasons this match: Spring ✓ · Summer ✓ · Autumn – · Winter –',
+      'Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter — all four give +300 (Season Complete)',
     );
-    expect(seasons.textContent).toContain('all four give +300 (Season Complete)');
+    expect(seasons.textContent).not.toContain('–');
     expect(screen.getByTestId('seasons-note').textContent).toBe(
       'Seasons count over the whole match.',
     );

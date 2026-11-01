@@ -56,15 +56,16 @@ export function FinalNotice({
   );
 }
 
-// How the final ends, from its round-end rule; the placement is by points (01 §7.5, §8.4).
+// How the final is won, from its win condition: the winner is 1st (01 §7.5), the others
+// follow by points (§8.4).
 function winLine(rule: RoundEndRule): string {
   switch (rule.kind) {
     case 'firstFullHouse':
-      return 'the first full card ends the final, and the most points win.';
+      return 'the first full card wins.';
     case 'drawCount':
       return `the most points after ${String(rule.draws)} numbers win.`;
     case 'firstBingo':
-      return 'the first completed pattern ends the final, and the most points win.';
+      return 'the first completed pattern wins.';
     case 'bingoQuota':
       return `the final ends when ${String(rule.quotaPercent)} % of the finalists have completed a pattern, and the most points win.`;
   }

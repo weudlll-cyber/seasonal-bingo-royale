@@ -74,7 +74,7 @@ describe("the final's fresh start (D23)", () => {
   it('says every finalist starts at 0 and how the final is won, until closed', () => {
     render(<FinalNotice result={result} view={playbackAt(result, 12)} />);
     expect(screen.getByTestId('final-notice').textContent).toContain(
-      'Final: all 2 finalists start at 0 points — the first full card ends the final, and the most points win.',
+      'Final: all 2 finalists start at 0 points — the first full card wins.',
     );
     fireEvent.click(screen.getByText('Got it'));
     expect(screen.queryByTestId('final-notice')).toBeNull();

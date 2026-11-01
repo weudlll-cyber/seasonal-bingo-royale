@@ -127,7 +127,7 @@ function Shield({
   );
 }
 
-// "Seasons this match: Spring ✓ · Summer ✓ · Autumn – · Winter ✓ — all four give +300".
+// "Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter ✓ — all four give +300".
 function Seasons({
   collected,
   points,
@@ -143,7 +143,9 @@ function Seasons({
           <span key={s} className="season-item">
             {i > 0 ? ' · ' : ''}
             <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
-            {seasonName(s)} {collected.has(s) ? '✓' : '–'}
+            {/* A collected season is ticked; an open one is its name alone. */}
+            {seasonName(s)}
+            {collected.has(s) ? ' ✓' : ''}
           </span>
         ))}{' '}
         — {seasonCompleteNote(points)}
