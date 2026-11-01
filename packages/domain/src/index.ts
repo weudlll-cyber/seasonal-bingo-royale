@@ -75,7 +75,7 @@ export {
 } from './seasons/effectState.js';
 export { type Effect, type EffectType } from './seasons/effectCatalog.js';
 export { applyEffect, type ApplyEffectResult, type HarvestContext } from './seasons/applyEffect.js';
-export { consumeShield, onDraw, onMarkInsideGrowth } from './seasons/tickEffects.js';
+export { onDraw, onMarkInsideGrowth } from './seasons/tickEffects.js';
 export {
   checkSeasonComplete,
   type SeasonCompleteCfg,
