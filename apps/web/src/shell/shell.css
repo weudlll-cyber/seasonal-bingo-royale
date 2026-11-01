@@ -172,8 +172,12 @@
   .theme-toggle {
     order: 1;
   }
+}
 
-  /* The chip names the account and role; "Signed in as" is read out, not shown */
+/* The chip names the account and role; "Signed in as" is read out, not shown, up to wide
+   screens: with the leaderboard in the navigation, a host's bar stays one row at 1280 px
+   (the sticky bar's scroll padding covers one row) */
+@media (max-width: 1440px) {
   .shell-account .chip-prefix {
     position: absolute;
     width: 1px;
