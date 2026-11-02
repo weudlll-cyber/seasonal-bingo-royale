@@ -4,10 +4,11 @@
  * @brief  A player's public profile, read from the match entries, league awards and badges (01 §10).
  *
  * Responsibility: by display name (case-insensitive): matches played, wins and best placement
- *                 over every finished match the account played (also those with bots, which
- *                 never count for the league), Season Completes and the badges, and the last
- *                 10 finished matches with their place, player count and whether they gave
- *                 league points or why not. Computed on read; no e-mail, real name or id.
+ *                 over the finished matches without bots the account played (D29), Season
+ *                 Completes and the badges (given by such matches only), and the last 10
+ *                 finished matches, those with bots too, with their place, player count and
+ *                 whether they gave league points or why not. Computed on read; no e-mail,
+ *                 real name or id.
  * Depends on:     @sbr/contracts (types), ../db/pool
  * Used by:        ../http/routes/profiles
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
@@ -18,12 +19,15 @@ import type { DbPool } from '../db/pool.js';
 
 const RECENT = 10;
 
+// A bot played in match `m`.
+const WITH_BOTS = 'EXISTS (SELECT 1 FROM sbr.match_entries b WHERE b.match_id = m.id AND b.is_bot)';
+
 // The first that applies (contracts LeagueOutcome); `e` the entry, `m` its match.
 const LEAGUE_OUTCOME = `CASE
   WHEN EXISTS (SELECT 1 FROM sbr.league_awards la
                 WHERE la.match_id = m.id AND la.account_id = e.account_id) THEN 'counted'
   WHEN NOT m.counts_for_leaderboard THEN 'switchOff'
-  WHEN EXISTS (SELECT 1 FROM sbr.match_entries b WHERE b.match_id = m.id AND b.is_bot) THEN 'bots'
+  WHEN ${WITH_BOTS} THEN 'bots'
   WHEN EXISTS (SELECT 1 FROM sbr.league_awards la WHERE la.match_id = m.id) THEN 'notVerified'
   ELSE 'tooFewPlayers' END`;
 
@@ -41,7 +45,7 @@ export async function playerProfile(
     `SELECT count(*)::int AS played, count(*) FILTER (WHERE e.final_place = 1)::int AS wins,
             min(e.final_place) AS best
        FROM sbr.match_entries e JOIN sbr.matches m ON m.id = e.match_id
-      WHERE e.account_id = $1 AND m.status = 'finished'`,
+      WHERE e.account_id = $1 AND m.status = 'finished' AND NOT ${WITH_BOTS}`,
     [account.id],
   );
   const badges = await badgesOf(pool, account.id);

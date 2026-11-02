@@ -5,7 +5,7 @@
  *
  * Responsibility: use cases (commands and queries) and the ports they depend on: the
  *                 live match engine and the ruleset mapping it shares with the Quick Test;
- *                 the league-points rules and the season period of the leaderboards.
+ *                 the league-points rules, the season period and the ranks of the leaderboards.
  * Depends on:     ./match/*, ./leaderboard/*
  * Used by:        apps/server
  * Spec:           docs/spec/02-software-architecture.md §3
@@ -21,3 +21,4 @@ export type { CreateMatchInput } from './match/create.js';
 export type * from './match/ports.js';
 export { leagueAwards, type LeagueEntryInput } from './leaderboard/leaguePoints.js';
 export { seasonPeriodOf } from './leaderboard/seasonPeriod.js';
+export { boardRanks } from './leaderboard/boardRanks.js';

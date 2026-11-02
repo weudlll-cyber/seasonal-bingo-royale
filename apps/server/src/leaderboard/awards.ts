@@ -4,12 +4,12 @@
  * @brief  League points and badges of a finished match, written inside its projection transaction (03 §11).
  *
  * Responsibility: on `matchFinished`: the Season Complete badge for every human who completed
- *                 all four seasons in the match (any finished match); then, when the match
- *                 counts (@sbr/application leagueAwards: flag on, no bots, enough verified
- *                 humans), one award per player in the season period of the finish time
- *                 (created when first needed, older seasons closed) and in the all-time
- *                 period. Awards are inserted with ON CONFLICT DO NOTHING and only the rows
- *                 actually inserted add to the league entries, so a replay changes nothing.
+ *                 all four seasons in a match without bots (D29); then, when the match counts
+ *                 (@sbr/application leagueAwards: flag on, no bots, enough verified humans),
+ *                 one award per player in the season period of the finish time (created when
+ *                 first needed, older seasons closed) and in the all-time period. Awards are
+ *                 inserted with ON CONFLICT DO NOTHING and only the rows actually inserted add
+ *                 to the league entries, so a replay changes nothing.
  * Depends on:     pg (PoolClient), @sbr/application, @sbr/contracts, @sbr/domain (types)
  * Used by:        ../match/projections
  * Spec:           docs/spec/03-security-architecture.md §11; docs/spec/01-game-design.md §8.3, §10;
@@ -99,12 +99,14 @@ async function leagueEntriesOf(client: PoolClient, m: FinishedMatch): Promise<Le
   });
 }
 
-// The badge of 01 §8.3, once per player and match, whether or not the match counts.
+// The badge of 01 §8.3, once per player and match, whether or not the match counts for the
+// league; never from a match with bots (D29).
 async function awardSeasonCompletes(
   client: PoolClient,
   matchId: string,
   entries: readonly LeagueEntryInput[],
 ): Promise<void> {
+  if (entries.some((e) => e.isBot)) return;
   const ids = entries.flatMap((e) =>
     e.seasonComplete && !e.isBot && e.accountId !== null ? [e.accountId] : [],
   );

@@ -336,11 +336,11 @@ A **points** jackpot (never money):
 
 | Board | Period | Ranks by |
 |---|---|---|
-| Season board | One calendar quarter, named after the season (configurable period) | League points |
+| Season board | One calendar quarter in UTC, named after the season: Winter Jan–Mar, Spring Apr–Jun, Summer Jul–Sep, Autumn Oct–Dec (D27) | League points |
 | All-time board | Forever | League points |
 | Match board | One match | Placement |
 
-**League points** per match: `placementPoints[place]` from a configurable table (default: 1st 100, 2nd 70, 3rd 50, 4–10 25, 11–25 10, finalists +10, everyone who finishes the match 2). Rank on the season board = sum of league points; tie-break: wins, then Season Completes.
+**League points** per match: `placementPoints[place]` from a configurable table (default: 1st 100, 2nd 70, 3rd 50, 4–10 25, 11–25 10, finalists +10, everyone who finishes the match 2). Rank on the season board = sum of league points; tie-break: wins, then Season Completes. **D28 (2026-11-01):** players equal on league points, wins and Season Completes share a rank on the season and all-time boards and in the “your own row ±5” view (standard competition ranking: 1, 2, 2, 4); within the tie they are listed by display name.
 
 Only matches with the `countsForLeaderboard` flag on contribute to league
 points (§3a.3). The flag defaults to on for `royale` and off for the classic
@@ -348,9 +348,9 @@ types, and can be flipped per match before start.
 
 Leaderboard integrity rules are in [03-security-architecture.md](03-security-architecture.md) §11.
 
-Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly.
+Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly. **D29 (2026-11-01):** the Season Complete badge and the profile figures (matches played, wins, best placement, Season Completes) count only finished matches without bots; a match with bots stays listed under the profile's recent matches with its reason (“No league points: bots played”).
 
-- As built (WP-15 first draft): league points per the default table (`LEADERBOARD_DEFAULTS` in `packages/contracts`; finalists are royale players never eliminated; the finish bonus goes to everyone with a final place) only from finished matches with the switch on, no bots and at least 8 distinct humans with a confirmed e-mail address; written once per match in the finish projection. Season boards are calendar quarters in UTC named Winter (Jan–Mar), Spring, Summer, Autumn and the year. The Season Complete badge is given in any finished match. The profile (`#/players/<name>`) counts every finished match, also those with bots, and says per recent match whether it gave league points and if not why; no avatars yet. Player names in the live standings and the final placement link to the profile (never bots).
+- As built (WP-15 first draft): league points per the default table (`LEADERBOARD_DEFAULTS` in `packages/contracts`; finalists are royale players never eliminated; the finish bonus goes to everyone with a final place) only from finished matches with the switch on, no bots and at least 8 distinct humans with a confirmed e-mail address; written once per match in the finish projection. Season boards are calendar quarters in UTC named Winter (Jan–Mar), Spring, Summer, Autumn and the year (D27). Shared ranks (D28) are computed over the whole period on every read. The Season Complete badge is given only in finished matches without bots, and the profile (`#/players/<name>`) counts only those (D29, one line under the figures says so); its recent matches list matches with bots too and say per match whether it gave league points and if not why; no avatars yet. Player names in the live standings and the final placement link to the profile (never bots).
 
 ## 11. Realtime vs. asynchronous — what differs
 

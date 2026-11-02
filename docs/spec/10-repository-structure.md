@@ -44,7 +44,8 @@ seasonal-bingo-royale/
 │  │  └─ src/
 │  │     ├─ match/              engine.ts, flow.ts, runner.ts, create.ts, startRules.ts, ports.ts (Clock,
 │  │     │                      MatchStore, Scheduler, EventBus), fakes.ts
-│  │     ├─ leaderboard/        leaguePoints.ts (who counts, points per place), seasonPeriod.ts
+│  │     ├─ leaderboard/        leaguePoints.ts (who counts, points per place), seasonPeriod.ts,
+│  │     │                      boardRanks.ts (shared ranks, D28)
 │  │     ├─ identity/  config/  chat/  notification/  audit/  (planned)
 │  │     └─ index.ts
 │  ├─ contracts/                Zod schemas shared by server and clients
@@ -64,7 +65,7 @@ seasonal-bingo-royale/
 │  │  │  ├─ view/               the client view built from the event log
 │  │  │  ├─ leaderboard/        league awards and badges (finish projection), boards, profiles, export
 │  │  │  ├─ db/                 pool.ts, migrator.ts, migrations/ (SQL)
-│  │  │  ├─ dev/                Quick Test runner, fast test rulesets (development only)
+│  │  │  ├─ dev/                Quick Test runner, fast test rulesets, demo league (development only)
 │  │  │  └─ identity/  security/  notify/  (planned: OIDC, JWT handoff, uploads, mail, push)
 │  │  └─ test/                  integration tests (Testcontainers)
 │  ├─ web/                      Player client (also the embed target)

@@ -87,6 +87,9 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D24 | Live cards for players out and spectators (2026-11-01) | A player who is out and a spectator see the live cards of the best 4 players still in (2 on a phone) with their marks as they happen; selecting a player in the standings shows that card until “Back to the top 4”. Players still in see no other player's card ([01](01-game-design.md) §13, [06](06-realtime-architecture.md) §8, [03](03-security-architecture.md) §11). |
 | D25 | The arena's host link (2026-11-01) | “Open host console”, shown in the arena to a host who plays along, opens the host console in a new tab; the player screen stays where it is ([01](01-game-design.md) §13). |
 | D26 | Shield saves at a cut (2026-11-01) | Every player within the margin below the line who holds a charge is saved, even if nobody goes out in that cut; no limit ([01](01-game-design.md) §7.4, §8.2). |
+| D27 | Seasons of the leaderboard (2026-11-01) | Calendar quarters in UTC: Winter Jan–Mar, Spring Apr–Jun, Summer Jul–Sep, Autumn Oct–Dec ([01](01-game-design.md) §10). |
+| D28 | Ties on the boards (2026-11-01) | Players equal on league points, wins and Season Completes share a rank on the boards (standard competition ranking: 1, 2, 2, 4); within the tie they are listed by display name ([01](01-game-design.md) §10). |
+| D29 | Bots and the profile (2026-11-01) | The Season Complete badge and the profile figures (matches played, wins, best placement, Season Completes) count only finished matches without bots; matches with bots stay listed under the profile's recent matches with their reason ([01](01-game-design.md) §10). |
 
 ## 5. Open
 

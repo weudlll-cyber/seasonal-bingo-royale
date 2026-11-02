@@ -18,6 +18,7 @@
     "test:coverage": "vitest run packages/domain packages/application --coverage",
     "test:integration:coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "e2e": "playwright test -c e2e/playwright.config.ts",
+    "demo-league": "pnpm --filter @sbr/server demo-league",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {

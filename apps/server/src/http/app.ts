@@ -6,7 +6,7 @@
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
  *                 auth, the live match engine and its routes, the leaderboards and profiles
- *                 onto a fresh Fastify instance, under the base path (SBR_BASE_PATH) and
+ *                 (with SBR_DEV=1 also the demo league) onto a fresh Fastify instance, under the base path (SBR_BASE_PATH) and
  *                 behind the trusted proxies; first of all, refuse a seed key that does not
  *                 open the stored match secrets.
  *                 The caller owns the lifecycle (listen, scheduler, close, pool disposal).
@@ -16,7 +16,8 @@
  *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
  *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
  *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
- *                 ./routes/quicktest, ./routes/webClient, ../match/runtime, ../realtime/gateway
+ *                 ./routes/quicktest, ./routes/webClient, ../dev/demoLeague, ../match/runtime,
+ *                 ../realtime/gateway
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
@@ -30,6 +31,7 @@ import { featuresFrom } from '../config/features.js';
 import { maintenanceFlag } from '../config/maintenance.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
+import { registerDemoLeague } from '../dev/demoLeague.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
 import { attachGateway } from '../realtime/gateway.js';
 import { registerProblemDetails } from './plugins/problem.js';
@@ -107,12 +109,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
-  // The built client in the image; the placeholder page in development (Vite serves it).
-  if (deps.env.SBR_WEB_DIR === undefined) {
-    registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
-  } else {
-    registerWebClient(fastify, deps.env.SBR_WEB_DIR);
-  }
+  registerClient(fastify, deps.env);
   if (isDev) registerQuickTest(fastify);
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
@@ -137,6 +134,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   registerVerifyRoute(fastify, { pool: deps.pool, store: match.store, seedKey });
   registerLeaderboardRoutes(fastify, { pool: deps.pool });
   registerProfileRoutes(fastify, { pool: deps.pool });
+  // Development only: ten demo accounts and three counting matches for the boards.
+  if (isDev) registerDemoLeague(fastify, { pool: deps.pool, engine: match.engine });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,
     engine: match.engine,
@@ -150,6 +149,15 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     await io.close();
   });
   return { fastify, metrics, match };
+}
+
+// The built client in the image; the placeholder page in development (Vite serves it).
+function registerClient(fastify: FastifyInstance, env: Env): void {
+  if (env.SBR_WEB_DIR === undefined) {
+    registerPlaceholder(fastify, { dev: env.SBR_DEV, port: env.SBR_PORT });
+  } else {
+    registerWebClient(fastify, env.SBR_WEB_DIR);
+  }
 }
 
 // "/games/bingo/api/v1/x" → "/api/v1/x" when the base path is "/games/bingo/".

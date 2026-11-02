@@ -4,12 +4,12 @@
  * @brief  The production build: no development routes; health, client and WebSocket under a base path.
  *
  * Responsibility: a production app has none of the development features (quick sign-in,
- *                 load-account clean-up, Quick Test, fast rules, bot fill, system abort:
- *                 404); an organizer signs in with a password. Under /games/bingo/ the app
- *                 answers /healthz, /readyz, index.html and the WebSocket. With the
- *                 maintenance flag file no match is created or started (503 with the reason),
- *                 start-when-full is held until the flag goes (D22), a running match plays
- *                 on, and GET /maintenance tells every client.
+ *                 load-account clean-up, Quick Test, demo league, fast rules, bot fill,
+ *                 system abort: 404); an organizer signs in with a password. Under
+ *                 /games/bingo/ the app answers /healthz, /readyz, index.html and the
+ *                 WebSocket. With the maintenance flag file no match is created or started
+ *                 (503 with the reason), start-when-full is held until the flag goes (D22), a
+ *                 running match plays on, and GET /maintenance tells every client.
  * Depends on:     socket.io-client, ./harness, ../src/auth/accounts, ../src/index, ./session,
  *                 fastify
  * Spec:           docs/spec/09-deployment-architecture.md §1, §4; docs/spec/08-devops-architecture.md §4;
@@ -71,6 +71,8 @@ describe('the production build (09 §1)', () => {
     expect(status(await call('POST', '/api/v1/dev/sign-in', { as: 'host' }))).toBe(404);
     expect(status(await call('DELETE', '/api/v1/dev/load-accounts'))).toBe(404);
     expect(status(await call('POST', '/dev/quicktest', { gameType: 'royale' }))).toBe(404);
+    expect(status(await call('POST', '/api/v1/dev/demo-league'))).toBe(404);
+    expect(status(await call('DELETE', '/api/v1/dev/demo-league'))).toBe(404);
     const headers = await signInOrganizer(prod);
     const match = {
       title: 'p',

@@ -7,9 +7,10 @@
  *                 8 verified humans award points in the season and the all-time period;
  *                 running the finish projection again, also on a second app after a "restart",
  *                 changes nothing; 7 verified humans, a bot among 8, or one unverified among 8
- *                 award nothing (03 §11). The board, the caller's row, the public profile and
- *                 the export show it; Season Complete badges are given once; DELETE /me
- *                 removes the account's league rows. The test deletes the accounts it made.
+ *                 award nothing (03 §11). The board (equal players share a rank, D28), the
+ *                 caller's row, the public profile (figures without the bot match, which stays
+ *                 listed, D29) and the export show it; Season Complete badges are given once
+ *                 and never by a bot match; DELETE /me removes the account's league rows.
  * Depends on:     ../src/auth/*, ../src/leaderboard/awards, ./harness, ./playToEnd, ./session
  * Spec:           docs/spec/03-security-architecture.md §11; docs/spec/01-game-design.md §8.3, §10;
  *                 docs/spec/04-database-design.md §3.4; docs/spec/05-api-design.md §2.2, §2.4
@@ -109,6 +110,25 @@ async function projectFinishAgain(matchId: string, app = harness.built): Promise
   }
 }
 
+// The finish projection of `matchId` once more, with `who` having completed all four seasons.
+async function projectSeasonComplete(matchId: string, who: string): Promise<void> {
+  const loaded = await harness.built.match.store.load(matchId);
+  const p = loaded?.state.players[who];
+  if (loaded === null || p === undefined) throw new Error('match or player not found');
+  const state = {
+    ...loaded.state,
+    players: { ...loaded.state.players, [who]: { ...p, seasonCompleteFired: true } },
+  };
+  const client = await harness.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await awardFinishedMatch(client, { matchId, at: Date.now(), state });
+    await client.query('COMMIT');
+  } finally {
+    client.release();
+  }
+}
+
 async function clientOf(accountId: string) {
   const s = await createSession(harness.pool, accountId, null);
   const headers = { cookie: `sbr_session=${s.token}`, 'x-csrf-token': s.csrfToken };
@@ -120,8 +140,10 @@ async function clientOf(accountId: string) {
   };
 }
 
-// The match that counted and its 8 players, shared by the tests below (they run in order).
+// The match that counted and its 8 players, and the match with a bot, shared by the tests
+// below (they run in order).
 let counted = '';
+let withBot = '';
 let players: string[] = [];
 
 describe('league points (03 §11, 01 §10)', () => {
@@ -152,7 +174,8 @@ describe('league points (03 §11, 01 §10)', () => {
   });
 
   it('a bot among 8 verified humans awards nothing', async () => {
-    expect(await awardsOf(await play(players, 1))).toBe(0);
+    withBot = await play(players, 1);
+    expect(await awardsOf(withBot)).toBe(0);
   });
 
   it('one unverified player among 8 awards nothing', async () => {
@@ -162,7 +185,7 @@ describe('league points (03 §11, 01 §10)', () => {
 });
 
 describe('what the players see (05 §2.2, §2.4)', () => {
-  it('shows the board, the own row, the profile and the export', async () => {
+  it('shows the board with shared ranks and the own row', async () => {
     const me = await clientOf(players[0] ?? '');
     const periods = (await me.get('/api/v1/leaderboards')).json<{
       items: { id: string; kind: string }[];
@@ -173,7 +196,8 @@ describe('what the players see (05 §2.2, §2.4)', () => {
       items: { rank: number; points: number; isYou: boolean }[];
       nextCursor: string | null;
     }>();
-    expect(board.items.map((r) => r.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    // Places 4 to 8 earn the same points, no wins, no Season Completes: one shared rank (D28).
+    expect(board.items.map((r) => r.rank)).toEqual([1, 2, 3, 4, 4, 4, 4, 4]);
     expect(board.items[0]?.points).toBeGreaterThanOrEqual(board.items[7]?.points ?? 0);
     expect(board.items.filter((r) => r.isYou)).toHaveLength(1);
     expect(board.nextCursor).toBeNull();
@@ -182,13 +206,27 @@ describe('what the players see (05 §2.2, §2.4)', () => {
     }>();
     expect(around.items.some((r) => r.isYou)).toBe(true);
     expect((await me.get('/api/v1/leaderboards/not-a-period')).statusCode).toBe(404);
+  });
+
+  it('shows the profile without the bot match in its figures, and the export', async () => {
+    const me = await clientOf(players[0] ?? '');
     const profile = (await me.get('/api/v1/players/LEAGUE1')).json<{
       displayName: string;
       matchesPlayed: number;
+      wins: number;
+      bestPlacement: number | null;
       recentMatches: { league: string }[];
     }>();
     expect(profile.displayName).toBe('league1');
-    expect(profile.matchesPlayed).toBe(4);
+    // The bot match does not count in the figures (D29) but is listed below.
+    expect(profile.matchesPlayed).toBe(3);
+    const places = await harness.pool.query<{ final_place: number }>(
+      'SELECT final_place FROM sbr.match_entries WHERE account_id = $1 AND match_id <> $2',
+      [players[0], withBot],
+    );
+    const own = places.rows.map((r) => r.final_place);
+    expect(profile.wins).toBe(own.filter((place) => place === 1).length);
+    expect(profile.bestPlacement).toBe(Math.min(...own));
     // Newest first: one unverified among 8, a bot, 7 players, the match that counted.
     expect(profile.recentMatches.map((m) => m.league)).toEqual([
       'tooFewPlayers',
@@ -209,27 +247,22 @@ describe('what the players see (05 §2.2, §2.4)', () => {
 
 describe('badges and account deletion (01 §8.3, 05 §2.2)', () => {
   it('gives a Season Complete badge once per player and match, counted or not', async () => {
-    const loaded = await harness.built.match.store.load(counted);
-    if (loaded === null) throw new Error('match not found');
     const who = players[1] ?? '';
-    const p = loaded.state.players[who];
-    if (p === undefined) throw new Error('player not found');
-    const state = {
-      ...loaded.state,
-      players: { ...loaded.state.players, [who]: { ...p, seasonCompleteFired: true } },
-    };
-    for (let i = 0; i < 2; i += 1) {
-      const client = await harness.pool.connect();
-      await client.query('BEGIN');
-      await awardFinishedMatch(client, { matchId: counted, at: Date.now(), state });
-      await client.query('COMMIT');
-      client.release();
-    }
+    for (let i = 0; i < 2; i += 1) await projectSeasonComplete(counted, who);
     const badges = await harness.pool.query(
       'SELECT account_id FROM sbr.badges_awarded WHERE match_id = $1',
       [counted],
     );
     expect(badges.rows).toEqual([{ account_id: who }]);
+  });
+
+  it('gives no Season Complete badge for a match with bots (D29)', async () => {
+    await projectSeasonComplete(withBot, players[2] ?? '');
+    const badges = await harness.pool.query(
+      'SELECT 1 FROM sbr.badges_awarded WHERE match_id = $1',
+      [withBot],
+    );
+    expect(badges.rowCount).toBe(0);
   });
 
   it('DELETE /me removes the league rows and badges of the account', async () => {

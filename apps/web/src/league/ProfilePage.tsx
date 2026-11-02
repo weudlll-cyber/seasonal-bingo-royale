@@ -4,10 +4,11 @@
  * @brief  A player's public profile: figures, badges and the last finished matches.
  *
  * Responsibility: ask the server for the profile by display name and show matches played,
- *                 wins, best placement, Season Completes, the badges and the last 10 finished
- *                 matches (place of how many, whether they gave league points and if not why,
- *                 a link to the match) exactly as sent — no e-mail, no real name (01 §10).
- *                 An unknown name says so.
+ *                 wins, best placement, Season Completes (counted without matches with bots,
+ *                 as one line says, D29), the badges and the last 10 finished matches (place of
+ *                 how many, whether they gave league points and if not why, a link to the
+ *                 match) exactly as sent — no e-mail, no real name (01 §10). An unknown name
+ *                 says so.
  * Depends on:     react, @sbr/contracts (types), ../shell/router, ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
@@ -64,6 +65,9 @@ function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
           testId="profile-season-completes"
         />
       </dl>
+      <p className="sbr-muted" data-testid="profile-figures-rule">
+        Counted from finished matches without bots.
+      </p>
       <div className="sbr-row" data-testid="profile-badges">
         {p.badges.length === 0 ? (
           <span className="sbr-muted">No badges yet.</span>
