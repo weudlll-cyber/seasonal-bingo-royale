@@ -61,7 +61,10 @@ test('journey 2: a day away from an asynchronous match', async ({ browser }, inf
     await fillAndStart(host, 8);
     // Quiet hours now: the first number waits for their end.
     await expect(player.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
-    await expect(player.getByTestId('quiet-hours')).toContainText('the next number comes at');
+    // "at 01:00" today, "on Tuesday 3 November at 01:00" when the end falls after midnight.
+    await expect(player.getByTestId('quiet-hours')).toContainText(
+      /the next number comes (at|on .+ at) \d\d:\d\d/,
+    );
     if (shots) await captureLook(player, SHOTS_DIR, 'async-quiet-hours');
     await player.context().close();
     // A day later (development time travel): the match ran its draws meanwhile.
