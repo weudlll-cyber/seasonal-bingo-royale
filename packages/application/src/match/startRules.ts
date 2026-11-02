@@ -10,15 +10,18 @@
  *                 (`minPlayersOf`) and otherwise leaves the match waiting (`tooFewAtStart`).
  *                 Under "start when full" the last place taken begins the countdown. While
  *                 maintenance is on neither starts by itself: the start is held and checked
- *                 again every 5 s (D22). Every start runs the same countdown.
- * Depends on:     @sbr/contracts, ./flow (types), ./ports
+ *                 again every 5 s (D22). An asynchronous lobby is open for the ruleset's
+ *                 window (24 h); then it starts with enough players or the system cancels it
+ *                 (D31), held by maintenance like every automatic start. Every start runs the
+ *                 same countdown.
+ * Depends on:     @sbr/contracts, ./flow (stopMatch), ./ports
  * Used by:        ./engine, ./flow, apps/server (summary), ../index
- * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
+ * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22, D31); docs/spec/05-api-design.md §2.3
  */
 import { MAX_START_AHEAD_MS, MIN_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 
-import type { FlowDeps } from './flow.js';
-import type { LoadedMatch, StartRule } from './ports.js';
+import { stopMatch, type FlowDeps } from './flow.js';
+import type { ActionKind, LoadedMatch, StartRule } from './ports.js';
 
 // A set start time must leave room for the countdown and lie within a week.
 export function startTimeValid(rule: StartRule | undefined, now: number): boolean {
@@ -58,12 +61,40 @@ function fullAndWaiting(m: LoadedMatch): boolean {
 // D22: while maintenance is on nothing starts by itself. The start waits in the lobby
 // and is checked again through the persistent scheduler, so it runs (or start-when-full
 // is checked again) soon after maintenance is turned off, also after a restart.
-async function heldByMaintenance(deps: FlowDeps, matchId: string): Promise<boolean> {
+async function heldByMaintenance(
+  deps: FlowDeps,
+  matchId: string,
+  kind: Extract<ActionKind, 'auto_start' | 'lobby_close'> = 'auto_start',
+): Promise<boolean> {
   if (deps.maintenance() === null) return false;
-  await deps.scheduler.cancel(matchId, 'auto_start');
+  await deps.scheduler.cancel(matchId, kind);
   const dueAt = deps.clock.now(matchId) + HELD_START_RETRY_MS;
-  await deps.scheduler.schedule({ matchId, kind: 'auto_start', dueAt });
+  await deps.scheduler.schedule({ matchId, kind, dueAt });
   return true;
+}
+
+// D31: the system's reason when an asynchronous lobby closes with too few players.
+export const LOBBY_TOO_FEW = 'Too few players joined within 24 hours';
+
+// An asynchronous match's lobby closes after the ruleset's window (lobby.openMsAsync, 24 h),
+// through the persistent scheduler, so a restart keeps the time.
+export async function planLobbyClose(deps: FlowDeps, m: LoadedMatch): Promise<void> {
+  if (m.record.ruleset.mode !== 'async') return;
+  const dueAt = deps.clock.now(m.record.id) + m.record.ruleset.lobby.openMsAsync;
+  await deps.scheduler.schedule({ matchId: m.record.id, kind: 'lobby_close', dueAt });
+}
+
+// The lobby window is over (D31): a match not yet started begins the countdown with enough
+// players and is cancelled by the system with fewer; maintenance holds it (D22).
+export async function closeLobby(deps: FlowDeps, matchId: string): Promise<void> {
+  const m = await deps.runner.current(matchId);
+  if (m.record.status !== 'lobby' || m.record.startsAt !== null) return;
+  if (await heldByMaintenance(deps, matchId, 'lobby_close')) return;
+  if (m.state.playerOrder.length >= minPlayersOf(m)) {
+    await scheduleStart(deps, matchId, deps.clock.now(matchId) + START_COUNTDOWN_MS);
+    return;
+  }
+  await stopMatch(deps, matchId, LOBBY_TOO_FEW, 'system');
 }
 
 // Schedules (or drops) the automatic start at the set time; when that has passed (the host

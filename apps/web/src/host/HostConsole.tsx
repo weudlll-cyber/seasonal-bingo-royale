@@ -12,13 +12,15 @@
  *                 fresh start (D23), the newest 3 event lines with the whole log one click away,
  *                 standings (active first, grouped, in a bounded panel), prizes, abort with a
  *                 reason (./AbortMatch); while running it fills the window below the top bar on
- *                 desktop; final placement on top at the end. No pause (async only).
+ *                 desktop; final placement on top at the end. In development builds an
+ *                 asynchronous match also has "Jump ahead" (./JumpAhead, lazy).
  * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
- *                 ./HostDrawControls, ./HostLobby, ./host.css, ../shell/router
+ *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
+ *                 ../shell/router
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
  */
-import { useState, type ReactElement } from 'react';
+import { lazy, Suspense, useState, type ReactElement } from 'react';
 
 import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
@@ -32,13 +34,26 @@ import { intent } from '../game/socket.js';
 import '../game/arena.css';
 import '../game/game.css';
 import './host.css';
-import { gameTypeName, problemText, progressText, rulesLine, statusName } from '../game/labels.js';
+import {
+  gameTypeName,
+  problemText,
+  progressText,
+  rulesLine,
+  runningBadge,
+  statusName,
+} from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { HostDrawControls } from './HostDrawControls.js';
 import { AbortMatch } from './AbortMatch.js';
 import { HostLobby } from './HostLobby.js';
+
+// Development only (time travel): a production build replaces import.meta.env.DEV with false
+// and leaves the module out.
+const JumpAhead = import.meta.env.DEV
+  ? lazy(() => import('./JumpAhead.js').then((m) => ({ default: m.JumpAhead })))
+  : null;
 
 export function HostConsole({ code }: { readonly code: string }): ReactElement {
   const { live, error } = useLiveMatch(code);
@@ -54,24 +69,7 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
       data-testid="host-console"
       data-seq={live.seq}
     >
-      <header className="arena-head">
-        <div>
-          <h1>{live.match.title}</h1>
-          <p className="sbr-muted">
-            Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
-            <span data-testid="host-status" data-status={live.match.status}>
-              {statusName(live.match.status)}
-            </span>
-            {live.match.status === 'running' || live.match.status === 'finished'
-              ? ` · ${progressText(live, view)}`
-              : null}
-          </p>
-          <p className="sbr-muted">
-            {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}
-          </p>
-        </div>
-        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
-      </header>
+      <ConsoleHead live={live} view={view} />
       {live.match.status === 'lobby' ? <HostLobby live={live} view={view} /> : null}
       {live.match.status === 'aborted' ? <MatchCancelled live={live} titled={false} /> : null}
       {live.match.status === 'running' || live.match.status === 'finished' ? (
@@ -80,6 +78,54 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
     </div>
   );
 }
+
+// Title, code, status and progress, the rules line and the running badge.
+function ConsoleHead({
+  live,
+  view,
+}: {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+}): ReactElement {
+  return (
+    <header className="arena-head">
+      <div>
+        <h1>{live.match.title}</h1>
+        <p className="sbr-muted">
+          Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
+          <span data-testid="host-status" data-status={live.match.status}>
+            {statusName(live.match.status)}
+          </span>
+          {live.match.status === 'running' || live.match.status === 'finished'
+            ? ` · ${progressText(live, view)}`
+            : null}
+        </p>
+        <p className="sbr-muted">
+          {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}
+        </p>
+        {/* In the header (the window-filling grid's auto row) in the lobby and while
+            running alike, so the start does not remount it mid-jump. */}
+        <DevJump live={live} />
+      </div>
+      {live.match.status === 'running' ? (
+        <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+      ) : null}
+    </header>
+  );
+}
+
+// Development only: "Jump ahead" for an asynchronous match that has not ended.
+function DevJump({ live }: { readonly live: LiveState }): ReactElement | null {
+  if (JumpAhead === null || live.match.mode !== 'async' || ended(live)) return null;
+  return (
+    <Suspense fallback={null}>
+      <JumpAhead code={live.match.code} />
+    </Suspense>
+  );
+}
+
+const ended = (live: LiveState): boolean =>
+  live.match.status === 'finished' || live.match.status === 'aborted';
 
 function HostLive({
   live,

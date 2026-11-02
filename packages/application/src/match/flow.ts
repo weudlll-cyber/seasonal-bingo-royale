@@ -3,8 +3,8 @@
  * @module application/match
  * @brief  The timed flow of a live match: what each scheduled action does and schedules next.
  *
- * Responsibility: start_match, auto_start (./startRules, D16), start_round (first timed
- *                 draw), a draw (auto-mark and window close), the window close (round end and
+ * Responsibility: start_match, auto_start and lobby_close (./startRules, D16, D31),
+ *                 start_round (first timed draw), a draw (auto-mark and window close), the window close (round end and
  *                 cut in one batch, then a pause and the next round, stage or finish; else the
  *                 next timed draw; async ones per ./asyncCadence: quiet hours, catch-up). Steps
  *                 derive from the state, so a retried action or the start-up sweep
@@ -30,7 +30,7 @@ import type {
   Scheduler,
 } from './ports.js';
 import type { MatchRunner } from './runner.js';
-import { autoStart } from './startRules.js';
+import { autoStart, closeLobby } from './startRules.js';
 
 export interface FlowDeps {
   readonly runner: MatchRunner;
@@ -47,6 +47,8 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
       return startMatch(deps, action.matchId);
     case 'auto_start':
       return autoStart(deps, action.matchId);
+    case 'lobby_close':
+      return closeLobby(deps, action.matchId);
     case 'start_round':
       return startRound(deps, action.matchId);
     case 'draw':

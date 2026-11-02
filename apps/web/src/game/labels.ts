@@ -7,9 +7,9 @@
  *                 (01 §3a) and their order in the forms, prize names ("2 rows", "Full card"), one
  *                 line describing draws, missed numbers and quiet hours with the same words as
  *                 the Quick Test ("Draws: timed (every N seconds)", async "every 15 minutes" …;
- *                 never "auto" alone), and every event line the banners and the match log show
- *                 ("Round 1 over — all 40 numbers drawn", "Cut 1: 12 go on, 8 are out" …),
- *                 never an internal identifier.
+ *                 never "auto" alone), a running match's badge ("LIVE", async "In progress"),
+ *                 and every event line the banners and the match log show ("Round 1 over — all
+ *                 40 numbers drawn", "Cut 1: 12 go on, 8 are out" …), never an internal id.
  * Depends on:     ../types, ./useLiveMatch (types), ../playback
  * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*, ./LiveCard,
  *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan,
@@ -46,6 +46,12 @@ export function intervalText(ms: number): string {
   if (ms <= 60_000 || ms % 60_000 !== 0) return `${seconds(ms)} seconds`;
   const [n, unit] = ms % 3_600_000 === 0 ? [ms / 3_600_000, 'hour'] : [ms / 60_000, 'minute'];
   return `${String(n)} ${unit}${n === 1 ? '' : 's'}`;
+}
+
+// The badge of a running match: "LIVE" in realtime, "In progress" for an asynchronous
+// match, whose numbers come minutes or hours apart (01 §11).
+export function runningBadge(mode: MatchSummary['mode']): string {
+  return mode === 'async' ? 'In progress' : 'LIVE';
 }
 
 export function drawLine(settings: MatchSummary['settings']): string {

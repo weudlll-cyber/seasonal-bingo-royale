@@ -11,7 +11,7 @@
  *                 the request fields and the plain message for minutes out of range. The
  *                 server checks all of it as well. Every option fits a 390 px phone.
  * Depends on:     react, @sbr/contracts, ../drawControl
- * Used by:        ./CreateMatch, ./createForm
+ * Used by:        ./CreateMatch, ./createForm, ./HostDrawControls (minutesProblem)
  * Spec:           docs/spec/01-game-design.md §5, §6, §11
  */
 import { royaleAsyncDefault } from '@sbr/contracts';

@@ -9,14 +9,16 @@
  *                 travel moves it a day ahead (its draws run through the scheduler rows); the
  *                 player's away summary counts the draws in the log and the player's marks and
  *                 is acknowledged (the next fetch has nothing, last_seen_event_seq is the current
- *                 seq). A stranger gets no summary; a guest 401. The match is aborted at the end.
+ *                 seq). A stranger gets no summary; a guest 401. A lobby open 24 h (D31) starts
+ *                 itself with enough players and is cancelled by the system with fewer, also when
+ *                 a restarted server runs the due step. The matches are aborted at the end.
  * Depends on:     ./harness, ./session
  * Spec:           docs/spec/01-game-design.md §5, §11; docs/spec/05-api-design.md §2.3;
  *                 docs/spec/06-realtime-architecture.md §6; docs/spec/12-testing-strategy.md §4
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
 import { signIn, type Client } from './session.js';
 
 const DAY = 86_400_000;
@@ -128,4 +130,60 @@ describe('a day away (journey 2)', () => {
     });
     expect(guest.statusCode).toBe(401);
   }, 120_000);
+});
+
+// A lobby of `bots` bots (and nobody else), `ms` later on the match's clock, on `app`.
+async function lobbyLater(bots: number, ms: number, app = harness.built) {
+  const created = await host.post('/api/v1/matches', { ...asyncMatch, quietHours: null });
+  const { code, id } = created.json<{ code: string; id: string }>();
+  if (bots > 0) await harness.built.match.engine.fillWithBots(id, bots);
+  const traveller = app === harness.built ? host : await signIn(app.fastify, 'host');
+  expect((await traveller.post('/api/v1/dev/time-travel', { code, ms })).statusCode).toBe(200);
+  return (await traveller.get(`/api/v1/matches/${code}`)).json<{
+    status: string;
+    startsAt: number | null;
+  }>();
+}
+
+// The reason and author of the match's abort, from its event log.
+async function abortFacts(id: string) {
+  const log = await harness.built.match.store.events(id, 0);
+  const aborted = log.find((e) => e.event.type === 'matchAborted')?.event;
+  return aborted?.type === 'matchAborted' ? { reason: aborted.reason, by: aborted.by } : null;
+}
+
+describe('the lobby window of an asynchronous match (D31)', () => {
+  it('stays open for 24 hours', async () => {
+    const summary = await lobbyLater(3, DAY - 60_000);
+    expect(summary).toMatchObject({ status: 'lobby', startsAt: null });
+  });
+
+  it('starts by itself after 24 hours with enough players (the 10-second countdown)', async () => {
+    const summary = await lobbyLater(3, DAY);
+    expect(summary.status).toBe('lobby');
+    expect(summary.startsAt).not.toBeNull();
+  });
+
+  it('is cancelled by the system after 24 hours with too few players', async () => {
+    const created = await host.post('/api/v1/matches', { ...asyncMatch, quietHours: null });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    await harness.built.match.engine.fillWithBots(id, 1);
+    await host.post('/api/v1/dev/time-travel', { code, ms: DAY });
+    const summary = (await host.get(`/api/v1/matches/${code}`)).json<{ status: string }>();
+    expect(summary.status).toBe('aborted');
+    expect(await abortFacts(id)).toEqual({
+      reason: 'Too few players joined within 24 hours',
+      by: 'system',
+    });
+  });
+
+  it('runs on a restarted server: the step is in the scheduler table', async () => {
+    const restarted = await buildOn(harness.pool, harness.container.getConnectionUri());
+    try {
+      const summary = await lobbyLater(3, DAY, restarted);
+      expect(summary.startsAt).not.toBeNull();
+    } finally {
+      await restarted.fastify.close();
+    }
+  });
 });

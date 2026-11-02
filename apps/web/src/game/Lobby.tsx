@@ -21,7 +21,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
-import { gameTypeName, problemText, rulesLine, statusName } from './labels.js';
+import { gameTypeName, problemText, rulesLine, runningBadge, statusName } from './labels.js';
 import { RegistrationStatus } from './Registration.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
@@ -119,7 +119,9 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
     <li className="sbr-panel lobby-item" data-testid={`lobby-match-${m.code}`}>
       <div className="lobby-item-head">
         <h2>{m.title}</h2>
-        {m.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
+        {m.status === 'running' ? (
+          <span className="sbr-badge-live">{runningBadge(m.mode)}</span>
+        ) : null}
       </div>
       <p className="sbr-row">
         <span className="sbr-chip">{gameTypeName(m.gameType)}</span>

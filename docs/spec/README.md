@@ -90,6 +90,9 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D27 | Seasons of the leaderboard (2026-11-01) | Calendar quarters in UTC: Winter Jan–Mar, Spring Apr–Jun, Summer Jul–Sep, Autumn Oct–Dec ([01](01-game-design.md) §10). |
 | D28 | Ties on the boards (2026-11-01) | Players equal on league points, wins and Season Completes share a rank on the boards (standard competition ranking: 1, 2, 2, 4); within the tie they are listed by display name ([01](01-game-design.md) §10). |
 | D29 | Bots and the profile (2026-11-01) | The Season Complete badge and the profile figures (matches played, wins, best placement, Season Completes) count only finished matches without bots; matches with bots stay listed under the profile's recent matches with their reason ([01](01-game-design.md) §10). |
+| D30 | Quiet hours and the host (2026-11-01) | In an asynchronous match quiet hours apply to the host too: Draw next is refused during them ([01](01-game-design.md) §5). |
+| D31 | The asynchronous lobby window (2026-11-01) | The lobby is open 24 h. Then a match not yet started starts by itself with at least `minPlayers` joined (the normal 10-second countdown); with fewer the system cancels it with the reason “Too few players joined within 24 hours” (D17). Maintenance holds this start (D22) ([01](01-game-design.md) §7.6). |
+| D32 | What can be asynchronous (2026-11-01) | Only the battle royale ([01](01-game-design.md) §5, §11). |
 
 ## 5. Open
 

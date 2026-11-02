@@ -118,7 +118,9 @@ export type ActionKind =
   | 'auto_mark'
   // At the announced start time: start if enough players (D16); also a start held by
   // maintenance, checked again until maintenance is off (D22).
-  | 'auto_start';
+  | 'auto_start'
+  // An asynchronous lobby's window is over: start or cancel (D31).
+  | 'lobby_close';
 
 export interface ScheduledAction {
   readonly matchId: string;

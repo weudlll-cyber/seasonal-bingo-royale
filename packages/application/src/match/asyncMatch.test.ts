@@ -9,7 +9,8 @@
  *                 type cannot be asynchronous; no draw happens inside the quiet hours (the
  *                 first one waits for their end, a due one is moved there, Draw next is
  *                 refused); after downtime the missed draws are caught up, then the cadence
- *                 resumes.
+ *                 resumes. While maintenance is on, the lobby's 24 hours start nothing; the
+ *                 start follows once it is off (D31, D22).
  * Depends on:     ./engine, ./fakes
  * Spec:           docs/spec/01-game-design.md §5, §6, §11; docs/spec/06-realtime-architecture.md §6
  */
@@ -122,5 +123,23 @@ describe('catch-up after downtime (06 §6)', () => {
     expect(late).toHaveLength(8);
     expect(late.at(-1)).toBeLessThanOrEqual(first + 120 * MIN + 30_000);
     expect(scheduler.pending.find((a) => a.kind === 'draw')?.dueAt).toBe(first + 135 * MIN);
+  });
+});
+
+describe('the lobby window and maintenance (D31, D22)', () => {
+  it('holds the start at the end of the 24 hours until maintenance is off', async () => {
+    const f = fakeEngine();
+    f.clock.t = utc('2026-11-02T12:00:00');
+    const m = await f.engine.create(base, null);
+    await f.engine.fillWithBots(m.id, 3);
+    f.maintenance.on = true;
+    await f.scheduler.runUntil(f.engine, f.clock, f.clock.t + 25 * 60 * MIN, 400);
+    expect((await f.engine.runner.current(m.id)).record).toMatchObject({
+      status: 'lobby',
+      startsAt: null,
+    });
+    f.maintenance.on = false;
+    await f.scheduler.runUntil(f.engine, f.clock, f.clock.t + 10_000);
+    expect((await f.engine.runner.current(m.id)).record.startsAt).not.toBeNull();
   });
 });

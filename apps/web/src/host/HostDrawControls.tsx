@@ -7,12 +7,13 @@
  *                 only while the round runs, the previous speed window has closed (D10) and the
  *                 timed interval since the last draw has passed, with a seconds countdown until
  *                 then (D13); hidden in the pause between rounds (D21). A "Host draws" / "Timed
- *                 draws" switch (../components/DrawModeSwitch) and the timed-draw seconds change
- *                 at any time over the socket (draw.setMode); the server clamps the seconds;
- *                 values below the shortest interval are not sent, a message says why (D12).
+ *                 draws" switch (../components/DrawModeSwitch) and the timed-draw interval
+ *                 (seconds live, minutes in an asynchronous match) change at any time over the
+ *                 socket (draw.setMode); the server clamps it; values below the shortest
+ *                 interval or outside a minute to a day are not sent, a message says why (D12).
  * Depends on:     react, ../components/DrawModeSwitch, ../game/labels, ../game/socket,
  *                 ../game/useLiveMatch (types), ../playback (types), ../types,
- *                 ../useSecondsUntil, ./TimingFields
+ *                 ../useSecondsUntil, ./AsyncFields (minutesProblem), ./TimingFields
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13), §7 (D21); docs/spec/06-realtime-architecture.md §4.1
  */
@@ -21,6 +22,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { DrawModeSwitch } from '../components/DrawModeSwitch.js';
 import { intervalText, problemText } from '../game/labels.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
+import { minutesProblem } from './AsyncFields.js';
 import { intervalProblem } from './TimingFields.js';
 import { intent } from '../game/socket.js';
 import type { LiveState } from '../game/useLiveMatch.js';
@@ -93,6 +95,7 @@ export function HostDrawControls({
       <ModeSwitch
         code={live.match.code}
         settings={settings}
+        unitMs={live.match.mode === 'async' ? 60_000 : 1_000}
         shortestMs={live.view.drawIntervalRangeMs.min}
         onAnswer={setNote}
       />
@@ -149,17 +152,26 @@ function drawHint(hostMode: boolean, canDraw: boolean, intervalMs: number): stri
 interface ModeSwitchProps {
   readonly code: string;
   readonly settings: LiveState['match']['settings'];
+  // The field's unit: seconds live, minutes in an asynchronous match (01 §5).
+  readonly unitMs: number;
   // The match's shortest timed-draw interval (D12), from the server.
   readonly shortestMs: number;
   readonly onAnswer: (note: string | null) => void;
 }
 
-function ModeSwitch({ code, settings, shortestMs, onAnswer }: ModeSwitchProps): ReactElement {
-  const [seconds, setSeconds] = useState(settings.drawIntervalMs / 1000);
+function ModeSwitch(props: ModeSwitchProps): ReactElement {
+  const { code, settings, unitMs, shortestMs, onAnswer } = props;
+  const [amount, setAmount] = useState(settings.drawIntervalMs / unitMs);
   const hostMode = settings.drawMode === 'host';
+  const minutes = unitMs === 60_000;
+  // D12: seconds below the shortest interval are not sent, nor minutes outside one minute to
+  // a day (01 §5); the message says why.
+  const problemOf = (intervalMs: number): string | null =>
+    minutes
+      ? minutesProblem({ kind: 'async', minutes: intervalMs / unitMs, quiet: null })
+      : intervalProblem(intervalMs, shortestMs);
   const setMode = (mode: 'auto' | 'host', intervalMs?: number): void => {
-    // D12: seconds below the shortest interval are not sent; the message says why.
-    const problem = intervalMs === undefined ? null : intervalProblem(intervalMs, shortestMs);
+    const problem = intervalMs === undefined ? null : problemOf(intervalMs);
     if (problem !== null) {
       onAnswer(problem);
       return;
@@ -169,7 +181,7 @@ function ModeSwitch({ code, settings, shortestMs, onAnswer }: ModeSwitchProps): 
       onAnswer(a.ok ? null : problemText(a.code));
     });
   };
-  // The seconds field belongs to timed draws and shows only for them.
+  // The interval field belongs to timed draws and shows only for them.
   return (
     <div className="sbr-stack">
       <DrawModeSwitch
@@ -177,15 +189,16 @@ function ModeSwitch({ code, settings, shortestMs, onAnswer }: ModeSwitchProps): 
         testIdPrefix="host-mode"
         onMode={(next) => {
           if (next === 'host') setMode('host');
-          else setMode('auto', Math.round(seconds * 1000));
+          else setMode('auto', Math.round(amount * unitMs));
         }}
       />
       {hostMode ? null : (
-        <SecondsField
-          seconds={seconds}
-          onChange={setSeconds}
+        <IntervalField
+          minutes={minutes}
+          value={amount}
+          onChange={setAmount}
           onCommit={() => {
-            setMode('auto', Math.round(seconds * 1000));
+            setMode('auto', Math.round(amount * unitMs));
           }}
         />
       )}
@@ -194,26 +207,28 @@ function ModeSwitch({ code, settings, shortestMs, onAnswer }: ModeSwitchProps): 
 }
 
 // The seconds between timed draws; sent when the field loses focus.
-function SecondsField({
-  seconds,
+function IntervalField({
+  minutes,
+  value,
   onChange,
   onCommit,
 }: {
-  readonly seconds: number;
-  readonly onChange: (seconds: number) => void;
+  readonly minutes: boolean;
+  readonly value: number;
+  readonly onChange: (value: number) => void;
   readonly onCommit: () => void;
 }): ReactElement {
   return (
     <label className="sbr-row">
-      Seconds between timed draws
+      {minutes ? 'Minutes between timed draws' : 'Seconds between timed draws'}
       <input
         className="sbr-input"
         style={{ width: '6rem' }}
         type="number"
         min={1}
-        step={0.5}
-        value={seconds}
-        data-testid="host-seconds"
+        step={minutes ? 1 : 0.5}
+        value={value}
+        data-testid={minutes ? 'host-minutes' : 'host-seconds'}
         onChange={(e) => {
           onChange(Number(e.target.value));
         }}

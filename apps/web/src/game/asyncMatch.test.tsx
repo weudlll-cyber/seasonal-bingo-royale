@@ -8,9 +8,11 @@
  *                 the mode, the minutes, the quiet hours and the browser's time zone (a
  *                 realtime match sends none of them); the rules line says "every 15 minutes"
  *                 and the quiet hours; a player's screen shows the quiet-hours notice and the
- *                 server's away summary on top, which Dismiss removes; the first answer is
- *                 shown also when strict mode ran the fetch twice (only that one has it).
- * Depends on:     @testing-library/react, react, ../host/CreateMatch, ../host/createForm, ./labels,
+ *                 server's away summary on top, which Dismiss removes, no speed window or bar
+ *                 and "In progress"; the console takes minutes and, in development, has "Jump
+ *                 ahead"; the first answer is shown also when strict mode ran the fetch twice.
+ * Depends on:     @testing-library/react, react, ../host/CreateMatch, ../host/createForm,
+ *                 ../host/HostConsole, ./labels,
  *                 ./AwaySummary,
  *                 ./MatchScreen, ../test/matchFixture, ../test/quickTestFixture, ./useLiveMatch
  * Spec:           docs/spec/01-game-design.md §5, §11; docs/spec/06-realtime-architecture.md §6
@@ -21,6 +23,7 @@ import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CreateMatch } from '../host/CreateMatch.js';
+import { HostConsole } from '../host/HostConsole.js';
 import { createBody, INITIAL } from '../host/createForm.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
@@ -128,6 +131,55 @@ describe('an asynchronous match on screen', () => {
     expect(panel.textContent).toContain('You survived 1 cut.');
     fireEvent.click(screen.getByTestId('away-dismiss'));
     expect(screen.queryByTestId('away-summary')).toBeNull();
+  });
+
+  it('shows no speed window and no speed bar (marking is automatic), and "In progress"', async () => {
+    const running = royaleFixture();
+    serveMatch(slow, { ...running, markingMode: 'auto', events: running.events.slice(0, 11) });
+    await show(<MatchScreen code="SLOW01" />);
+    expect(screen.getByTestId('current-ball')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('Speed window');
+    expect(document.querySelector('.window-bar')).toBeNull();
+    expect(document.querySelector('.sbr-badge-live')?.textContent).toBe('In progress');
+  });
+});
+
+describe('the host console of an asynchronous match', () => {
+  it("gives the host console's timed draws in minutes", async () => {
+    const running = royaleFixture();
+    serveMatch(
+      { ...slow, youHost: true },
+      { ...running, markingMode: 'auto', events: running.events.slice(0, 11) },
+    );
+    await show(<HostConsole code="SLOW01" />);
+    const field = screen.getByTestId<HTMLInputElement>('host-minutes');
+    expect(field.value).toBe('15');
+    expect(field.closest('label')?.textContent).toContain('Minutes between timed draws');
+    expect(screen.queryByTestId('host-seconds')).toBeNull();
+    fireEvent.change(field, { target: { value: '0' } });
+    fireEvent.blur(field);
+    expect(document.body.textContent).toContain('Pick 1 to 1440 minutes between draws.');
+  });
+
+  it('offers "Jump ahead" in development builds, which moves the match a day on', async () => {
+    const running = royaleFixture();
+    const fetched = serveMatch(
+      { ...slow, youHost: true },
+      { ...running, markingMode: 'auto', events: running.events.slice(0, 11) },
+    );
+    await show(<HostConsole code="SLOW01" />);
+    const day = await screen.findByRole('button', { name: 'Jump ahead 1 day' });
+    expect(screen.getByRole('button', { name: 'Jump ahead 1 hour' })).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(day);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    const call = fetched.mock.calls.find(([url]) => String(url).endsWith('/dev/time-travel'));
+    const sent = (call?.[1] as { body?: string } | undefined)?.body ?? 'null';
+    expect(JSON.parse(sent)).toEqual({
+      code: 'SLOW01',
+      ms: 86_400_000,
+    });
   });
 });
 

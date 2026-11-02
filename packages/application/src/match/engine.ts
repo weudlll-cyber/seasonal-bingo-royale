@@ -46,6 +46,7 @@ import { MatchRunner } from './runner.js';
 import {
   minPlayersOf,
   planAutoStart,
+  planLobbyClose,
   scheduleStart,
   startHeld,
   startIfFull,
@@ -110,8 +111,10 @@ export class MatchEngine {
     });
     await this.deps.store.insert(created.record);
     await this.runner.apply(created.record.id, [created.openLobby]);
-    // A set start time with the automatic start on: through the scheduler (D16).
-    await planAutoStart(this.flow, await this.runner.current(created.record.id));
+    // A set start time with the automatic start on, an async lobby's window (D16, D31).
+    const opened = await this.runner.current(created.record.id);
+    await planAutoStart(this.flow, opened);
+    await planLobbyClose(this.flow, opened);
     return { ...created.record, status: 'lobby', startsAt: null };
   }
 

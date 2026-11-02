@@ -5,7 +5,8 @@
  *
  * Responsibility: show the latest draw of the round as a ball that rolls in on every new
  *                 number (no animation under reduced motion), with a speed-window bar that
- *                 runs down from the moment the number appeared; before the first draw it
+ *                 runs down from the moment the number appeared (none under automatic marking,
+ *                 where nobody taps); before the first draw it
  *                 says so, and in the pause between rounds it says "Round over" in place of
  *                 the last number (D21); at the end of the match the last number stays with
  *                 "Match over". Announced to screen readers.
@@ -23,13 +24,15 @@ import './ball.css';
 interface CurrentBallProps {
   readonly draws: readonly number[];
   readonly speedWindowMs: number;
+  // The draining speed-window bar; off where nobody taps (automatic marking).
+  readonly showWindow?: boolean;
   readonly roundOver: boolean;
   // The match is over: its last number stays, with "Match over" instead of "Round over".
   readonly finished?: boolean;
 }
 
 export function CurrentBall(props: CurrentBallProps): ReactElement {
-  const { draws, speedWindowMs, roundOver, finished = false } = props;
+  const { draws, speedWindowMs, roundOver, finished = false, showWindow = true } = props;
   const reduced = useReducedMotion();
   const item = draws.at(-1);
   const [shownAt, setShownAt] = useState(() => Date.now());
@@ -64,13 +67,24 @@ export function CurrentBall(props: CurrentBallProps): ReactElement {
           <SeasonIcon season={season} size="60%" />
         )}
       </div>
-      {finished ? (
-        <p className="sbr-muted ball-note">Match over</p>
-      ) : (
-        <WindowBar key={`${String(draws.length)}-${String(shownAt)}`} ms={speedWindowMs} />
-      )}
+      <BallNote
+        finished={finished}
+        windowMs={showWindow ? speedWindowMs : null}
+        drawKey={`${String(draws.length)}-${String(shownAt)}`}
+      />
     </div>
   );
+}
+
+// Under the ball: "Match over" at the end, else the speed-window bar for each new number
+// (`windowMs` null where nobody taps).
+function BallNote(props: {
+  readonly finished: boolean;
+  readonly windowMs: number | null;
+  readonly drawKey: string;
+}): ReactElement | null {
+  if (props.finished) return <p className="sbr-muted ball-note">Match over</p>;
+  return props.windowMs === null ? null : <WindowBar key={props.drawKey} ms={props.windowMs} />;
 }
 
 // The speed window as a bar that empties over its length; no animation means a static bar.

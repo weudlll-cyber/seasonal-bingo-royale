@@ -40,7 +40,7 @@ import { CurrentBall } from './CurrentBall.js';
 import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
 import { currentRecap, Interlude } from './Interlude.js';
-import { progressText, rulesLine } from './labels.js';
+import { progressText, rulesLine, runningBadge } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
 import { whenText } from './Registration.js';
@@ -138,12 +138,15 @@ export function BallAndNumbers({
   readonly result: LiveState['view'];
   readonly view: PlaybackView;
 }): ReactElement {
+  // Automatic marking (asynchronous matches, 01 §6, §11) has no taps: no speed window.
+  const tapping = result.markingMode !== 'auto';
   return (
     <>
       <div className="arena-ball">
         <CurrentBall
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
+          showWindow={tapping}
           roundOver={view.roundOver}
           finished={view.finished}
         />
@@ -152,7 +155,7 @@ export function BallAndNumbers({
         <DrawTicker
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
-          showWindow={!view.finished}
+          showWindow={tapping && !view.finished}
           paused={view.roundOver && !view.finished}
         />
       </div>
@@ -288,7 +291,9 @@ function ArenaHeader({
       </div>
       <div className="sbr-row">
         <HostLink match={live.match} />
-        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
+        {live.match.status === 'running' ? (
+          <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+        ) : null}
       </div>
     </header>
   );
