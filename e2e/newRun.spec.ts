@@ -3,9 +3,10 @@
  * @module e2e
  * @brief  A new run on the same page starts with a fresh owner card (owner report 2026-10-20).
  *
- * Responsibility: play a few draws in manual mode and mark a number, then press Run Quick
- *                 Test again with a different seed (no page reload) and check the card
- *                 shows only the free centre plus numbers drawn in the new run.
+ * Responsibility: play a few draws in manual mode and mark a number, then open "Change
+ *                 settings" and run the simulation again with a different seed (no page
+ *                 reload) and check the card shows only the free centre plus numbers drawn
+ *                 in the new run.
  * Depends on:     @playwright/test, ./quickTest
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
@@ -57,7 +58,8 @@ test('a new run on the same page starts with a fresh owner card', async ({ page 
   await page.getByTestId('draw-next').click();
   expect((await cardState(page)).marked.length).toBeGreaterThan(1);
 
-  // Run B on the same page: new seed, Run Quick Test again — no reload.
+  // Run B on the same page: reopen the folded settings, new seed, run again — no reload.
+  await page.getByTestId('simulation-change').click();
   await page.getByTestId('seed').fill('e2e-run-b');
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('draw-ticker').locator(':scope > *')).toHaveCount(0);

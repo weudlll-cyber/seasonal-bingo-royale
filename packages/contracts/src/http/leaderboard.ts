@@ -34,6 +34,7 @@ export interface LeaderboardPeriods {
 }
 
 export interface LeaderboardRow {
+  // Shared by players equal on points, wins and Season Completes: 1, 2, 2, 4 (D28).
   readonly rank: number;
   readonly displayName: string;
   readonly points: number;

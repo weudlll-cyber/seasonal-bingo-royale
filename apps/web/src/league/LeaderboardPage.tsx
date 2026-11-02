@@ -6,9 +6,10 @@
  * Responsibility: ask the server for the periods (active season first, then all-time, then past
  *                 seasons) and the chosen period's rows, 50 at a time with "Show more"; show
  *                 rank, name (a profile link), league points, wins and Season Completes exactly
- *                 as the server ranked them (the client computes nothing, 01 §10), the signed-in
- *                 player's row highlighted, and their place with neighbours when it is further
- *                 down. States the counting rule (03 §11) with the period's player minimum.
+ *                 as the server ranked them, equal players sharing a rank (the client computes
+ *                 nothing, 01 §10, D28), the signed-in player's row highlighted, and their place
+ *                 with neighbours when it is further down. States the counting rule (03 §11)
+ *                 with the period's player minimum.
  * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ../shell/session,
  *                 ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
@@ -156,10 +157,11 @@ function BoardTable(props: {
       <tbody>
         {props.rows.map((r) => (
           <tr
-            key={r.rank}
+            key={r.displayName}
             className={r.isYou ? 'is-own' : undefined}
-            data-testid={`league-row-${String(r.rank)}`}
+            data-testid={`league-row-${r.displayName}`}
             data-name={r.displayName}
+            data-rank={r.rank}
           >
             <td>{r.rank}</td>
             <th scope="row">

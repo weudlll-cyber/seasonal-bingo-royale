@@ -1,20 +1,22 @@
 /**
  * @file   apps/web/src/components/DrawControls.tsx
  * @module web
- * @brief  Live draw controls of the Quick Test (D8): Timed draws / Host draws, interval, Draw next.
+ * @brief  Live draw control of the seed simulation (D8): Draw next, timed/host switch, seconds.
  *
- * Responsibility: let the host switch between timed draws (`auto`) and host draws at any
- *                 time, set the seconds between timed draws, draw the next item in host
- *                 mode and skip to the end. Labels never use the word "auto" alone, so
- *                 they cannot be confused with marking. Purely controls; the rules live
- *                 in ../drawControl.
- * Depends on:     react, ../drawControl, ./DrawModeSwitch
- * Used by:        ../App
+ * Responsibility: styled like the host console's control (../host/HostDrawControls, host.css):
+ *                 a big "Draw next" (usable in host mode while draws remain), a line on how
+ *                 numbers come, the "Host draws" / "Timed draws" switch (./DrawModeSwitch), the
+ *                 seconds between timed draws (timed draws only) and "Skip to end". Labels never
+ *                 use the word "auto" alone, so they cannot be confused with marking. Purely
+ *                 controls; the rules live in ../drawControl.
+ * Depends on:     react, ../drawControl, ./DrawModeSwitch, ../host/host.css
+ * Used by:        ../quicktest/Simulation
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
 
 import type { DrawControl } from '../drawControl.js';
+import '../host/host.css';
 import { DrawModeSwitch } from './DrawModeSwitch.js';
 
 interface DrawControlsProps {
@@ -28,12 +30,23 @@ interface DrawControlsProps {
 
 export function DrawControls(props: DrawControlsProps): ReactElement {
   const { control, effectiveSec, canDraw, onChange, onDrawNext } = props;
+  const hostMode = control.mode === 'host';
   return (
-    <div
-      role="group"
-      aria-label="Draw control"
-      style={{ marginTop: '0.75rem', display: 'grid', gap: '0.4rem' }}
-    >
+    <section className="sbr-panel sbr-stack" role="group" aria-label="Draw control">
+      <button
+        type="button"
+        className="sbr-btn sbr-btn--primary host-draw"
+        data-testid="draw-next"
+        disabled={!hostMode || !canDraw}
+        onClick={onDrawNext}
+      >
+        Draw next
+      </button>
+      <p className="sbr-muted">
+        {hostMode
+          ? 'Press Draw next for each number.'
+          : `Numbers are drawn every ${String(effectiveSec)} seconds. Switch to Host draws to draw them yourself.`}
+      </p>
       <DrawModeSwitch
         mode={control.mode}
         testIdPrefix="draw-mode"
@@ -41,53 +54,33 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
           onChange({ ...control, mode });
         }}
       />
-      <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-        <span>Seconds between timed draws</span>
-        <input
-          type="number"
-          data-testid="draw-interval"
-          min={1}
-          step={0.5}
-          value={effectiveSec}
-          onChange={(e) => {
-            const value = Number(e.target.value);
-            if (Number.isFinite(value) && value > 0) onChange({ ...control, intervalSec: value });
-          }}
-          style={{ width: '4.5rem' }}
-        />
-      </label>
-      <div>
-        <button
-          type="button"
-          data-testid="draw-next"
-          disabled={control.mode !== 'host' || !canDraw}
-          onClick={onDrawNext}
-          style={buttonStyle(false)}
-        >
-          Draw next
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            onChange({ ...control, skipped: true });
-          }}
-          style={buttonStyle(false)}
-        >
-          skip to end
-        </button>
-      </div>
-    </div>
+      {hostMode ? null : (
+        <label className="sbr-row">
+          Seconds between timed draws
+          <input
+            className="sbr-input"
+            style={{ width: '6rem' }}
+            type="number"
+            data-testid="draw-interval"
+            min={1}
+            step={0.5}
+            value={effectiveSec}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              if (Number.isFinite(value) && value > 0) onChange({ ...control, intervalSec: value });
+            }}
+          />
+        </label>
+      )}
+      <button
+        type="button"
+        className="sbr-btn"
+        onClick={() => {
+          onChange({ ...control, skipped: true });
+        }}
+      >
+        Skip to end
+      </button>
+    </section>
   );
-}
-
-function buttonStyle(active: boolean): React.CSSProperties {
-  return {
-    padding: '0.35rem 0.65rem',
-    marginRight: '0.3rem',
-    background: active ? 'var(--color-active-bg)' : 'var(--color-surface-2)',
-    color: 'var(--color-text)',
-    border: active ? '1px solid var(--color-accent)' : '1px solid var(--color-border)',
-    borderRadius: '0.3rem',
-    cursor: 'pointer',
-  };
 }

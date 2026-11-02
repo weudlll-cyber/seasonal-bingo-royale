@@ -106,12 +106,18 @@ export default defineConfig(
     },
   },
   {
-    // The server's build script and its stub: plain JavaScript run by Node, outside the TS projects.
-    files: ['apps/server/build.mjs', 'apps/server/devStub.mjs'],
+    // The server's build script, its stub and the demo-league command: plain JavaScript run
+    // by Node, outside the TS projects.
+    files: ['apps/server/build.mjs', 'apps/server/devStub.mjs', 'apps/server/demo-league.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       parserOptions: { projectService: false, project: false, program: null },
-      globals: { console: 'readonly', process: 'readonly' },
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+      },
     },
   },
   {

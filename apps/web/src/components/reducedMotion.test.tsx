@@ -84,7 +84,9 @@ describe('prefers-reduced-motion', () => {
   it('shows a cut screen without animation as well', () => {
     preferReducedMotion(true);
     render(
-      <CutScreen cut={{ number: 1, owners: [{ accountId: 'owner-01', outcome: 'survived' }] }} />,
+      <CutScreen
+        cut={{ number: 1, round: 0, owners: [{ accountId: 'owner-01', outcome: 'survived' }] }}
+      />,
     );
     expect(screen.getByTestId('cut-screen').className).toBe('cut-screen');
   });

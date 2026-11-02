@@ -20,11 +20,12 @@ import type { ReactElement } from 'react';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 import type { MatchSummary } from './useLiveMatch.js';
 
-// "in 40 s", "in 12 min", "in 3 h 5 min", "in 1 day"; "start time reached" at 0.
+// "in 40 s", "in 12 min", "in 3 h 5 min", "in 1 day"; "start time reached" at 0. Minutes
+// are rounded to the nearest, so a start 62 s ahead reads "in 1 min", not "in 2 min".
 function inText(seconds: number): string {
   if (seconds <= 0) return 'start time reached';
   if (seconds < 60) return `in ${String(seconds)} s`;
-  const minutes = Math.ceil(seconds / 60);
+  const minutes = Math.round(seconds / 60);
   if (minutes < 60) return `in ${String(minutes)} min`;
   if (minutes < 24 * 60) {
     const rest = minutes % 60;

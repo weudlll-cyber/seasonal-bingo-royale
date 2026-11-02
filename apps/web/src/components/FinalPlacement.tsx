@@ -6,7 +6,8 @@
  * Responsibility: "You finished #9 of 20" for the owner, places 1–3 as a podium in season
  *                 colours, then places from 4 as ranked rows (top 20 plus the owner's own
  *                 row): royale shows points and seasons, eliminated players dimmed with
- *                 "out" below a divider, ranked by when they went out (01 §7.5); classic
+ *                 "out" below a divider, ranked by when they went out, each with the cut and
+ *                 the points at that moment (01 §7.5, D23); classic
  *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
  *                 states how places are decided. Names link to profiles when the screen
  *                 passes `profileHref` (the live match screen).
@@ -18,9 +19,9 @@ import type { ReactElement } from 'react';
 
 import type { PlaybackProps } from './Playback.js';
 import { Podium } from './Podium.js';
-import { OutDivider, RankRow, type ProfileHref } from './RankRow.js';
+import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
-import type { PlaybackView } from '../playback.js';
+import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 
 type Placed = QuickTestResult['players'][number];
@@ -37,14 +38,8 @@ export function FinalPlacement({
   const rest = sorted.filter((p, i) => p.place > 3 && (i < 20 || p.isOwner));
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   const row = (p: Placed) => ({
-    note: finalNote(result, view, p),
+    ...rowFacts(result, view, byId.get(p.accountId), p),
     href: profileHref?.(p.accountId) ?? null,
-    out: byId.get(p.accountId)?.eliminated === true,
-    attrs: {
-      'data-testid': `final-row-${String(p.place)}`,
-      'data-place': p.place,
-      'data-account': p.accountId,
-    },
   });
   return (
     <section className="sbr-panel final" data-testid="final-placement">
@@ -70,7 +65,9 @@ export function FinalPlacement({
       {rest.length === 0 ? null : (
         <ol className="rank-list">
           {rest.map((p, i) => [
-            i === firstOut && i > 0 ? <OutDivider key="out-divider" /> : null,
+            i === firstOut && i > 0 ? (
+              <GroupLabel key="out-divider" text="Out of the match" divider />
+            ) : null,
             <RankRow
               key={p.accountId}
               rank={p.place}
@@ -86,10 +83,39 @@ export function FinalPlacement({
   );
 }
 
-// Royale: points (eliminated players keep the score they had when they went out, 01 §7.5).
+// What one placed row shows: note, "out" and the test hooks.
+function rowFacts(
+  result: QuickTestResult,
+  view: PlaybackView,
+  player: PlayerView | undefined,
+  p: Placed,
+) {
+  return {
+    note: finalNote(result, view, player, p),
+    out: player?.eliminated === true,
+    // A royale out row says "out in cut K · P pts" itself (D23).
+    outNoted: result.gameType === 'royale' && (player?.eliminatedCut ?? null) !== null,
+    attrs: {
+      'data-testid': `final-row-${String(p.place)}`,
+      'data-place': p.place,
+      'data-account': p.accountId,
+    },
+  };
+}
+
+// Royale: points; a player out says the cut and the points at that moment (01 §7.5, D23).
 // Classic types: the prizes won.
-function finalNote(result: QuickTestResult, view: PlaybackView, p: Placed): string {
-  if (result.gameType === 'royale') return `${String(p.points)} pts`;
+function finalNote(
+  result: QuickTestResult,
+  view: PlaybackView,
+  player: PlayerView | undefined,
+  p: Placed,
+): string {
+  if (result.gameType === 'royale') {
+    const cut = player?.eliminatedCut ?? null;
+    if (cut === null) return `${String(p.points)} pts`;
+    return `out in cut ${String(cut)} · ${String(player?.outPoints ?? p.points)} pts`;
+  }
   const won = result.tickedPrizes.filter((k) =>
     view.prizeWinners[k]?.accountIds.includes(p.accountId),
   );

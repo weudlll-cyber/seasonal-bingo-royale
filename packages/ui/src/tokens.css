@@ -77,7 +77,6 @@
   --font-size-body: 1rem;
   --font-size-lead: clamp(1.05rem, 0.95rem + 0.5vw, 1.25rem);
   --font-size-title: clamp(1.8rem, 1.2rem + 1.8vw, 2.75rem);
-  --font-size-ball: clamp(3rem, 2rem + 6vw, 5.5rem);
 
   /* Shape: fields, cards and pills (buttons, navigation items, badges) */
   --radius: 14px;

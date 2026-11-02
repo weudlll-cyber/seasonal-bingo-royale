@@ -5,16 +5,24 @@
  *
  * Responsibility: the mutable state ./playback folds the event stream into, the helpers
  *                 that change one player or add a banner, and the scoring events: marks,
- *                 season activations (which seasons a player holds), patterns, Season
- *                 Complete, jackpot and classic prizes. It only adds up points the server
- *                 already computed. Pure.
- * Depends on:     ./playbackTypes, ./game/labels, ./types
+ *                 season activations (which seasons a player holds; the owner's as event
+ *                 lines), patterns (who completed each first this round, the viewer's own,
+ *                 event lines), Season Complete, jackpot and classic prizes. It only adds up
+ *                 points the server already computed. Pure.
+ * Depends on:     ./playbackTypes, ./game/labels, ./game/seasonText, ./types
  * Used by:        ./playback
  * Spec:           docs/spec/01-game-design.md §3a, §8; docs/spec/15-implementation-plan.md WP-08
  */
-import { decidedAt, jackpotLine, prizeLine, seasonCompleteLine } from './game/labels.js';
-import type { Banner, CutView, PlayerView, PrizeWin } from './playbackTypes.js';
-import type { DomainEventLike } from './types.js';
+import {
+  decidedAt,
+  jackpotLine,
+  patternLine,
+  prizeLine,
+  seasonCompleteLine,
+} from './game/labels.js';
+import { ownSeasonLine } from './game/seasonText.js';
+import type { Banner, CutView, PlayerView, PrizeWin, RoundPattern } from './playbackTypes.js';
+import type { DomainEventLike, QuickTestResult } from './types.js';
 
 export interface FoldState {
   stageIndex: number;
@@ -32,6 +40,10 @@ export interface FoldState {
   finished: boolean;
   // The player of the round's latest pattern: names who ended a round (firstFullHouse …).
   lastScorer: string | null;
+  // The patterns completed in the current round (first and the viewer's own).
+  roundPatterns: Record<string, RoundPattern>;
+  // The server's facts the fold reads: season effects, what each cut did.
+  readonly facts: Pick<QuickTestResult, 'seasonEffects' | 'cuts'>;
 }
 
 export function applyScoring(state: FoldState, ev: DomainEventLike): void {
@@ -46,10 +58,19 @@ export function applyScoring(state: FoldState, ev: DomainEventLike): void {
         seasonsActivated: p.seasonsActivated + 1,
         seasons: p.seasons.includes(ev.season) ? p.seasons : [...p.seasons, ev.season],
       }));
+      if (state.players.get(ev.accountId)?.isOwner === true) {
+        const effect = state.facts.seasonEffects[ev.season];
+        pushBanner(
+          state,
+          `season-${String(state.roundIndex)}-${ev.season}`,
+          ownSeasonLine(ev, effect),
+        );
+      }
       return;
     case 'patternScored':
       addPoints(state, ev.accountId, ev.points);
       state.lastScorer = ev.accountId;
+      notePattern(state, ev);
       return;
     case 'seasonCompleteFired':
       addPoints(state, ev.accountId, ev.points);
@@ -73,6 +94,20 @@ export function applyScoring(state: FoldState, ev: DomainEventLike): void {
     default:
       return;
   }
+}
+
+// Who completed the pattern first this round, whether the viewer has it, and the line.
+function notePattern(state: FoldState, ev: Extract<DomainEventLike, { type: 'patternScored' }>) {
+  const was = state.roundPatterns[ev.prizeKey] ?? { first: null, mine: false };
+  state.roundPatterns[ev.prizeKey] = {
+    first: was.first ?? (ev.firstInRound ? ev.accountId : null),
+    mine: was.mine || state.players.get(ev.accountId)?.isOwner === true,
+  };
+  pushBanner(
+    state,
+    `pt-${String(state.roundIndex)}-${ev.prizeKey}-${ev.accountId}-${String(ev.cardIndex)}`,
+    patternLine(ev.accountId, ev.prizeKey, ev.points, ev.firstInRound),
+  );
 }
 
 function markCell(p: PlayerView, cardIndex: number, cellIndex: number, points: number): PlayerView {
@@ -103,5 +138,5 @@ export function update(state: FoldState, id: string, change: (p: PlayerView) => 
 }
 
 export function pushBanner(state: FoldState, key: string, text: string): void {
-  state.banners.push({ key, text });
+  state.banners.push({ key, text, round: state.roundIndex });
 }

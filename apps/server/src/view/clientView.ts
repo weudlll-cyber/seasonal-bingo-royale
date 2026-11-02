@@ -7,15 +7,22 @@
  *                 client's playback logic renders: the events with display names, every
  *                 player (first-round card, place, points, seasons, shield), the stage plan,
  *                 the owners' effect timeline and the stage-start baselines (./clientEvents),
- *                 the season of each effect and the timing values of the card. The client
+ *                 the season of each effect, the season effects, pattern points and first
+ *                 bonus, what each cut did and the timing values of the card. The client
  *                 renders this and never computes scores (CLAUDE.md).
- * Depends on:     @sbr/application (drawRange), @sbr/contracts (the view shapes), @sbr/domain
+ * Depends on:     @sbr/application (drawRange), @sbr/contracts (the view shapes, prize points), @sbr/domain
  *                 (countBits), ./clientEvents
  * Used by:        ../dev/quicktest.ts, ../http/routes/matchViews.ts
  * Spec:           docs/spec/01-game-design.md §8, §13; docs/spec/15-implementation-plan.md WP-08, WP-12
  */
 import { drawRange } from '@sbr/application';
-import type { Card, PlayerSummary, QuickTestResult as ClientView, Ruleset } from '@sbr/contracts';
+import {
+  BUILTIN_PRIZE_POINTS,
+  type Card,
+  type PlayerSummary,
+  type QuickTestResult as ClientView,
+  type Ruleset,
+} from '@sbr/contracts';
 import { countBits, type DomainEvent, type GameType, type MatchState } from '@sbr/domain';
 
 import { effectSeasons, LiveReplay } from './clientEvents.js';
@@ -82,6 +89,17 @@ export function buildClientView(input: ClientViewInput): ClientView {
     ownerStatus,
     stagePoints: replay.stagePoints,
     effectSeasons: effectSeasons(ruleset.seasons),
+    seasonEffects: {
+      spring: ruleset.seasons.spring.effect,
+      summer: ruleset.seasons.summer.effect,
+      autumn: ruleset.seasons.autumn.effect,
+      winter: ruleset.seasons.winter.effect,
+    },
+    seasonCompletePoints: ruleset.seasonComplete?.points ?? 0,
+    // The points the engine scores patterns with (@sbr/application toMatchRuleset).
+    patternPoints: BUILTIN_PRIZE_POINTS,
+    firstBonusPercent: ruleset.scoring.firstToPatternBonusPercent,
+    cuts: replay.cuts,
   };
 }
 

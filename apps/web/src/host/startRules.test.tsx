@@ -9,15 +9,18 @@
  *                 console of a match with a set time offers Start match and the switch,
  *                 which sends the change; it shows "Not enough players at the start time —
  *                 start it yourself or abort" when the automatic start found too few, with
- *                 the line "Waiting for players …" and "Abort match" in the lobby.
+ *                 the line "Waiting for players …" and "Abort match" in the lobby; during
+ *                 maintenance Start match is disabled with the reason beside it (D22).
  * Depends on:     @testing-library/react, ./CreateMatch, ./createForm, ./HostConsole,
- *                 ./TimingFields, ../test/matchFixture, ../game/useLiveMatch
+ *                 ./TimingFields, ../test/matchFixture, ../game/useLiveMatch,
+ *                 ../shell/useMaintenance
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
  */
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { MatchSummary } from '../game/useLiveMatch.js';
+import { MaintenanceContext } from '../shell/useMaintenance.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { CreateMatch } from './CreateMatch.js';
 import { createBody, INITIAL } from './createForm.js';
@@ -117,5 +120,31 @@ describe('the console with a set start time (D16)', () => {
     const calls = fetch.mock.calls as [string, RequestInit | undefined][];
     const sent = calls.find(([url]) => url.endsWith('/matches/MATCH1/abort'));
     expect(sent?.[1]?.body).toBe(JSON.stringify({ reason: 'Nobody came' }));
+  });
+});
+
+describe('the console during maintenance (D22)', () => {
+  it('disables Start match and shows the reason beside it', async () => {
+    serveMatch(matchSummary({ youHost: true, players: 3 }));
+    await show(
+      <MaintenanceContext.Provider value={{ on: true, reason: 'Back at 18:00.' }}>
+        <HostConsole code="MATCH1" />
+      </MaintenanceContext.Provider>,
+    );
+    expect(screen.getByTestId<HTMLButtonElement>('start-match').disabled).toBe(true);
+    expect(screen.getByTestId('start-maintenance').textContent).toBe(
+      'Maintenance is on — matches cannot start now. Back at 18:00.',
+    );
+  });
+
+  it('keeps Start match pressable when maintenance is off', async () => {
+    serveMatch(matchSummary({ youHost: true, players: 3 }));
+    await show(
+      <MaintenanceContext.Provider value={{ on: false, reason: null }}>
+        <HostConsole code="MATCH1" />
+      </MaintenanceContext.Provider>,
+    );
+    expect(screen.getByTestId<HTMLButtonElement>('start-match').disabled).toBe(false);
+    expect(screen.queryByTestId('start-maintenance')).toBeNull();
   });
 });

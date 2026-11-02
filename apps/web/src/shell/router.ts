@@ -2,6 +2,7 @@
  * @file   apps/web/src/shell/router.ts
  * @module web/shell
  * @brief  Hash routes of the player client: lobby, match, host screens, verify, Quick Test, account, boards.
+ *         The Quick Test has a chooser and one sub-route per way to test (play, seed).
  *
  * Responsibility: parse `location.hash` into a route and back, and a hook that follows
  *                 hash changes. Hash routing keeps every screen reachable from the dev
@@ -9,7 +10,7 @@
  *                 the account page, the leaderboard (optionally one period) and a player's
  *                 profile (the display name URL-encoded) are routes too.
  * Depends on:     react
- * Used by:        ./AppShell, the screens that link to each other, ../account/Register,
+ * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
  *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
  *                 ../host/YourMatches, ./DevTools, ../game/VerifyMatch, ../league/LeaderboardPage,
@@ -18,13 +19,16 @@
  */
 import { useEffect, useState } from 'react';
 
+// The test page's chooser (no view), a test match to play, or the seed check.
+export type QuickTestView = 'play' | 'seed';
+
 export type Route =
   | { readonly name: 'lobby' }
   | { readonly name: 'match'; readonly code: string }
   | { readonly name: 'hostNew' }
   | { readonly name: 'host'; readonly code: string }
   | { readonly name: 'verify'; readonly code: string }
-  | { readonly name: 'quicktest' }
+  | { readonly name: 'quicktest'; readonly view?: QuickTestView }
   | { readonly name: 'signIn' }
   | { readonly name: 'register' }
   | { readonly name: 'account' }
@@ -58,6 +62,8 @@ function withParameter(first: string, second: string): Route | null {
       return second === 'new' ? { name: 'hostNew' } : { name: 'host', code: second };
     case 'verify':
       return { name: 'verify', code: second };
+    case 'quicktest':
+      return quickTestRoute(second);
     case 'leaderboard':
       return { name: 'leaderboard', periodId: second };
     case 'players':
@@ -65,6 +71,11 @@ function withParameter(first: string, second: string): Route | null {
     default:
       return null;
   }
+}
+
+// The chooser, or one of its sub-routes; anything else after it is the chooser.
+function quickTestRoute(view: string): Route {
+  return view === 'play' || view === 'seed' ? { name: 'quicktest', view } : { name: 'quicktest' };
 }
 
 // A malformed escape in a typed-in address leads to the lobby instead of an error.
@@ -78,11 +89,10 @@ function playerRoute(encoded: string): Route | null {
 
 // The address of every route without a parameter.
 const PLAIN_HREFS: Readonly<
-  Record<'lobby' | 'hostNew' | 'quicktest' | 'signIn' | 'register' | 'account', string>
+  Record<'lobby' | 'hostNew' | 'signIn' | 'register' | 'account', string>
 > = {
   lobby: '#/',
   hostNew: '#/host/new',
-  quicktest: '#/quicktest',
   signIn: '#/sign-in',
   register: '#/register',
   account: '#/account',
@@ -96,6 +106,8 @@ export function hrefOf(route: Route): string {
       return `#/host/${route.code}`;
     case 'verify':
       return `#/verify/${route.code}`;
+    case 'quicktest':
+      return route.view === undefined ? '#/quicktest' : `#/quicktest/${route.view}`;
     case 'leaderboard':
       return route.periodId === null ? '#/leaderboard' : `#/leaderboard/${route.periodId}`;
     case 'player':

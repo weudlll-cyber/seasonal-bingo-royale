@@ -1,0 +1,219 @@
+/**
+ * @file   apps/web/src/components/matchSide.css
+ * @module web
+ * @brief  The panels beside the play area: status sentences, patterns, latest lines, standings.
+ *
+ * Responsibility: the owner's status in compact sentences with the season colour as a frame
+ *                 (one line each where it fits; lines wrap, never truncate), the seasons of the
+ *                 match, "Patterns this round", the newest 3 event lines (a separator naming a new
+ *                 round, an earlier round's lines dimmed) with the whole log grouped by round in
+ *                 a disclosure that scrolls inside itself, and the standings panel: it takes the
+ *                 height it is given and scrolls its rows inside itself, the viewer's own row in
+ *                 a strip below the list while the list has it out of view; group labels; names
+ *                 a watcher can select (D24). Colours and spacing from @sbr/ui tokens only.
+ * Used by:        ./OwnerStatusPanel, ./PatternsPanel, ./RecentEvents, ./Standings
+ * Spec:           docs/spec/01-game-design.md §8, §13 (D23, D24)
+ */
+
+/* The owner's status */
+.owner-status {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.owner-status p {
+  margin: 0;
+}
+
+.effect-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  padding: 0.1rem 0.45rem;
+  border-left: 4px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  font-size: var(--font-size-small);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.effect-line img {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.season-list {
+  font-size: var(--font-size-small);
+  line-height: 1.35;
+}
+
+.season-item {
+  white-space: nowrap;
+}
+
+.season-item img {
+  margin-right: 0.2rem;
+  vertical-align: -0.2em;
+}
+
+.season-note {
+  font-size: var(--font-size-small);
+}
+
+/* Patterns this round: one line per pattern */
+.side-panel,
+.standings-panel {
+  padding: var(--space-1) var(--space-2);
+}
+
+.side-panel h3,
+.standings-panel h3 {
+  margin: 0 0 0.2rem;
+  font-size: var(--font-size-lead);
+}
+
+.pattern-rows {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-small);
+}
+
+.pattern-rows li {
+  display: grid;
+  grid-template-columns: 1rem auto auto minmax(0, 1fr);
+  column-gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.1rem 0.3rem;
+  border-radius: 6px;
+}
+
+.pattern-rows li.is-mine {
+  background: var(--color-active-bg);
+}
+
+.pattern-points {
+  color: var(--color-text-muted);
+}
+
+.pattern-first {
+  text-align: right;
+}
+
+.pattern-tick {
+  color: var(--color-success);
+  font-weight: var(--font-weight-strong);
+}
+
+/* The newest event lines and the whole log */
+.recent-events {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.recent-lines > ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recent-lines li {
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--color-surface-2);
+  font-size: var(--font-size-small);
+  overflow-wrap: anywhere;
+}
+
+.recent-lines li:first-child {
+  font-weight: var(--font-weight-strong);
+}
+
+/* A line of a round before the newest one. */
+.recent-lines li.is-earlier {
+  opacity: 0.55;
+}
+
+/* "Round 2" over a thin line, above the lines of that round. */
+.round-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.15rem 0 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-strong);
+  line-height: 1.2;
+}
+
+.round-separator::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid var(--color-border);
+}
+
+.match-log summary {
+  cursor: pointer;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+}
+
+.match-log [data-testid='match-log'] {
+  max-height: 12rem;
+  margin-top: 0.25rem;
+  overflow-y: auto;
+  font-size: var(--font-size-small);
+}
+
+.match-log ol {
+  margin: 0;
+  padding-left: 0.5rem;
+  list-style: none;
+}
+
+/* Standings: rows scroll inside the panel; the own row stays at its edge */
+.standings-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.standings-panel .rank-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The viewer's row below the list while the list has it out of view (./Standings). */
+.standings-panel .rank-pinned {
+  flex: none;
+  margin-top: 2px;
+  padding-top: 2px;
+  border-top: 1px solid var(--color-border);
+}
+
+.rank-group {
+  padding: 0 0.4rem 2px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rank-name-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}

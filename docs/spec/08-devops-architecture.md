@@ -47,13 +47,13 @@ server set it explicitly.
 
 - `master` is always releasable and protected: PR required, CI green required, merges are merge commits (one topic = one branch = one merge).
 - One topic = one branch until the topic is done, then one merge (owner workflow rule).
-- Every push to any branch runs the fast CI checks (§3) so feature branches are verified before merge.
+- A work branch is verified through its pull request to `master` (§3): every push to it runs CI once, as the pull request's run. Pushes to `master` run CI as well.
 - Releases: tag `vX.Y.Z` (SemVer) on `master` → release workflow builds, signs and publishes the image `ghcr.io/<org>/seasonal-bingo-royale:X.Y.Z` plus SBOM and release notes generated from Conventional Commits.
 - Staging deploys the release candidate tag `vX.Y.Z-rc.N`; production deploys the final tag. Both by the operator running `sbr update <version>` on the server (pull model, no CI credentials on the server).
 
 ## 3. CI pipeline (GitHub Actions)
 
-Triggers: push on every branch, pull requests to `master`, tags.
+Triggers: pull requests to `master`, pushes to `master`, tags. A push to a work branch runs no job of its own; with an open pull request it starts that pull request's run, so one push gives one run (QUIET-CI, 2026-11-01: before, each push to a branch with an open pull request ran twice and each failure was mailed twice). CodeQL has the same triggers plus its weekly schedule.
 
 | Job | Contents | Blocks merge |
 |---|---|---|
@@ -71,7 +71,7 @@ Actions pinned by SHA, `permissions: contents: read` default, no secrets availab
 
 As built (2026-10-24): `lint`, `unit` and `integration` run as one job `verify` (`pnpm verify`) followed by the coverage step, about 3 minutes; the job `coverage-integration` runs the integration tests once more beside it for the server's coverage report (2026-10-31); `security` and `docs` well under a minute; `e2e` about 4 minutes per browser, the three in parallel. A full run on a branch push takes about 4 minutes (before: 10–47 minutes, of which up to 38 were spent installing browser libraries with apt, and the browsers ran one after another on one runner). There is no build to reuse between jobs: the e2e jobs run the development server and client, `image` builds the container on the way to master only.
 
-Concurrency: a newer push to a branch cancels the branch's older run; on `master` every commit has its own concurrency group and is never cancelled, so each merge commit gets a finished run even when merges follow each other quickly.
+Concurrency: a newer push to a pull request's branch cancels that pull request's older run; on `master` every commit has its own concurrency group and is never cancelled, so each merge commit gets a finished run even when merges follow each other quickly.
 
 Note for operators of this repo: a green local check is not a green CI — after every merge to `master` the CI run for the merge commit is checked (`gh run list --branch master`).
 

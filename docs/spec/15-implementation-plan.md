@@ -50,6 +50,7 @@ Accept: invariants 7, 8, 10, 12; full-match simulation tests for 4, 20, 100, 200
 **WP-08 Quick Test: play against bots in the browser**
 Spec: 12 §8, 01 §3a, §13. In-memory match runner (dev builds only, behind a dev flag) using the domain; web UI: card grid with season cells (symbol icon for `classicSeasons`), draw ticker, score, effects, standings, stage/cut screens (royale), prize ticker and final placement (classic types); start form that lets the owner pick the **game type** and (for classic types) the **ticked prizes**, plus a seed field; the dev badge "Bingo · dev · 5390" (08 §1.1).
 Accept: E2E smoke with fixed seed reproduces the same final ranking per game type. Owner sees: a full match vs. bots in each game type; the same seed replays identically.
+Since QUICKTEST-GUIDE (2026-10-31) the page is "Test a match": a real test match from the existing routes (create, join, dev bots, start now or a set time with the automatic start), so the waiting room and everything after it run as in the real game, and the seed simulation above. Since QUICKTEST-GUIDE-2 (2026-11-01) it is a chooser with one sub-route per way (`#/quicktest/play`, `#/quicktest/seed`): "Create test match" opens the host console of the new match in a new tab and turns the test tab into the match's normal player route, with nothing of the test page on it; "Seed check (simulation)" lays its settings beside the replay, whose cards wear the live card's look.
 
 ### Phase 2 — Players and realtime
 

@@ -20,6 +20,8 @@ pnpm dev                                                                       #
 
 Open http://localhost:5390. Development builds have a "Dev sign-in" menu (host, players 1–3; one sign-in per browser window, use a private window for a second person) and the Quick Test (play against bots). The server's development features need `SBR_DEV=1`, which `apps/server/dev.env` sets; it refuses to run with a public address. Browser tests: `pnpm e2e` uses a running `pnpm dev` or starts its own server and client on the same ports (restart `pnpm dev` after pulling server changes, or the tests run against the old code).
 
+A filled leaderboard without playing: with `pnpm dev` running, `pnpm demo-league` creates the dev accounts `demo-01` … `demo-10` (e-mail confirmed) and has the server play three short royales among them (fast test rules, leaderboard switch on, no bots); it waits about 3 minutes until they have finished. The season and all-time boards, the profiles (`#/players/demo-01`) and the badges then show real data. Running it again plays three more matches with the same accounts. `pnpm demo-league --remove` removes the accounts with their league and badge rows; matches still running are aborted, finished ones stay in the event log without the accounts. Development only: the route behind it exists with `SBR_DEV=1` and is not in a production build.
+
 ## Branching
 
 - `master` is always releasable.

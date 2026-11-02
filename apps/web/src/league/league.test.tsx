@@ -111,7 +111,8 @@ describe('the leaderboard page (01 §10)', () => {
   it('shows the season board in the server order, the own row marked, names linked', async () => {
     const page: Page = {
       period: SEASON,
-      items: [row(1, 'anna'), row(2, 'carla', true), row(3, 'bob')],
+      // carla and bob are equal: they share the server's rank 2 (D28).
+      items: [row(1, 'anna'), row(2, 'carla', true), row(2, 'bob')],
       nextCursor: null,
     };
     serve({
@@ -122,6 +123,7 @@ describe('the leaderboard page (01 §10)', () => {
     await show(<LeaderboardPage periodId={null} />);
     const rows = screen.getAllByTestId(/^league-row-/);
     expect(rows.map((r) => r.dataset['name'])).toEqual(['anna', 'carla', 'bob']);
+    expect(rows.map((r) => r.querySelector('td')?.textContent)).toEqual(['1', '2', '2']);
     expect(rows[1]?.className).toContain('is-own');
     expect(screen.getByRole('link', { name: 'anna' }).getAttribute('href')).toBe('#/players/anna');
     const select = screen.getByTestId<HTMLSelectElement>('leaderboard-period');
@@ -167,6 +169,10 @@ describe('the profile page (05 §2.2)', () => {
     expect(screen.getByTestId('profile-matches').textContent).toBe('3');
     expect(screen.getByTestId('profile-best').textContent).toBe('#1');
     expect(screen.getByTestId('profile-badges').textContent).toContain('Season Complete ×2');
+    // The figures leave matches with bots out, which still show below (D29).
+    expect(screen.getByTestId('profile-figures-rule').textContent).toBe(
+      'Counted from finished matches without bots.',
+    );
     const match = screen.getByTestId('profile-match-ABC');
     expect(match.textContent).toContain('#2 of 9');
     expect(match.dataset['league']).toBe('bots');

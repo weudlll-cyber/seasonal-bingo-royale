@@ -3,7 +3,8 @@
  * @module web/host
  * @brief  The host's screens: console grid, Draw next, the create form, "Your matches".
  *
- * Responsibility: the host console beside its side column from 960 px, the open-match
+ * Responsibility: the host console in three columns from 960 px (filling the window while
+ *                 the match runs, so the page does not scroll), the open-match
  *                 notice, the big Draw next (readable when disabled: muted text on surface-2,
  *                 4.5:1 in both themes), the create form with its prize grid, and the list
  *                 of the host's matches above it. Colours and sizes from @sbr/ui tokens.
@@ -17,11 +18,56 @@
   gap: var(--space-3);
 }
 
+/* Desktop: ball, numbers and the newest lines | the controls | the standings. While the
+   match runs the console fills the window below the top bar (../shell/shell.css
+   .fit-window): each column scrolls on its own, the standings take the full height. */
 @media (min-width: 960px) {
   .host-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 25rem);
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1fr) minmax(18rem, 22rem);
     align-items: start;
   }
+
+  .host-console.fit-window {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .fit-window .host-grid {
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .fit-window .host-play,
+  .fit-window .host-controls {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .fit-window .host-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .fit-window .host-side .standings-panel {
+    flex: 1 1 auto;
+  }
+}
+
+.host-play,
+.host-controls {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Ball, numbers and the newest lines one below the other (the arena's grid areas do not
+   apply here). */
+.host-play > * {
+  grid-area: auto;
 }
 
 .open-notice {

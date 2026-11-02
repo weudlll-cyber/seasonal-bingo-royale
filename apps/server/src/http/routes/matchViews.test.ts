@@ -8,7 +8,11 @@
  *                 later round start, carries no player list and stays small; a round start
  *                 carries only the viewer's own cards (none for the host) and no draw order,
  *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
- * Depends on:     @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews
+ *                 The watched cards (D24) go to spectators and players who are out, never to
+ *                 a player still in: the top 4 still in, cards the screen does not hold yet,
+ *                 a followed player, "1 to go"; and the cut facts (D23).
+ * Depends on:     @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews,
+ *                 ../../view/watchView
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/05-api-design.md §2.3
  */
 import {
@@ -17,10 +21,11 @@ import {
   type LoadedMatch,
   type StoredEvent,
 } from '@sbr/application';
-import { simulateMatch } from '@sbr/domain';
+import { byTieBreak, candidateOf, simulateMatch } from '@sbr/domain';
 import { describe, expect, it } from 'vitest';
 
 import { LiveViews } from '../../view/liveViews.js';
+import { NO_WATCH_QUERY, type WatchQuery } from '../../view/watchView.js';
 import { liveView, matchSummary } from './matchViews.js';
 
 const sim = simulateMatch({
@@ -53,7 +58,12 @@ const record = {
 
 // The view of `viewer` (a player, or the host who plays not) with the events after
 // `since`, the match at `seq`.
-async function viewSince(since: number, seq = stored.length, viewer: string | null = me) {
+async function viewSince(
+  since: number,
+  seq = stored.length,
+  viewer: string | null = me,
+  watch: WatchQuery = NO_WATCH_QUERY,
+) {
   const match = { record, state: sim.state, seq } as unknown as LoadedMatch;
   const views = new LiveViews({
     events: (_id, after) => Promise.resolve(stored.filter((e) => e.seq > after)),
@@ -61,7 +71,8 @@ async function viewSince(since: number, seq = stored.length, viewer: string | nu
     manualTaps: () => Promise.resolve([]),
   });
   const entry = await views.entryFor(match);
-  return liveView({ match, entry, me: viewer, since, recap: null, clock: NO_CLOCK_FACTS }).view;
+  return liveView({ match, entry, me: viewer, since, recap: null, clock: NO_CLOCK_FACTS, watch })
+    .view;
 }
 
 // How many players the view lists; null when it leaves the list out.
@@ -133,5 +144,57 @@ describe('the summary of an ended match (NIGHT-5)', () => {
     // The simulated match has finished; its record still says running.
     const m = { record: { ...record, status: 'running' }, state: sim.state, seq: 1 };
     expect(matchSummary(m as unknown as LoadedMatch, null, NO_CLOCK_FACTS).status).toBe('finished');
+  });
+});
+
+describe('the watched cards (D24)', () => {
+  const stillIn = sim.state.playerOrder.filter(
+    (id) => sim.state.players[id]?.eliminatedAtRound === null,
+  );
+  const out = sim.state.playerOrder.find((id) => sim.state.players[id]?.eliminatedAtRound !== null);
+  const best = stillIn.map((id) => candidateOf(sim.state, id)).sort(byTieBreak);
+  const round = sim.state.currentRound?.roundIndex ?? -1;
+
+  it('gives a spectator the 4 best players still in with their cards, no draw order', async () => {
+    const view = await viewSince(0, stored.length, 'a-spectator');
+    expect(view.watch?.top).toEqual(best.slice(0, 4).map((c) => c.accountId));
+    expect(Object.keys(view.watch?.cards ?? {}).sort()).toEqual(
+      [...(view.watch?.top ?? [])].sort(),
+    );
+    expect(JSON.stringify(view.watch)).not.toContain('drawSequence');
+  });
+
+  it('gives a player who is out the same', async () => {
+    expect((await viewSince(0, stored.length, out ?? '')).watch?.top).toHaveLength(4);
+  });
+
+  it('gives a player still in no other card', async () => {
+    expect((await viewSince(0, stored.length, stillIn[0] ?? '')).watch).toBeUndefined();
+  });
+
+  it('sends no card the screen already holds for this round, and adds a followed player', async () => {
+    const top = best.slice(0, 4).map((c) => c.accountId);
+    const followed = best[6]?.accountId ?? '';
+    const view = await viewSince(0, stored.length, 'a-spectator', {
+      follow: followed,
+      knownRound: round,
+      known: top,
+    });
+    expect(Object.keys(view.watch?.cards ?? {})).toEqual([followed]);
+    expect(Object.keys(view.watch?.oneToGo ?? {}).sort()).toEqual([...top, followed].sort());
+  });
+
+  it('says what each cut did: points at elimination and shield-save margins', async () => {
+    const view = await viewSince(0);
+    const cuts = stored.filter((e) => e.event.type === 'cutApplied');
+    const facts = view.cuts ?? [];
+    expect(facts).toHaveLength(cuts.length);
+    const first = cuts[0]?.event;
+    if (first?.type !== 'cutApplied') throw new Error('no cut');
+    expect(Object.keys(facts[0]?.out ?? {}).sort()).toEqual([...first.eliminated].sort());
+    for (const margin of facts.flatMap((c) => Object.values(c.saved))) {
+      expect(margin).toBeGreaterThanOrEqual(1);
+      expect(margin).toBeLessThanOrEqual(3);
+    }
   });
 });

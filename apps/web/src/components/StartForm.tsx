@@ -10,8 +10,9 @@
  *                 D9) and draw control (./StartDrawField, D8). Timed draws send their
  *                 gap so the server measures the missed-number delay in the same draws.
  * Depends on:     react, ../types, ../api, ../drawControl, ./StartDrawField,
- *                 ./StartMarkingField, @sbr/contracts (prize list), ../game/labels (prize names)
- * Used by:        ../App
+ *                 ./StartMarkingField, @sbr/contracts (prize list), ../game/labels (game types,
+ *                 prize names), ../host/host.css (form classes)
+ * Used by:        ../quicktest/Simulation
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §5, §6
  */
 import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
@@ -26,7 +27,8 @@ import {
   toMissedNumbers,
   type MarkingChoice,
 } from './StartMarkingField.js';
-import { prizeName } from '../game/labels.js';
+import { GAME_TYPES, gameTypeName, prizeName } from '../game/labels.js';
+import '../host/host.css';
 import type { GameType } from '../types.js';
 
 interface StartFormProps {
@@ -72,7 +74,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
     onStart(toInput(state, prizes, marking, draw), draw);
   };
   return (
-    <form onSubmit={submit} style={{ display: 'grid', gap: '0.6rem', maxWidth: '32rem' }}>
+    <form className="create-form" onSubmit={submit}>
       <GameTypeField value={state.gameType} onChange={bind('gameType')} />
       <SeedField value={state.seedText} onChange={bind('seedText')} />
       <BotCountField value={state.playerCount} onChange={bind('playerCount')} />
@@ -80,8 +82,13 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
       <StartMarkingField value={marking} onChange={setMarking} />
       <StartDrawField value={draw} onChange={setDraw} />
       <PrizeChecklist checked={prizes} onToggle={toggle} />
-      <button type="submit" disabled={busy} style={{ padding: '0.5rem' }} data-testid="start-run">
-        {busy ? 'Running…' : 'Run Quick Test'}
+      <button
+        type="submit"
+        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        disabled={busy}
+        data-testid="start-run"
+      >
+        {busy ? 'Running…' : 'Run simulation'}
       </button>
     </form>
   );
@@ -95,18 +102,21 @@ function GameTypeField({
   onChange: (next: GameType) => void;
 }): ReactElement {
   return (
-    <label style={{ display: 'grid', gap: '0.25rem' }}>
+    <label className="sbr-field">
       <span>Game type</span>
       <select
+        className="sbr-select"
         data-testid="game-type"
         value={value}
         onChange={(e) => {
           onChange(e.target.value as GameType);
         }}
       >
-        <option value="royale">royale</option>
-        <option value="classicSeasons">classicSeasons</option>
-        <option value="classic">classic</option>
+        {GAME_TYPES.map((g) => (
+          <option key={g} value={g}>
+            {gameTypeName(g)}
+          </option>
+        ))}
       </select>
     </label>
   );
@@ -120,9 +130,10 @@ function SeedField({
   onChange: (next: string) => void;
 }): ReactElement {
   return (
-    <label style={{ display: 'grid', gap: '0.25rem' }}>
+    <label className="sbr-field">
       <span>Seed</span>
       <input
+        className="sbr-input"
         data-testid="seed"
         value={value}
         onChange={(e) => {
@@ -141,9 +152,10 @@ function BotCountField({
   onChange: (next: number) => void;
 }): ReactElement {
   return (
-    <label style={{ display: 'grid', gap: '0.25rem' }}>
+    <label className="sbr-field">
       <span>Bot players (3–199)</span>
       <input
+        className="sbr-input"
         type="number"
         data-testid="bot-count"
         min={3}
@@ -165,9 +177,10 @@ function OwnerCardsField({
   onChange: (next: number) => void;
 }): ReactElement {
   return (
-    <label style={{ display: 'grid', gap: '0.25rem' }}>
+    <label className="sbr-field">
       <span>Your cards (1–4)</span>
       <input
+        className="sbr-input"
         type="number"
         data-testid="owner-cards"
         min={1}
@@ -213,9 +226,9 @@ function PrizeChecklist({
   onToggle: (key: string) => void;
 }): ReactElement {
   return (
-    <fieldset style={{ border: '1px solid var(--color-border)', padding: '0.5rem' }}>
+    <fieldset>
       <legend>Prizes ticked (classic only; royale ignores the list)</legend>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, auto)', gap: '0.25rem' }}>
+      <div className="prize-grid">
         {BUILTIN_PRIZE_KEYS.map((key) => (
           <label key={key}>
             <input

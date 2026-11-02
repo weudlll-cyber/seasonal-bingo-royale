@@ -5,9 +5,10 @@
  * @brief  Component tests for the player view items of WP-08 (01 §13).
  *
  * Responsibility: original season icons with season colours on season cells and effect
- *                 badges; the cut screen after each cut; the owner's effects with
- *                 remaining draws, shield charges and seasons collected; the spectator
- *                 view continuing after elimination.
+ *                 lines; the cut screen after each cut (a shield save with its margin); the
+ *                 owner's effects as plain sentences with the season's name and the numbers
+ *                 of the ruleset, the shield's margin and charges, a used shield, the seasons
+ *                 of the match by name; the spectator view continuing after elimination.
  * Depends on:     @testing-library/react, ./CardGrid, ./CutScreen, ./OwnerStatusPanel,
  *                 ./Playback, ../playback, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7, §8.2, §13; docs/spec/15-implementation-plan.md WP-08
@@ -20,7 +21,7 @@ import { CutScreen } from './CutScreen.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
-import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
+import { numberCard, royaleFixture, SEASON_EFFECTS } from '../test/quickTestFixture.js';
 
 afterEach(cleanup);
 
@@ -51,31 +52,89 @@ describe('season cells', () => {
   });
 });
 
+const RULES = {
+  effectSeasons: { multiplier: 'summer', growth: 'spring', shield: 'winter' },
+  seasonEffects: SEASON_EFFECTS,
+  seasonCompletePoints: 300,
+} as const;
+const STATUS = {
+  step: 1,
+  multiplier: { factor: 1.5, remainingDraws: 6 },
+  growth: { pointsPerMark: 2, remainingDraws: 4 },
+  shieldCharges: 1,
+  seasons: ['spring', 'summer'] as const,
+};
+
 describe('OwnerStatusPanel', () => {
-  it('shows active effects with remaining draws, shield charges and seasons collected', () => {
+  it('says each active effect in a sentence with its season and the ruleset numbers', () => {
     render(
       <OwnerStatusPanel
         accountId="owner-01"
         points={120}
         rank={2}
-        status={{
-          step: 1,
-          multiplier: { factor: 1.5, remainingDraws: 6 },
-          growth: { pointsPerMark: 2, remainingDraws: 4 },
-          shieldCharges: 1,
-          seasons: ['spring', 'summer'],
-        }}
-        effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
+        status={STATUS}
+        rules={RULES}
         showSeasons
         outInCut={null}
+        shieldSaves={[]}
       />,
     );
-    expect(screen.getByTestId('effect-multiplier').textContent).toContain('×1.5 · 6 draws left');
-    expect(screen.getByTestId('effect-growth').textContent).toContain('4 draws left');
-    expect(screen.getByTestId('effect-shield').textContent).toContain('shield ×1');
-    expect(screen.getByTestId('effect-shield').style.background).toBe(WINTER);
-    expect(screen.getByTestId('seasons-collected').textContent).toContain('2/4');
+    expect(screen.getByTestId('effect-multiplier').textContent).toBe(
+      'Summer boost: all your points count ×1.5 — 6 more numbers',
+    );
+    expect(screen.getByTestId('effect-growth').textContent).toBe(
+      'Spring growth: every mark earns extra points, more with each mark — 4 more numbers',
+    );
+    expect(screen.getByTestId('effect-shield').textContent).toBe(
+      'Winter shield: saves you once at a cut if you are at most 3 places below the line — 1 left',
+    );
+    expect(within(screen.getByTestId('effect-shield')).getByAltText('winter')).toBeTruthy();
     expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
+  });
+
+  it('names the seasons of the match, collected ones ticked, and what all four give', () => {
+    render(
+      <OwnerStatusPanel
+        accountId="owner-01"
+        points={120}
+        rank={2}
+        status={STATUS}
+        rules={RULES}
+        showSeasons
+        outInCut={null}
+        shieldSaves={[]}
+      />,
+    );
+    const seasons = screen.getByTestId('seasons-collected');
+    expect(seasons.dataset['count']).toBe('2');
+    expect(seasons.textContent).toContain(
+      'Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter — all four give +300 (Season Complete)',
+    );
+    expect(seasons.textContent).not.toContain('–');
+    expect(screen.getByTestId('seasons-note').textContent).toBe(
+      'Seasons count over the whole match.',
+    );
+  });
+});
+
+describe('OwnerStatusPanel: the shield and elimination', () => {
+  it('says when the shield was used, and shows no empty shield', () => {
+    render(
+      <OwnerStatusPanel
+        accountId="owner-01"
+        points={120}
+        rank={2}
+        status={{ ...STATUS, shieldCharges: 0 }}
+        rules={RULES}
+        showSeasons
+        outInCut={null}
+        shieldSaves={[{ cut: 1, placesBelow: 2 }]}
+      />,
+    );
+    expect(screen.queryByTestId('effect-shield')).toBeNull();
+    expect(screen.getByTestId('shield-saved').textContent).toBe(
+      'Your Winter shield saved you in cut 1 (you were 2 places below the line)',
+    );
   });
 
   it('says "Out in cut N" instead of effects, shield and seasons once the owner is out', () => {
@@ -91,9 +150,10 @@ describe('OwnerStatusPanel', () => {
           shieldCharges: 1,
           seasons: ['spring', 'summer'],
         }}
-        effectSeasons={{ multiplier: 'summer', growth: 'spring', shield: 'winter' }}
+        rules={RULES}
         showSeasons
         outInCut={2}
+        shieldSaves={[]}
       />,
     );
     expect(screen.getByTestId('owner-out').textContent).toBe('Out in cut 2');
@@ -107,6 +167,7 @@ describe('OwnerStatusPanel', () => {
 describe('CutScreen', () => {
   const cut = (n: number, outcome: 'survived' | 'saved' | 'eliminated') => ({
     number: n,
+    round: n - 1,
     owners: [{ accountId: 'owner-01', outcome }],
   });
 
@@ -139,9 +200,16 @@ describe('CutScreen', () => {
     expect(scroll).toHaveBeenCalledTimes(2);
   });
 
-  it('names a Winter shield save', () => {
-    render(<CutScreen cut={cut(1, 'saved')} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain('saved by your Winter shield');
+  it('names a Winter shield save and how far below the line the owner was', () => {
+    const saved = {
+      number: 1,
+      round: 0,
+      owners: [{ accountId: 'owner-01', outcome: 'saved' as const, placesBelow: 2 }],
+    };
+    render(<CutScreen cut={saved} />);
+    expect(screen.getByTestId('cut-screen').textContent).toContain(
+      "You're through — your Winter shield saved you in cut 1 (you were 2 places below the line)",
+    );
   });
 });
 

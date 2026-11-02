@@ -5,14 +5,15 @@
  *
  * Responsibility: fold the server's event stream up to the step the owner is watching
  *                 into a view-model: stage and round, draws so far, every player's
- *                 current-round cards and marks, points, seasons, eliminations (and the
- *                 cut each player went out in), the owner's outcome at the latest cut,
- *                 banners in plain English and the owner's effect status.
+ *                 current-round cards and marks, points, seasons, eliminations (the cut each
+ *                 player went out in and the points then), shield saves, the owner's outcome
+ *                 at the latest cut, the patterns of the round, banners in plain English and
+ *                 the owner's effect status.
  *                 It only adds up points the server already computed, and takes the
  *                 server's points as the new baseline at every stage start. Pure.
  * Depends on:     ./types, ./playbackTypes, ./playbackScoring (scoring events), ./standingsOrder,
  *                 ./game/labels (event lines in plain English)
- * Used by:        ./App, ./components/*, ./game/*, ./host/*
+ * Used by:        ./quicktest/Simulation, ./components/*, ./game/*, ./host/*
  * Spec:           docs/spec/01-game-design.md §3, §7, §8, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { abortLine, CUT_NOTE, cutLine, roundEndLine } from './game/labels.js';
@@ -42,6 +43,7 @@ export function playbackAt(result: QuickTestResult, step: number): PlaybackView 
     lastCut: state.lastCut,
     prizeWinners: state.prizeWinners,
     banners: state.banners,
+    roundPatterns: state.roundPatterns,
     roundOver: state.roundOver,
     finished: state.finished,
   };
@@ -79,6 +81,8 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
           eliminated: false,
           eliminatedRound: null,
           eliminatedCut: null,
+          outPoints: null,
+          shieldSaves: [],
         },
       ]),
     ),
@@ -88,6 +92,8 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
     roundOver: false,
     finished: false,
     lastScorer: null,
+    roundPatterns: {},
+    facts: result,
   };
   // Stage starts reset points to the server's baseline (score carry); keyed by step.
   const baselines = new Map(result.stagePoints.map((s) => [s.step, s.points]));
@@ -154,6 +160,7 @@ function startRound(
   state.roundStage = state.stageIndex;
   state.roundOver = false;
   state.lastScorer = null;
+  state.roundPatterns = {};
   state.drawsSoFar = [];
   state.totalDraws = ev.drawSequence.length;
   // Every round deals new cards (royale); marks start again from the free centre.
@@ -167,18 +174,34 @@ function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApp
   const eliminated = new Set(ev.eliminated);
   const saved = new Set(ev.shieldSaves);
   const cutNumber = (state.lastCut?.number ?? 0) + 1;
+  // The server's facts of this cut: points at elimination, how far below the line a
+  // saved player was (older views have none).
+  const facts = state.facts.cuts[cutNumber - 1];
   for (const id of eliminated) {
     update(state, id, (p) => ({
       ...p,
       eliminated: true,
       eliminatedRound: state.roundIndex,
       eliminatedCut: cutNumber,
+      outPoints: facts?.out[id] ?? p.points,
+    }));
+  }
+  const below = (id: string): number => facts?.saved[id] ?? 0;
+  for (const id of saved) {
+    update(state, id, (p) => ({
+      ...p,
+      shieldSaves: [...p.shieldSaves, { cut: cutNumber, placesBelow: below(id) }],
     }));
   }
   const owners = [...state.players.values()]
     .filter((p) => p.isOwner && (eliminated.has(p.accountId) || ev.survivors.includes(p.accountId)))
-    .map((p) => ({ accountId: p.accountId, outcome: cutOutcome(p.accountId, eliminated, saved) }));
-  state.lastCut = { number: cutNumber, owners };
+    .map((p) => {
+      const outcome = cutOutcome(p.accountId, eliminated, saved);
+      return outcome === 'saved'
+        ? { accountId: p.accountId, outcome, placesBelow: below(p.accountId) }
+        : { accountId: p.accountId, outcome };
+    });
+  state.lastCut = { number: cutNumber, round: state.roundIndex, owners };
   const line = cutLine({
     number: state.lastCut.number,
     survivors: ev.survivors.length,

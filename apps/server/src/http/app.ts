@@ -6,15 +6,14 @@
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
  *                 auth, the live match engine and its routes (in development on the time-travel
- *                 clock, with its route), the leaderboards and profiles
- *                 onto a fresh Fastify instance, under the base path (SBR_BASE_PATH) and
- *                 behind the trusted proxies; first of all, refuse a seed key that does not
- *                 open the stored match secrets.
- *                 The caller owns the lifecycle (listen, scheduler, close, pool disposal).
- * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool, ../auth/sessionEnds,
- *                 ../auth/sessionPlugin, ../config/env, ../config/features,
- *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ./plugins/problem,
- *                 ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
+ *                 clock, with its route), the leaderboards and profiles (in development also the
+ *                 demo league) onto a fresh Fastify instance, under the base path and behind the
+ *                 trusted proxies; first of all, refuse a seed key that does not open the stored
+ *                 match secrets. The caller owns the lifecycle (listen, scheduler, close, pool).
+ * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
+ *                 ../auth/sessionEnds, ../auth/sessionPlugin, ../config/env, ../config/features,
+ *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ../dev/demoLeague,
+ *                 ./plugins/problem, ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
  *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
  *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
  *                 ./routes/quicktest, ./routes/timeTravel, ./routes/webClient, ../match/runtime,
@@ -33,6 +32,7 @@ import { maintenanceFlag, type MaintenanceCheck } from '../config/maintenance.js
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
 import { DevClock } from '../dev/devClock.js';
+import { registerDemoLeague } from '../dev/demoLeague.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
 import { attachGateway } from '../realtime/gateway.js';
 import { registerProblemDetails } from './plugins/problem.js';
@@ -119,6 +119,8 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
   registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
   registerLeaderboardRoutes(fastify, { pool });
   registerProfileRoutes(fastify, { pool });
+  // Development only: ten demo accounts and three counting matches for the boards.
+  if (deps.isDev) registerDemoLeague(fastify, { pool, engine: match.engine });
   if (deps.clock !== undefined) {
     const clock = deps.clock;
     registerTimeTravel(fastify, { pool, engine: match.engine, scheduler: match.scheduler, clock });
@@ -143,12 +145,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
-  // The built client in the image; the placeholder page in development (Vite serves it).
-  if (deps.env.SBR_WEB_DIR === undefined) {
-    registerPlaceholder(fastify, { dev: isDev, port: deps.env.SBR_PORT });
-  } else {
-    registerWebClient(fastify, deps.env.SBR_WEB_DIR);
-  }
+  registerClient(fastify, deps.env);
   if (isDev) registerQuickTest(fastify);
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
@@ -176,6 +173,15 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     await io.close();
   });
   return { fastify, metrics, match };
+}
+
+// The built client in the image; the placeholder page in development (Vite serves it).
+function registerClient(fastify: FastifyInstance, env: Env): void {
+  if (env.SBR_WEB_DIR === undefined) {
+    registerPlaceholder(fastify, { dev: env.SBR_DEV, port: env.SBR_PORT });
+  } else {
+    registerWebClient(fastify, env.SBR_WEB_DIR);
+  }
 }
 
 // "/games/bingo/api/v1/x" → "/api/v1/x" when the base path is "/games/bingo/".

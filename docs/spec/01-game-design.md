@@ -177,7 +177,7 @@ flag on.
 
 In both rules the speed bonus is earned only by a tap inside the speed window. Patterns, season activations and Season Complete count only from marked cells: under `noAutoMark` an untapped number does not count until it is tapped. A tap on an undrawn number is always rejected by the server, so there is nothing to gain by cheating a mark.
 
-The rule applies to human players. Bots (only in the Quick Test, 15 WP-08) always mark on the draw.
+The rule applies to human players. Bots (development only: the Quick Test's simulation and the bots a dev host adds to a live test match, 15 WP-08) always mark on the draw.
 
 ## 7. Battle royale structure
 
@@ -211,6 +211,8 @@ With 100 starters: 100 → 50 after qualification → 25 → 13 (rounded up) →
 
 Per stage, `scoreCarry` decides what happens to points when a stage starts: `keep` (cumulative), `reset`, or `scaled` with a factor (default `keep` for qualification→elimination, `reset` for the final). A stage can multiply all points earned in it (`stageMultiplier`, e.g. final ×2) — this is the **progressive scoring**. The royale default rulesets use multiplier 1 in every stage; the multiplier stays configurable per ruleset.
 
+**The final's fresh start (D23, decided 2026-11-01):** the final keeps its `reset` (every finalist starts the final at 0 points), and the screens say so: when the final stage begins every viewer sees “Final: all N finalists start at 0 points —” followed by how the final is won (§7.5, §13). In the standings the finalists and the players out of the match are separate groups.
+
 **Stage multiplier (D11, decided 2026-10-21):** every stage of the royale defaults has `stageMultiplier` 1, so a point is worth the same in every stage; a ruleset may still set another factor per stage (0.1–10).
 
 ### 7.3 Round-end conditions (one per round)
@@ -230,12 +232,13 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 - Ranking for the cut uses the tie-break chain in §8.4.
 - Minimum survivors: `max(cut result, minSurvivors)` (default 2).
 - If the active field is already at or below the final size, remaining elimination stages are skipped.
-- **Winter shield** (§8.2) can save a player from a cut.
+- **Winter shield** (§8.2) can save a player from a cut. **D26 (2026-11-01):** every player within the margin below the line who holds a charge is saved, even if that means nobody goes out in that cut; there is no limit. The cut line then reads “Cut 2: 6 go on, 0 are out (3 saved by Winter shield)”.
 
 ### 7.5 Final
 
 - Final win conditions: `firstFullHouse` (default), `highestScore` after N draws, or `firstPattern`.
-- The final always produces a complete placement list: winner = 1st, others by score/tie-break. Eliminated players are placed by elimination order, then by score at elimination.
+- The final always produces a complete placement list: winner = 1st, others by score/tie-break. Eliminated players are placed by elimination order, then by score at elimination. The winner is named by the final's win condition: `firstFullHouse` the player whose full card ended the final, `firstPattern` (`firstBingo` in the ruleset) the player who completed an active pattern, `highestScore` (`drawCount`) the highest score. Several winners on the same draw (two full cards on one draw, or patterns within the grace draws) are ordered among themselves by §8.4, above every other finalist (fixed 2026-11-01: the placement had ordered all finalists by points only).
+- **D23 (2026-11-01):** during and after the final the standings show the group “In the final” (final points, from 0) above the group “Out of the match”, each row of the latter with the cut the player went out in and the points at that moment (“out in cut 2 · 515 pts”). The order of the groups and the placement rule above are unchanged.
 
 ### 7.6 Match size and lobby
 
@@ -250,7 +253,7 @@ Per stage, `scoreCarry` decides what happens to points when a stage starts: `kee
 
 ## 8. Scoring and seasons
 
-**Maintenance holds every start (D22, 2026-10-31):** While maintenance is on (`sbr maintenance on`), nothing starts by itself: neither the automatic start at a set start time nor “start when full”. Such a match waits in its lobby; when maintenance is turned off, a due automatic start runs (or “start when full” is checked again). The host's “Start match” is refused while maintenance is on, with the same error as creating a match (503 `MAINTENANCE`) and the operator's reason shown. While a due start is held the registration line reads “Held by maintenance — starts when maintenance ends” (not “Not enough players”). Running matches finish as before.
+**Maintenance holds every start (D22, 2026-10-31):** While maintenance is on (`sbr maintenance on`), nothing starts by itself: neither the automatic start at a set start time nor “start when full”. Such a match waits in its lobby; when maintenance is turned off, a due automatic start runs (or “start when full” is checked again). The host's “Start match” is refused while maintenance is on, with the same error as creating a match (503 `MAINTENANCE`) and the operator's reason shown; the console shows the button disabled with that reason beside it, so the host knows before pressing. While a due start is held the registration line reads “Held by maintenance — starts when maintenance ends” (not “Not enough players”). Running matches finish as before.
 
 ### 8.1 Base points (defaults)
 
@@ -291,9 +294,10 @@ Defaults (matching the theme in the brief):
 | Winter — control / defense | `shield` | margin 3 places, 1 charge |
 
 Rules:
-- Effects of the same type do not stack; a second activation refreshes the duration.
+- Effects of the same type do not stack; a second activation refreshes the duration. A second Winter shield refills the shield to the effect's charges; it never adds to them (a shield holds at most `charges`).
 - Different effect types stack; multipliers apply after growth.
 - Shield charges persist across rounds within the match; they expire at the end of the match.
+- At a cut every player within the margin below the line who holds a charge is saved, however many that are (D26, §7.4).
 
 ### 8.3 Season Complete
 
@@ -333,11 +337,11 @@ A **points** jackpot (never money):
 
 | Board | Period | Ranks by |
 |---|---|---|
-| Season board | One calendar quarter, named after the season (configurable period) | League points |
+| Season board | One calendar quarter in UTC, named after the season: Winter Jan–Mar, Spring Apr–Jun, Summer Jul–Sep, Autumn Oct–Dec (D27) | League points |
 | All-time board | Forever | League points |
 | Match board | One match | Placement |
 
-**League points** per match: `placementPoints[place]` from a configurable table (default: 1st 100, 2nd 70, 3rd 50, 4–10 25, 11–25 10, finalists +10, everyone who finishes the match 2). Rank on the season board = sum of league points; tie-break: wins, then Season Completes.
+**League points** per match: `placementPoints[place]` from a configurable table (default: 1st 100, 2nd 70, 3rd 50, 4–10 25, 11–25 10, finalists +10, everyone who finishes the match 2). Rank on the season board = sum of league points; tie-break: wins, then Season Completes. **D28 (2026-11-01):** players equal on league points, wins and Season Completes share a rank on the season and all-time boards and in the “your own row ±5” view (standard competition ranking: 1, 2, 2, 4); within the tie they are listed by display name.
 
 Only matches with the `countsForLeaderboard` flag on contribute to league
 points (§3a.3). The flag defaults to on for `royale` and off for the classic
@@ -345,9 +349,9 @@ types, and can be flipped per match before start.
 
 Leaderboard integrity rules are in [03-security-architecture.md](03-security-architecture.md) §11.
 
-Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly.
+Profile shows: display name, avatar (from the list of built-in avatars or the identity provider), matches played, wins, best placement, Season Completes, badges. No real names, no e-mail address shown publicly. **D29 (2026-11-01):** the Season Complete badge and the profile figures (matches played, wins, best placement, Season Completes) count only finished matches without bots; a match with bots stays listed under the profile's recent matches with its reason (“No league points: bots played”).
 
-- As built (WP-15 first draft): league points per the default table (`LEADERBOARD_DEFAULTS` in `packages/contracts`; finalists are royale players never eliminated; the finish bonus goes to everyone with a final place) only from finished matches with the switch on, no bots and at least 8 distinct humans with a confirmed e-mail address; written once per match in the finish projection. Season boards are calendar quarters in UTC named Winter (Jan–Mar), Spring, Summer, Autumn and the year. The Season Complete badge is given in any finished match. The profile (`#/players/<name>`) counts every finished match, also those with bots, and says per recent match whether it gave league points and if not why; no avatars yet. Player names in the live standings and the final placement link to the profile (never bots).
+- As built (WP-15 first draft): league points per the default table (`LEADERBOARD_DEFAULTS` in `packages/contracts`; finalists are royale players never eliminated; the finish bonus goes to everyone with a final place) only from finished matches with the switch on, no bots and at least 8 distinct humans with a confirmed e-mail address; written once per match in the finish projection. Season boards are calendar quarters in UTC named Winter (Jan–Mar), Spring, Summer, Autumn and the year (D27). Shared ranks (D28) are computed over the whole period on every read. The Season Complete badge is given only in finished matches without bots, and the profile (`#/players/<name>`) counts only those (D29, one line under the figures says so); its recent matches list matches with bots too and say per match whether it gave league points and if not why; no avatars yet. Player names in the live standings and the final placement link to the profile (never bots).
 
 ## 11. Realtime vs. asynchronous — what differs
 
@@ -395,6 +399,12 @@ BACKLOG; website: embeddable call view).
 - The host's draw mode is a segmented switch (“Host draws” / “Timed draws”, the active one filled and checked); the seconds field shows for timed draws only, Draw next for host draws only. Draw next keeps 4.5:1 contrast enabled and disabled. The host console shows the same progress line (stage, round, draw) and LIVE badge as the players, with the match log above the standings.
 - A classicSeasons symbol shows its icon on the card colour, framed in its season colour; a drawn symbol shows its icon and its name (“Winter”). The lobby lists open and running matches and, for a day after their end, finished ones (“Finished”, opening their result) and cancelled ones (“Cancelled”, opening their end page, D17), newest first.
 - The top bar is sticky from 640 px wide; on phones it scrolls away with the page, the theme toggle sits beside the brand, and the account row wraps rather than cutting the account chip. With a mouse the page column keeps its width whether or not a scrollbar shows.
+- During a running round the player screen shows the current number, the row of drawn numbers and the whole card without scrolling at 1280×800 and 1366×768 and on a 390×844 phone, top bar included (QUICKTEST-GUIDE-2, 2026-11-01): on desktop the ball sits above the drawn numbers beside the card, with status, standings and the log in the side column; on a phone a smaller ball sits beside the drawn numbers above the card, and the rules line moves below the play area. The row of drawn numbers has a fixed height and scrolls, always showing the newest, so a long round does not push the card down. With several cards they may scroll, the ball stays in view. The waiting room shows no host link: the host reaches the console from the lobby's Manage (or, for a test match, the tab the test page opens). **D25 (2026-11-01):** in the arena, “Open host console” (shown to a host who plays along) opens the host console in a new tab; the player screen stays where it is.
+- **No page scroll during a round (PLAYER-CLARITY, 2026-11-01):** on desktop (1280×720 up to 1920×950) the player screen, the spectator screen and the host console fill the window below the top bar during a running round: ball, drawn numbers, the newest 3 event lines, the whole card (or the watched cards, or Draw next and the draw controls on the console), the status lines and the standings are all in view. The card takes its cell size from the space it has. The standings panel scrolls inside itself; while the viewer's own row is out of view there, a copy of it sits in a strip of its own below the list and never covers another row. **Own place always in view (ARENA-POLISH, 2026-11-01):** the side column never scrolls itself; without any scrolling it shows at least the top 3 standings rows and the viewer's own row whole, at every desktop size up to 1890×850 and 1920×950, even with two active effects and a shield charge. The effect sentences and the seasons line are compact (one line each where it fits); the status and “Patterns this round” scroll inside themselves when the window is too short for them. The letter and the number on the ball take their size from the ball, so they stay inside the circle at every size. On a phone the ball, the drawn numbers and the card(s) stay in view; the rest follows below. The newest 3 event lines (patterns, the viewer's seasons, Season Complete, shield saves, cuts) sit directly below the drawn numbers, newest first; the whole match log opens below them. When the newest line belongs to a newer round than lines below it, a thin separator naming that round (“Round 2”) sits above its lines and the earlier round's lines are dimmed (ARENA-POLISH). The whole match log, newest first, puts each round's lines under a separator naming it once it holds more than one round. A cut line belongs to the round it ended. A survivor's cut screen goes once the next round has drawn its first number.
+- **Specials in plain words:** each active effect is one sentence with the season's name and the ruleset's numbers (“Summer boost: all your points count ×1.5 — 5 more numbers”, “Spring growth: every mark earns extra points, more with each mark — 9 more numbers”, “Winter shield: saves you once at a cut if you are at most 3 places below the line — 1 left”). The Autumn harvest is instant and appears as an event line (“Autumn harvest: +45 points for the marked cells in your row”). The seasons read “Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter ✓ — all four give +300 (Season Complete)” (an open season is its name alone) with the icons, and a small line says that seasons count over the whole match. A used shield reads “Your Winter shield saved you in cut 1 (you were 2 places below the line)” on that cut's screen and in the status afterwards; the server says how far below the line the player was. Lines wrap, never truncate.
+- **Patterns this round (royale):** every pattern of the round's stage with its points; a tick when the viewer's card has it this round; “first: <name> (+50 %)” once someone completed it first, “still open” before. Classic types keep the prize list, in view as well.
+- **The final's notice (D23):** when the final stage begins, every screen (players, players out, spectators, host console) shows above the play area, in the cut screen's style: “Final: all N finalists start at 0 points — the first full card wins.” (worded from the final's win condition: “the first completed pattern wins”, “the most points after N numbers win”). It closes with “Got it” and goes after the final's first 3 draws.
+- **Live cards for players who are out and spectators (D24, 2026-11-01):** a player who is out of the match and a spectator see the live cards of the 4 best-ranked players still in (2 on a phone), ordered by the live standings, each with place, name and points, the marks as they happen in the look of a player's own card, and “1 to go: <pattern>” when the card is one number from a pattern that can still score this round (classic: an open prize; the final: the full card). A card keeps its slot while its player stays in the set. Selecting a player still in in the standings shows that player's card alone and larger, with “Back to the top 4”; when that player goes out, the screen goes back to the top 4 with a line saying so. Players still in see no other player's card; the host console is unchanged.
 - All animations respect `prefers-reduced-motion`; all sounds are off by default and toggleable.
 - Accessibility target: WCAG 2.2 AA — numbers readable at 200 % zoom, colour is never the only carrier of meaning (season icons have shapes), full keyboard play in manual mode.
 

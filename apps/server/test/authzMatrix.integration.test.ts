@@ -86,6 +86,9 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/auth/guest', body: {}, allow: ROLES },
   { method: 'POST', path: '/api/v1/dev/sign-in', body: { as: 'nobody' }, allow: ROLES },
   { method: 'DELETE', path: '/api/v1/dev/load-accounts', allow: ROLES },
+  // The console's demo league (no session, no CSRF); DELETE removes what POST made.
+  { method: 'POST', path: '/api/v1/dev/demo-league', allow: ROLES },
+  { method: 'DELETE', path: '/api/v1/dev/demo-league', allow: ROLES },
   { method: 'POST', path: '/dev/quicktest', body: {}, allow: ROLES },
   // Development only; the empty body is refused before any match moves.
   { method: 'POST', path: '/api/v1/dev/time-travel', body: {}, allow: ACCOUNTS },
