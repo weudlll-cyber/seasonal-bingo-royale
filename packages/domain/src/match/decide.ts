@@ -28,6 +28,7 @@ import {
   activeAccountIds,
   candidateOf,
   classicFinalPlacement,
+  finalWinners,
   rankedPlayerOf,
 } from './decideRanking.js';
 import type { MatchState } from './matchState.js';
@@ -256,7 +257,10 @@ function onFinish(state: MatchState): readonly DomainEvent[] {
     return [{ type: 'matchFinished', placement: classicFinalPlacement(state) }];
   }
   const ranked = state.playerOrder.map((id) => rankedPlayerOf(state, id));
-  const ev: MatchFinished = { type: 'matchFinished', placement: finalRanking(ranked) };
+  const ev: MatchFinished = {
+    type: 'matchFinished',
+    placement: finalRanking(ranked, finalWinners(state)),
+  };
   return [ev];
 }
 

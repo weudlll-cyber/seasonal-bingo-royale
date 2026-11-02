@@ -9,7 +9,9 @@
  *                 bonus shows apart from the points, as the Quick Test computes the match before
  *                 playback. With `auto` the card shows the server's marks. The parent remounts it
  *                 per round; between rounds the last number stays and every tap is refused.
- * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types
+ *                 It wears the live player screen's card look (../game/arena.css).
+ * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types,
+ *                 ../game/arena.css
  * Used by:        ./OwnerArea; TapGrid also by the live card (../game/LiveCard)
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
@@ -28,6 +30,7 @@ import {
 } from '../manualMarking.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 import { ballLabel, type Card, type QuickTestResult } from '../types.js';
+import '../game/arena.css';
 
 interface OwnerCardProps {
   readonly accountId: string;
@@ -62,27 +65,18 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
       }),
     );
   };
+  // The live player screen's card look (.live-card, ../game/arena.css): card colours,
+  // thumb-sized cells; the texts in the card's ink.
   return (
-    <div
-      style={{ background: 'var(--color-surface-2)', padding: '0.5rem', borderRadius: '0.5rem' }}
-    >
-      <strong style={{ color: 'var(--color-text)' }}>{accountId} (you)</strong>
+    <div className="live-card">
+      <strong>{accountId} (you)</strong>
       <TapGrid card={card} marks={marks} lastTapped={lastTapped} onTap={tap} />
       {manualMode ? (
-        <p style={{ margin: '0.4rem 0 0', color: 'var(--color-text)' }} data-testid="owner-bonus">
+        <p className="live-card-feedback" data-testid="owner-bonus">
           +{String(manual.bonusEarned)} speed bonus (not counted in Quick Test cuts)
         </p>
       ) : null}
-      <p
-        data-testid="owner-feedback"
-        role="status"
-        style={{
-          color: 'var(--color-text-muted)',
-          fontSize: '0.9rem',
-          minHeight: '1.2em',
-          margin: 0,
-        }}
-      >
+      <p className="live-card-feedback" data-testid="owner-feedback" role="status">
         {manualMode ? feedbackText(manual.feedback) : 'Marking: numbers are marked for you'}
       </p>
     </div>

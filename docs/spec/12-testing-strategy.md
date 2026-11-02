@@ -5,7 +5,7 @@
 ## 1. Principles
 
 - The rules engine is pure, so it is tested exhaustively and fast; infrastructure is tested with real Postgres; the UI is tested with a small set of end-to-end journeys plus component tests.
-- Run only the checks a change can affect while working; CI runs every job on every push (as built: no selection by changed paths, a full run takes a few minutes, 08 §3).
+- Run only the checks a change can affect while working; CI runs every job for every pull request to `master` and every push to `master` (as built: no selection by changed paths, a full run takes a few minutes, 08 §3). Before a push, the specs that read what the commit changed run locally first (CLAUDE.md).
 - Every bug fix starts with a test that fails before the fix.
 - Measurements and load tests are short and direct; no multi-hour soak runs.
 
@@ -99,4 +99,4 @@ Headroom check: same scenario at 400 players must stay below 1 s p95 draw latenc
 
 ## 8. Manual acceptance (owner)
 
-Every work package that changes something visible ends with what the owner looks at in the browser, which seed (the dev build offers a **Quick Test** panel with a seed field that starts a single-player match against bots), and what “correct” looks like. Nothing visible is merged before that check.
+Every work package that changes something visible ends with what the owner looks at in the browser, which seed (the dev build's **Quick Test** page, "Test a match", offers "Play a test match" — a live match with bots, started now or in a few minutes, its host console in a new tab and the test tab as the normal player screen — and "Check a game by seed", a seed simulation that replays a single-player match against bots), and what “correct” looks like. Nothing visible is merged before that check.

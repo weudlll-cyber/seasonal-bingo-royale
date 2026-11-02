@@ -3,7 +3,7 @@
  * @module e2e
  * @brief  The page column keeps its width whether or not the page needs a scrollbar.
  *
- * Responsibility: at 900 px, where the column fills the window, the Quick Test page in a
+ * Responsibility: at 900 px, where the column fills the window, the seed check page in a
  *                 tall window (no scrollbar) and in a short one (scrollbar) gives the same
  *                 column width (`scrollbar-gutter: stable`, POLISH-1 review finding 4).
  *                 Headless browsers hide scrollbars by default; this file shows them.
@@ -18,7 +18,7 @@ test('the page column keeps its width with and without a scrollbar', async ({ pa
   const columnWidth = () =>
     page.evaluate(() => document.querySelector('.shell-main')?.getBoundingClientRect().width ?? 0);
   await page.setViewportSize({ width: 900, height: 2400 });
-  await page.goto('/#/quicktest');
+  await page.goto('/#/quicktest/seed');
   await expect(page.getByTestId('start-run')).toBeVisible();
   const tall = await columnWidth();
   await page.setViewportSize({ width: 900, height: 400 });

@@ -6,13 +6,14 @@
  * Responsibility: present the match the owner plays or watches. Royale: stage and round
  *                 header, cut screen and the round recap after it (../game/Interlude, D20),
  *                 spectator note once eliminated. Classic types:
- *                 prize list with winners. Always: banners, draw ticker, the owner's
- *                 cards and status, standings, final placement. State lives in App.tsx,
+ *                 prize list with winners. Always: the newest event lines with the whole log
+ *                 (./RecentEvents), draw ticker, the owner's cards and status, standings,
+ *                 final placement. State lives in ../quicktest/Simulation,
  *                 the view-model in ../playback.ts.
  * Depends on:     react, ./CutScreen, ../game/Interlude, ../game/interludePlan (types),
- *                 ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./Standings,
- *                 ../game/labels, ../playback, ../types, ../useReducedMotion, ./results.css
- * Used by:        ../App, ./FinalPlacement; MatchLog and PrizeList also by the live screens
+ *                 ./DrawTicker, ./FinalPlacement, ./OwnerArea, ./RecentEvents, ./Standings,
+ *                 ../game/labels, ../playback, ../types, ./results.css
+ * Used by:        ../quicktest/Simulation, ./FinalPlacement; PrizeList also by the live screens
  *                 ../game/MatchScreen and ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a, §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
@@ -24,11 +25,11 @@ import type { Pause } from '../game/interludePlan.js';
 import { DrawTicker } from './DrawTicker.js';
 import { FinalPlacement } from './FinalPlacement.js';
 import { OwnerArea } from './OwnerArea.js';
+import { RecentEvents } from './RecentEvents.js';
 import { Standings } from './Standings.js';
 import { gameTypeName, prizeName } from '../game/labels.js';
-import type { Banner, PlaybackView } from '../playback.js';
+import type { PlaybackView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
-import { useReducedMotion } from '../useReducedMotion.js';
 import './results.css';
 
 export interface PlaybackProps {
@@ -65,32 +66,16 @@ export function Playback({
         </p>
       ) : null}
       {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
-      <Banners banners={view.banners} />
+      <RecentEvents banners={view.banners} />
       <DrawTicker
         draws={view.drawsSoFar}
         speedWindowMs={result.speedWindowMs}
         paused={view.roundOver && !view.finished}
       />
       <OwnerArea result={result} view={view} />
-      <Standings view={view} showSeasons={result.gameType === 'royale'} />
+      <Standings result={result} view={view} />
       {view.finished ? <FinalPlacement result={result} view={view} /> : null}
-      <MatchLog banners={view.banners} />
     </div>
-  );
-}
-
-// Every key moment of the match so far, newest first; hidden while there is none yet.
-export function MatchLog({ banners }: { banners: readonly Banner[] }): ReactElement | null {
-  if (banners.length === 0) return null;
-  return (
-    <section className="sbr-panel match-log" data-testid="match-log">
-      <h3>Match log</h3>
-      <ol aria-live="polite">
-        {[...banners].reverse().map((b) => (
-          <li key={b.key}>{b.text}</li>
-        ))}
-      </ol>
-    </section>
   );
 }
 
@@ -140,31 +125,5 @@ export function PrizeList({ result, view }: PlaybackProps): ReactElement {
         })}
       </ul>
     </section>
-  );
-}
-
-function Banners({ banners }: { banners: readonly Banner[] }): ReactElement {
-  const reduced = useReducedMotion();
-  return (
-    <ul
-      aria-live="polite"
-      data-testid="banners"
-      style={{ margin: 0, padding: 0, listStyle: 'none', color: 'var(--color-text)' }}
-    >
-      {banners.slice(-6).map((b) => (
-        <li
-          key={b.key}
-          className={reduced ? undefined : 'sbr-anim-fade'}
-          style={{
-            padding: '0.25rem 0.5rem',
-            background: 'var(--color-surface-2)',
-            borderRadius: '0.3rem',
-            marginBottom: '0.2rem',
-          }}
-        >
-          {b.text}
-        </li>
-      ))}
-    </ul>
   );
 }

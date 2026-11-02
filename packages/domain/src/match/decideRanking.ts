@@ -4,7 +4,8 @@
  * @brief  Ranking helpers shared by decide (01 §7.5, §8.4).
  *
  * Responsibility: convert the live MatchState into the shapes expected by applyCut and
- *                 finalRanking, and compute the classic placement. Kept out of decide.ts
+ *                 finalRanking, name the final's winners by its win condition, and compute
+ *                 the classic placement. Kept out of decide.ts
  *                 to stay under the file-size limit.
  * Depends on:     ../royale/cut, ../royale/finalRanking, ../classic/classicPlacement,
  *                 ../classic/prizeCatalogue, ./matchState
@@ -69,6 +70,25 @@ export function rankedPlayerOf(state: MatchState, id: string): RankedPlayer {
     lastScoringDraw: p.lastScoringDraw,
     eliminatedAtRound: p.eliminatedAtRound,
   };
+}
+
+// Who won the final by its win condition (01 §7.5), from the final round's cards: the full
+// card (firstFullHouse), any active pattern (firstBingo: grace draws count as the same
+// draw); nobody for drawCount and bingoQuota, where points decide.
+export function finalWinners(state: MatchState): ReadonlySet<string> {
+  const round = state.currentRound;
+  if (round?.stage.kind !== 'final') return new Set();
+  const end = round.stage.roundEnd.kind;
+  const keys =
+    end === 'firstFullHouse'
+      ? ['fullCard']
+      : end === 'firstBingo'
+        ? round.stage.activePatterns
+        : [];
+  const winners = Object.entries(round.cards)
+    .filter(([, cards]) => cards.some((c) => c.scoredPrizes.some((k) => keys.includes(k))))
+    .map(([id]) => id);
+  return new Set(winners);
 }
 
 export function countBits(mask: number): number {

@@ -6,13 +6,12 @@
  * Responsibility: the notice "Your match is open — players can join now from the lobby (code …)"
  *                 with the registration status (../game/Registration); the joined players; "Fill
  *                 with N bots" (dev only); for a set start time the switch "Start automatically
- *                 at the start time" (until the countdown runs) and, when the automatic start
- *                 found too few players, "Not enough players at the start time — start it
- *                 yourself or abort"; Start match (always pressable) or the running countdown;
- *                 "Abort match" with a reason (./AbortMatch), which leads every screen to the
- *                 cancelled-match page (D17).
- * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback, ../shell/http,
- *                 ./TimingFields, ./AbortMatch
+ *                 at the start time" (until the countdown runs) and the notice when the automatic
+ *                 start found too few players; Start match (disabled with the reason while
+ *                 maintenance is on, D22) or the running countdown; "Abort match" with a reason
+ *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).
+ * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback,
+ *                 ../shell/http, ../shell/useMaintenance, ./TimingFields, ./AbortMatch
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3, §3
  */
@@ -23,6 +22,7 @@ import { RegistrationStatus } from '../game/Registration.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
+import { useMaintenanceState } from '../shell/useMaintenance.js';
 import { AbortMatch } from './AbortMatch.js';
 import { AutoStartBox } from './TimingFields.js';
 
@@ -69,7 +69,7 @@ export function HostLobby({
 }
 
 // The switch for a set start time, the notice when it found too few players, and Start
-// match (always offered) or the running countdown.
+// match (disabled during maintenance) or the running countdown.
 function StartControls({
   match,
   call,
@@ -79,6 +79,9 @@ function StartControls({
 }): ReactElement {
   const rule = match.settings.startRule;
   const counting = match.startsAt !== null;
+  // D22: while maintenance is on the server refuses Start; say so before the click.
+  const maintenance = useMaintenanceState();
+  const held = maintenance?.on === true;
   return (
     <>
       {rule.kind === 'at' ? (
@@ -101,16 +104,24 @@ function StartControls({
           Starting… players see the countdown.
         </p>
       ) : (
-        <button
-          type="button"
-          className="sbr-btn sbr-btn--primary sbr-btn--big"
-          data-testid="start-match"
-          onClick={() => {
-            call('start', {});
-          }}
-        >
-          Start match
-        </button>
+        <div className="sbr-row">
+          <button
+            type="button"
+            className="sbr-btn sbr-btn--primary sbr-btn--big"
+            data-testid="start-match"
+            disabled={held}
+            onClick={() => {
+              call('start', {});
+            }}
+          >
+            Start match
+          </button>
+          {held ? (
+            <span className="lobby-error" role="status" data-testid="start-maintenance">
+              {problemText('MAINTENANCE', maintenance.reason)}
+            </span>
+          ) : null}
+        </div>
       )}
     </>
   );

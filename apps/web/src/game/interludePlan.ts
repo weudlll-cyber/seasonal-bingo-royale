@@ -12,7 +12,7 @@
  *                 CALM_CARD_MS and they loop. Display only: nothing here computes a score or a
  *                 ranking.
  * Depends on:     @sbr/contracts (types), ./labels (types)
- * Used by:        ./Interlude, ../components/Playback (types), ../App (types)
+ * Used by:        ./Interlude, ../components/Playback (types), ../quicktest/Simulation (types)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20)
  */
 import type { RoundRecap } from '@sbr/contracts';

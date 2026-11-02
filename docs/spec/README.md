@@ -74,7 +74,7 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D16 | Start time | A set start time is an announcement; the host can always start the match. “Start automatically at the start time” (default off, switchable in the console until the start) starts it at that time with at least `minPlayers` players (2, D19); with fewer the match waits and the console says so ([01](01-game-design.md) §7.6). |
 | D17 | Match ended without a result | Its own end page for host and players: the reason in plain words and who ended it (“by the host” or “by the system”), “Back to the lobby” (everyone) and “Host another match” (host); never the live arena ([01](01-game-design.md) §13). |
 
-## 4c. Decisions (2026-10-23 and 2026-10-24)
+## 4c. Decisions (2026-10-23 to 2026-11-01)
 
 | # | Topic | Decision |
 |---|---|---|
@@ -83,6 +83,10 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D20 | Interlude between royale rounds (2026-10-27) | The pause between two royale rounds shows a recap of the round just played (top three, climber, cut and shield saves, Season Complete, fastest tapper, facts). Fun only: no points, shields or effects, no change to any ranking ([01](01-game-design.md) §7). |
 | D21 | Ending a timed pause early (2026-10-29) | The default pause between royale rounds is 15 s (minimum 3 s). During a timed pause the host can start the next round for everyone with one click (“Start next round now”); players' Previous/Next only flip the recap cards on their own screen. “The host starts the next round” (D14) is unchanged ([01](01-game-design.md) §7). |
 | D22 | Maintenance holds every start (2026-10-31) | While maintenance is on nothing starts by itself: no automatic start at a set start time and no start when full; such a match waits in its lobby, and when maintenance is turned off a due automatic start runs (or start when full is checked again). The host's Start is refused while maintenance is on (503 `MAINTENANCE`, as when creating a match) with the reason shown. Running matches finish as before ([01](01-game-design.md) §7.6). |
+| D23 | The final's fresh start made clear (2026-11-01) | The final keeps its score reset. When the final begins every screen says that all N finalists start at 0 and how the final is won; the standings show “In the final” and “Out of the match” as separate groups, each out row with its cut and the points at that moment ([01](01-game-design.md) §7.2, §7.5, §13). |
+| D24 | Live cards for players out and spectators (2026-11-01) | A player who is out and a spectator see the live cards of the best 4 players still in (2 on a phone) with their marks as they happen; selecting a player in the standings shows that card until “Back to the top 4”. Players still in see no other player's card ([01](01-game-design.md) §13, [06](06-realtime-architecture.md) §8, [03](03-security-architecture.md) §11). |
+| D25 | The arena's host link (2026-11-01) | “Open host console”, shown in the arena to a host who plays along, opens the host console in a new tab; the player screen stays where it is ([01](01-game-design.md) §13). |
+| D26 | Shield saves at a cut (2026-11-01) | Every player within the margin below the line who holds a charge is saved, even if nobody goes out in that cut; no limit ([01](01-game-design.md) §7.4, §8.2). |
 
 ## 5. Open
 

@@ -12,7 +12,7 @@
  *                 interval. The draw order never changes. "Skip to end" jumps to the end.
  *                 A new result starts over.
  * Depends on:     react, ./drawControl, ./types
- * Used by:        ./App
+ * Used by:        ./quicktest/Simulation
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState } from 'react';

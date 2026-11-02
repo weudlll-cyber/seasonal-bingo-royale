@@ -84,9 +84,10 @@ export function OwnerStatusFor({
       points={owner.points}
       rank={ownerRank(result, view, owner.accountId)}
       status={view.ownerStatus[owner.accountId] ?? null}
-      effectSeasons={result.effectSeasons}
+      rules={result}
       showSeasons={result.gameType === 'royale'}
       outInCut={owner.eliminatedCut}
+      shieldSaves={owner.shieldSaves}
     />
   );
 }
@@ -134,6 +135,6 @@ function BotCards({ view }: { view: PlaybackView }): ReactElement {
 
 const gridStyle: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(16rem, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 22rem), 1fr))',
   gap: '1rem',
 };

@@ -5,14 +5,16 @@
  *
  * Responsibility: the wire shapes of one view for the Quick Test and a live match (cards,
  *                 the client's event union with only the fields it reads, players, the
- *                 owner's effect status, stage plan, timing and scoring settings) and the
- *                 season vocabulary they use. The server builds them
+ *                 owner's effect status, stage plan, timing and scoring settings, the
+ *                 season effects, what each cut did, the watched cards of players still in
+ *                 for players out and spectators, D24) and the season vocabulary they use. The server builds them
  *                 (apps/server/src/view/clientView.ts), the client renders them.
  * Depends on:     ../config/gameType, ./roundRecap
  * Used by:        apps/web (through src/types.ts), apps/server/src/view/clientView.ts, ../index
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §4–§7
  */
 import type { GameType } from '../config/gameType.js';
+import type { Effect } from '../config/ruleset.js';
 import type { RoundRecap } from './roundRecap.js';
 
 export type MarkingMode = 'auto' | 'manual';
@@ -127,9 +129,46 @@ export type DomainEventLike =
   // `by` is absent in events logged before D17 (they were the host's).
   | { readonly type: 'matchAborted'; readonly reason: string; readonly by?: 'host' | 'system' };
 
+// How a round ends (01 §7.3); in the final it is the final's win condition (01 §7.5).
+export type RoundEndRule =
+  | { readonly kind: 'drawCount'; readonly draws: number }
+  | { readonly kind: 'firstBingo'; readonly graceDraws: number }
+  | { readonly kind: 'bingoQuota'; readonly quotaPercent: number }
+  | { readonly kind: 'firstFullHouse' };
+
 export interface StagePlanEntry {
   readonly kind: 'qualification' | 'elimination' | 'final';
   readonly rounds: number;
+  readonly roundEnd: RoundEndRule;
+  // The patterns that score in this stage's rounds (prize keys, 01 §8.1).
+  readonly activePatterns: readonly string[];
+}
+
+// What one cut did, from the server (01 §7.4), in cut order: each eliminated player's
+// points at that moment, and for each player the Winter shield saved how many places
+// below the cut line they were.
+export interface CutFacts {
+  readonly out: Readonly<Record<string, number>>;
+  readonly saved: Readonly<Record<string, number>>;
+}
+
+// A card as one number per cell (0 the free centre, 101–104 a season symbol, otherwise the
+// number), a tenth of the size of `Card` on the wire (the watched cards, D24).
+export interface CompactCard {
+  readonly cells: readonly number[];
+  readonly seasonCells: readonly number[] | null;
+}
+
+// The live cards a player who is out, or a spectator, watches (D24). Only these viewers
+// get it; players still in never receive another player's card.
+export interface WatchView {
+  // The 4 best-ranked players still in, best first (01 §8.4).
+  readonly top: readonly string[];
+  // Card layouts of the current round for watched players the screen does not hold yet
+  // (marks follow as the public cellMarked events), compact: one number per cell.
+  readonly cards: Readonly<Record<string, readonly CompactCard[]>>;
+  // Per watched player the prize keys one number away, still open this round.
+  readonly oneToGo: Readonly<Record<string, readonly string[]>>;
 }
 
 // One view for the Quick Test and a live match.
@@ -158,6 +197,17 @@ export interface QuickTestResult {
     readonly points: Readonly<Record<string, number>>;
   }[];
   readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
+  // The ruleset's effect of each season (the status sentences name their numbers, 01 §8.2).
+  readonly seasonEffects: Readonly<Record<Season, Effect>>;
+  // Points for collecting all four seasons in the match (01 §8.3); 0 without seasons.
+  readonly seasonCompletePoints: number;
+  // Each pattern's points and the first-to-complete bonus in percent (01 §8.1).
+  readonly patternPoints: Readonly<Record<string, number>>;
+  readonly firstBonusPercent: number;
+  // What each cut so far did (01 §7.4), in cut order.
+  readonly cuts: readonly CutFacts[];
+  // Live matches only, for a player who is out or a spectator (D24).
+  readonly watch?: WatchView;
   // Recaps of royale rounds followed by a pause (D20): in a live match the one of the
   // pause now running, in the Quick Test every such round. Absent when there is none.
   readonly recaps?: readonly RoundRecap[];

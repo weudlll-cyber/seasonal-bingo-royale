@@ -31,6 +31,7 @@ export {
   MAX_START_AHEAD_MS,
   shortestDrawIntervalMs,
   RulesetSchema,
+  type Effect,
   type Ruleset,
 } from './config/ruleset.js';
 export {
@@ -47,6 +48,8 @@ export {
   SEASON_NAMES,
   type Card,
   type Cell,
+  type CompactCard,
+  type CutFacts,
   type DomainEventLike,
   type EffectKind,
   type MarkingMode,
@@ -54,8 +57,10 @@ export {
   type OwnerStatus,
   type PlayerSummary,
   type QuickTestResult,
+  type RoundEndRule,
   type Season,
   type StagePlanEntry,
+  type WatchView,
 } from './view/clientView.js';
 export { type MatchVerificationView, type RoundVerification } from './view/verification.js';
 export { type RecapScorer, type RoundRecap } from './view/roundRecap.js';

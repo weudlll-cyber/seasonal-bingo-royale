@@ -1,0 +1,296 @@
+/**
+ * @file   apps/web/src/game/arena.css
+ * @module web/game
+ * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
+ *
+ * Responsibility: the arena layout (stacked on phones, ball and drawn numbers above the
+ *                 card; from 960 px the arena fills the window below the top bar: ball, drawn
+ *                 numbers and the newest lines beside the card, which takes its cell size from
+ *                 the space it has, the side column beside them with the standings filling the
+ *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
+ *                 itself, so the page does not scroll during a round, 01 §13), the player's card
+ *                 as the hero element in card colours with large, thumb-sized cells (at least
+ *                 44 px on a 360 px phone), also worn by the seed check's cards
+ *                 (../components/OwnerCard) and the watched cards (./watch.css). Colours and
+ *                 sizes from @sbr/ui tokens.
+ * Used by:        ./MatchScreen, ../host/HostConsole (header, ball and numbers),
+ *                 ../components/OwnerCard
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+/* Arena */
+.arena {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.arena-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.arena-head p {
+  margin: 0.25rem 0 0;
+}
+
+.arena-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.arena-side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The play area keeps the ball, the drawn numbers and the whole card in one window during
+   a round (QUICKTEST-GUIDE-2). Phone: a smaller ball beside the numbers, the card below,
+   the rules line after the play area. The numbers row is capped and scrolls to the newest
+   (../components/DrawTicker), so a long round does not push the card down. */
+.arena-play {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'ball ticker'
+    'cards cards'
+    'events events';
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.arena-ball {
+  grid-area: ball;
+}
+
+.arena-ball .ball {
+  --ball-size: 6rem;
+}
+
+.arena-ticker {
+  grid-area: ticker;
+  min-width: 0;
+}
+
+.arena-ticker .draw-ticker {
+  /* Two whole rows of numbers (each 1.75rem, 0.25rem apart); scrolled to the newest. */
+  max-height: 3.75rem;
+  overflow-y: auto;
+}
+
+.arena-ticker .draw-ticker > * {
+  box-sizing: border-box;
+  height: 1.75rem;
+  line-height: 1.55rem;
+}
+
+.arena-cards {
+  grid-area: cards;
+  min-width: 0;
+}
+
+.arena-events {
+  grid-area: events;
+  min-width: 0;
+}
+
+.arena-rules {
+  order: 1;
+  margin: 0;
+}
+
+/* The player's header (not the host console's): the host link and LIVE stay one compact
+   line beside the title on a phone. */
+.arena > .arena-head .sbr-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .arena {
+    gap: var(--space-2);
+  }
+
+  /* Title and host link/LIVE on one line, the progress line under both at full width. */
+  .arena > .arena-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--space-1);
+  }
+
+  .arena > .arena-head > div:first-child {
+    display: contents;
+  }
+
+  .arena > .arena-head h1 {
+    margin: 0;
+    font-size: var(--font-size-lead);
+  }
+
+  .arena > .arena-head [data-testid='arena-progress'] {
+    grid-column: 1 / -1;
+    font-size: var(--font-size-small);
+  }
+
+  .arena > .arena-head .sbr-row {
+    grid-area: 1 / 2;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  .arena > .arena-head .sbr-btn {
+    padding: 0 0.6rem;
+    font-size: var(--font-size-small);
+  }
+
+  .arena-ball .ball {
+    --ball-size: 5.5rem;
+  }
+
+  .arena-ticker p {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* Desktop: the arena fills the window below the top bar (../shell/shell.css .fit-window):
+   title, rules and notices on top, then the play area beside the side column with what is
+   left. In the play area the ball, the drawn numbers and the newest lines sit beside the
+   card, which takes its cell size from its box (container units), so it is always whole.
+   In the side column the standings take the rest of the height and scroll inside; the
+   other panels scroll inside themselves when the window is short. */
+@media (min-width: 960px) {
+  /* A column: title, rules and whatever notices there are, then the play area with the
+     rest of the height (never less than 20rem; a tall recap in a pause may scroll). */
+  .arena {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .arena-grid {
+    flex: 1 1 20rem;
+    grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 20rem;
+  }
+
+  /* In a pause the recap stands above: the play area keeps a readable height and the page
+     may scroll (only a running round must fit, 01 §13). */
+  .arena:has(.interlude) .arena-grid {
+    flex-basis: 32rem;
+    min-height: 32rem;
+  }
+
+  .arena-play {
+    grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'ball cards'
+      'ticker cards'
+      'events cards';
+    align-items: start;
+    min-height: 0;
+  }
+
+  /* A size of its own, never a share of its cell (a share of the shrink-to-fit cell made
+     the ball as narrow as its number); the column is at least 11rem wide. */
+  .arena-ball .ball {
+    --ball-size: min(9rem, 18vh);
+  }
+
+  /* Four whole rows. */
+  .arena-ticker .draw-ticker {
+    max-height: 7.75rem;
+  }
+
+  .arena-events {
+    max-height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .arena-cards {
+    container-type: size;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Five rows of cells plus the letters, the feedback line and the padding fit the box. */
+  .arena-cards .live-card {
+    --cell-size: min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5));
+    --cell-font: max(0.85rem, calc(var(--cell-size) * 0.36));
+  }
+
+  /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
+     height while it fits, else scroll inside themselves; the standings keep room for the
+     top 3 rows and the viewer's own row in its strip, and get the rest. */
+  .arena-side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .arena-side > * {
+    flex: 0 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .arena-side > .standings-panel {
+    flex: 1 0 14rem;
+    overflow: hidden;
+  }
+
+  .arena-rules {
+    order: 0;
+    margin-top: calc(0.25rem - var(--space-2));
+  }
+}
+
+/* The player's card: the hero element */
+.own-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.live-card {
+  --cell-size: clamp(2.9rem, 15vw, 4.1rem);
+  --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
+  --cell-weight: 700;
+  --cell-radius: 10px;
+  --cell-bg: var(--color-bingo-card);
+  --cell-free-bg: var(--color-bingo-card-line);
+  --cell-ink: var(--color-bingo-card-ink);
+  --cell-marked-bg: var(--color-bingo-card-marked);
+  --cell-marked-ink: var(--color-bingo-card-marked-ink);
+  --cell-marked-ring: var(--color-autumn);
+
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: var(--radius-card);
+  background: var(--color-bingo-card);
+  color: var(--color-bingo-card-ink);
+  box-shadow: var(--shadow-raised);
+}
+
+.live-card > div {
+  gap: 6px !important;
+}
+
+.live-card-feedback {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--color-bingo-card-ink);
+  font-weight: var(--font-weight-strong);
+}

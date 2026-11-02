@@ -4,7 +4,7 @@
  * @brief  Tests for applyEffect, tickEffects and Season Complete (12 §3 inv. 6, 9).
  *
  * Responsibility: cover the per-effect-type arithmetic, the non-stacking refresh rule,
- *                 the per-draw and per-mark decay, shield accumulation, and the single-
+ *                 the per-draw and per-mark decay, the shield refresh, and the single-
  *                 fire guard on Season Complete.
  * Depends on:     ../index
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3; docs/spec/12-testing-strategy.md §3
@@ -14,7 +14,6 @@ import { describe, expect, it } from 'vitest';
 import {
   applyEffect,
   checkSeasonComplete,
-  consumeShield,
   INITIAL_EFFECT_STATE,
   markSeasonActivated,
   onDraw,
@@ -56,11 +55,15 @@ describe('applyEffect', () => {
     expect(result.instantPoints).toBe(45);
   });
 
-  it('shield adds charges', () => {
-    const once = applyEffect(INITIAL_EFFECT_STATE, { type: 'shield', rankMargin: 3, charges: 2 });
-    expect(once.state.shieldCharges).toBe(2);
-    const twice = applyEffect(once.state, { type: 'shield', rankMargin: 3, charges: 1 });
-    expect(twice.state.shieldCharges).toBe(3);
+  it('a second Winter shield refreshes the charges, never stacks them (01 §8.2)', () => {
+    const shield = { type: 'shield', rankMargin: 3, charges: 1 } as const;
+    const once = applyEffect(INITIAL_EFFECT_STATE, shield);
+    expect(once.state.shieldCharges).toBe(1);
+    const twice = applyEffect(once.state, shield);
+    expect(twice.state.shieldCharges).toBe(1);
+    // A used shield is refilled by the next activation; unused charges are kept, not cut.
+    expect(applyEffect({ ...once.state, shieldCharges: 0 }, shield).state.shieldCharges).toBe(1);
+    expect(applyEffect({ ...once.state, shieldCharges: 2 }, shield).state.shieldCharges).toBe(2);
   });
 
   it('revealNext accumulates tickets', () => {
@@ -104,12 +107,6 @@ describe('tickEffects', () => {
     });
     const bumped = onMarkInsideGrowth(seeded.state);
     expect(bumped.growth?.nthMark).toBe(1);
-  });
-
-  it('consumeShield only decrements when charges > 0', () => {
-    expect(consumeShield(INITIAL_EFFECT_STATE).shieldCharges).toBe(0);
-    const seeded = applyEffect(INITIAL_EFFECT_STATE, { type: 'shield', rankMargin: 3, charges: 2 });
-    expect(consumeShield(seeded.state).shieldCharges).toBe(1);
   });
 });
 

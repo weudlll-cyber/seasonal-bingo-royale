@@ -113,7 +113,7 @@ function checkOneNewNumber(s: Snap, prev: Snap): void {
   }
 }
 
-// Right after Run Quick Test, before the first draw of the new run.
+// Right after Run simulation, before the first draw of the new run.
 export function checkFresh(s: Snap, ctx: RunContext): void {
   expect(s.ticker, 'no number drawn yet').toEqual([]);
   expect(

@@ -8,13 +8,13 @@
  *                 window runs the round is open: the number is shown and a tap marks it.
  *                 When the window closes the round ends: further taps are refused and
  *                 nothing more is marked for the owner. The next draw deals round 2.
- * Depends on:     @testing-library/react, ../App, ../test/quickTestFixture
+ * Depends on:     @testing-library/react, ../quicktest/Simulation, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { App } from '../App.js';
+import { Simulation } from '../quicktest/Simulation.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 
 beforeEach(() => {
@@ -41,7 +41,7 @@ const marked = (testId: string) => screen.getByTestId(testId).getAttribute('data
 
 describe("a round's last number (D10)", () => {
   it('can be tapped inside its window; after the window the round is over', async () => {
-    render(<App />);
+    render(<Simulation />);
     fireEvent.change(screen.getByTestId('start-draw-mode'), { target: { value: 'host' } });
     fireEvent.click(screen.getByTestId('start-run'));
     await wait(0);
