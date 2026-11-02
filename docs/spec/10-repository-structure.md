@@ -67,6 +67,7 @@ seasonal-bingo-royale/
 │  ├─ web/                      Player client (also the embed target)
 │  │  └─ src/  shell/ (frame, router, session)  game/ (lobby, match)  host/  account/
 │  │           components/ (Quick Test and shared views)  test/ (fixtures)
+│  │           quicktest/ (dev page "Test a match": chooser, test match, seed check)
 │  │           main.tsx  App.tsx  api.ts  types.ts  drawControl.ts  manualMarking.ts
 │  │           playback.ts  playbackScoring.ts  playbackTypes.ts  seasonIcons.ts
 │  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts  useSecondsUntil.ts
@@ -76,7 +77,7 @@ seasonal-bingo-royale/
 │  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)  (planned)
 │  └─ embed-loader/             embed.js (tiny, no deps; empty shell until WP-25)
 ├─ e2e/                         Playwright specs + fixtures
-├─ load/                        drawLatency.mjs (200-player check); k6 scenarios (planned)
+├─ load/                        drawLatency.mjs (200-player check), spectatorStream.mjs (spectator bytes per draw), common.mjs; k6 scenarios (planned)
 ├─ reports/                     Run, audit and review reports (dated); screens/ (screenshots)
 ├─ ops/
 │  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.dev.yml  Caddyfile

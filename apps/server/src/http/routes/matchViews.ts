@@ -9,10 +9,12 @@
  *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
  *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
  *                 only later events, no player list unless a join, first round start or finish is
- *                 among them. Round starts and the player list carry only the viewer's cards, no
+ *                 among them, no cut facts unless a cut is. Round starts and the player list carry only the viewer's cards, no
  *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20).
+ *                 A player who is out or a spectator also gets the watched cards (`watch`,
+ *                 ../../view/watchView, D24); a player still in never does.
  * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
- *                 @sbr/domain, ../../view/clientEvents
+ *                 @sbr/domain, ../../view/clientEvents, ../../view/watchView
  * Used by:        ./matches, ../../realtime/gateway
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §9, §13
  */
@@ -29,6 +31,7 @@ import type { DomainEvent } from '@sbr/domain';
 import { liveEvent } from '../../view/clientEvents.js';
 import { buildClientView } from '../../view/clientView.js';
 import type { LiveEntry } from '../../view/liveViews.js';
+import { buildWatchView, watches, type WatchQuery } from '../../view/watchView.js';
 
 // `youHost` tells the viewer whether they created (and so may run) this match; null when
 // the summary goes to a whole room (the client keeps what it knew).
@@ -77,6 +80,8 @@ interface LiveViewInput {
   // The recap of the royale round just played, during the pause after it (D20).
   readonly recap: RoundRecap | null;
   readonly startHeld: boolean;
+  // What a watching screen asks for (D24): a followed player, the cards it holds.
+  readonly watch: WatchQuery;
 }
 
 // Events after which the screens need the player list again: a join, the first round's
@@ -90,12 +95,44 @@ function changesPlayers(e: DomainEvent): boolean {
   );
 }
 
-export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveViewInput) {
+export function liveView(input: LiveViewInput) {
+  const { match: m, entry, me, since, recap, startHeld } = input;
   const { idMap, replay } = entry;
   const owner = me !== null && m.state.players[me] !== undefined ? me : null;
+  const view = viewerView(m, entry, owner);
+  // The viewer's own cards and no draw order in round starts (../../view/clientEvents).
+  const viewer = owner === null ? null : (idMap.get(owner) ?? owner);
+  // The view's events are the replay's (typed as the domain's events there).
+  const events = replay.renamed.slice(since).map((e) => liveEvent(e, viewer));
+  const withPlayers = since === 0 || events.some(changesPlayers);
+  // The cut facts, like the player list, only when they changed; the client keeps them.
+  const withCuts = since === 0 || events.some((e) => e.type === 'cutApplied');
+  const { players, cuts, ...rest } = view;
+  // Players out and spectators watch the best players still in; players still in never
+  // get another player's card (D24, 03 §11).
+  const watch = watches(m.state, me) ? buildWatchView(m.state, idMap, input.watch) : undefined;
+  return {
+    match: matchSummary(m, me, startHeld),
+    seq: replay.length,
+    since,
+    me: viewer,
+    view: {
+      ...rest,
+      ...(recap === null ? {} : { recaps: [recap] }),
+      ...(watch === undefined ? {} : { watch }),
+      ...(withPlayers ? { players } : {}),
+      ...(withCuts ? { cuts } : {}),
+      events,
+    },
+  };
+}
+
+// The client view with the viewer (a player, or null) as its owner, from the shared replay.
+function viewerView(m: LoadedMatch, entry: LiveEntry, owner: string | null) {
+  const { idMap, replay } = entry;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
   const s = m.record.settings;
-  const view = buildClientView({
+  return buildClientView({
     gameType: m.record.gameType,
     ruleset: m.record.ruleset,
     settings: {
@@ -112,18 +149,4 @@ export function liveView({ match: m, entry, me, since, recap, startHeld }: LiveV
     replay,
     ownCardsOnly: true,
   });
-  // The viewer's own cards and no draw order in round starts (../../view/clientEvents).
-  const viewer = owner === null ? null : (idMap.get(owner) ?? owner);
-  // The view's events are the replay's (typed as the domain's events there).
-  const events = replay.renamed.slice(since).map((e) => liveEvent(e, viewer));
-  const withPlayers = since === 0 || events.some(changesPlayers);
-  const { players, ...rest } = view;
-  const recaps = recap === null ? {} : { recaps: [recap] };
-  return {
-    match: matchSummary(m, me, startHeld),
-    seq: replay.length,
-    since,
-    me: viewer,
-    view: withPlayers ? { ...rest, ...recaps, players, events } : { ...rest, ...recaps, events },
-  };
 }

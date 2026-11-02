@@ -2,12 +2,13 @@
  * @file   apps/web/src/shell/router.ts
  * @module web/shell
  * @brief  Hash routes of the player client: lobby, match, host screens, verify, Quick Test, sign-in, register.
+ *         The Quick Test has a chooser and one sub-route per way to test (play, seed).
  *
  * Responsibility: parse `location.hash` into a route and back, and a hook that follows
  *                 hash changes. Hash routing keeps every screen reachable from the dev
  *                 server and from a static host without server rewrites.
  * Depends on:     react
- * Used by:        ./AppShell, the screens that link to each other, ../account/Register,
+ * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
  *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
  *                 ../host/YourMatches, ./DevTools, ../game/VerifyMatch
@@ -15,13 +16,16 @@
  */
 import { useEffect, useState } from 'react';
 
+// The test page's chooser (no view), a test match to play, or the seed check.
+export type QuickTestView = 'play' | 'seed';
+
 export type Route =
   | { readonly name: 'lobby' }
   | { readonly name: 'match'; readonly code: string }
   | { readonly name: 'hostNew' }
   | { readonly name: 'host'; readonly code: string }
   | { readonly name: 'verify'; readonly code: string }
-  | { readonly name: 'quicktest' }
+  | { readonly name: 'quicktest'; readonly view?: QuickTestView }
   | { readonly name: 'signIn' }
   | { readonly name: 'register' };
 
@@ -35,10 +39,15 @@ export function parseRoute(hash: string): Route {
   if (first === 'host' && second === 'new') return { name: 'hostNew' };
   if (first === 'host' && second !== undefined) return { name: 'host', code: second };
   if (first === 'verify' && second !== undefined) return { name: 'verify', code: second };
-  if (first === 'quicktest') return { name: 'quicktest' };
+  if (first === 'quicktest') return quickTestRoute(second);
   if (first === 'sign-in') return { name: 'signIn' };
   if (first === 'register') return { name: 'register' };
   return { name: 'lobby' };
+}
+
+// The chooser, or one of its sub-routes; anything else after it is the chooser.
+function quickTestRoute(view: string | undefined): Route {
+  return view === 'play' || view === 'seed' ? { name: 'quicktest', view } : { name: 'quicktest' };
 }
 
 export function hrefOf(route: Route): string {
@@ -54,7 +63,7 @@ export function hrefOf(route: Route): string {
     case 'verify':
       return `#/verify/${route.code}`;
     case 'quicktest':
-      return '#/quicktest';
+      return route.view === undefined ? '#/quicktest' : `#/quicktest/${route.view}`;
     case 'signIn':
       return '#/sign-in';
     case 'register':

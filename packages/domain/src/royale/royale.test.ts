@@ -160,6 +160,38 @@ describe('finalRanking', () => {
   });
 });
 
+// 01 §7.5: the final's winner (by its win condition) is 1st, whatever the points.
+describe('the final winner is 1st', () => {
+  const finalist = (accountId: string, points: number, joinedAt = 0): RankedPlayer => ({
+    ...PL_A,
+    accountId,
+    joinedAt,
+    points,
+    eliminatedAtRound: null,
+  });
+
+  it('puts the full-card winner above a finalist with more points', () => {
+    const players = [finalist('rich', 900), finalist('winner', 750), PL_C];
+    const order = finalRanking(players, new Set(['winner'])).map((p) => p.accountId);
+    expect(order).toEqual(['winner', 'rich', 'c']);
+  });
+
+  it('orders winners on the same draw by the tie-break chain, then the rest', () => {
+    const players = [finalist('w2', 700, 5), finalist('x', 999), finalist('w1', 800, 9)];
+    const order = finalRanking(players, new Set(['w1', 'w2'])).map((p) => p.accountId);
+    expect(order).toEqual(['w1', 'w2', 'x']);
+  });
+
+  it('never lifts an eliminated player, and without winners points decide', () => {
+    const players = [finalist('a', 10), { ...PL_C, accountId: 'out', points: 5000 }];
+    expect(finalRanking(players, new Set(['out'])).map((p) => p.accountId)).toEqual(['a', 'out']);
+    expect(finalRanking([finalist('lo', 1), finalist('hi', 2)]).map((p) => p.accountId)).toEqual([
+      'hi',
+      'lo',
+    ]);
+  });
+});
+
 describe('one tie-break for cut and final ranking (01 §8.4)', () => {
   // Four finalists who never scored: only the join time separates them.
   const zero = (accountId: string, joinedAt: number): RankedPlayer => ({

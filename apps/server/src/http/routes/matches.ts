@@ -5,7 +5,8 @@
  *
  * Responsibility: GET /matches (open, running and recent matches), POST /matches
  *                 (match.create; 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews;
- *                 during the pause after a royale round it carries the round's recap, D20),
+ *                 during the pause after a royale round it carries the round's recap, D20; a
+ *                 watching screen adds &follow= and &known=, D24),
  *                 POST /matches/:code/join (match.join), and for the match's creator with
  *                 match.manage: /start (countdown), /draw-next, PUT /draw-mode, /abort;
  *                 POST /matches/:code/marks is the fallback for clients without a socket.
@@ -13,7 +14,7 @@
  *                 engine become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./matchHost, ./matchInput, ./matchViews,
- *                 ../../view/liveViews, ../../view/playerNames
+ *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
  * Used by:        ../app, ./matchHost
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
@@ -26,6 +27,7 @@ import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerHostRoutes } from './matchHost.js';
 import { LiveViews } from '../../view/liveViews.js';
 import { playerNames } from '../../view/playerNames.js';
+import type { WatchQuery } from '../../view/watchView.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
 
@@ -93,7 +95,7 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
     names: (id) => playerNames(deps.pool, id),
     manualTaps: (id, round) => manualTaps(deps.pool, id, round),
   });
-  app.get<{ Params: { code: string }; Querystring: { since?: string } }>(
+  app.get<{ Params: { code: string }; Querystring: WatchParams & { since?: string } }>(
     '/api/v1/matches/:code/state',
     async (request, reply) => {
       const id = await matchIdByCode(deps.pool, request.params.code);
@@ -110,9 +112,32 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       // The recap of the royale round just played, during the pause after it (D20).
       const recap = await views.recapFor(m, entry);
       const me = request.session?.accountId ?? null;
-      return liveView({ match: m, entry, me, since, recap, startHeld: deps.engine.startHeld(m) });
+      const startHeld = deps.engine.startHeld(m);
+      const watch = watchQuery(request.query);
+      return liveView({ match: m, entry, me, since, recap, startHeld, watch });
     },
   );
+}
+
+// A watching screen (D24): `follow` a player still in; `known=<round>:<name>,<name>` the
+// cards it already holds for that round, so they are not sent again.
+interface WatchParams {
+  readonly follow?: string;
+  readonly known?: string;
+}
+
+function watchQuery(q: WatchParams): WatchQuery {
+  const [round = '', names = ''] = (q.known ?? '').split(':');
+  const knownRound = /^\d{1,3}$/.test(round) ? Number(round) : null;
+  const follow = q.follow !== undefined && q.follow.length <= 64 ? q.follow : null;
+  return {
+    follow,
+    knownRound,
+    known: names
+      .split(',')
+      .filter((n) => n.length > 0)
+      .slice(0, 8),
+  };
 }
 
 export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {

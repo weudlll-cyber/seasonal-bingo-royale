@@ -5,11 +5,12 @@
  *
  * Responsibility: a compact "Dev sign-in" menu with "Sign in as host" / "Sign in as player
  *                 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
- *                 navigation link to the Quick Test. Loaded on demand by ./AppShell only
+ *                 navigation link to the Quick Test; `useDevSignIn` for the test page's
+ *                 "Sign in as host". Loaded on demand by ./AppShell only
  *                 when Vite's DEV flag is set, so a production bundle contains neither
  *                 these parts nor the quick sign-in call (POST /dev/sign-in).
  * Depends on:     react, ./http, ./router, ./session, ../game/socket
- * Used by:        ./AppShell (lazy import)
+ * Used by:        ./AppShell (lazy import), ../quicktest/TestMatch (development only)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
 import { useState, type ReactElement } from 'react';
@@ -36,14 +37,19 @@ export function QuickTestLink({ active }: { readonly active: boolean }): ReactEl
   );
 }
 
-// One compact menu instead of four buttons in the bar.
-export function DevSignIn(): ReactElement {
+// The quick sign-in call, for the menu and the test page's "Sign in as host".
+export function useDevSignIn(): (as: DevIdentity) => Promise<void> {
   const { refresh } = useSession();
-  const devSignIn = async (as: DevIdentity): Promise<void> => {
+  return async (as) => {
     await api('/dev/sign-in', { method: 'POST', body: { as } });
     resetSocket(); // the socket reconnects with the new session cookie
     await refresh();
   };
+}
+
+// One compact menu instead of four buttons in the bar.
+export function DevSignIn(): ReactElement {
+  const devSignIn = useDevSignIn();
   const [open, setOpen] = useState(false);
   return (
     <div className="dev-menu">

@@ -7,7 +7,9 @@
  *                 navigation as pills with the current one solid, the round light/dark toggle,
  *                 account and the dev sign-in menu) over a centred main column, sticky from 640 px with focus kept below
  *                 it; on phones the bar wraps into two rows, scrolls away with the page and
- *                 the navigation scrolls sideways. Colours come from @sbr/ui.
+ *                 the navigation scrolls sideways. On desktop a live screen (.fit-window: the
+ *                 arena, the running host console) fills the window below the bar exactly, so
+ *                 the page does not scroll during a round. Colours come from @sbr/ui.
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -132,6 +134,33 @@
   max-width: var(--content-width);
   margin: 0 auto;
   padding: var(--space-3) var(--gutter) var(--space-4);
+}
+
+/* A live screen fills the window below the top bar (PLAYER-CLARITY): the page is one window
+   high, the main column takes what the bar leaves, and the screen takes the column; panels
+   inside scroll on their own. Wider than the reading column, so large windows give the cards
+   room. */
+@media (min-width: 960px) {
+  #root:has(.fit-window) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+  }
+
+  #root:has(.fit-window) > .shell-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    max-width: 96rem;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
+  #root:has(.fit-window) .fit-window {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
 }
 
 @media (max-width: 640px) {

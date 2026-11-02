@@ -9,7 +9,7 @@
  *                 Only the newest refresh sets the session (an older answer arriving late
  *                 never undoes a sign-in). Screens read it through `useSession`.
  * Depends on:     react, ./http, ../game/socket
- * Used by:        ./AppShell, ../account/Register, ../account/SignIn, ../game/Lobby,
+ * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn, ../game/Lobby,
  *                 ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §3, §8
  */

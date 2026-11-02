@@ -7,9 +7,10 @@
  *                 plain words, every player who joined, the registration status
  *                 (./Registration: the host, a set time with a live countdown, or places
  *                 left), and the 10-second countdown to the first round once it runs. A signed-in player who has not joined yet
- *                 gets a Join button.
+ *                 gets a Join button. No host link here: the host's console has its own tab
+ *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
  * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil,
- *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration, ./HostLink
+ *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
@@ -19,7 +20,6 @@ import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
-import { HostLink } from './HostLink.js';
 import { gameTypeName, prizeName, rulesLine } from './labels.js';
 import { RegistrationStatus } from './Registration.js';
 import type { LiveState } from './useLiveMatch.js';
@@ -36,7 +36,6 @@ export function WaitingRoom({
   return (
     <div className="sbr-stack waiting" data-testid="waiting-room">
       <header className="sbr-stack">
-        <HostLink match={live.match} />
         <h1>{live.match.title}</h1>
         <p className="sbr-muted">
           {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}

@@ -28,11 +28,6 @@ export function onMarkInsideGrowth(state: EffectState): EffectState {
   return { ...state, growth: { ...state.growth, nthMark: state.growth.nthMark + 1 } };
 }
 
-export function consumeShield(state: EffectState): EffectState {
-  if (state.shieldCharges <= 0) return state;
-  return { ...state, shieldCharges: state.shieldCharges - 1 };
-}
-
 function decayMultiplier(m: MultiplierState | null): MultiplierState | null {
   if (m === null) return null;
   const next = m.remainingDraws - 1;

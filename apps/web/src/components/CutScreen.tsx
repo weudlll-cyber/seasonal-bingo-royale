@@ -6,17 +6,19 @@
  * Responsibility: after each cut, show the owner's outcome per owner card until the
  *                 owner closes it or the next cut arrives: a survivor reads "You're
  *                 through — next round in N s" (the countdown when the server announced
- *                 the next round's start), an eliminated owner "You're out in cut N — you
- *                 can keep watching"; the button reads "Keep playing" or "Watch" (D15). A new cut
+ *                 the next round's start), one the shield saved also how far below the
+ *                 line they were (from the server), an eliminated owner "You're out in cut N
+ *                 — you can keep watching"; the button reads "Keep playing" or "Watch" (D15). A new cut
  *                 scrolls into view. It never pauses playback: an eliminated owner keeps
  *                 watching the spectator view to the end.
- * Depends on:     react, ../playback, ../useReducedMotion, ../useSecondsUntil
+ * Depends on:     react, ../game/seasonText, ../playback, ../useReducedMotion, ../useSecondsUntil
  * Used by:        ./Playback, ../game/MatchScreen
  * Spec:           docs/spec/01-game-design.md §7.4, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState, type ReactElement } from 'react';
 
-import type { CutOutcome, CutView } from '../playback.js';
+import { shieldSavedLine } from '../game/seasonText.js';
+import type { CutView } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 
@@ -50,7 +52,7 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
       {cut.owners.map((o) => (
         <p key={o.accountId} className="cut-screen-line">
           {cut.owners.length > 1 ? `${o.accountId}: ` : ''}
-          <strong>{outcomeText(o.outcome, cut.number, left)}</strong>
+          <strong>{outcomeText(o, cut.number, left)}</strong>
         </p>
       ))}
       <button
@@ -67,11 +69,15 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
   );
 }
 
-function outcomeText(outcome: CutOutcome, cutNumber: number, left: number | null): string {
-  if (outcome === 'eliminated') {
+function outcomeText(o: CutView['owners'][number], cutNumber: number, left: number | null): string {
+  if (o.outcome === 'eliminated') {
     return `You're out in cut ${String(cutNumber)} — you can keep watching`;
   }
-  const saved = outcome === 'saved' ? ', saved by your Winter shield' : '';
+  // The server says how far below the line the shield saved the owner from.
+  const saved =
+    o.outcome === 'saved' ? ` — ${lowerFirst(shieldSavedLine(cutNumber, o.placesBelow ?? 0))}` : '';
   const next = left === null || left === 0 ? '' : ` — next round in ${String(left)} s`;
   return `You're through${saved}${next}`;
 }
+
+const lowerFirst = (s: string): string => s.charAt(0).toLowerCase() + s.slice(1);

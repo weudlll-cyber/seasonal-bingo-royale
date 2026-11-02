@@ -28,10 +28,13 @@ async function screenshot(page: Page, testInfo: TestInfo, seed: string): Promise
 
 test('showcase-10: Season Complete for owner-01 in round 1 (royale)', async ({ page }, info) => {
   await finalPlacement(page, { ...ROYALE, seed: 'showcase-10' });
-  // Newest first: the oldest lines close the log; Season Complete came before round 1 ended.
-  const log = page.getByTestId('match-log').locator('li');
-  await expect(log.last()).toHaveText('owner-01 collected all four seasons');
-  await expect(log.nth(-2)).toHaveText(/^Round 1 over/);
+  // Newest first: Season Complete came before round 1 ended, so it is listed below it.
+  await page.getByText(/^Whole match log/).click();
+  const lines = await page.getByTestId('match-log').locator('li').allTextContents();
+  const complete = lines.indexOf('owner-01 collected all four seasons');
+  const round1 = lines.findIndex((l) => l.startsWith('Round 1 over'));
+  expect(complete).toBeGreaterThan(-1);
+  expect(complete).toBeGreaterThan(round1);
   await screenshot(page, info, 'showcase-10');
 });
 
@@ -39,6 +42,7 @@ test('showcase-4: the Winter shield saves owner-01 at the first cut (royale)', a
   page,
 }, info) => {
   await finalPlacement(page, { ...ROYALE, seed: 'showcase-4' });
+  await page.getByText(/^Whole match log/).click();
   await expect(
     page
       .getByTestId('match-log')

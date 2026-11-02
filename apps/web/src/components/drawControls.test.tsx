@@ -51,7 +51,7 @@ describe('DrawControls', () => {
     const { onChange } = controls(INITIAL_CONTROL);
     fireEvent.click(screen.getByTestId('draw-mode-host'));
     fireEvent.change(screen.getByTestId('draw-interval'), { target: { value: '2.5' } });
-    fireEvent.click(screen.getByText('skip to end'));
+    fireEvent.click(screen.getByText('Skip to end'));
     expect(onChange.mock.calls.map(([c]) => c)).toEqual([
       { ...INITIAL_CONTROL, mode: 'host' },
       { ...INITIAL_CONTROL, intervalSec: 2.5 },

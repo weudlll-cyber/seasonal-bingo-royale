@@ -7,7 +7,8 @@
  *                 configured effect fires. Returns both the new state and the number
  *                 of instant points to credit (addPoints, harvest). Non-stacking: a
  *                 second multiplier/growth replaces the first and refreshes the
- *                 duration. revealNext bumps a ticket counter the UI will consume.
+ *                 duration; a second shield refills the charges to the effect's count
+ *                 (never adds). revealNext bumps a ticket counter the UI will consume.
  * Depends on:     ./effectCatalog, ./effectState
  * Used by:        future match engine, ../index, ../match/evolveScoring, ../match/markResolver
  * Spec:           docs/spec/01-game-design.md §8.2
@@ -61,8 +62,9 @@ export function applyEffect(
     case 'harvest':
       return { state, instantPoints: (harvest?.markedCellsInScope ?? 0) * effect.pointsPerMarked };
     case 'shield':
+      // Refresh, never stack: a second Winter refills the shield to its charges (01 §8.2).
       return {
-        state: { ...state, shieldCharges: state.shieldCharges + effect.charges },
+        state: { ...state, shieldCharges: Math.max(state.shieldCharges, effect.charges) },
         instantPoints: 0,
       };
     case 'revealNext':

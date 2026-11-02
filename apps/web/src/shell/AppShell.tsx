@@ -7,8 +7,8 @@
  *                 the light/dark toggle, links to the lobby and hosting (with `match.create`),
  *                 the account with sign-out ("Signed in as <name> (host|player)") or "Sign in"
  *                 and "Register" (../account). Below the bar, the current route's screen; in
- *                 maintenance (./useMaintenance) the lobby and create form show the maintenance
- *                 page, the host console a banner (09 §4); "Verify this match" after a match
+ *                 maintenance (./useMaintenance, shared below as its context) the lobby and
+ *                 create form show the maintenance page, the host console a banner (09 §4); "Verify this match" after a match
  *                 (../game/VerifyMatch). Dev-only Quick Test and "Dev sign-in" (./DevTools) load
  *                 on demand and are left out of production builds.
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance,
@@ -28,11 +28,11 @@ import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
-import { hrefOf, useRoute, type Route } from './router.js';
+import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
-import { useMaintenance, type MaintenanceState } from './useMaintenance.js';
+import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
 
 // Development tools load on demand. A production build replaces import.meta.env.DEV with
@@ -51,7 +51,7 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const route = useRoute();
   const maintenance = useMaintenance();
   return (
-    <>
+    <MaintenanceContext.Provider value={maintenance}>
       <header className="shell-bar">
         <a className="shell-brand" href={hrefOf({ name: 'lobby' })}>
           <img src={emblem} alt="" width="42" height="37" />
@@ -68,7 +68,7 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
       <main className="shell-main">
         <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />
       </main>
-    </>
+    </MaintenanceContext.Provider>
   );
 }
 
@@ -182,7 +182,7 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'verify':
       return <VerifyMatch key={route.code} code={route.code} />;
     case 'quicktest':
-      return <QuickTestScreen dev={dev} />;
+      return <QuickTestScreen dev={dev} view={route.view} />;
     case 'signIn':
       return <SignIn />;
     case 'register':
@@ -191,11 +191,17 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
 }
 
 // The Quick Test calls a development-only server route; production shows the lobby.
-function QuickTestScreen({ dev }: { readonly dev: boolean }): ReactElement {
+function QuickTestScreen({
+  dev,
+  view,
+}: {
+  readonly dev: boolean;
+  readonly view: QuickTestView | undefined;
+}): ReactElement {
   if (!dev || QuickTest === null) return <Lobby />;
   return (
     <Suspense fallback={null}>
-      <QuickTest />
+      <QuickTest view={view} />
     </Suspense>
   );
 }

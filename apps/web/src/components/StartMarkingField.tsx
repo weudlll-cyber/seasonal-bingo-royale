@@ -47,7 +47,7 @@ interface StartMarkingFieldProps {
 
 export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): ReactElement {
   return (
-    <fieldset style={fieldsetStyle}>
+    <fieldset>
       <legend>Marking</legend>
       <select
         className="sbr-select"
@@ -88,7 +88,7 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
         <option value="noAutoMark">Leave open (tap later, no bonus)</option>
       </select>
       {value.missed === 'autoMarkAfter' ? (
-        <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+        <label className="sbr-row">
           <span>Seconds before a missed number is marked for me</span>
           <input
             className="sbr-input"
@@ -107,10 +107,3 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
     </>
   );
 }
-
-const fieldsetStyle: React.CSSProperties = {
-  border: '1px solid var(--color-border)',
-  padding: '0.5rem',
-  display: 'grid',
-  gap: '0.4rem',
-};

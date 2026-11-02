@@ -3,9 +3,10 @@
  * @module domain/royale
  * @brief  Compute the final placement of every entrant (01 §8.4, §7.5).
  *
- * Responsibility: order every player of a royale match by points, patterns, seasons
- *                 activated, last-scoring-draw and finally join timestamp; return a
- *                 total order 1..N (invariant 8 of 12 §3). Eliminated players carry
+ * Responsibility: the final's winner first (by its win condition, 01 §7.5; winners on the
+ *                 same draw by the chain below), then every player by points, patterns,
+ *                 seasons activated, last-scoring-draw and finally join timestamp; return
+ *                 a total order 1..N (invariant 8 of 12 §3). Eliminated players carry
  *                 their elimination order so they rank below every finalist.
  * Depends on:     ./tieBreak
  * Used by:        ../index, ../match/decide, ../match/decideRanking
@@ -30,10 +31,20 @@ export interface Placement {
   readonly place: number;
 }
 
-export function finalRanking(players: readonly RankedPlayer[]): readonly Placement[] {
-  // Stable-sort by the full tie-break chain of 01 §8.4; finalists (eliminatedAtRound
-  // null) always beat eliminated players by this comparator.
-  const sorted = [...players].sort(compare);
+// `winners`: the finalists who won the final by its win condition (01 §7.5): the full
+// card, the first completed pattern; none for the highest score, where points decide.
+export function finalRanking(
+  players: readonly RankedPlayer[],
+  winners: ReadonlySet<string> = new Set(),
+): readonly Placement[] {
+  // Stable-sort: the final's winners first (among them the tie-break chain of 01 §8.4),
+  // then the other finalists, then eliminated players by elimination order.
+  const won = (p: RankedPlayer): boolean =>
+    p.eliminatedAtRound === null && winners.has(p.accountId);
+  const sorted = [...players].sort((a, b) => {
+    if (won(a) !== won(b)) return won(a) ? -1 : 1;
+    return compare(a, b);
+  });
   return sorted.map((player, i) => ({ accountId: player.accountId, place: i + 1 }));
 }
 

@@ -6,7 +6,7 @@
  * Responsibility: generate the pattern masks for every prize key of 01 §3a.1 (rows-N,
  *                 columns-N, oneDiagonal, bothDiagonals, fourCorners, fullCard) and
  *                 expose a helper that answers which prize keys are complete on a given
- *                 marked bitmask. "oneDiagonal" and "rows-N" cover any diagonal / any N
+ *                 marked bitmask, and which keys one more mark would complete. "oneDiagonal" and "rows-N" cover any diagonal / any N
  *                 complete rows, so the set is a function of the set of complete rows,
  *                 columns and diagonals — matching the catalogue of 01 §3a.1.
  * Depends on:     ./cardTypes
@@ -58,6 +58,20 @@ export function completedPrizeKeys(marks: MarkMask): readonly string[] {
   if (prizes.diagonals === DIAGONAL_MASKS.length) out.push('bothDiagonals');
   if (prizes.full) out.push('fullCard');
   return out;
+}
+
+// The prize keys one more mark would complete ("1 to go" on a watched card, D24): for each
+// open cell, the keys that marking it adds. In catalogue order, each once.
+export function oneToGoKeys(marks: MarkMask): readonly string[] {
+  const now = new Set(completedPrizeKeys(marks));
+  const next = new Set<string>();
+  for (let i = 0; i < CELL_COUNT; i += 1) {
+    if (marks[i] === true) continue;
+    const tried = marks.slice();
+    tried[i] = true;
+    for (const key of completedPrizeKeys(tried)) if (!now.has(key)) next.add(key);
+  }
+  return completedPrizeKeys(FULL_MASK).filter((key) => next.has(key));
 }
 
 function covers(marks: MarkMask, mask: MarkMask): boolean {

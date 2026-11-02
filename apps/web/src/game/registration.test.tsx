@@ -118,3 +118,11 @@ describe('the countdown (D16)', () => {
     expect(screen.getByTestId('registration').textContent).toBe('Starting…');
   });
 });
+
+describe('the time until a set start', () => {
+  it('reads "in 1 min" for a start a minute and a few seconds ahead (QUICKTEST-GUIDE-2)', () => {
+    const soon = withRule({ kind: 'at', at: NOW + 62_000, auto: true });
+    expect(registrationText(soon, NOW)).toContain('(in 1 min)');
+    expect(registrationText(soon, NOW - 30_000)).toContain('(in 2 min)');
+  });
+});

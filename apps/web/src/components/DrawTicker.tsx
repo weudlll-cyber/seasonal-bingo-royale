@@ -8,11 +8,13 @@
  *                 season icon with its name. The newest draw is highlighted and fades in
  *                 unless the viewer prefers reduced motion; in the pause between rounds
  *                 none is highlighted, so the last number does not read as "tap now".
+ *                 Where a screen caps the row's height (the player screen, ../game/arena.css)
+ *                 it scrolls, and each new draw scrolls it to the newest.
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
  */
-import type { ReactElement } from 'react';
+import { useEffect, useRef, type ReactElement } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
 import { ballLabel, seasonOfSymbol } from '../types.js';
@@ -35,6 +37,7 @@ export function DrawTicker({
 }: DrawTickerProps): ReactElement {
   const reduced = useReducedMotion();
   const newest = paused ? -1 : draws.length - 1;
+  const row = useScrolledToNewest(draws.length);
   return (
     <div>
       {showWindow ? (
@@ -42,7 +45,12 @@ export function DrawTicker({
           Speed window: {String(speedWindowMs / 1000)} s after each draw
         </p>
       ) : null}
-      <div data-testid="draw-ticker" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+      <div
+        ref={row}
+        className="draw-ticker"
+        data-testid="draw-ticker"
+        style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}
+      >
         {draws.map((item, i) => {
           const season = seasonOfSymbol(item);
           return (
@@ -76,4 +84,14 @@ export function DrawTicker({
       </div>
     </div>
   );
+}
+
+// A capped row keeps the newest draw in view (its last line) after every new draw.
+function useScrolledToNewest(count: number) {
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = row.current;
+    if (el !== null) el.scrollTop = el.scrollHeight;
+  }, [count]);
+  return row;
 }

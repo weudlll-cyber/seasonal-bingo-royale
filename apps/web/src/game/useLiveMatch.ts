@@ -10,7 +10,12 @@
  *                 keeps the one held. Record changes (status, start time, draw control) arrive as
  *                 `match`; once an announced start time has passed, the summary is fetched once
  *                 more (D16: it changes by the clock alone). Fetches never overlap. The view has
- *                 the Quick Test's shape, so the screens fold it with the same logic.
+ *                 the Quick Test's shape, so the screens fold it with the same logic. A watching
+ *                 screen (a player out or a spectator, D24) names the player it follows and the
+ *                 cards it holds; the watched card layouts it receives go into the held round
+ *                 start, so the fold shows their marks; a watched player's taps fetch at once
+ *                 ("1 to go" comes from the server). The cut facts, like the player list, are
+ *                 kept when a delta leaves them out.
  * Depends on:     react, ../shell/http, ./socket, ../types
  * Used by:        ./MatchScreen, ../host/HostConsole, ./HostLink, ./Lobby, ./MatchCancelled,
  *                 ./Registration, ./WaitingRoom, ./labels, ../host/HostDrawControls,
@@ -20,7 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from '../shell/http.js';
-import type { DomainEventLike, QuickTestResult } from '../types.js';
+import type { Card, CompactCard, DomainEventLike, QuickTestResult } from '../types.js';
 import { gameSocket, intent } from './socket.js';
 
 export interface MatchSummary {
@@ -76,13 +81,16 @@ export interface LiveState {
 // finish is among its events; the client keeps the list it holds.
 interface StateResponse extends Omit<LiveState, 'view'> {
   readonly since: number;
-  readonly view: Omit<QuickTestResult, 'players'> & Partial<Pick<QuickTestResult, 'players'>>;
+  readonly view: Omit<QuickTestResult, 'players' | 'cuts'> &
+    Partial<Pick<QuickTestResult, 'players' | 'cuts'>>;
 }
 
 export function useLiveMatch(code: string): {
   readonly live: LiveState | null;
   readonly error: string | null;
   readonly reload: () => void;
+  // A watching screen follows one player still in, or the top 4 again (null, D24).
+  readonly follow: (name: string | null) => void;
 } {
   const [live, setLive] = useState<LiveState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +98,7 @@ export function useLiveMatch(code: string): {
   const busy = useRef<Promise<void>>(Promise.resolve());
   // One delta fetch waiting is enough: it fetches everything since the held seq.
   const queued = useRef(false);
+  const followed = useRef<string | null>(null);
   const load = useCallback(
     (full: boolean) => {
       if (!full && queued.current) return;
@@ -97,8 +106,11 @@ export function useLiveMatch(code: string): {
       busy.current = busy.current.then(async () => {
         if (!full) queued.current = false;
         const since = full ? 0 : (held.current?.seq ?? 0);
+        const watch = watchParams(full ? null : held.current, followed.current);
         try {
-          const r = await api<StateResponse>(`/matches/${code}/state?since=${String(since)}`);
+          const r = await api<StateResponse>(
+            `/matches/${code}/state?since=${String(since)}${watch}`,
+          );
           const next = merge(full ? null : held.current, r);
           held.current = next;
           setLive(next);
@@ -118,7 +130,49 @@ export function useLiveMatch(code: string): {
     reload: () => {
       load(true);
     },
+    follow: (name) => {
+      followed.current = name;
+      load(false);
+    },
   };
+}
+
+// What a watching screen asks for (D24): the player it follows and, for the current round,
+// the players whose cards it holds already.
+function watchParams(held: LiveState | null, follow: string | null): string {
+  if (held?.view.watch === undefined) return '';
+  const start = lastRoundStart(held.view.events);
+  const known =
+    start === undefined
+      ? ''
+      : `&known=${String(start.roundIndex)}:${Object.keys(start.cardsByPlayer).map(encodeURIComponent).join(',')}`;
+  return `${follow === null ? '' : `&follow=${encodeURIComponent(follow)}`}${known}`;
+}
+
+// A compact watched card (one number per cell) as the card the screens draw.
+function fullCard(c: CompactCard): Card {
+  const cells = c.cells.map((v): Card['cells'][number] => {
+    if (v === 0) return { kind: 'free' };
+    return v > 100 ? { kind: 'symbol', value: v } : { kind: 'number', value: v };
+  });
+  return { cells, seasonCells: c.seasonCells };
+}
+
+type RoundStart = Extract<DomainEventLike, { type: 'roundStarted' }>;
+
+function lastRoundStart(events: readonly DomainEventLike[]): RoundStart | undefined {
+  return events.findLast((e): e is RoundStart => e.type === 'roundStarted');
+}
+
+// The watched card layouts go into the held start of their round; the fold then shows the
+// round's marks on them (the public cellMarked events).
+function withWatchedCards(view: QuickTestResult): QuickTestResult {
+  const sent = Object.entries(view.watch?.cards ?? {});
+  const start = lastRoundStart(view.events);
+  if (start === undefined || sent.length === 0) return view;
+  const cards = Object.fromEntries(sent.map(([name, list]) => [name, list.map(fullCard)]));
+  const patched = { ...start, cardsByPlayer: { ...start.cardsByPlayer, ...cards } };
+  return { ...view, events: view.events.map((e) => (e === start ? patched : e)) };
 }
 
 // At an announced start time the server's summary changes by the clock alone (the
@@ -146,12 +200,14 @@ function useRefreshAtStartTime(live: LiveState | null, load: (full: boolean) => 
 // Frames appended while the fetch ran are already held: those events are not repeated.
 function merge(held: LiveState | null, r: StateResponse): LiveState {
   const players = r.view.players ?? held?.view.players ?? [];
+  const cuts = r.view.cuts ?? held?.view.cuts ?? [];
   if (held === null || r.since === 0) {
-    return { match: r.match, seq: r.seq, me: r.me, view: { ...r.view, players } };
+    const view = withWatchedCards({ ...r.view, players, cuts });
+    return { match: r.match, seq: r.seq, me: r.me, view };
   }
   const fresh = r.view.events.slice(Math.max(0, held.seq - r.since));
   const events = [...held.view.events, ...fresh];
-  const view = { ...r.view, players, events };
+  const view = withWatchedCards({ ...r.view, players, cuts, events });
   return { match: r.match, seq: Math.max(r.seq, held.seq), me: r.me, view };
 }
 
@@ -178,9 +234,14 @@ interface Frame {
   readonly events: readonly { readonly s: number; readonly event: DomainEventLike }[];
 }
 
-function appendable(frame: Frame, me: string | null): boolean {
+// A frame is appended unless it names the viewer, or a player this screen watches (their
+// "1 to go" comes with a fetch, D24).
+function appendable(frame: Frame, now: LiveState): boolean {
+  const watched = new Set(now.view.watch === undefined ? [] : Object.keys(now.view.watch.oneToGo));
   return frame.events.every(
-    ({ event }) => APPENDABLE.has(event.type) && !('accountId' in event && event.accountId === me),
+    ({ event }) =>
+      APPENDABLE.has(event.type) &&
+      !('accountId' in event && (event.accountId === now.me || watched.has(event.accountId))),
   );
 }
 
@@ -198,7 +259,7 @@ function watchRoom({ code, held, load, setLive }: RoomArgs): () => void {
     const now = held.current;
     const heldSeq = now?.seq ?? 0;
     if (frame.s <= heldSeq) return;
-    if (now !== null && first === heldSeq + 1 && appendable(frame, now.me)) {
+    if (now !== null && first === heldSeq + 1 && appendable(frame, now)) {
       const events = [...now.view.events, ...frame.events.map((e) => e.event)];
       held.current = { ...now, seq: frame.s, view: { ...now.view, events } };
       setLive(held.current);

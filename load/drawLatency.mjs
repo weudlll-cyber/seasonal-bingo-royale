@@ -11,117 +11,26 @@
  *                 arrival and to fetch end; samples CPU, memory and event-loop lag from /metrics.
  *                 Then aborts the match (append-only log) and deletes the load accounts.
  *                 Usage: node load/drawLatency.mjs [players=200]
- * Depends on:     socket.io-client
+ * Depends on:     socket.io-client, ./common.mjs
  * Spec:           docs/spec/02-software-architecture.md; docs/spec/06-realtime-architecture.md §8;
  *                 docs/spec/08-devops-architecture.md §6 (draw latency p95 under 1 s)
  */
 import { io } from 'socket.io-client';
 
-const BASE = 'http://127.0.0.1:3900';
-const ORIGIN = 'http://localhost:5390';
+import {
+  BASE,
+  call,
+  errors,
+  fail,
+  inBatches,
+  ORIGIN,
+  signIn,
+  summary,
+  watchServer,
+} from './common.mjs';
+
 const PLAYERS = Number(process.argv[2] ?? 200);
 const TAPPER_EVERY = 5;
-
-const errors = { http: 0, socket: 0, intent: 0, examples: [] };
-function fail(kind, detail) {
-  errors[kind] += 1;
-  if (errors.examples.length < 10) errors.examples.push(`${kind}: ${detail}`);
-}
-
-// One signed-in client: its session cookie, CSRF token and account id.
-async function signIn(as) {
-  const r = await fetch(`${BASE}/api/v1/dev/sign-in`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', origin: ORIGIN },
-    body: JSON.stringify({ as }),
-  });
-  const cookie = (r.headers.get('set-cookie') ?? '').split(';')[0];
-  const { displayName } = await r.json();
-  const session = await (await fetch(`${BASE}/api/v1/session`, { headers: { cookie } })).json();
-  return { as, cookie, csrf: session.csrfToken, name: displayName };
-}
-
-async function call(client, method, path, body) {
-  const r = await fetch(`${BASE}/api/v1${path}`, {
-    method,
-    headers: {
-      cookie: client.cookie,
-      origin: ORIGIN,
-      'x-csrf-token': client.csrf,
-      ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-  if (!r.ok) fail('http', `${method} ${path} → ${String(r.status)}`);
-  return r.status === 204 ? null : r.json().catch(() => null);
-}
-
-async function inBatches(items, size, fn) {
-  const out = [];
-  for (let i = 0; i < items.length; i += size) {
-    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
-  }
-  return out;
-}
-
-const percentile = (values, p) => {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)];
-};
-
-function summary(values) {
-  return {
-    n: values.length,
-    p50: percentile(values, 50),
-    p95: percentile(values, 95),
-    p99: percentile(values, 99),
-    max: values.length === 0 ? null : Math.max(...values),
-  };
-}
-
-// The server's process metrics (prom-client, prefix sbr_).
-async function metrics() {
-  const text = await (await fetch(`${BASE}/metrics`)).text();
-  const value = (name) => Number(new RegExp(`^${name} ([\\d.e+-]+)`, 'm').exec(text)?.[1] ?? NaN);
-  return {
-    cpu: value('sbr_process_cpu_seconds_total'),
-    rss: value('sbr_process_resident_memory_bytes'),
-    lag: value('sbr_nodejs_eventloop_lag_p99_seconds'),
-  };
-}
-
-// Samples the server every 2 s, one request at a time (a slow answer skips a beat).
-function watchServer() {
-  const samples = [];
-  let last = null;
-  let running = true;
-  const loop = async () => {
-    while (running) {
-      const m = await metrics().catch(() => null);
-      const at = Date.now();
-      if (m !== null && Number.isFinite(m.cpu)) {
-        if (last !== null) {
-          samples.push({
-            cpuPct: ((m.cpu - last.m.cpu) * 100_000) / (at - last.at),
-            rss: m.rss,
-            lag: m.lag,
-          });
-        }
-        last = { m, at };
-      }
-      await new Promise((r) => setTimeout(r, 2_000));
-    }
-  };
-  const done = loop();
-  return {
-    stop: async () => {
-      running = false;
-      await done;
-    },
-    samples,
-  };
-}
 
 // As the player screen does (apps/web/src/game/useLiveMatch.ts): other players' taps,
 // patterns, prizes and window closes are appended; anything else fetches.

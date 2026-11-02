@@ -9,13 +9,14 @@
  *                 (2) replay the log with the domain's evolve — at once or incrementally
  *                 (`LiveReplay`, one per live match) — recording each tracked player's effect
  *                 status (multiplier/growth with remaining draws, shields, seasons) on change,
- *                 every player's points after each stage start and first-round card, so the
- *                 client renders them and never computes them (CLAUDE.md).
- * Depends on:     @sbr/domain, @sbr/contracts (view types)
+ *                 every player's points after each stage start and first-round card, and what
+ *                 each cut did (./cutFacts), so the client renders them and never computes
+ *                 them (CLAUDE.md).
+ * Depends on:     @sbr/domain, @sbr/contracts (view types), ./cutFacts
  * Used by:        ./clientView, ./liveViews, ../realtime/gateway, ../http/routes/matchViews
  * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import type { EffectKind, OwnerStatus, Season } from '@sbr/contracts';
+import type { CutFacts, EffectKind, OwnerStatus, Season } from '@sbr/contracts';
 import {
   createInitialMatchState,
   evolve,
@@ -24,6 +25,8 @@ import {
   type DomainEvent,
   type MatchState,
 } from '@sbr/domain';
+
+import { cutFactsOf } from './cutFacts.js';
 
 export function renameAccounts(
   events: readonly DomainEvent[],
@@ -107,7 +110,8 @@ interface StagePoints {
 // Replays the original (internal-id) log with the domain's evolve, and can be extended
 // with new events (the live view keeps one per match). Keeps one status list per tracked
 // player, with an entry only when that player's status changed, the points after each
-// stage start, the events renamed for the client and every player's first-round card.
+// stage start, the events renamed for the client, every player's first-round card and the
+// facts of each cut.
 // Keyed by display id.
 export class LiveReplay {
   private state = createInitialMatchState();
@@ -116,6 +120,8 @@ export class LiveReplay {
   readonly stagePoints: StagePoints[] = [];
   readonly renamed: DomainEvent[] = [];
   readonly firstCards = new Map<string, Card>();
+  // What each cut did (./cutFacts), read from the state just before it.
+  readonly cuts: CutFacts[] = [];
 
   // `tracked`: the internal ids whose status is kept, or 'all' players.
   constructor(
@@ -131,6 +137,9 @@ export class LiveReplay {
 
   extend(events: readonly DomainEvent[]): void {
     for (const ev of events) {
+      if (ev.type === 'cutApplied') {
+        this.cuts.push(cutFactsOf(this.state, ev, (id) => this.idMap.get(id) ?? id));
+      }
       this.state = evolve(this.state, ev);
       this.steps += 1;
       if (ev.type === 'stageStarted') {

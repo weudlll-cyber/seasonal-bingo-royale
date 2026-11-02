@@ -1,52 +1,72 @@
 /**
  * @file   apps/web/src/components/OwnerStatusPanel.tsx
  * @module web
- * @brief  The owner's score, rank, active effects, shield charges, seasons (01 §8, §13).
+ * @brief  The owner's score, rank, active effects, shield and seasons in plain words (01 §8, §13).
  *
- * Responsibility: show what the server reports for one owner account: points and rank
- *                 in the standings, active effects with remaining draws (badges in the
- *                 colour of the season that grants them), Winter shield charges and
- *                 the four seasons with the collected ones highlighted — all from the
- *                 server, never from local taps. Once eliminated, the panel says "Out in
- *                 cut N" instead of effects and shield.
- * Depends on:     react, ./SeasonIcon, ../types
+ * Responsibility: show what the server reports for one owner account: points and rank in the
+ *                 standings; each active effect as one sentence with the season's name and the
+ *                 numbers of the ruleset and the server's status ("Summer boost: all your points
+ *                 count ×1.5 — 5 more numbers"), the Winter shield with its margin and charges
+ *                 while it has one, each shield save with the cut and how far below the line the
+ *                 owner was; the four seasons of the match by name with the collected ones ticked
+ *                 and lit, what all four give, and that seasons count over the whole match. The
+ *                 icons and season colours stay beside the words; lines wrap, never truncate.
+ *                 Never from local taps. Once eliminated: "Out in cut N" instead.
+ * Depends on:     react, ./SeasonIcon, ../game/seasonText, ../playbackTypes, ../types
  * Used by:        ./OwnerArea (OwnerStatusFor, also for ../game/MatchScreen)
- * Spec:           docs/spec/01-game-design.md §8.2, §13; docs/spec/15-implementation-plan.md WP-08
+ * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
 import {
+  boostSentence,
+  growthSentence,
+  seasonCompleteNote,
+  seasonName,
+  shieldSavedLine,
+  shieldSentence,
+} from '../game/seasonText.js';
+import type { ShieldSave } from '../playbackTypes.js';
+import {
   seasonColor,
   SEASON_NAMES,
-  type EffectKind,
   type OwnerStatus,
+  type QuickTestResult,
   type Season,
 } from '../types.js';
+
+// The ruleset facts the sentences name (from the server's view).
+type StatusRules = Pick<
+  QuickTestResult,
+  'effectSeasons' | 'seasonEffects' | 'seasonCompletePoints'
+>;
 
 interface OwnerStatusPanelProps {
   readonly accountId: string;
   readonly points: number;
   readonly rank: number;
   readonly status: OwnerStatus | null;
-  readonly effectSeasons: Readonly<Partial<Record<EffectKind, Season>>>;
+  readonly rules: StatusRules;
   // Effects, shield and seasons exist in royale only (01 §3a).
   readonly showSeasons: boolean;
   // The cut that eliminated the owner, null while in: an eliminated owner has no effect
   // or shield left, so the panel says "Out in cut N" instead.
   readonly outInCut: number | null;
+  readonly shieldSaves: readonly ShieldSave[];
 }
 
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
   const { accountId, points, rank } = props;
   return (
     <section
+      className="owner-status"
       data-testid={`owner-status-${accountId}`}
       data-points={points}
       data-rank={rank}
       aria-label={`${accountId} status`}
     >
-      <p style={{ margin: 0 }}>
+      <p className="owner-status-head">
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
       </p>
       {props.outInCut !== null ? (
@@ -54,71 +74,101 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
           Out in cut {String(props.outInCut)}
         </p>
       ) : null}
-      {props.showSeasons && props.outInCut === null ? (
-        <SeasonStatus status={props.status} effectSeasons={props.effectSeasons} />
-      ) : null}
+      {props.showSeasons && props.outInCut === null ? <SeasonStatus {...props} /> : null}
     </section>
   );
 }
 
-function SeasonStatus({
-  status,
-  effectSeasons,
-}: Pick<OwnerStatusPanelProps, 'status' | 'effectSeasons'>): ReactElement {
-  const collected = new Set(status?.seasons ?? []);
-
+function SeasonStatus({ status, rules, shieldSaves }: OwnerStatusPanelProps): ReactElement {
+  const { multiplier: boost, growth: grow } = rules.effectSeasons;
   return (
     <>
-      <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', margin: '0.3rem 0' }}>
-        {status?.multiplier ? (
-          <EffectBadge season={effectSeasons.multiplier} testId="effect-multiplier">
-            ×{String(status.multiplier.factor)} · {String(status.multiplier.remainingDraws)} draws
-            left
-          </EffectBadge>
-        ) : null}
-        {status?.growth ? (
-          <EffectBadge season={effectSeasons.growth} testId="effect-growth">
-            growth +{String(status.growth.pointsPerMark)}/mark ·{' '}
-            {String(status.growth.remainingDraws)} draws left
-          </EffectBadge>
-        ) : null}
-        <EffectBadge season={effectSeasons.shield} testId="effect-shield">
-          shield ×{String(status?.shieldCharges ?? 0)}
-        </EffectBadge>
-      </div>
-      <p style={{ margin: 0 }} data-testid="seasons-collected" data-count={collected.size}>
-        Seasons collected: {String(collected.size)}/4{' '}
-        {SEASON_NAMES.map((s) => (
-          <SeasonIcon key={s} season={s} size="1.2rem" onColor dimmed={!collected.has(s)} />
-        ))}
+      {status?.multiplier && boost !== undefined ? (
+        <EffectLine season={boost} testId="effect-multiplier">
+          {boostSentence(boost, status.multiplier.factor, status.multiplier.remainingDraws)}
+        </EffectLine>
+      ) : null}
+      {status?.growth && grow !== undefined ? (
+        <EffectLine season={grow} testId="effect-growth">
+          {growthSentence(grow, status.growth.remainingDraws)}
+        </EffectLine>
+      ) : null}
+      <Shield rules={rules} charges={status?.shieldCharges ?? 0} saves={shieldSaves} />
+      <Seasons collected={new Set(status?.seasons ?? [])} points={rules.seasonCompletePoints} />
+    </>
+  );
+}
+
+// The Winter shield while it has a charge, and every save it made (cut, places below).
+function Shield({
+  rules,
+  charges,
+  saves,
+}: {
+  readonly rules: StatusRules;
+  readonly charges: number;
+  readonly saves: readonly ShieldSave[];
+}): ReactElement {
+  const season = rules.effectSeasons.shield;
+  const effect = season === undefined ? undefined : rules.seasonEffects[season];
+  return (
+    <>
+      {season !== undefined && effect?.type === 'shield' && charges > 0 ? (
+        <EffectLine season={season} testId="effect-shield">
+          {shieldSentence(season, effect.rankMargin, charges)}
+        </EffectLine>
+      ) : null}
+      {saves.map((s) => (
+        <p key={s.cut} className="effect-line" data-testid="shield-saved">
+          {shieldSavedLine(s.cut, s.placesBelow)}
+        </p>
+      ))}
+    </>
+  );
+}
+
+// "Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter ✓ — all four give +300".
+function Seasons({
+  collected,
+  points,
+}: {
+  readonly collected: ReadonlySet<Season>;
+  readonly points: number;
+}): ReactElement {
+  return (
+    <>
+      <p className="season-list" data-testid="seasons-collected" data-count={collected.size}>
+        Seasons this match:{' '}
+        {SEASON_NAMES.map((s, i) => (
+          <span key={s} className="season-item">
+            {i > 0 ? ' · ' : ''}
+            <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
+            {/* A collected season is ticked; an open one is its name alone. */}
+            {seasonName(s)}
+            {collected.has(s) ? ' ✓' : ''}
+          </span>
+        ))}{' '}
+        — {seasonCompleteNote(points)}
+      </p>
+      <p className="sbr-muted season-note" data-testid="seasons-note">
+        Seasons count over the whole match.
       </p>
     </>
   );
 }
 
-interface BadgeProps {
-  readonly season: Season | undefined;
+interface LineProps {
+  readonly season: Season;
   readonly testId: string;
-  readonly children: React.ReactNode;
+  readonly children: ReactNode;
 }
 
-function EffectBadge({ season, testId, children }: BadgeProps): ReactElement {
+// One effect sentence with its season icon, framed in the season colour.
+function EffectLine({ season, testId, children }: LineProps): ReactElement {
   return (
-    <span
-      data-testid={testId}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.25rem',
-        padding: '0.1rem 0.45rem',
-        borderRadius: '999px',
-        background: season === undefined ? 'var(--color-surface-2)' : seasonColor(season),
-        color: season === undefined ? 'var(--color-text)' : 'var(--color-on-season)',
-        fontSize: '0.85rem',
-      }}
-    >
-      {season === undefined ? null : <SeasonIcon season={season} size="0.9rem" ink />}
+    <p className="effect-line" data-testid={testId} style={{ borderColor: seasonColor(season) }}>
+      <SeasonIcon season={season} size="1rem" onColor />
       {children}
-    </span>
+    </p>
   );
 }

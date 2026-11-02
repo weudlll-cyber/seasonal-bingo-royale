@@ -11,7 +11,7 @@
  *                 decides when the next draw shows. The speed window for manual taps always
  *                 starts when a draw is shown (./manualMarking).
  * Depends on:     ./types
- * Used by:        ./useDrawTicker, ./App, ./components/DrawControls,
+ * Used by:        ./useDrawTicker, ./quicktest/*, ./components/DrawControls,
  *                 ./components/DrawModeSwitch, ./components/StartDrawField,
  *                 ./components/StartForm, ./host/createForm
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
