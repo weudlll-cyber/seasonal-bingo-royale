@@ -44,6 +44,8 @@ export interface MatchRow {
   timezone: string;
   quiet_start_hour: number | null;
   quiet_end_hour: number | null;
+  // The end of an asynchronous lobby (0012, D31, D33); NULL for realtime matches.
+  lobby_closes_at: Date | null;
 }
 
 export function recordFrom(row: MatchRow): MatchRecord {
@@ -77,6 +79,7 @@ export function recordFrom(row: MatchRow): MatchRecord {
     },
     createdBy: row.created_by,
     startsAt: row.starts_at === null ? null : row.starts_at.getTime(),
+    lobbyClosesAt: row.lobby_closes_at === null ? null : row.lobby_closes_at.getTime(),
   };
 }
 

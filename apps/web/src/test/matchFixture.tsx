@@ -49,6 +49,7 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     waitingForHost: false,
     minPlayers: 2,
     tooFewAtStart: false,
+    lobbyClosesAt: null,
     quietUntil: null,
     youHost: false,
     ...over,

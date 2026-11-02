@@ -108,6 +108,7 @@ export class MatchEngine {
       code: this.deps.randomCode(),
       seed: this.deps.randomSeed(),
       createdBy,
+      now: this.deps.clock.now(),
     });
     await this.deps.store.insert(created.record);
     await this.runner.apply(created.record.id, [created.openLobby]);

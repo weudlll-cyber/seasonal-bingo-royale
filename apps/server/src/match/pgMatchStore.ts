@@ -79,9 +79,9 @@ export class PgMatchStore implements MatchStore {
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
          missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms,
          start_rule, start_at, start_auto, seed_enc_version, mode, timezone, quiet_start_hour,
-         quiet_end_hour)
+         quiet_end_hour, lobby_closes_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-         $23,$24,$25,$26)`,
+         $23,$24,$25,$26,$27)`,
       [
         r.id,
         r.code,
@@ -111,6 +111,7 @@ export class PgMatchStore implements MatchStore {
         s.timeZone,
         s.quietHours?.startHour ?? null,
         s.quietHours?.endHour ?? null,
+        r.lobbyClosesAt === null ? null : new Date(r.lobbyClosesAt),
       ],
     );
   }

@@ -58,6 +58,9 @@ export interface MatchRecord {
   readonly settings: MatchSettings;
   readonly createdBy: string | null;
   readonly startsAt: number | null;
+  // When an asynchronous lobby closes (D31, D33): the announced start time, else the
+  // ruleset's window after creation; null for realtime matches (./startRules lobbyClosesAt).
+  readonly lobbyClosesAt: number | null;
 }
 
 export interface NewMatchRecord extends Omit<MatchRecord, 'status' | 'startsAt'> {

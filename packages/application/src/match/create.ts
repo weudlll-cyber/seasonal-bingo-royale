@@ -8,11 +8,12 @@
  *                 clamp the timed-draw interval into the mode's range (D12; async 1 min–24 h),
  *                 raise a missed-number delay to the speed window, take the async defaults
  *                 (automatic marking, quiet hours, time zone), keep the pause between royale
- *                 rounds at its minimum or above (D14), and build the match record plus the
- *                 `openLobby` command that freezes the ruleset and the seed (01 §3a, §5, §6, §9).
+ *                 rounds at its minimum or above (D14), set when an asynchronous lobby closes
+ *                 (D31, D33), and build the match record plus the `openLobby` command that
+ *                 freezes the ruleset and the seed (01 §3a, §5, §6, §9).
  * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./quietHours, ./rulesets, ./timing
  * Used by:        ./engine, ../index
- * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §3a.1, §5, §6, §11
+ * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §3a.1, §5, §6, §7.6, §11
  */
 import {
   BUILTIN_PRIZE_CATALOGUE_ORDER,
@@ -86,6 +87,8 @@ interface NewMatchIds {
   readonly code: string;
   readonly seed: Uint8Array;
   readonly createdBy: string | null;
+  // The time of creation (the match's clock), from which an async lobby's window runs.
+  readonly now: number;
 }
 
 // The draw settings: realtime as before; an asynchronous match marks automatically by
@@ -115,6 +118,13 @@ function drawSettings(
   };
 }
 
+// When an asynchronous lobby closes (D31, D33): at the announced start time, else after the
+// ruleset's window (lobby.openMsAsync, 24 h) from creation; a realtime lobby has no end.
+export function lobbyClosesAt(rule: StartRule, ruleset: Ruleset, now: number): number | null {
+  if (ruleset.mode !== 'async') return null;
+  return rule.kind === 'at' ? rule.at : now + ruleset.lobby.openMsAsync;
+}
+
 export function toNewMatch(
   input: CreateMatchInput,
   prizes: readonly string[],
@@ -122,6 +132,7 @@ export function toNewMatch(
 ): { readonly record: NewMatchRecord; readonly openLobby: Command } {
   const ruleset = input.ruleset?.ruleset ?? defaultRulesetFor(input.gameType, input.mode);
   const draws = drawSettings(input, ruleset);
+  const startRule = input.startRule ?? { kind: 'host' };
   const record: NewMatchRecord = {
     id: ids.id,
     code: ids.code,
@@ -139,9 +150,10 @@ export function toNewMatch(
       ...draws,
       drawMode: input.drawMode,
       roundPause: chosenRoundPause(input.roundPause),
-      startRule: input.startRule ?? { kind: 'host' },
+      startRule,
     },
     createdBy: ids.createdBy,
+    lobbyClosesAt: lobbyClosesAt(startRule, ruleset, ids.now),
     seed: ids.seed,
   };
   const openLobby: Command = {

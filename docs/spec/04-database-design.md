@@ -115,6 +115,7 @@ embed_origins
 | started_at, finished_at | timestamptz NULL | |
 | timezone | text | for quiet hours: an IANA name, default `UTC` (0010) |
 | quiet_start_hour, quiet_end_hour | smallint NULL | quiet hours of an `async` match, whole hours 0–23 in `timezone` (start inclusive, end exclusive, a start after the end wraps past midnight); both NULL without quiet hours, always NULL for `realtime` (CHECK, 0010) |
+| lobby_closes_at | timestamptz NULL | when an `async` lobby starts or closes: its announced start time, else 24 h after creation (D31, D33); NULL for `realtime` matches (0012) |
 | seed_commitment | bytea | sha256(seed) |
 | seed_enc | bytea | AES-GCM; readable by API only when `status IN ('finished','aborted')` |
 | seed_enc_version | smallint | 3: `seed_enc` sealed with the match id as AAD (written today); 2: sealed without it (matches stored before, kept as they are) |

@@ -5,7 +5,8 @@
  *
  * Responsibility: a page card with the title and the period selector side by side (stacked on
  *                 phones), the board as a compact table with the own row highlighted like the
- *                 standings, the profile's figures as tiles and the recent matches as rows.
+ *                 standings and every name on one line (a long one shortened with an ellipsis),
+ *                 the profile's figures as tiles and the recent matches as rows.
  *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §10, §13
  */
@@ -63,7 +64,34 @@
 .league-table thead th:nth-child(2) {
   width: 100%;
   text-align: left;
-  overflow-wrap: anywhere;
+}
+
+/* A name stays on one line (never "demo-" / "02" on a phone); a long one ends in an
+   ellipsis, the full name is on the profile it links to. max-width: 0 lets the cell
+   shrink below its text so the ellipsis can show; the number columns keep only the width
+   of their longest word ("Season" / "Completes" on two lines), the name gets the rest. */
+.league-table th[scope='row'] {
+  max-width: 0;
+}
+
+.league-table td,
+.league-table thead th:not(:nth-child(2)) {
+  width: 1%;
+}
+
+/* Phones: narrower gaps between the columns, so a usual name fits without an ellipsis */
+@media (max-width: 640px) {
+  .league-table th,
+  .league-table td {
+    padding-inline: 0.2rem;
+  }
+}
+
+.league-table th[scope='row'] a {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .league-table td:first-child,

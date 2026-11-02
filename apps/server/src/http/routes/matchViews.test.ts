@@ -54,6 +54,7 @@ const record = {
   },
   status: 'running',
   startsAt: null,
+  lobbyClosesAt: null,
 };
 
 // The view of `viewer` (a player, or the host who plays not) with the events after

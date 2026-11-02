@@ -56,8 +56,9 @@ export interface MatchSummary {
     readonly quietHours: { readonly startHour: number; readonly endHour: number } | null;
     readonly timeZone: string;
   };
-  // The end of the running countdown; null before it runs.
+  // The end of the running countdown; when an async lobby starts or closes (D34). Else null.
   readonly startsAt: number | null;
+  readonly lobbyClosesAt: number | null;
   // When the next round starts after a cut (the cut screen counts down); null if unknown.
   readonly nextRoundAt: number | null;
   // When Draw next unlocks (D13); null before a round's first draw or outside a round.

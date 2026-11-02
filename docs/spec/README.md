@@ -93,6 +93,10 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D30 | Quiet hours and the host (2026-11-01) | In an asynchronous match quiet hours apply to the host too: Draw next is refused during them ([01](01-game-design.md) §5). |
 | D31 | The asynchronous lobby window (2026-11-01) | The lobby is open 24 h. Then a match not yet started starts by itself with at least `minPlayers` joined (the normal 10-second countdown); with fewer the system cancels it with the reason “Too few players joined within 24 hours” (D17). Maintenance holds this start (D22) ([01](01-game-design.md) §7.6). |
 | D32 | What can be asynchronous (2026-11-01) | Only the battle royale ([01](01-game-design.md) §5, §11). |
+| D33 | The asynchronous lobby with a start time (2026-11-02) | An asynchronous match with an announced start time keeps its lobby open until that time; then D31's rule applies (start with enough players, else cancelled by the system). Without a start time the lobby closes after 24 h as in D31 ([01](01-game-design.md) §7.6). |
+| D34 | When the asynchronous lobby closes (2026-11-02) | The waiting room and the host console of an asynchronous match show “Starts or closes at <time>” in the viewer's time format, live ([01](01-game-design.md) §7.6, §13). |
+| D35 | The pause between asynchronous royale rounds (2026-11-02) | Stays 15 s, as in realtime (D21; unchanged) ([01](01-game-design.md) §11). |
+| D36 | The whole match log (2026-11-02) | Groups its lines by round without dimming earlier rounds (unchanged) ([01](01-game-design.md) §13). |
 
 ## 5. Open
 

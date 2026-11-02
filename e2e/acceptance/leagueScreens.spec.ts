@@ -8,14 +8,14 @@
  *                 then saves the season board with 10 rows (league-board-filled-*), the
  *                 all-time board with two players sharing a rank in view (league-tie-*, D28)
  *                 and demo-01's profile with 3 matches (league-profile-*), at desktop and phone
- *                 size in both themes. The demo accounts are removed afterwards; finished
- *                 matches stay. Runs only with SBR_ACCEPTANCE=1.
+ *                 size in both themes; on a phone every name keeps to one line, uncut. The demo
+ *                 accounts are removed afterwards; finished matches stay. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../screens
  * Spec:           docs/spec/01-game-design.md §10 (D28, D29)
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { captureLook, SHOTS_DIR } from '../screens.js';
+import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
 
 const DEMO = '/api/v1/dev/demo-league';
 
@@ -24,6 +24,17 @@ const ranksOn = (page: Page) =>
   page
     .locator('[data-testid^="league-row-"]')
     .evaluateAll((rows) => rows.map((r) => r.getAttribute('data-rank')));
+
+// Every board name, top to bottom: the line boxes of its text and whether an ellipsis cuts it.
+const nameLayout = (page: Page) =>
+  page.locator('[data-testid^="league-row-"] th a').evaluateAll((links) =>
+    links.map((a) => {
+      const range = document.createRange();
+      range.selectNodeContents(a);
+      const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
+      return { lines, cut: a.scrollWidth > a.clientWidth };
+    }),
+  );
 
 test('league screens: a filled board, a tie, a profile', async ({ page }) => {
   test.setTimeout(15 * 60_000);
@@ -49,6 +60,10 @@ test('league screens: a filled board, a tie, a profile', async ({ page }) => {
     const rows = page.locator('[data-testid^="league-row-"]');
     await expect(rows).toHaveCount(10);
     await captureLook(page, SHOTS_DIR, 'league-board-filled');
+    // On a phone no name breaks (never "demo-" / "02") and a short one is not cut.
+    await page.setViewportSize(PHONE);
+    expect(await nameLayout(page)).toEqual(Array(10).fill({ lines: 1, cut: false }));
+    await page.setViewportSize(DESKTOP);
     await page.getByTestId('leaderboard-period').selectOption({ label: 'All time' });
     await expect(rows).toHaveCount(10);
     const ranks = await ranksOn(page);

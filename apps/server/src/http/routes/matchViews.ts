@@ -5,7 +5,8 @@
  *
  * Responsibility: the summary (code, title, type, mode, status per the event log, settings,
  *                 players, prizes, countdown, next round, Draw next unlock, waiting for host or
- *                 players (D16), quiet hours until, creator, if the viewer hosts) and the live view: the Quick Test payload
+ *                 players (D16), when an async lobby closes (D34), quiet hours until, creator,
+ *                 if the viewer hosts) and the live view: the Quick Test payload
  *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
  *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
  *                 only later events, no player list unless a join, first round start or finish is
@@ -63,6 +64,8 @@ export function matchSummary(m: LoadedMatch, viewer: string | null, clock: Clock
     minPlayers: minPlayersOf(m),
     // The automatic start found too few players: the match waits for its host (D16).
     tooFewAtStart: tooFewAtStart(m, Date.now()),
+    // When an asynchronous lobby starts or closes (D31, D33, D34); null for realtime.
+    lobbyClosesAt: r.lobbyClosesAt,
     ...clock,
     youHost: viewer === null ? null : r.createdBy === viewer,
   };

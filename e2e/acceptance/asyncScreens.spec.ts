@@ -8,10 +8,12 @@
  *                 the console with minutes and "Jump ahead" (async-console-jump-*); a day later,
  *                 the player's "While you were away" (async-away-summary-*). An asynchronous
  *                 lobby with one player, a day later: the cancelled-match page with "Too few
- *                 players joined within 24 hours" (async-lobby-cancelled-*). Desktop and phone,
- *                 both themes. Every match is aborted afterwards. Runs only with SBR_ACCEPTANCE=1.
+ *                 players joined within 24 hours" (async-lobby-cancelled-*). An asynchronous
+ *                 lobby says when it starts or closes, in the waiting room and the console
+ *                 (async-lobby-closes-*, D34). Desktop and phone, both themes. Every match is
+ *                 aborted afterwards. Runs only with SBR_ACCEPTANCE=1.
  * Depends on:     @playwright/test, ../realGame, ../screens
- * Spec:           docs/spec/01-game-design.md §7.6 (D31), §11
+ * Spec:           docs/spec/01-game-design.md §7.6 (D31, D33, D34), §11
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
@@ -94,5 +96,25 @@ test('an asynchronous match: player, console, away summary, lobby cancelled', as
     await captureLook(player, SHOTS_DIR, 'async-lobby-cancelled');
   } finally {
     for (const c of codes) await stopMatch(host, c);
+  }
+});
+
+test('an asynchronous lobby says when it starts or closes (D34)', async ({ browser }) => {
+  test.setTimeout(3 * 60_000);
+  const host = await (await browser.newContext()).newPage();
+  const player = await (await browser.newContext()).newPage();
+  await signIn(host, 'host');
+  await signIn(player, 'player-1');
+  const code = await asyncMatch(host, player, 'Royale by the week');
+  try {
+    const closes = /^Starts or closes (at|on .+ at) \d\d:\d\d \(in 1 day\)$/;
+    await player.goto(`/#/match/${code}`);
+    await expect(player.getByTestId('registration')).toHaveText(closes);
+    await captureLook(player, SHOTS_DIR, 'async-lobby-closes');
+    await host.goto(`/#/host/${code}`);
+    await expect(host.getByTestId('host-start-rule')).toHaveText(closes);
+    await captureLook(host, SHOTS_DIR, 'async-lobby-closes-console');
+  } finally {
+    await stopMatch(host, code);
   }
 });

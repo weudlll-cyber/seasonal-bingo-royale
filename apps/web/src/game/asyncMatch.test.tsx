@@ -168,7 +168,12 @@ describe('the host console of an asynchronous match', () => {
       { ...running, markingMode: 'auto', events: running.events.slice(0, 11) },
     );
     await show(<HostConsole code="SLOW01" />);
-    const day = await screen.findByRole('button', { name: 'Jump ahead 1 day' });
+    // Loaded on demand (a real dynamic import): slower than 1 s while the whole suite runs.
+    const day = await screen.findByRole(
+      'button',
+      { name: 'Jump ahead 1 day' },
+      { timeout: 10_000 },
+    );
     expect(screen.getByRole('button', { name: 'Jump ahead 1 hour' })).toBeTruthy();
     await act(async () => {
       fireEvent.click(day);
