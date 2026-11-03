@@ -23,9 +23,9 @@ export function YourMatches(): ReactElement | null {
   return (
     <section className="sbr-panel sbr-stack" data-testid="your-matches" aria-label="Your matches">
       <h2>Your matches</h2>
-      <ul className="your-matches">
+      <ul className="own-matches">
         {mine.map((m) => (
-          <li key={m.code} className="your-match">
+          <li key={m.code} className="own-match">
             <span>
               <strong>{m.title}</strong>
               <span className="sbr-muted">

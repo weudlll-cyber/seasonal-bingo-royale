@@ -10,7 +10,7 @@
  *                 marking keeps going; the realtime match, its log, its standings and the
  *                 player's state there (points, seasons, shield) do not move; each socket hears
  *                 only its own match; the away summary counts only the asynchronous match's
- *                 draws. The matches are aborted at the end.
+ *                 draws. Open matches are aborted at the end (./harness stopHarness).
  * Depends on:     @sbr/domain (types), socket.io-client (types), ./harness, ./socketKit
  * Spec:           docs/spec/01-game-design.md §5, §11 (D39); docs/spec/06-realtime-architecture.md §4
  */
@@ -114,43 +114,38 @@ describe('one player in an asynchronous and a realtime match at once (D39)', () 
     const live = await joinedRoyale({ title: 'Live', drawMode: 'host' });
     const engine = kit.harness.built.match.engine;
     await engine.handle({ matchId: live.id, kind: 'start_match', dueAt: Date.now() });
-    try {
-      const liveTab = await tab(live.code);
-      const slowTab = await tab(slow.code);
-      expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
-      await expect.poll(() => liveTab.seqs.length).toBeGreaterThan(0);
-      const before = await realtimeFacts(live.id);
-      const heardLive = liveTab.seqs.length;
-      // A day of the asynchronous match while the realtime one waits for its host.
-      const travel = await kit.host.post('/api/v1/dev/time-travel', { code: slow.code, ms: DAY });
-      expect(travel.statusCode).toBe(200);
-      const slowLog = await kit.harness.built.match.store.events(slow.id, 0);
-      const slowDraws = slowLog.filter((e) => e.event.type === 'drawMade').length;
-      expect(slowDraws).toBeGreaterThan(50);
-      // Its automatic marking went on for player-1 (no tap of theirs in that match).
-      const slowMarks = await kit.harness.pool.query<{ source: string; n: string }>(
-        `SELECT source, count(*) AS n FROM sbr.marks m JOIN sbr.match_entries e
-           ON e.match_id = m.match_id AND e.player_id = m.player_id
-          WHERE m.match_id = $1 AND e.account_id IS NOT NULL GROUP BY source`,
-        [slow.id],
-      );
-      expect(slowMarks.rows.map((r) => r.source)).toEqual(['auto']);
-      expect(Number(slowMarks.rows[0]?.n)).toBeGreaterThan(0);
-      // The realtime match did not move: log, standings row, the player's state there.
-      expect(await realtimeFacts(live.id)).toEqual(before);
-      // Each tab heard only its own match.
-      await expect.poll(() => slowTab.seqs.length).toBeGreaterThan(50);
-      expect(Math.max(...slowTab.seqs)).toBeLessThanOrEqual(slowLog.length);
-      expect(liveTab.seqs.length).toBe(heardLive);
-      expect(Math.max(...liveTab.seqs)).toBeLessThanOrEqual(before.seq);
-      // The away summary counts the asynchronous match's draws only.
-      const away = await kit.player.get(`/api/v1/matches/${slow.code}/away-summary`);
-      expect(away.json<{ summary: { draws: number } | null }>().summary?.draws).toBe(slowDraws);
-      // The realtime match goes on: another tap is accepted there.
-      expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
-    } finally {
-      await engine.abort(slow.id, 'test cleanup', 'host');
-      await engine.abort(live.id, 'test cleanup', 'host');
-    }
+    const liveTab = await tab(live.code);
+    const slowTab = await tab(slow.code);
+    expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
+    await expect.poll(() => liveTab.seqs.length).toBeGreaterThan(0);
+    const before = await realtimeFacts(live.id);
+    const heardLive = liveTab.seqs.length;
+    // A day of the asynchronous match while the realtime one waits for its host.
+    const travel = await kit.host.post('/api/v1/dev/time-travel', { code: slow.code, ms: DAY });
+    expect(travel.statusCode).toBe(200);
+    const slowLog = await kit.harness.built.match.store.events(slow.id, 0);
+    const slowDraws = slowLog.filter((e) => e.event.type === 'drawMade').length;
+    expect(slowDraws).toBeGreaterThan(50);
+    // Its automatic marking went on for player-1 (no tap of theirs in that match).
+    const slowMarks = await kit.harness.pool.query<{ source: string; n: string }>(
+      `SELECT source, count(*) AS n FROM sbr.marks m JOIN sbr.match_entries e
+         ON e.match_id = m.match_id AND e.player_id = m.player_id
+        WHERE m.match_id = $1 AND e.account_id IS NOT NULL GROUP BY source`,
+      [slow.id],
+    );
+    expect(slowMarks.rows.map((r) => r.source)).toEqual(['auto']);
+    expect(Number(slowMarks.rows[0]?.n)).toBeGreaterThan(0);
+    // The realtime match did not move: log, standings row, the player's state there.
+    expect(await realtimeFacts(live.id)).toEqual(before);
+    // Each tab heard only its own match.
+    await expect.poll(() => slowTab.seqs.length).toBeGreaterThan(50);
+    expect(Math.max(...slowTab.seqs)).toBeLessThanOrEqual(slowLog.length);
+    expect(liveTab.seqs.length).toBe(heardLive);
+    expect(Math.max(...liveTab.seqs)).toBeLessThanOrEqual(before.seq);
+    // The away summary counts the asynchronous match's draws only.
+    const away = await kit.player.get(`/api/v1/matches/${slow.code}/away-summary`);
+    expect(away.json<{ summary: { draws: number } | null }>().summary?.draws).toBe(slowDraws);
+    // The realtime match goes on: another tap is accepted there.
+    expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
   }, 180_000);
 });

@@ -121,7 +121,8 @@ describe('the session after a quick sign-in', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((url: string) => {
-        if (!url.endsWith('/session')) return Promise.resolve(new Response('{}'));
+        // The lobby's lists (the matches, the player's own, D39) are empty.
+        if (!url.endsWith('/session')) return Promise.resolve(new Response('{"matches":[]}'));
         sessionCalls += 1;
         if (sessionCalls === 1) return new Promise<Response>((r) => (answerFirst = r));
         return Promise.resolve(new Response(JSON.stringify(host)));

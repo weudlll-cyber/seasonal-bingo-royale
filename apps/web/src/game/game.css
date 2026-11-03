@@ -3,7 +3,7 @@
  * @module web/game
  * @brief  The live match screens around the arena: lobby, waiting room, "Verify this match".
  *
- * Responsibility: the lobby list, the waiting room and its countdown, the verify page, the
+ * Responsibility: the lobby list, the rows of a player's or host's own matches, the waiting room and its countdown, the verify page, the
  *                 "While you were away" panel of an asynchronous match. The arena (ball, drawn
  *                 numbers, card) is in ./arena.css, the host's screens in
  *                 ../host/host.css. Colours and sizes from @sbr/ui tokens.
@@ -43,6 +43,26 @@
 
 .lobby-item p {
   margin: 0;
+}
+
+/* A player's or a host's own matches, one row each with its button: the lobby's "My
+   matches" (./MyMatches, D39) and the host's "Your matches" (../host/YourMatches) */
+.own-matches {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.own-match {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border-top: 1px solid var(--color-border);
 }
 
 .waiting-players {

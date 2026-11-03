@@ -9,12 +9,13 @@
  *                 open match its registration status (./Registration); "Manage"
  *                 for the match's host (the server says who that is) while it is open or
  *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
- *                 POST /matches/:code/join and opens the match. Without a session it points
- *                 to the sign-in buttons.
+ *                 POST /matches/:code/join and opens the match. A signed-in player's own
+ *                 matches that are not over come first (./MyMatches, D39). Without a session it
+ *                 points to the sign-in buttons.
  * Depends on:     react, ../shell/http, ../shell/router, ../shell/session,
- *                 ./useLiveMatch (types), ./labels, ./Registration, ./game.css
+ *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches
- * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13
+ * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13 (D39)
  */
 import { useEffect, useState, type ReactElement } from 'react';
 
@@ -22,6 +23,7 @@ import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { gameTypeName, problemText, rulesLine, runningBadge, statusName } from './labels.js';
+import { MyMatches } from './MyMatches.js';
 import { RegistrationStatus } from './Registration.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
@@ -72,6 +74,7 @@ export function Lobby(): ReactElement {
   return (
     <div className="sbr-stack">
       <LobbyHead />
+      <MyMatches />
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
       {matches === null ? <p className="sbr-muted">Loading…</p> : null}
       {matches?.length === 0 ? (

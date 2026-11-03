@@ -8,11 +8,13 @@
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
  *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
- *                 /matches/:code/away-summary (./awaySummary), the host's routes (./matchHost:
+ *                 /matches/:code/away-summary (./awaySummary), GET /me/matches (the player's
+ *                 matches not over, ./myMatches, D39), the host's routes (./matchHost:
  *                 start, draws, abort, the mark fallback; in development /bots). Engine errors
  *                 become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
+ *                 ./myMatches,
  *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
  * Used by:        ../app, ./matchHost, ./awaySummary
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
@@ -25,6 +27,7 @@ import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerAwaySummary } from './awaySummary.js';
 import { registerHostRoutes } from './matchHost.js';
+import { registerMyMatches } from './myMatches.js';
 import { LiveViews } from '../../view/liveViews.js';
 import { playerNames } from '../../view/playerNames.js';
 import type { WatchQuery } from '../../view/watchView.js';
@@ -183,4 +186,5 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
   });
   registerHostRoutes(app, deps);
   registerAwaySummary(app, deps);
+  registerMyMatches(app, deps);
 }

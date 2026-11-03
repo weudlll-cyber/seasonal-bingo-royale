@@ -97,6 +97,7 @@ Complete blueprint for implementation by Claude Code. The code follows it; what 
 | D34 | When the asynchronous lobby closes (2026-11-02) | The waiting room and the host console of an asynchronous match show “Starts or closes at <time>” in the viewer's time format, live ([01](01-game-design.md) §7.6, §13). |
 | D35 | The pause between asynchronous royale rounds (2026-11-02) | Stays 15 s, as in realtime (D21; unchanged) ([01](01-game-design.md) §11). |
 | D36 | The whole match log (2026-11-02) | Groups its lines by round without dimming earlier rounds (unchanged) ([01](01-game-design.md) §13). |
+| D39 | Several matches at once (2026-11-02) | A player may be in several matches at the same time (e.g. an asynchronous one and a realtime one), each in its own tab; the lobby shows a signed-in player the list of their own matches that are not over (“My matches”) ([01](01-game-design.md) §11, [05](05-api-design.md) §2.2). |
 
 ## 5. Open
 
