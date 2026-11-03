@@ -174,7 +174,8 @@ describe('the watched cards (D24)', () => {
     const order = best.map((c) => c.accountId);
     expect((await viewSince(0)).rankedIn).toEqual(order);
     expect((await viewSince(5, stored.length, 'a-spectator')).rankedIn).toEqual(order);
-  });
+    // Two views of 200 players: under a full parallel run more than the default 5 s.
+  }, 20_000);
 
   it('gives a player still in no other card', async () => {
     expect((await viewSince(0, stored.length, stillIn[0] ?? '')).watch).toBeUndefined();
