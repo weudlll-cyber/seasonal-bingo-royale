@@ -6,14 +6,24 @@
  * Responsibility: parse process.env with a strict zod schema, exit with a readable
  *                 message on invalid or missing values, expose a typed Env object; the
  *                 deployment settings (base path, public URL, trusted proxies, client and
- *                 data directories, 09 §1) and the WebSocket origins derived from them.
+ *                 data directories, 09 §1), the WebSocket origins derived from them and the
+ *                 sign-in mode with the website's identity header names (D37; website mode
+ *                 needs the public address and the trusted proxies).
  *                 Fail closed: NODE_ENV defaults to production and development features
  *                 need SBR_DEV=1, which is refused for a public (non-localhost) address.
  * Depends on:     zod
  * Used by:        ../main.ts, ../http/app.ts, ../cli, ./features, ./seedKey, ../index
- * Spec:           docs/spec/08-devops-architecture.md §5, docs/spec/08-devops-architecture.md §1.1
+ * Spec:           docs/spec/08-devops-architecture.md §5, §1.1; docs/spec/07-integration-architecture.md §2.3
  */
 import { z } from 'zod';
+
+// An HTTP header name (`fallback` when unset), kept lower-case as Node hands headers over.
+const headerName = (fallback: string) =>
+  z
+    .string()
+    .regex(/^[A-Za-z0-9-]{1,64}$/)
+    .default(fallback)
+    .transform((v) => v.toLowerCase());
 
 // The port range stays open so test runs can bind to an ephemeral port (0 → kernel picks).
 // Local dev uses the fixed project port 3900 (08 §1.1).
@@ -70,6 +80,23 @@ const envSchema = z.object({
   SBR_WEB_DIR: z.string().optional(),
   // A writable directory (the uploads volume in production) for the maintenance flag.
   SBR_DATA_DIR: z.string().default('./data'),
+  // How players sign in (D37): the game's own accounts (standalone), or only through the
+  // website login, whose proxy passes the visitor as headers to GET <base>auth/website.
+  SBR_AUTH_MODE: z.enum(['local', 'website']).default('local'),
+  // The identity headers' names (07 §2.3); the defaults match the website's bot-admin page.
+  SBR_WEBSITE_HEADER_ID: headerName('X-Acting-User-Id'),
+  SBR_WEBSITE_HEADER_NAME: headerName('X-Acting-User'),
+  SBR_WEBSITE_HEADER_ROLES: headerName('X-Acting-User-Roles'),
+  SBR_WEBSITE_HEADER_EMAIL_VERIFIED: headerName('X-Acting-User-Email-Verified'),
+  // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
+  // (website mode needs it; the installer generates it). No other process knows it.
+  SBR_WEBSITE_PROXY_SECRET: z.string().min(32).max(256).optional(),
+  // The website's login page; the return path is appended URL-encoded (D43). A path on the
+  // website's own origin, never another site.
+  SBR_WEBSITE_LOGIN_PATH: z
+    .string()
+    .regex(/^\/(?![/\\])[\x21-\x7e]*$/, 'a path on the website, e.g. /login?next=')
+    .default('/login?next='),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -104,9 +131,25 @@ function checkDevSafe(env: Env): Env {
   return env;
 }
 
+// Website mode needs the public address (its origin is the identity issuer), the proxy
+// whose headers it believes and the secret that proxy sends (07 §2.3).
+function checkWebsiteMode(env: Env): Env {
+  if (env.SBR_AUTH_MODE !== 'website') return env;
+  if (
+    env.SBR_PUBLIC_URL === undefined ||
+    env.SBR_TRUSTED_PROXIES.length === 0 ||
+    env.SBR_WEBSITE_PROXY_SECRET === undefined
+  ) {
+    throw new Error(
+      'SBR_AUTH_MODE=website needs SBR_PUBLIC_URL, SBR_TRUSTED_PROXIES and SBR_WEBSITE_PROXY_SECRET',
+    );
+  }
+  return env;
+}
+
 export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   const parsed = envSchema.safeParse(source);
-  if (parsed.success) return checkDevSafe(parsed.data);
+  if (parsed.success) return checkWebsiteMode(checkDevSafe(parsed.data));
   // Keep the message compact — users running `pnpm dev` without a .env file need the hint,
   // not a wall of zod issues.
   const issues = parsed.error.issues

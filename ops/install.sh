@@ -7,17 +7,22 @@
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
 #                 /games/bingo —, environment, address, admin e-mail, optional SMTP and age public
 #                 key; install Docker if missing, build the image from a git ref, write
-#                 /etc/sbr/<env>.env with fresh secrets, start the stack, wait for /readyz,
-#                 install the backup timer. Re-runs keep earlier answers and operator-added keys,
+#                 /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only through
+#                 the website, D37, and the game's route file for the website's nginx or Caddy),
+#                 start the stack, wait for /readyz, install the backup timer. Re-runs keep earlier answers and operator-added keys,
 #                 never switch type unconfirmed. SMTP password only from a file or hidden prompt;
 #                 --trusted-proxies adds proxy ranges (kept on re-runs, "none" removes them).
-# Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml, ops/Caddyfile, ops/sbr
+# Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
+#                 ops/compose.website-nginx.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8
 #
 # Usage: sudo bash ops/install.sh [--type standalone|website] [--env prod|staging]
 #          [--address <domain or IP>] [--email <admin e-mail>] [--age-key <age1…>]
 #          [--smtp-host h --smtp-port p --smtp-user u --smtp-password-file f|- --smtp-from a]
-#          [--website-domain <domain>] [--website-network <name>] [--repo <git url or path>] [--ref <git ref>]
+#          [--website-domain <domain>] [--website-network <name>] [--website-upstream <host:port>]
+#          [--website-authorize-path </api/games/bingo/authorize>] [--website-login-path </login?next=>]
+#          [--website-routes-dir </etc/seasonal/routes>] [--app-port <3900>] [--edge-subnet <cidr>]
+#          [--repo <git url or path>] [--ref <git ref>]
 #          [--trusted-proxies <range,range…>|none] [--yes] [--change-type] [--dry-run] [--any-os]
 set -euo pipefail
 # Errors inside $(…) stop the script too (audit O1).
@@ -50,6 +55,12 @@ parse_flags() {
       --smtp-from) SBR_SMTP_FROM=$2; shift ;;
       --website-domain) SBR_WEBSITE_DOMAIN=$2; shift ;;
       --website-network) SBR_WEBSITE_NETWORK=$2; shift ;;
+      --website-authorize-path) SBR_WEBSITE_AUTHORIZE_PATH=$2; shift ;;
+      --website-login-path) SBR_WEBSITE_LOGIN_PATH=$2; shift ;;
+      --website-routes-dir) SBR_WEBSITE_ROUTES_DIR=$2; shift ;;
+      --website-upstream) SBR_WEBSITE_UPSTREAM=$2; shift ;;
+      --app-port) SBR_APP_PORT=$2; shift ;;
+      --edge-subnet) SBR_EDGE_SUBNET=$2; shift ;;
       --trusted-proxies) SBR_EXTRA_PROXIES=$2; shift ;;
       --repo) SBR_REPO=$2; shift ;;
       --ref) SBR_REF=$2; shift ;;
@@ -129,8 +140,8 @@ next_steps() {
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && warn "with an IP address the certificate comes from Caddy's own CA: browsers warn until you point a domain here and re-run with --address <domain>"
     info "  3. Firewall: allow 22, 80 and 443 only (docs/operator-guide.md)."
   else
-    info "  2. $(snippet_steps)"
-    info "  3. Players use bingo's own accounts for now (the shared website login comes later)."
+    info "  2. $(route_steps)"
+    info "  3. Players sign in only with their website account (D37); the website provides the authorize endpoint."
   fi
   info "  Backups run every night at 03:30 into $SBR_BACKUPS/$SBR_ENV/; pull them to your PC with ops/pull-backups.ps1."
   info "  Status: sudo sbr status"
@@ -168,7 +179,7 @@ main() {
   write_env "$SBR_ENV"
   write_record
   install_files "$OPS"
-  [[ $SBR_TYPE == website ]] && write_snippet "$SBR_ENV"
+  [[ $SBR_TYPE == website ]] && write_route_file "$SBR_ENV"
   info "Starting the stack"
   run compose "$SBR_ENV" up -d --remove-orphans
   [[ $SBR_DRY_RUN == 1 ]] || wait_ready "$SBR_ENV"

@@ -8,8 +8,9 @@
  *                 board lists the server's rows in its order with the own row marked, names
  *                 linking to profiles, a period selector, and the counting rule when empty; the
  *                 profile shows the figures and each recent match with whether it counted; the
- *                 account page deletes only after a confirmation with the password; live
- *                 standings link human players, never bots or deleted players.
+ *                 account page deletes only after a confirmation with the password (the display
+ *                 name in website mode, D42); live standings link human players, never bots or
+ *                 deleted players.
  * Depends on:     @testing-library/react, @sbr/contracts (types), ./LeaderboardPage, ./ProfilePage,
  *                 ./playerHref, ../account/AccountPage, ../components/RankRow, ../shell/router,
  *                 ../shell/session
@@ -203,6 +204,20 @@ describe('the account page (05 §2.2)', () => {
       password: 'secret pw',
     });
     expect(screen.getByTestId('account-deleted')).toBeTruthy();
+  });
+
+  it('asks a website account for its name instead of a password (D42)', async () => {
+    const stub = serve({ '/session': { ...SESSION, authMode: 'website' }, '/me': null });
+    await show(<AccountPage />);
+    fireEvent.click(screen.getByTestId('delete-account'));
+    expect(screen.queryByTestId('delete-password')).toBeNull();
+    fireEvent.change(screen.getByTestId('delete-name'), { target: { value: 'carla' } });
+    fireEvent.click(screen.getByTestId('delete-confirm'));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    const call = stub.mock.calls.find(([, init]) => init?.method === 'DELETE');
+    expect(JSON.parse(call?.[1]?.body as string)).toEqual({ displayName: 'carla' });
   });
 });
 

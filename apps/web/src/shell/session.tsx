@@ -34,6 +34,9 @@ interface SessionInfo {
   readonly account: { readonly id: string; readonly displayName: string } | null;
   readonly permissions: readonly string[];
   readonly csrfToken: string | null;
+  // D37: `website` — players sign in only through the website, at `signInPath`.
+  readonly authMode?: 'local' | 'website';
+  readonly signInPath?: string;
 }
 
 interface SessionContextValue {
