@@ -12,7 +12,7 @@
  *                 states how places are decided. Names link to profiles when the screen
  *                 passes `profileHref` (the live match screen).
  * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
- * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
+ * Used by:        ./Playback, ../game/ArenaNotice, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
  */
 import type { ReactElement } from 'react';

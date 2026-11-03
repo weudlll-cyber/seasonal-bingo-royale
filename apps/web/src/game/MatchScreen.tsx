@@ -6,47 +6,39 @@
  * Responsibility: fold the server's live view with the Quick Test playback logic and show: the
  *                 lobby waiting room (players, start countdown); the arena, filling the window
  *                 during a round on desktop (current number large, recent numbers, the newest 3
- *                 event lines with the whole log one click away, own cards with taps sent to the
- *                 server; beside them the status in sentences, patterns this round, classic prize
- *                 list, the standings in a bounded panel); for a player out or a spectator the
- *                 top 4 still in or one followed player (./WatchCards, D24); the cut screen with
- *                 the next-round countdown or "Waiting for the host to start round N" (D14), the
- *                 final's fresh start (D23) over the round recap (./Interlude, D20); the final
- *                 placement on top; names link to profiles; ./MatchCancelled (D17); in an
- *                 asynchronous match "While you were away" on top (./AwaySummary) and the
- *                 quiet-hours notice (01 §5, §11). Remounted per code.
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./AwaySummary,
- *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
- *                 ./Registration (whenText), ./EndActions, ./WatchCards, ../league/playerHref,
- *                 ./arena.css, ./game.css
+ *                 event lines with the whole log one click away, the cards (./ArenaCards: own
+ *                 cards with taps, or for a player out or a spectator the top 4 still in or one
+ *                 followed player, D24); beside them the status in sentences, patterns this
+ *                 round, classic prize list, the standings in a bounded panel); above it
+ *                 ./ArenaNotice (final placement, cut screen, the final's fresh start, the round
+ *                 recap, quiet hours, waiting for the host); names link to profiles;
+ *                 ./MatchCancelled (D17); in an asynchronous match "While you were away" on top
+ *                 (./AwaySummary, 01 §11). Remounted per code.
+ * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./ArenaCards,
+ *                 ./ArenaNotice, ./AwaySummary, ./CurrentBall, ./HostLink, ./WaitingRoom,
+ *                 ./MatchCancelled, ./labels, ../league/playerHref, ./arena.css, ./game.css
  * Used by:        ../shell/AppShell; BallAndNumbers also by ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
 import { useState, type ReactElement } from 'react';
 
-import { CutScreen } from '../components/CutScreen.js';
 import { DrawTicker } from '../components/DrawTicker.js';
-import { FinalNotice } from '../components/FinalNotice.js';
 import { inPlay, OwnerStatusFor } from '../components/OwnerArea.js';
-import { FinalPlacement } from '../components/FinalPlacement.js';
 import { PatternsPanel } from '../components/PatternsPanel.js';
 import { PrizeList } from '../components/Playback.js';
 import { RecentEvents } from '../components/RecentEvents.js';
 import { Standings } from '../components/Standings.js';
 import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
+import { OwnCards, Watching } from './ArenaCards.js';
+import { ArenaNotice } from './ArenaNotice.js';
 import { AwaySummary } from './AwaySummary.js';
 import { CurrentBall } from './CurrentBall.js';
-import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
-import { currentRecap, Interlude } from './Interlude.js';
 import { progressText, rulesLine, runningBadge } from './labels.js';
-import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
-import { whenText } from './Registration.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
-import { WatchCards } from './WatchCards.js';
 import './arena.css';
 import './game.css';
 
@@ -163,113 +155,6 @@ export function BallAndNumbers({
         <RecentEvents banners={view.banners} />
       </div>
     </>
-  );
-}
-
-// Above the arena: the final placement at the end; otherwise the cut screen (a survivor's
-// goes once the next round draws), the final's fresh start (D23), the recap of the round
-// just played (D20) and, while the match waits for its host between rounds, the waiting
-// notice (D14).
-function ArenaNotice({
-  live,
-  view,
-}: {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-}): ReactElement {
-  if (view.finished) {
-    return (
-      <>
-        <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
-        <EndActions host={false} code={live.match.code} />
-      </>
-    );
-  }
-  const recap = currentRecap(live.view.recaps, view);
-  const cut = view.lastCut;
-  const survivedEarlier =
-    cut !== null &&
-    cut.round < view.currentRound &&
-    view.drawsSoFar.length > 0 &&
-    cut.owners.every((o) => o.outcome !== 'eliminated');
-  return (
-    <>
-      {survivedEarlier ? null : <CutScreen cut={cut} nextRoundAt={live.match.nextRoundAt} />}
-      <FinalNotice result={live.view} view={view} />
-      {/* The recap of the round just played, below the cut screen (D20). */}
-      {recap === null ? null : (
-        <Interlude
-          key={recap.roundIndex}
-          recap={recap}
-          pause={live.match.settings.roundPause}
-          nextRoundAt={live.match.nextRoundAt}
-          me={live.me}
-        />
-      )}
-      {live.match.quietUntil !== null ? (
-        <p className="sbr-panel" role="status" data-testid="quiet-hours">
-          Quiet hours — the next number comes {whenText(live.match.quietUntil, Date.now())}.
-        </p>
-      ) : null}
-      {live.match.waitingForHost ? (
-        <p className="sbr-panel" role="status" data-testid="waiting-for-host">
-          Waiting for the host to start round {view.currentRound + 2}
-        </p>
-      ) : null}
-    </>
-  );
-}
-
-// The cards a player out or a spectator watches (D24); before the server names any (no
-// round yet) a plain note; nothing once the match is over.
-function Watching({
-  live,
-  view,
-  followed,
-  onBack,
-}: {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-  readonly followed: string | null;
-  readonly onBack: () => void;
-}): ReactElement | null {
-  if (view.finished) return null;
-  const watch = live.view.watch;
-  if (watch === undefined || watch.top.length === 0) {
-    return (
-      <p className="sbr-panel sbr-muted" data-testid="spectating">
-        You are watching this match.
-      </p>
-    );
-  }
-  return <WatchCards watch={watch} view={view} followed={followed} onBack={onBack} />;
-}
-
-function OwnCards({
-  live,
-  view,
-}: {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-}): ReactElement | null {
-  const owner = view.owners[0];
-  if (owner === undefined) return null;
-  const canTap = live.view.markingMode === 'manual' && !owner.eliminated && !view.finished;
-  return (
-    <div className="own-cards">
-      {owner.cards.map((card, cardIndex) => (
-        <LiveCard
-          key={`${String(view.currentRound)}-${String(cardIndex)}`}
-          code={live.match.code}
-          cardIndex={cardIndex}
-          card={card}
-          marks={owner.marks[cardIndex] ?? []}
-          draws={view.drawsSoFar}
-          roundOver={view.roundOver}
-          canTap={canTap}
-        />
-      ))}
-    </div>
   );
 }
 

@@ -13,7 +13,7 @@
  *                 at 22:25 (in 23 h 59 min)", the time the server names (D33, D34);
  *                 "Starting…" only while the real 10-second countdown runs. Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
- * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./MatchScreen and ./MyMatches
+ * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./ArenaNotice and ./MyMatches
  *                 (whenText)
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */

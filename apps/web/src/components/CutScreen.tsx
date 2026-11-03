@@ -12,7 +12,7 @@
  *                 scrolls into view. It never pauses playback: an eliminated owner keeps
  *                 watching the spectator view to the end.
  * Depends on:     react, ../game/seasonText, ../playback, ../useReducedMotion, ../useSecondsUntil
- * Used by:        ./Playback, ../game/MatchScreen
+ * Used by:        ./Playback, ../game/ArenaNotice
  * Spec:           docs/spec/01-game-design.md §7.4, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState, type ReactElement } from 'react';

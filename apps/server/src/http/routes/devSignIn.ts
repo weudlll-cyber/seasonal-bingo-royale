@@ -5,13 +5,13 @@
  *
  * Responsibility: POST /api/v1/dev/sign-in { as: 'host' | 'player-1' | 'player-2' |
  *                 'player-3' } creates on first use, or reuses, the account `dev-host`
- *                 (role organizer) or `dev-player-N` and starts a session for it, so the
- *                 owner can try host and players alone in several browser windows. The load
- *                 check signs in `load-001` … `load-200` the same way (`dev-load-NNN`, players)
- *                 and removes them with DELETE /api/v1/dev/load-accounts. The app
- *                 registers this route only with SBR_DEV=1; a test proves
- *                 a production build answers 404.
- * Depends on:     fastify, zod, ../../auth/*, ../../db/pool
+ *                 (role organizer) or `dev-player-N` and starts a session for it (./auth
+ *                 openSession, the old session ended), so the owner can try host and players
+ *                 alone in several browser windows. The load check signs in `load-001` …
+ *                 `load-200` the same way (`dev-load-NNN`, players) and removes them with
+ *                 DELETE /api/v1/dev/load-accounts. The app registers this route only with
+ *                 SBR_DEV=1; a test proves a production build answers 404.
+ * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ./auth (openSession)
  * Used by:        ../app
  * Spec:           docs/spec/15-implementation-plan.md WP-09 (draft), docs/spec/12-testing-strategy.md §8
  */
@@ -19,10 +19,11 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
-import { setSessionCookie, type CookieConfig } from '../../auth/sessionPlugin.js';
+import type { CookieConfig } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
-import { accountSessionIds, createSession, revokeSession } from '../../auth/sessions.js';
+import { accountSessionIds } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
+import { openSession } from './auth.js';
 
 const DEV_ACCOUNTS = {
   host: { displayName: 'dev-host', roles: ['organizer'] },
@@ -56,12 +57,7 @@ export function registerDevSignIn(
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     const who = devAccount(parsed.data.as);
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
-    if (request.session !== null) {
-      await revokeSession(deps.pool, request.session.id);
-      deps.sessionEnds.end([request.session.id]);
-    }
-    const { token } = await createSession(deps.pool, accountId, 'dev quick sign-in');
-    setSessionCookie(reply, deps.cookie, token);
+    await openSession(request, reply, deps, accountId);
     return reply.status(200).send({ accountId, displayName: who.displayName });
   });
   // The load check removes its accounts afterwards (their sessions and roles go with them).

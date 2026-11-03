@@ -11,7 +11,7 @@
  *                 A followed player's card alone and larger with "Back to the top 4"; when that
  *                 player goes out, the top again with a line saying so.
  * Depends on:     react, ../components/CardGrid, ./labels, ../playback, ../types, ./watch.css
- * Used by:        ./MatchScreen
+ * Used by:        ./ArenaCards
  * Spec:           docs/spec/01-game-design.md §13 (D24)
  */
 import { useRef, type ReactElement } from 'react';

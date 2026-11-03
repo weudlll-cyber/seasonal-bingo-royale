@@ -11,7 +11,7 @@
  *                 Taps on undrawn numbers and after the round end are answered here
  *                 without a round trip (the server would refuse them too, 01 §6).
  * Depends on:     react, ../components/OwnerCard (TapGrid), ./socket, ../types, ./labels
- * Used by:        ./MatchScreen
+ * Used by:        ./ArenaCards
  * Spec:           docs/spec/01-game-design.md §4, §6, §13; docs/spec/06-realtime-architecture.md §4.1
  */
 import { useState, type ReactElement } from 'react';
