@@ -35,7 +35,7 @@ export function playbackAt(result: QuickTestResult, step: number): PlaybackView 
     roundStage: state.roundStage,
     drawsSoFar: state.drawsSoFar,
     totalDraws: state.totalDraws,
-    standings: players.sort(standingsOrder),
+    standings: players.sort(standingsOrder(result.rankedIn)),
     owners,
     ownerStatus: Object.fromEntries(
       owners.map((o) => [o.accountId, statusAt(result.ownerStatus[o.accountId], consumed)]),

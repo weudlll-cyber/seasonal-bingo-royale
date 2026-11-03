@@ -6,7 +6,8 @@
  * Responsibility: players still in come first by points; players out follow, the latest cut
  *                 first; two players out in the same cut with equal points keep the server's
  *                 order of that cut (the tie-break chain of 01 §8.4), not the account id, so
- *                 the live rank and the final placement agree.
+ *                 the live rank and the final placement agree; players still in with equal
+ *                 points follow the server's ranking of them (`rankedIn`).
  * Depends on:     vitest, ./standingsOrder, ./playbackTypes (types)
  * Spec:           docs/spec/01-game-design.md §7.5, §8.4, §13
  */
@@ -48,7 +49,17 @@ describe('the live standings order', () => {
       points: 40,
     });
     const still = player('bot-05', { points: 0 });
-    const order = [bot, earlier, still, owner].sort(standingsOrder).map((p) => p.accountId);
+    const order = [bot, earlier, still, owner].sort(standingsOrder()).map((p) => p.accountId);
     expect(order).toEqual(['bot-05', 'fd94d682', 'bot-06', 'bot-03']);
+  });
+
+  it('orders players still in with equal points as the server ranks them (01 §8.4)', () => {
+    const me = player('dev-player-1', { points: 0 });
+    const bots = ['bot-02', 'bot-03', 'bot-06'].map((id) => player(id, { points: 0 }));
+    const leader = player('bot-04', { points: 20 });
+    // The server's order of the players still in: the leader, then the earlier join first.
+    const rankedIn = ['bot-04', 'dev-player-1', 'bot-02', 'bot-03', 'bot-06'];
+    const order = [...bots, me, leader].sort(standingsOrder(rankedIn)).map((p) => p.accountId);
+    expect(order).toEqual(rankedIn);
   });
 });

@@ -11,8 +11,9 @@
  *                 ("1 to go": the stage's active patterns in royale, the open prizes in
  *                 classic types). Marks are not sent here: they are the public cellMarked
  *                 events every screen already folds. No seed, draw order or undrawn number.
+ *                 `rankedIn`: the players still in, best first, also for the standings.
  * Depends on:     @sbr/contracts (WatchView, Card), @sbr/domain
- * Used by:        ../http/routes/matchViews
+ * Used by:        ../http/routes/matchViews (also `rankedIn` for every live view)
  * Spec:           docs/spec/01-game-design.md §13 (D24); docs/spec/06-realtime-architecture.md §8;
  *                 docs/spec/03-security-concept.md §11
  */
@@ -43,6 +44,16 @@ export function watches(state: MatchState, viewer: string | null): boolean {
   return p === undefined || p.eliminatedAtRound !== null;
 }
 
+// The players still in, best first by the tie-break chain (01 §8.4); also sent with every
+// live view for the standings' order of equal points (./matchViews).
+export function rankedIn(state: MatchState): readonly string[] {
+  return state.playerOrder
+    .filter((id) => state.players[id]?.eliminatedAtRound === null)
+    .map((id) => candidateOf(state, id))
+    .sort(byTieBreak)
+    .map((c) => c.accountId);
+}
+
 export function buildWatchView(
   state: MatchState,
   idMap: ReadonlyMap<string, string>,
@@ -52,11 +63,7 @@ export function buildWatchView(
   if (round === null) return undefined;
   const name = (id: string): string => idMap.get(id) ?? id;
   const stillIn = state.playerOrder.filter((id) => state.players[id]?.eliminatedAtRound === null);
-  const top = stillIn
-    .map((id) => candidateOf(state, id))
-    .sort(byTieBreak)
-    .slice(0, TOP_COUNT)
-    .map((c) => c.accountId);
+  const top = rankedIn(state).slice(0, TOP_COUNT);
   // Only a player still in can be followed (D24).
   const followed = stillIn.find((id) => name(id) === query.follow);
   const watched = followed === undefined || top.includes(followed) ? top : [...top, followed];

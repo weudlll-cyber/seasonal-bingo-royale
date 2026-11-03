@@ -8,6 +8,7 @@
  *                 later round start, carries no player list and stays small; a round start
  *                 carries only the viewer's own cards (none for the host) and no draw order,
  *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
+ *                 Every view names the players still in, best first (`rankedIn`, 01 §8.4).
  *                 The watched cards (D24) go to spectators and players who are out, never to
  *                 a player still in: the top 4 still in, cards the screen does not hold yet,
  *                 a followed player, "1 to go"; and the cut facts (D23).
@@ -167,6 +168,12 @@ describe('the watched cards (D24)', () => {
 
   it('gives a player who is out the same', async () => {
     expect((await viewSince(0, stored.length, out ?? '')).watch?.top).toHaveLength(4);
+  });
+
+  it('names every player still in, best first, for any viewer (01 §8.4)', async () => {
+    const order = best.map((c) => c.accountId);
+    expect((await viewSince(0)).rankedIn).toEqual(order);
+    expect((await viewSince(5, stored.length, 'a-spectator')).rankedIn).toEqual(order);
   });
 
   it('gives a player still in no other card', async () => {

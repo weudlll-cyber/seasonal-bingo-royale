@@ -11,7 +11,8 @@
  *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
  *                 only later events, no player list unless a join, first round start or finish is
  *                 among them, no cut facts unless a cut is. Round starts and the player list carry only the viewer's cards, no
- *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20).
+ *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20);
+ *                 every live view names the players still in, best first (`rankedIn`, 01 §8.4).
  *                 A player who is out or a spectator also gets the watched cards (`watch`,
  *                 ../../view/watchView, D24); a player still in never does.
  * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
@@ -33,7 +34,7 @@ import type { DomainEvent } from '@sbr/domain';
 import { liveEvent } from '../../view/clientEvents.js';
 import { buildClientView } from '../../view/clientView.js';
 import type { LiveEntry } from '../../view/liveViews.js';
-import { buildWatchView, watches, type WatchQuery } from '../../view/watchView.js';
+import { buildWatchView, rankedIn, watches, type WatchQuery } from '../../view/watchView.js';
 
 // `youHost` tells the viewer whether they created (and so may run) this match; null when
 // the summary goes to a whole room (the client keeps what it knew).
@@ -127,6 +128,8 @@ export function liveView(input: LiveViewInput) {
       ...rest,
       ...(recap === null ? {} : { recaps: [recap] }),
       ...(watch === undefined ? {} : { watch }),
+      // The server's order of the players still in, for equal points in the standings.
+      rankedIn: rankedIn(m.state).map((id) => idMap.get(id) ?? id),
       ...(withPlayers ? { players } : {}),
       ...(withCuts ? { cuts } : {}),
       events,
