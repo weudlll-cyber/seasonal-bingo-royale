@@ -21,13 +21,15 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 
 ### Needed from the website repository
 
-For website installs now:
+For website installs (D37, docs/spec/07-integration-architecture.md §2.3, §4; the game goes online only once this works end to end, D38):
 
-- Import the bingo route into the website's Caddy: in deploy/site/Caddyfile, inside the `{$SITE_DOMAIN}` block, `import /etc/caddy/routes/*.caddy`, and mount `deploy/site/routes` into the caddy service at `/etc/caddy/routes` (the bingo installer writes `routes/bingo.caddy`'s content to `/opt/sbr/website-bingo.caddy`; ops/install.sh `--type website`)
+- An authorize endpoint for the game, like the event bot's `GET /api/bot-admin/authorize` (default path `/api/games/bingo/authorize`; the game's installer takes another with `--website-authorize-path`): called by the website's proxy (nginx `auth_request`, Caddy `forward_auth`) with the browser's cookie; for a signed-in, unlocked user `204` with `X-Acting-User-Id` (stable user id), `X-Acting-User` (display name), `X-Acting-User-Roles` (comma-separated: `member`, `organiser`, `admin`) and `X-Acting-User-Email-Verified` (`true`/`false`), `Cache-Control: no-store`; otherwise `401` (not signed in) or `403`
+- The one include line for the game's route file: nginx mode, inside the site's server block, `include /etc/seasonal/routes/*.conf;` (the game's installer writes `/etc/seasonal/routes/bingo.conf`); own-Caddy mode, inside the `{$SITE_DOMAIN}` block, `import /etc/caddy/routes/*.caddy` with `deploy/site/routes` mounted at `/etc/caddy/routes` (the installer writes `routes/bingo.caddy`)
+- The website's login takes a return path (the game's route file sends a visitor who is not signed in to `/login?next=<the game's sign-in route>`; another form with `--website-login-path`)
+- A link to `https://<site domain>/games/bingo/` on the games page
 
-For Phase 6:
+Later:
 
-- Shared website login (jwt-handoff, docs/spec/07-integration-architecture.md §4): a handoff endpoint that signs a 60-second token for the logged-in website user, plus a published public key; until then players in website installs use bingo's own accounts
 - Chat room `bingo` created by a website admin (§6)
 - Embeddable call view at a predictable URL per call, so the game can render it next to a match when the match carries `host_call_ref` (docs/spec/01-game-design.md §12a, docs/spec/07-integration-architecture.md §6a; consumed by WP-25b)
 

@@ -19,9 +19,11 @@ Commands (state change) and queries (read) are separate handlers in `application
 
 ### 2.1 Session and auth
 
+In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and `/dev/sign-in` answer 404; `/session` adds `authMode` (`local` or `website`) and, in website mode, `signInPath` (the route the sign-in button opens).
+
 | Method | Path | Purpose | Auth |
 |---|---|---|---|
-| GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags | any |
+| GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags, `authMode` (D37) | any |
 | POST | `/auth/register` | Create local account | none, rate-limited |
 | POST | `/auth/verify-email` | Confirm e-mail token | none |
 | POST | `/auth/login` | E-mail + password → session (or `2FA_REQUIRED` with a short-lived challenge ID) | none |
@@ -34,7 +36,8 @@ Commands (state change) and queries (read) are separate handlers in `application
 | DELETE | `/dev/load-accounts` | Development builds only: removes the load check's accounts (`dev-load-NNN`) with their sessions and roles; outside any session, so without a CSRF token; absent in production | none |
 | GET | `/auth/oidc/:providerId/start` | Redirect to provider (PKCE, state, nonce) | none |
 | GET | `/auth/oidc/:providerId/callback` | Finish OIDC login | none |
-| POST | `/auth/handoff` | Exchange host-signed JWT for session or embed token | none |
+| GET | `<base>/auth/website?next=` | Website mode only (D37, 07 §2.3): reads the identity headers the website's proxy set (trusted peer only), finds or creates the account, starts the game session and redirects to `next` (a path under the base path); 404 in local mode, 403 from an untrusted peer or without the id/name headers. Outside `/api/v1`, because the website's proxy protects exactly this path | the website's proxy |
+| POST | `/auth/handoff` | Later option, not built: exchange host-signed JWT for session or embed token | none |
 | POST | `/auth/embed/refresh` | Refresh embed token (bearer) | embed token |
 | GET | `/me/sessions` · DELETE `/me/sessions/:id` | List / revoke sessions | session |
 | POST | `/me/2fa/setup` · `/me/2fa/confirm` · `/me/2fa/disable` | TOTP management (disable requires current code) | session, step-up |

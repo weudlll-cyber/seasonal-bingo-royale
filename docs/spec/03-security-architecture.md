@@ -27,7 +27,11 @@ Alignment target: **OWASP ASVS 5.0 Level 2** for the whole application, Level 3 
 
 ### 2.2 Integrated mode
 
-See [07-integration-architecture.md](07-integration-architecture.md). Summary: OIDC Authorization Code + PKCE, or a signed short-lived JWT handoff from a trusted host site. External identities map to local accounts by `(issuer, subject)`, never by e-mail alone.
+See [07-integration-architecture.md](07-integration-architecture.md). Summary: inside the Seasonal Entertainment website the game runs in `website` mode (`SBR_AUTH_MODE=website`, **D37**): players sign in only through the website login, delivered by the website's proxy as request headers to one route (`GET <base>/auth/website`, 07 §2.3); OIDC and a signed JWT handoff stay later options for other host sites. External identities map to local accounts by `(issuer, subject)`, never by e-mail alone.
+
+- **Header trust (D37):** the identity headers (`X-Acting-User-Id`, `X-Acting-User`, `X-Acting-User-Roles`, `X-Acting-User-Email-Verified`; names configurable) are read on that one route only, only in `website` mode and only when the TCP peer is in `SBR_TRUSTED_PROXIES`; a request with such headers from any other peer is refused (403, nobody signed in), and no other route reads them. The proxy route file the installer writes clears client-sent `X-Acting-User*` headers and asks the website for exactly that route.
+- **What website mode switches off:** registration, password sign-in, password change and reset and the development sign-in answer 404 on the server and are hidden on the client; the sign-in button goes to `<base>/auth/website`, whose proxy sends a visitor who is not signed in to the website's login and back. No password and no website session ever reach the game; the e-mail address is not stored.
+- **Session end:** a website sign-out does not end the game session at once (it lasts as configured, §3); a deleted or locked website account is refused at its next game sign-in, a suspended game account by the route itself.
 
 ### 2.3 Guests
 
@@ -53,7 +57,7 @@ JWTs are used in exactly two places:
 | Use | Issuer | Lifetime | Storage |
 |---|---|---|---|
 | Embed access token for third-party contexts | Bingo server | 10 min, refreshed via the host’s `postMessage` handshake | JS memory only, never localStorage |
-| Inbound handoff token from a trusted host | Host site | ≤ 60 s | Exchanged once for a session |
+| Inbound handoff token from a trusted host (later option, not built; the website uses proxy headers, D37) | Host site | ≤ 60 s | Exchanged once for a session |
 
 Rules (enforced with `jose`):
 - Allowed algorithms are pinned per issuer (`EdDSA` or `RS256`/`ES256`); `none` and HMAC with public keys are impossible by construction.
