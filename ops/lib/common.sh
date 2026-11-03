@@ -131,7 +131,9 @@ compose() {
   local files=(-f "$SBR_ROOT/compose.yml")
   local type
   type=$(env_value "$SBR_ETC/$env.env" SBR_INSTALL_TYPE)
-  if [[ $type == website ]]; then
+  if [[ $type == website && $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_MODE) == nginx ]]; then
+    files+=(-f "$SBR_ROOT/compose.website-nginx.yml")
+  elif [[ $type == website ]]; then
     files+=(-f "$SBR_ROOT/compose.website.yml")
   else
     files+=(--profile standalone)

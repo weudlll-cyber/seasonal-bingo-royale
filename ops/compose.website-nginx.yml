@@ -1,0 +1,22 @@
+# @file   ops/compose.website-nginx.yml
+# @module ops
+# @brief  Website installs behind host nginx: the app on one loopback port (D37).
+#
+# Responsibility: on top of ops/compose.yml, without the Caddy profile: the app publishes its
+#                 port on 127.0.0.1 only (SBR_APP_PORT, default 3900), where the website's nginx
+#                 proxies /games/bingo (route file written by ops/install.sh); the app's own
+#                 network gets a fixed subnet (SBR_EDGE_SUBNET), so the address the published
+#                 port's connections come from is known in advance and trusted
+#                 (SBR_TRUSTED_PROXIES).
+# Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.website-nginx.yml)
+# Spec:           docs/spec/09-deployment-architecture.md §1, §3
+services:
+  app:
+    ports:
+      - '127.0.0.1:${SBR_APP_PORT:?set SBR_APP_PORT in the env file}:3000'
+
+networks:
+  edge:
+    ipam:
+      config:
+        - subnet: ${SBR_EDGE_SUBNET:?set SBR_EDGE_SUBNET in the env file}

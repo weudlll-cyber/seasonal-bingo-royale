@@ -7,7 +7,8 @@
 #                 --yes) keeps them; write that file (0600, single-quoted, atomic): secrets made
 #                 once (openssl rand), public URL (IPv6 in brackets), base path, trusted proxies
 #                 (install type plus --trusted-proxies), admin e-mail, optional SMTP, age key,
-#                 other operator keys kept; write /etc/sbr/install.conf; copy compose files,
+#                 the sign-in mode (website installs: website, D37) with the website's mode and
+#                 route settings, other operator keys kept; write /etc/sbr/install.conf; copy compose files,
 #                 Caddyfile and the sbr CLI with its library to /opt/sbr; build the app image from
 #                 a git ref on the server (until a signed release image exists; fetch prunes)
 #                 unless that commit's image exists; drop app images older than the previous one.
@@ -28,7 +29,7 @@ secret() {
 read_saved_answers() {
   local file="$SBR_ETC/$1.env" key
   for key in SBR_ADMIN_EMAIL SBR_AGE_RECIPIENT SBR_SMTP_HOST SBR_SMTP_PORT SBR_SMTP_USER \
-    SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_WEBSITE_NETWORK SBR_EXTRA_PROXIES; do
+    SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_WEBSITE_NETWORK SBR_EXTRA_PROXIES SBR_WEBSITE_UPSTREAM     SBR_WEBSITE_AUTHORIZE_PATH SBR_WEBSITE_LOGIN_PATH SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT     SBR_EDGE_SUBNET; do
     [[ -n ${!key:-} ]] || printf -v "$key" '%s' "$(env_value "$file" "$key")"
   done
 }
@@ -38,7 +39,9 @@ read_saved_answers() {
 ENV_KEYS=(SBR_INSTALL_TYPE SBR_ENV SBR_ENV_FILE SBR_IMAGE POSTGRES_PASSWORD DATABASE_URL
   SBR_SEED_KEY SBR_PUBLIC_URL SBR_BASE_PATH SBR_TRUSTED_PROXIES SBR_EXTRA_PROXIES
   SBR_SITE_ADDRESS SBR_TLS SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT
-  SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL)
+  SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL SBR_AUTH_MODE
+  SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH SBR_WEBSITE_LOGIN_PATH
+  SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET)
 
 # operator_lines <env file>: its KEY= lines whose key write_env does not write.
 operator_lines() {
@@ -93,6 +96,11 @@ write_env() {
       quoted "$key" "${!key:-}"
     done
     quoted SBR_LOG_LEVEL info
+    # D37: a website install signs players in only through the website's proxy.
+    quoted SBR_AUTH_MODE "$([[ $SBR_TYPE == website ]] && echo website || echo local)"
+    for key in SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH       SBR_WEBSITE_LOGIN_PATH SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET; do
+      quoted "$key" "$([[ $SBR_TYPE == website ]] && printf '%s' "${!key:-}")"
+    done
     operator_lines "$file"
   } | put_file "$file" 0600
 }
@@ -112,7 +120,7 @@ EOF
 # install_files <source dir of ops/>: the stack files and the CLI into /opt/sbr.
 install_files() {
   local from=$1 name
-  for name in compose.yml compose.website.yml; do
+  for name in compose.yml compose.website.yml compose.website-nginx.yml; do
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
   put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
