@@ -6,7 +6,7 @@
  * Responsibility: emblem, wordmark, light/dark toggle, links to the lobby, hosting (with
  *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
  *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
- *                 "Register" (../account). Below the bar the current route's screen (boards and
+ *                 "Register" (../account; in website mode one "Sign in" to the website, D37). Below the bar the current route's screen (boards and
  *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
  *                 the lobby and create form show the maintenance page, the host console a banner
  *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch). Dev-only Quick
@@ -22,8 +22,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
-import { Register } from '../account/Register.js';
-import { SignIn } from '../account/SignIn.js';
+import { SignInLinks, SignInPage } from '../account/WebsiteSignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
@@ -135,21 +134,9 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
           </button>
         </>
       ) : null}
-      {session !== null && session.account === null ? (
-        <>
-          <a
-            className="sbr-btn sbr-btn--primary"
-            href={hrefOf({ name: 'signIn' })}
-            data-testid="open-sign-in"
-          >
-            Sign in
-          </a>
-          <a className="sbr-btn" href={hrefOf({ name: 'register' })} data-testid="open-register">
-            Register
-          </a>
-        </>
-      ) : null}
-      {dev && DevSignIn !== null ? (
+      {session !== null && session.account === null ? <SignInLinks /> : null}
+      {/* The server has no quick sign-in in website mode (D37). */}
+      {dev && DevSignIn !== null && session?.authMode !== 'website' ? (
         <Suspense fallback={null}>
           <DevSignIn />
         </Suspense>
@@ -210,9 +197,9 @@ type AccountRoute = Extract<
 function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElement {
   switch (route.name) {
     case 'signIn':
-      return <SignIn />;
+      return <SignInPage register={false} />;
     case 'register':
-      return <Register />;
+      return <SignInPage register />;
     case 'account':
       return <AccountPage />;
     case 'leaderboard':
