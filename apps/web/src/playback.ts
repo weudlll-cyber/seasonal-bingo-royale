@@ -82,6 +82,7 @@ function foldEvents(result: QuickTestResult, step: number): FoldState {
           eliminatedRound: null,
           eliminatedCut: null,
           outPoints: null,
+          outRank: null,
           shieldSaves: [],
         },
       ]),
@@ -177,15 +178,17 @@ function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApp
   // The server's facts of this cut: points at elimination, how far below the line a
   // saved player was (older views have none).
   const facts = state.facts.cuts[cutNumber - 1];
-  for (const id of eliminated) {
+  // The server lists the eliminated in ranked order, worst first.
+  ev.eliminated.forEach((id, i) => {
     update(state, id, (p) => ({
       ...p,
       eliminated: true,
       eliminatedRound: state.roundIndex,
       eliminatedCut: cutNumber,
       outPoints: facts?.out[id] ?? p.points,
+      outRank: ev.eliminated.length - 1 - i,
     }));
-  }
+  });
   const below = (id: string): number => facts?.saved[id] ?? 0;
   for (const id of saved) {
     update(state, id, (p) => ({

@@ -315,7 +315,7 @@ Within a round, stage or match, players are ordered by:
 4. Draw index of the player’s last scoring event (earlier first)
 5. Join timestamp (earlier first) — deterministic last resort
 
-The cut, the final placement and the standings in the round recap (D20) all use this one chain.
+The cut, the final placement and the standings in the round recap (D20) all use this one chain; the live standings show players out in one cut in the order the server's cut gave them, so a live rank and the final place agree.
 
 ### 8.5 Seasonal jackpot
 
