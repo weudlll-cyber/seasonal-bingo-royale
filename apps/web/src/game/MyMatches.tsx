@@ -3,23 +3,21 @@
  * @module web/game
  * @brief  The lobby's "My matches": the signed-in player's matches that are not over (D39).
  *
- * Responsibility: for a signed-in account, GET /me/matches (refreshed every 3 seconds) as one row
- *                 per match with its title, pace ("Realtime" / "Asynchronous"), where it stands
+ * Responsibility: the `mine` part of the lobby's GET /matches answer (./Lobby, one refresh
+ *                 for both, so they always agree) as one row per match with its title, pace ("Realtime" / "Asynchronous"), where it stands
  *                 ("Waiting for the host", "Starts at 22:25", "Starts or closes at …",
  *                 "Round 2 · you're through", "Out in cut 1 · watching") and "Open", which opens
- *                 it in this tab. Hidden for a guest and while the list is empty. The server
+ *                 it in this tab. Hidden while the list is empty (a guest's is). The server
  *                 decides every fact; this only puts them into words.
- * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ../shell/session,
- *                 ./Registration (whenText), ./game.css
+ * Depends on:     react, @sbr/contracts (types), ../shell/router, ./Registration (whenText),
+ *                 ./game.css
  * Used by:        ./Lobby
  * Spec:           docs/spec/01-game-design.md §13 (D39); docs/spec/05-api-design.md §2.2
  */
-import type { MyMatch, MyMatches as MyMatchList } from '@sbr/contracts';
-import { useEffect, useState, type ReactElement } from 'react';
+import type { MyMatch } from '@sbr/contracts';
+import type { ReactElement } from 'react';
 
-import { api } from '../shell/http.js';
 import { hrefOf } from '../shell/router.js';
-import { useSession } from '../shell/session.js';
 import { whenText } from './Registration.js';
 import './game.css';
 
@@ -37,35 +35,11 @@ export function myMatchState(m: MyMatch, now: number): string {
   return m.startsWhenFull ? 'Waiting for players' : 'Waiting for the host';
 }
 
-function useMyMatches(signedIn: boolean): readonly MyMatch[] {
-  const [matches, setMatches] = useState<readonly MyMatch[]>([]);
-  useEffect(() => {
-    if (!signedIn) {
-      setMatches([]);
-      return undefined;
-    }
-    let alive = true;
-    const load = (): void => {
-      api<MyMatchList>('/me/matches')
-        .then((r) => {
-          if (alive) setMatches(r.matches);
-        })
-        // The lobby list below says when the server is not reachable.
-        .catch(() => undefined);
-    };
-    load();
-    const timer = window.setInterval(load, 3_000);
-    return () => {
-      alive = false;
-      window.clearInterval(timer);
-    };
-  }, [signedIn]);
-  return matches;
-}
-
-export function MyMatches(): ReactElement | null {
-  const signedIn = (useSession().session?.account ?? null) !== null;
-  const matches = useMyMatches(signedIn);
+export function MyMatches({
+  matches,
+}: {
+  readonly matches: readonly MyMatch[];
+}): ReactElement | null {
   if (matches.length === 0) return null;
   const now = Date.now();
   return (

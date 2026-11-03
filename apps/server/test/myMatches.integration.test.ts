@@ -1,13 +1,14 @@
 /**
  * @file   apps/server/test/myMatches.integration.test.ts
  * @module server/test
- * @brief  GET /api/v1/me/matches: the signed-in player's matches that are not over (D39).
+ * @brief  `mine` in GET /api/v1/matches: the signed-in player's matches that are not over (D39).
  *
  * Responsibility: player-1 joins a realtime lobby the host starts, one with a set start time, an
  *                 asynchronous lobby and an asynchronous royale a day into play; a cancelled
  *                 match and one player-1 never joined stay out. The list is newest first with
  *                 the start facts, the round and the cuts as the event log has them, read in one
- *                 query; player-2 sees only their own match; a guest 401. Open matches are
+ *                 query; player-2 sees only their own match; a match counting down is in the same state
+ *                 on its card and in `mine` (one answer); a guest gets none. Open matches are
  *                 aborted at the end (./harness stopHarness).
  * Depends on:     vitest, ./harness, ./session
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
@@ -63,8 +64,16 @@ interface Listed {
   readonly outInCut: number | null;
 }
 
-const listOf = async (by: Client) =>
-  (await by.get('/api/v1/me/matches')).json<{ matches: Listed[] }>().matches;
+interface Card {
+  readonly code: string;
+  readonly status: string;
+  readonly startsAt: number | null;
+}
+
+// The lobby's one answer: the cards and the player's own matches (`mine`).
+const lobbyOf = async (by: Client) =>
+  (await by.get('/api/v1/matches')).json<{ matches: Card[]; mine: (Listed & Card)[] }>();
+const listOf = async (by: Client) => (await lobbyOf(by)).mine;
 
 // The round and cuts of player-1 in a match, from its event log (the list's oracle).
 async function logFacts(id: string, me: string) {
@@ -126,9 +135,24 @@ describe('my matches (D39)', () => {
     // Only the session's own matches.
     expect((await listOf(other)).map((m) => m.code)).toEqual([notMine.code]);
   }, 180_000);
+});
 
-  it('asks a guest to sign in', async () => {
-    const guest = await harness.built.fastify.inject({ method: 'GET', url: '/api/v1/me/matches' });
-    expect(guest.statusCode).toBe(401);
+describe('my matches in the lobby answer (D39)', () => {
+  it('come with the lobby cards in one answer, in the same state', async () => {
+    const counting = await joined(player, { title: 'Counting down' });
+    const engine = harness.built.match.engine;
+    await engine.fillWithBots(counting.id, 4);
+    const startsAt = await engine.start(counting.id, 10_000);
+    const { matches, mine } = await lobbyOf(player);
+    const card = matches.find((m) => m.code === counting.code);
+    const own = mine.find((m) => m.code === counting.code);
+    expect(card).toMatchObject({ status: 'lobby', startsAt });
+    expect(own).toMatchObject({ status: 'lobby', startsAt });
+    await engine.abort(counting.id, 'test cleanup', 'host');
+  });
+
+  it('are none for a guest', async () => {
+    const guest = await harness.built.fastify.inject({ method: 'GET', url: '/api/v1/matches' });
+    expect(guest.json<{ mine: unknown[] }>().mine).toEqual([]);
   });
 });

@@ -29,15 +29,16 @@ export function gameTypeName(type: GameType): string {
   return 'Classic';
 }
 
-// A match status in plain words.
-export function statusName(status: MatchSummary['status']): string {
+// A match status in plain words; a lobby whose 10-second start countdown runs is starting,
+// no longer just open to join.
+export function statusName(m: Pick<MatchSummary, 'status' | 'startsAt'>): string {
   const names: Record<MatchSummary['status'], string> = {
-    lobby: 'Open to join',
+    lobby: m.startsAt === null ? 'Open to join' : 'Starting…',
     running: 'Running',
     finished: 'Finished',
     aborted: 'Cancelled',
   };
-  return names[status];
+  return names[m.status];
 }
 
 // An interval in plain words: seconds up to a minute (realtime), else minutes or hours

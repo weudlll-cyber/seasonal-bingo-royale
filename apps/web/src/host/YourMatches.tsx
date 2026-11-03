@@ -30,7 +30,7 @@ export function YourMatches(): ReactElement | null {
               <strong>{m.title}</strong>
               <span className="sbr-muted">
                 {' '}
-                · Code {m.code} · {gameTypeName(m.gameType)} · {statusName(m.status)} · {m.players}/
+                · Code {m.code} · {gameTypeName(m.gameType)} · {statusName(m)} · {m.players}/
                 {m.maxPlayers} players
               </span>
             </span>

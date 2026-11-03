@@ -1,9 +1,10 @@
 /**
  * @file   packages/contracts/src/http/myMatches.ts
  * @module contracts/http
- * @brief  GET /api/v1/me/matches: the signed-in player's matches that are not over (D39).
+ * @brief  `mine` in GET /api/v1/matches: the signed-in player's matches that are not over (D39).
  *
- * Responsibility: the wire shape of the lobby's "My matches": every match the account joined
+ * Responsibility: the wire shape of the lobby's "My matches", sent with the lobby list in one
+ *                 answer (so both show the same state): every match the account joined
  *                 that is in its lobby, counting down or running, asynchronous and realtime,
  *                 with what the lobby needs to say where it stands (the start, the round,
  *                 cuts survived or the cut that put the player out). The server reads it in one
@@ -30,8 +31,4 @@ export interface MyMatch {
   // Cuts the player came through, and the cut (1-based) that put the player out (null while in).
   readonly cutsSurvived: number;
   readonly outInCut: number | null;
-}
-
-export interface MyMatches {
-  readonly matches: readonly MyMatch[];
 }

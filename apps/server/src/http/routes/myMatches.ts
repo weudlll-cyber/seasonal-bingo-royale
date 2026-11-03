@@ -1,18 +1,18 @@
 /**
  * @file   apps/server/src/http/routes/myMatches.ts
  * @module server/http
- * @brief  GET /api/v1/me/matches: the signed-in player's matches that are not over (D39).
+ * @brief  The signed-in player's matches that are not over, for GET /api/v1/matches (D39).
  *
  * Responsibility: one query over the account's match entries: every match in its lobby or
  *                 running (asynchronous and realtime), newest first, with the start facts, the
  *                 newest round from the event log, the cuts the player came through and the cut
- *                 that put the player out. Only the session's own account; a guest 401.
- * Depends on:     fastify, @sbr/contracts (types), ../../db/pool
+ *                 that put the player out; status and countdown taken from the lobby list of
+ *                 the same answer. Only the session's own account.
+ * Depends on:     @sbr/contracts (types), ../../db/pool
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
  */
-import type { MyMatch, MyMatches } from '@sbr/contracts';
-import type { FastifyInstance } from 'fastify';
+import type { MyMatch } from '@sbr/contracts';
 
 import type { DbPool } from '../../db/pool.js';
 
@@ -74,15 +74,21 @@ function myMatch(r: MyMatchRow): MyMatch {
   };
 }
 
-export async function myMatches(pool: DbPool, accountId: string): Promise<MyMatches> {
-  const r = await pool.query<MyMatchRow>(MY_MATCHES, [accountId]);
-  return { matches: r.rows.map(myMatch) };
-}
+// The lobby list's own summaries win for where a match stands (status, countdown), so the
+// lobby card and "My matches" in one answer always agree; one the list has as over is left out.
+type Listed = Pick<MyMatch, 'code' | 'startsAt'> & { readonly status: string };
 
-export function registerMyMatches(app: FastifyInstance, deps: { readonly pool: DbPool }): void {
-  app.get('/api/v1/me/matches', async (request, reply) => {
-    const accountId = request.session?.accountId ?? null;
-    if (accountId === null) return reply.status(401).send({ code: 'SIGN_IN_REQUIRED' });
-    return reply.header('cache-control', 'no-store').send(await myMatches(deps.pool, accountId));
+export async function myMatches(
+  pool: DbPool,
+  accountId: string,
+  listed: readonly Listed[],
+): Promise<readonly MyMatch[]> {
+  const r = await pool.query<MyMatchRow>(MY_MATCHES, [accountId]);
+  const byCode = new Map(listed.map((m) => [m.code, m]));
+  return r.rows.map(myMatch).flatMap((m) => {
+    const card = byCode.get(m.code);
+    if (card === undefined) return [m];
+    if (card.status !== 'lobby' && card.status !== 'running') return [];
+    return [{ ...m, status: card.status, startsAt: card.startsAt }];
   });
 }

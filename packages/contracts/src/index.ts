@@ -82,4 +82,4 @@ export type {
   ProfileBadge,
   ProfileMatch,
 } from './http/leaderboard.js';
-export type { MyMatch, MyMatches } from './http/myMatches.js';
+export type { MyMatch } from './http/myMatches.js';

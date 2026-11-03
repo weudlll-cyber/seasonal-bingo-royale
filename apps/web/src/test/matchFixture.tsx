@@ -64,7 +64,7 @@ const HOST_SESSION = {
   csrfToken: 'x',
 };
 
-// Answers the session, the lobby list (this one match), the player's own matches (none
+// Answers the session, the lobby list (this one match) with the player's own matches (none
 // unless given, D39), the away summary (none unless given) and the match's live state;
 // returns the fetch stub.
 export function serveMatch(
@@ -75,8 +75,7 @@ export function serveMatch(
 ): ReturnType<typeof vi.fn> {
   const answer = (url: string): unknown => {
     if (url.endsWith('/session')) return HOST_SESSION;
-    if (url.endsWith('/me/matches')) return { matches: mine };
-    if (url.endsWith('/matches')) return { matches: [match] };
+    if (url.endsWith('/matches')) return { matches: [match], mine };
     if (url.endsWith('/away-summary')) return { summary: away };
     return { match, seq: 0, since: 0, me: 'owner-01', view };
   };
