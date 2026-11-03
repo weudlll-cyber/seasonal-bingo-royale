@@ -1,0 +1,217 @@
+/**
+ * @file   e2e/websiteStack.ts
+ * @module e2e
+ * @brief  A game server in website mode behind a stand-in of the website's proxy (D37).
+ *
+ * Responsibility: a database of its own (`sbr_e2e_website` beside the e2e database, made once
+ *                 and kept, so no other server's scheduler runs its matches); the player client
+ *                 built for production; a stand-in proxy on an ephemeral port that plays the
+ *                 website: GET /login is its login page; /games/bingo/auth/website asks the stub
+ *                 users (cookie "stub_user=<id>", as the website's authorize endpoint would) and
+ *                 passes the four X-Acting-User* headers, or sends a visitor without one to
+ *                 /login; every request (WebSocket upgrades too) reaches the app with client-sent
+ *                 X-Acting-User* headers removed. The server (development features on, for the
+ *                 fast test rules) runs in website mode under /games/bingo/ on an ephemeral port
+ *                 and trusts only the proxy's address. `removeAccounts` deletes the website
+ *                 users' accounts at the end (as DELETE /me would); matches are never deleted.
+ * Depends on:     node:child_process, node:http, node:net, node:fs, node:os, ./devStack
+ * Used by:        ./websiteLogin.spec
+ * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
+ */
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { mkdtempSync } from 'node:fs';
+import http, { type IncomingMessage } from 'node:http';
+import net from 'node:net';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+import { databaseUrl, REPO_ROOT } from './devStack.js';
+
+const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
+const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
+const DB_NAME = 'sbr_e2e_website';
+const SIGN_IN = '/games/bingo/auth/website';
+const IDENTITY = /^x-acting-user/i;
+
+export interface StubUser {
+  readonly id: string;
+  readonly name: string;
+  readonly roles: string;
+  readonly verified: boolean;
+}
+
+export interface WebsiteStack {
+  // The proxy's origin, e.g. http://127.0.0.1:51234.
+  readonly origin: string;
+  // The website's users by id (the stub authorize endpoint reads them).
+  readonly users: Map<string, StubUser>;
+  removeAccounts(): void;
+  close(): Promise<void>;
+}
+
+// SQL through the server package's pg (the e2e package has none), outside any request.
+function sql(url: string, statement: string, params: readonly unknown[] = []): void {
+  const code = `import pg from 'pg'; const c = new pg.Client(${JSON.stringify(url)});
+    await c.connect(); try { await c.query(${JSON.stringify(statement)}, ${JSON.stringify(params)}); }
+    catch (e) { if (e.code !== '42P04') throw e; } finally { await c.end(); }`;
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], {
+    cwd: SERVER_DIR,
+    encoding: 'utf8',
+  });
+  if (r.status !== 0) throw new Error(`sql failed: ${r.stderr}`);
+}
+
+function ownDatabase(): string {
+  const admin = databaseUrl();
+  // 42P04 (it exists already) is fine: the database is kept between runs.
+  sql(admin, `CREATE DATABASE ${DB_NAME}`);
+  const url = new URL(admin);
+  url.pathname = `/${DB_NAME}`;
+  return url.toString();
+}
+
+function buildClient(): string {
+  const dir = mkdtempSync(path.join(tmpdir(), 'sbr-website-client-'));
+  const vite = path.join(WEB_DIR, 'node_modules/vite/bin/vite.js');
+  const r = spawnSync(
+    process.execPath,
+    [vite, 'build', '--outDir', dir, '--emptyOutDir', '--logLevel', 'error'],
+    {
+      cwd: WEB_DIR,
+      env: { ...process.env, NODE_ENV: 'production' },
+      encoding: 'utf8',
+    },
+  );
+  if (r.status !== 0) throw new Error(`client build failed: ${r.stderr}`);
+  return dir;
+}
+
+const stubCookie = (cookie: string | undefined): string =>
+  /(?:^|;\s*)stub_user=([^;]+)/.exec(cookie ?? '')?.[1] ?? '';
+
+// The request's headers without client-sent identity headers, plus `extra`.
+function forwarded(req: IncomingMessage, extra: Record<string, string>): http.OutgoingHttpHeaders {
+  const headers: http.OutgoingHttpHeaders = {};
+  for (const [k, v] of Object.entries(req.headers)) if (!IDENTITY.test(k)) headers[k] = v;
+  headers['x-forwarded-for'] = req.socket.remoteAddress ?? '';
+  return { ...headers, ...extra };
+}
+
+function identity(user: StubUser): Record<string, string> {
+  return {
+    'x-acting-user-id': user.id,
+    'x-acting-user': user.name,
+    'x-acting-user-roles': user.roles,
+    'x-acting-user-email-verified': String(user.verified),
+  };
+}
+
+function startProxy(users: Map<string, StubUser>, app: { port: number }): http.Server {
+  const server = http.createServer((req, res) => {
+    const pathname = (req.url ?? '/').split('?')[0] ?? '/';
+    if (pathname === '/login') return void res.end('website login');
+    let extra: Record<string, string> = {};
+    if (pathname === SIGN_IN) {
+      const user = users.get(stubCookie(req.headers.cookie));
+      if (user === undefined) {
+        res.writeHead(302, { location: `/login?next=${encodeURIComponent(SIGN_IN)}` });
+        return void res.end();
+      }
+      extra = identity(user);
+    }
+    const options = { host: '127.0.0.1', port: app.port, method: req.method, path: req.url };
+    const up = http.request({ ...options, headers: forwarded(req, extra) }, (r) => {
+      res.writeHead(r.statusCode ?? 502, r.headers);
+      r.pipe(res);
+    });
+    up.on('error', () => res.destroy());
+    req.pipe(up);
+  });
+  server.on('upgrade', (req: IncomingMessage, socket: net.Socket, head: Buffer) => {
+    const up = net.connect(app.port, '127.0.0.1', () => {
+      const lines = Object.entries(forwarded(req, {})).map(([k, v]) => `${k}: ${String(v)}`);
+      up.write(
+        `${req.method ?? 'GET'} ${req.url ?? '/'} HTTP/1.1\r\n${lines.join('\r\n')}\r\n\r\n`,
+      );
+      up.write(head);
+      socket.pipe(up).pipe(socket);
+    });
+    up.on('error', () => socket.destroy());
+    socket.on('error', () => up.destroy());
+  });
+  return server;
+}
+
+// The server in website mode; resolves with its port once it listens.
+function startServer(env: Record<string, string>): Promise<{ child: ChildProcess; port: number }> {
+  const child = spawn(process.execPath, ['--import=tsx', 'src/main.ts'], {
+    cwd: SERVER_DIR,
+    env: { ...process.env, ...env },
+  });
+  return new Promise((resolve, reject) => {
+    let out = '';
+    const timer = setTimeout(() => {
+      reject(new Error(`the server did not start:\n${out}`));
+    }, 90_000);
+    const read = (chunk: Buffer): void => {
+      out += chunk.toString();
+      const listening = /listening at http:\/\/127\.0\.0\.1:(\d+)/.exec(out);
+      if (listening === null) return;
+      clearTimeout(timer);
+      resolve({ child, port: Number(listening[1]) });
+    };
+    child.stdout.on('data', read);
+    child.stderr.on('data', read);
+    child.on('exit', (code) => {
+      reject(new Error(`the server stopped (${String(code)}):\n${out}`));
+    });
+  });
+}
+
+export async function startWebsiteStack(): Promise<WebsiteStack> {
+  const db = ownDatabase();
+  const webDir = buildClient();
+  const users = new Map<string, StubUser>();
+  const app = { port: 0 };
+  const proxy = startProxy(users, app);
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+  const address = proxy.address();
+  const origin = `http://127.0.0.1:${String(typeof address === 'object' && address !== null ? address.port : 0)}`;
+  const server = await startServer({
+    DATABASE_URL: db,
+    SBR_HOST: '127.0.0.1',
+    SBR_PORT: '0',
+    SBR_DEV: '1',
+    SBR_LOG_LEVEL: 'info',
+    SBR_AUTH_MODE: 'website',
+    SBR_BASE_PATH: '/games/bingo/',
+    SBR_PUBLIC_URL: `${origin}/games/bingo/`,
+    SBR_TRUSTED_PROXIES: '127.0.0.1',
+    SBR_WEB_DIR: webDir,
+    SBR_DATA_DIR: mkdtempSync(path.join(tmpdir(), 'sbr-website-data-')),
+  });
+  app.port = server.port;
+  return {
+    origin,
+    users,
+    removeAccounts: () => {
+      // As DELETE /me does (apps/server/src/auth/accounts.ts deleteAccount): the matches keep
+      // their history without the link; sessions, roles and identities go with the account.
+      const ids = `SELECT account_id FROM sbr.external_identities WHERE subject = ANY($1)`;
+      const subjects = [...users.keys()];
+      sql(db, `UPDATE sbr.matches SET created_by = NULL WHERE created_by IN (${ids})`, [subjects]);
+      sql(db, `UPDATE sbr.match_entries SET account_id = NULL WHERE account_id IN (${ids})`, [
+        subjects,
+      ]);
+      sql(db, `DELETE FROM sbr.accounts WHERE id IN (${ids})`, [subjects]);
+    },
+    close: async () => {
+      server.child.kill();
+      await new Promise<void>((resolve) =>
+        proxy.close(() => {
+          resolve();
+        }),
+      );
+    },
+  };
+}
