@@ -3,8 +3,10 @@
  * @module server/http
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
- * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags),
- *                 POST /auth/register, /auth/login, /auth/logout, /auth/guest, and DELETE /me
+ * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the
+ *                 sign-in mode), POST /auth/register and /auth/login (local mode only; in website
+ *                 mode players sign in through the website, D37), /auth/logout, /auth/guest,
+ *                 DELETE /me
  *                 (the account, after its password is checked). Login answers
  *                 uniformly and verifies a dummy hash for unknown e-mails, so timing and
  *                 text never reveal whether an account exists (03 §2.1). Login and
@@ -12,7 +14,7 @@
  *                 verification and 2FA are behind feature flags that are off by default;
  *                 when verification is on, unverified accounts cannot sign in.
  * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ../../config/features
- * Used by:        ../app
+ * Used by:        ../app, ./websiteSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -43,6 +45,10 @@ interface AuthDeps {
   readonly features: Features;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
+  // D37: in website mode players sign in only through the website (./websiteSignIn at
+  // `${basePath}auth/website`); registration and password sign-in are not there.
+  readonly mode: 'local' | 'website';
+  readonly basePath: string;
 }
 
 const registerBody = z.object({
@@ -64,20 +70,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     loginAccountIp: new RateLimiter(RATE_RULES.loginAccountIp),
     guest: new RateLimiter(RATE_RULES.guest),
   };
-  app.get('/api/v1/session', (request) => sessionSummary(request, deps.features));
-  app.post('/api/v1/auth/register', async (request, reply) => {
-    if (!limits.register.take(request.ip).allowed) return tooMany(reply);
-    return register(request, reply, deps);
-  });
-  app.post('/api/v1/auth/login', async (request, reply) => {
-    const parsed = loginBody.safeParse(request.body);
-    if (!parsed.success) return reply.status(400).send(LOGIN_FAILED);
-    const key = `${parsed.data.email.toLowerCase()}|${request.ip}`;
-    if (!limits.loginIp.take(request.ip).allowed || !limits.loginAccountIp.take(key).allowed) {
-      return tooMany(reply);
-    }
-    return login(request, reply, deps, parsed.data);
-  });
+  app.get('/api/v1/session', (request) => sessionSummary(request, deps));
+  if (deps.mode === 'local') registerLocalSignIn(app, deps, limits);
   app.post('/api/v1/auth/logout', async (request, reply) => {
     if (request.session !== null) {
       await revokeSession(deps.pool, request.session.id);
@@ -96,7 +90,28 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   });
 }
 
-function sessionSummary(request: FastifyRequest, features: Features) {
+// Registration and password sign-in: local mode only (D37).
+function registerLocalSignIn(
+  app: FastifyInstance,
+  deps: AuthDeps,
+  limits: Readonly<Record<'register' | 'loginIp' | 'loginAccountIp', RateLimiter>>,
+): void {
+  app.post('/api/v1/auth/register', async (request, reply) => {
+    if (!limits.register.take(request.ip).allowed) return tooMany(reply);
+    return register(request, reply, deps);
+  });
+  app.post('/api/v1/auth/login', async (request, reply) => {
+    const parsed = loginBody.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send(LOGIN_FAILED);
+    const key = `${parsed.data.email.toLowerCase()}|${request.ip}`;
+    if (!limits.loginIp.take(request.ip).allowed || !limits.loginAccountIp.take(key).allowed) {
+      return tooMany(reply);
+    }
+    return login(request, reply, deps, parsed.data);
+  });
+}
+
+function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
   const s = request.session;
   return {
     signedIn: s !== null && s.accountId !== null,
@@ -104,7 +119,10 @@ function sessionSummary(request: FastifyRequest, features: Features) {
     account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
-    features,
+    features: deps.features,
+    // D37: where the sign-in button goes in website mode.
+    authMode: deps.mode,
+    ...(deps.mode === 'website' ? { signInPath: `${deps.basePath}auth/website` } : {}),
   };
 }
 
@@ -136,13 +154,14 @@ async function login(
   return startSession(request, reply, deps, { accountId: account.id, status: 200 });
 }
 
-async function startSession(
+// A fresh session for the account, the old one ended (03 §3: rotate on login); also the
+// website sign-in's (./websiteSignIn).
+export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  deps: AuthDeps,
-  { accountId, status }: { readonly accountId: string; readonly status: number },
-) {
-  // A fresh session id on every sign-in (03 §3: rotate on login).
+  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'>,
+  accountId: string,
+): Promise<void> {
   if (request.session !== null) {
     await revokeSession(deps.pool, request.session.id);
     deps.sessionEnds.end([request.session.id]);
@@ -153,6 +172,15 @@ async function startSession(
     request.headers['user-agent'] ?? null,
   );
   setSessionCookie(reply, deps.cookie, token);
+}
+
+async function startSession(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  deps: AuthDeps,
+  { accountId, status }: { readonly accountId: string; readonly status: number },
+) {
+  await openSession(request, reply, deps, accountId);
   return reply.status(status).send({ accountId });
 }
 
