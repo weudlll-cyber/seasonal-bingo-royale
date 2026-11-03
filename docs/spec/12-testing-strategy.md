@@ -56,7 +56,7 @@ Built so far: CI runs `pnpm test:coverage` (domain and application, thresholds i
 4. Guest: can watch and read chat, cannot join or post.
 5. Admin: login with 2FA → create ruleset draft → change Winter effect → simulate → publish → create match from it → match uses new rules; running match unaffected.
 6. Moderation: player posts filtered word (masked), spam burst (rate-limited), moderator temp-mutes → player sees mute state and expiry.
-7. Integration: OIDC login against a test provider (e.g. a containerised Keycloak or `oidc-provider` mock) → no second account; JWT handoff from a test host page → embedded iframe logs in; origin not on allowlist → rejected.
+7. Integration: the website login (D37) — built: `apps/server/test/websiteLogin.integration.test.ts` (account by issuer and subject, name and roles following the website, e-mail verification, forged headers from an untrusted peer, on another route or in local mode sign nobody in), `e2e/websiteLogin.spec.ts` (a website-mode server behind a stand-in of the website's proxy: sign in through the website, a short counting match, league points only with a verified e-mail, forged headers rejected) and `ops/test/website-vps.sh` (the install in nginx and own-Caddy mode in a throw-away Ubuntu 24.04 machine with a stub authorize endpoint). Later options: OIDC login against a test provider (e.g. a containerised Keycloak or `oidc-provider` mock) → no second account; JWT handoff from a test host page → embedded iframe logs in; origin not on allowlist → rejected.
 8. Reconnect: kill the socket mid-round → client resyncs without duplicate marks.
 9. Accessibility: axe checks on lobby, match, leaderboard, admin forms; keyboard-only manual marking.
 

@@ -41,20 +41,42 @@ There is no signed release image yet, so the installer builds the game on the se
 
 ## 3. Install — inside the Seasonal Entertainment website
 
+Inside the website, players sign in **only with their website account** (D37): the website's proxy asks the website who the visitor is and passes the answer to the game; the game never sees a password or a website session. The game's own registration and password sign-in are off.
+
+**What the website must provide first** (website repository; the game goes online only once this works end to end, D38):
+
+- An authorize endpoint for the game, like the event bot's admin page uses: by default `GET /api/games/bingo/authorize` on the website app (`127.0.0.1:3800` in nginx mode, the `site` service on port 3800 in own-Caddy mode). For a signed-in, unlocked user it answers `204` with four headers: `X-Acting-User-Id` (the stable user id), `X-Acting-User` (the display name), `X-Acting-User-Roles` (comma-separated, e.g. `member,organiser`) and `X-Acting-User-Email-Verified` (`true` or `false`); otherwise `401` (not signed in) or `403`. Organisers may host matches; members play. Only a verified e-mail counts for league points.
+- A login page that takes a return path: the game sends a visitor who is not signed in to `/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite`.
+- One include line for the game's route file (below) and a link to `https://<website domain>/games/bingo/` on the games page.
+
+**Install:**
+
 1. Log in to the VPS (`ssh root@<VPS address>`).
 2. Run the same command as above, but choose **website** as the type (or add `--type website`):
    ```
    git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh --type website
    ```
-   If the website is not running, the installer stops and says so — install the website first.
-3. Answer the questions (environment, e-mail, age public key). The installer finds the website's domain itself and publishes no port of its own.
-4. **Add bingo to the website's Caddy** — the installer prints these steps at the end; once, in the website's checkout on the same server:
-   1. Create the folder `deploy/site/routes/` and copy `/opt/sbr/website-bingo.caddy` into it as `bingo.caddy`.
-   2. In `deploy/site/Caddyfile`, inside the `{$SITE_DOMAIN} { … }` block, add the line `import /etc/caddy/routes/*.caddy`.
-   3. In `deploy/site/docker-compose.yml`, give the `caddy` service the volume `- ./routes:/etc/caddy/routes:ro`.
-   4. Apply it: `cd <website checkout>/deploy/site && docker compose up -d caddy`.
-5. Create the first admin (section 4), then open `https://<website domain>/games/bingo/`.
-6. Players use the game's own accounts for now; the shared website login comes later.
+   The installer finds out how the website runs — with its **own Caddy** (the website's installer chose that because nothing else held ports 80/443) or behind the server's **nginx** — and stops with a plain message when the website is not running. Install the website first.
+3. Answer the questions (environment, e-mail, age public key). The installer finds the website's domain itself (own-Caddy mode) or asks for it (nginx mode). Other settings have defaults you can change with flags: `--website-authorize-path` (`/api/games/bingo/authorize`), `--website-login-path` (`/login?next=`), `--website-upstream` (where the website app answers), `--website-routes-dir` (nginx: `/etc/seasonal/routes`), `--app-port` (nginx: the game's loopback port, `3900`), `--edge-subnet` (nginx: the game's network, `172.30.249.0/24`).
+4. **Hand the route to the website** — the installer writes the game's own route file and prints these steps; the website's files are never edited by the installer:
+   - **nginx mode:** the file is `/etc/seasonal/routes/bingo.conf`. The website's `server` block for its domain needs, once, the line
+     ```
+     include /etc/seasonal/routes/*.conf;
+     ```
+     then `nginx -t && systemctl reload nginx`.
+   - **Own-Caddy mode:** the file is `/opt/sbr/routes/bingo.caddy`. Once, in the website's checkout on the same server:
+     1. Create the folder `deploy/site/routes/` and copy `/opt/sbr/routes/bingo.caddy` into it.
+     2. In `deploy/site/Caddyfile`, inside the `{$SITE_DOMAIN} { … }` block, add the line `import /etc/caddy/routes/*.caddy`.
+     3. In `deploy/site/docker-compose.yml`, give the `caddy` service the volume `- ./routes:/etc/caddy/routes:ro`.
+     4. Apply it: `cd <website checkout>/deploy/site && docker compose up -d caddy`.
+5. Open `https://<website domain>/games/bingo/` and press **Sign in**: you come back signed in with your website name. `sudo sbr status` shows `sign-in: website` and whether the website's authorize endpoint answers (`401` without a browser session is right).
+
+**Good to know about the website login:**
+
+- The route file sends only `/games/bingo/auth/website` to the website for the check, clears any `X-Acting-User…` headers a browser sends on every game path, and keeps `/games/bingo/metrics` closed (404). The game believes those headers only on that one route and only from the proxy's address.
+- Signing out of the website does not sign the player out of the game at once: the game session lasts as configured (7 days idle, 30 days at most) or until the player signs out in the game. A website account that is deleted or locked cannot sign in to the game again (the authorize endpoint refuses it).
+- Display names follow the website at each sign-in (letters, digits, `_`, `.` and `-`; another character becomes `_`; a name already taken gets a number, e.g. `Anna2`). Hosting follows the website's organiser role at each sign-in; no admin role is ever given by the website.
+- In nginx mode the game listens on `127.0.0.1:<app port>` of the server only. Anyone with a shell on the server could reach it there directly; keep shell access to the server limited to its operators.
 
 ## 4. Create the first admin
 

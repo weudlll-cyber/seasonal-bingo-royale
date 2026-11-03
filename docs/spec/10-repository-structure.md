@@ -85,8 +85,9 @@ seasonal-bingo-royale/
 ├─ load/                        drawLatency.mjs (200-player check), spectatorStream.mjs (spectator bytes per draw), common.mjs; k6 scenarios (planned)
 ├─ reports/                     Run, audit and review reports (dated); screens/ (screenshots)
 ├─ ops/
-│  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.dev.yml  Caddyfile
+│  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.website-nginx.yml  compose.dev.yml  Caddyfile
 │  ├─ pull-backups.sh  pull-backups.ps1  (the restore drill is `sbr restore --drill`)
+│  ├─ test/ (website-vps.sh: the website install in a throw-away Ubuntu 24.04 machine; stub-website.py)
 │  ├─ examples/ (nginx, an existing Caddy)  notify.ps1 (development machine only)
 │  └─ grafana/  prometheus/  k8s/  (planned)
 └─ docs/

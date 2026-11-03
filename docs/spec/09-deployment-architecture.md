@@ -41,9 +41,11 @@ Reference host: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS (e.g. the ownerâ€
 /opt/sbr/                     install root (owned by root)
   sbr, lib/                   CLI and its shell library (/usr/local/bin/sbr links here)
   compose.yml                 the stack (app, postgres; caddy for standalone)
-  compose.website.yml         website installs: the app on the website's network
+  compose.website.yml         website installs, own-Caddy mode: the app on the website's network
+  compose.website-nginx.yml   website installs, nginx mode: one loopback port, fixed app subnet
   caddy/Caddyfile             standalone (the folder is mounted, so `caddy reload` sees changes)
-  website-bingo.caddy         website installs: the route for the website's Caddyfile
+  routes/bingo.caddy          website installs, own-Caddy mode: the game's route (D37)
+/etc/seasonal/routes/bingo.conf  website installs, nginx mode: the game's route (D37)
   src/                        git checkout the image is built from (until release images exist)
 /etc/sbr/install.conf         install type, environment, address, repository and ref
 /etc/sbr/prod.env             secrets + public URL (0600)
