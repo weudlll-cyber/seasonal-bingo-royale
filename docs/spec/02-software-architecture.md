@@ -10,7 +10,7 @@
 | Future Kubernetes / cloud | The process is stateless apart from the database; in-process state (match timers, socket rooms, rate limits) sits behind ports with a Redis-backed adapter planned for scale-out (§8). |
 | Server-authoritative game | All game rules run on the server in a pure domain layer. The client renders state and sends intents only. |
 | Configurable without code | Rules are data (rulesets) validated by schemas; the domain receives a typed, validated ruleset value. |
-| Standalone and embeddable | Identity is a port with three adapters (local accounts, OIDC, signed JWT handoff). The player client runs both as its own site and inside an iframe. |
+| Standalone and embeddable | Identity is a port with adapters: local accounts (standalone) and the website proxy headers (website installs, D37) are built; OIDC and a signed JWT handoff are later options (07 §2). The player client runs both as its own site and inside an iframe. |
 | Strict code quality (Clean/Hexagonal, small files) | Layered packages with dependency rules enforced by lint, file-size limits, mandatory file headers. |
 
 ## 2. System context

@@ -14,7 +14,10 @@
 |---|---|---|
 | `local` | Own e-mail/password + TOTP | Standalone |
 | `oidc` | OpenID Connect, Authorization Code + PKCE (S256), `state` + `nonce`, discovery document | Host site is (or has) an OIDC provider — preferred |
-| `jwt-handoff` | Host signs a short-lived JWT for a logged-in user; the game exchanges it once | Host site has its own login but no OIDC provider; simplest integration |
+| `jwt-handoff` | Host signs a short-lived JWT for a logged-in user; the game exchanges it once | Host site has its own login but no OIDC provider (a later option, not built) |
+| `proxy-header` | The host's reverse proxy asks the host site who the visitor is (nginx `auth_request` / Caddy `forward_auth`) and passes the answer as request headers to one game route (§2.3) | Game served under the host's own domain behind the host's proxy — **the Seasonal Entertainment website (D37)** |
+
+`oidc` and `jwt-handoff` are described as later options for other host sites; neither is built. Built: `local` (standalone) and `proxy-header` (website installs, D37). An installation runs in one of two modes (`SBR_AUTH_MODE`): `local` (default) or `website`; in `website` mode the game's own registration, password sign-in and development sign-in are off (§2.3).
 
 OAuth2 is covered through OIDC (OIDC is OAuth2 + identity). Plain OAuth2 providers without OIDC (e.g. Discord) can be added later as an `oauth2-userinfo` adapter; not in v1.
 
@@ -24,7 +27,7 @@ OAuth2 is covered through OIDC (OIDC is OAuth2 + identity). Plain OAuth2 provide
 - First login via an external identity creates a local account **without** password (`email` stored only if the provider marks it verified).
 - Linking an external identity to an existing local account requires the user to be logged in to both (explicit link flow from the profile page). No silent linking by e-mail — prevents account takeover through a provider that does not verify e-mails.
 - Display name: taken from the configured claim; on collision a numeric suffix is added and the user can change it.
-- Roles: an optional `role_mapping` maps provider claims/groups to game roles (e.g. host group `organizers` → `organizer`). Mapped roles are marked `source=idp_mapping` and recomputed at every login; `super_admin` and `security_admin` can **never** be granted by mapping.
+- Roles: an optional `role_mapping` maps provider claims/groups to game roles (e.g. host group `organizers` → `organizer`). Mapped roles are marked `source=idp_mapping` and recomputed at every login (losing the claim removes the role); `super_admin` and `security_admin` can **never** be granted by mapping — they stay with `sbr admin create-super` and server commands (D41, 2026-11-03).
 
 ### 2.2 JWT handoff contract
 
@@ -42,6 +45,31 @@ Host backend creates (never the host’s browser JavaScript):
 - Lifetime ≤ 60 s, single use (`jti` replay cache), audience fixed.
 - Delivered either as `POST /api/v1/auth/handoff` from the host page (iframe `postMessage` → game iframe posts it) or as a one-time redirect `https://bingo.example/auth/handoff#token=…` (fragment, never query string, so it is not logged).
 - The game answers with a first-party session cookie (same-site deployment) or an in-memory embed token (third-party context).
+
+### 2.3 Proxy header contract (D37)
+
+The pattern of the website's event-bot admin page (`/bot-admin/`, website repository `server/src/bots/adminAuthorizeRoutes.js` and `docs/AUTH.md`): the game never sees a password or a website session; the website's proxy asks the website and forwards only the answer.
+
+```
+browser ──GET /games/bingo/auth/website?next=…──► website proxy (nginx / Caddy)
+                                                    │ auth_request / forward_auth:
+                                                    │ GET <authorize endpoint> with the browser's Cookie
+                                                    ▼
+                                                  website ── 2xx + X-Acting-User-* headers (or 401/403)
+                                                    │
+         proxy clears any client-sent X-Acting-User-* and X-Sbr-Proxy-Secret,
+         copies the answer's headers, adds X-Sbr-Proxy-Secret ──► game app
+         (refused: 302 to <base>/auth/website/login?next=… ──► game app ──► website login)
+```
+
+- **One route reads identity headers:** `GET <base>/auth/website` (inside the website: `/games/bingo/auth/website`). The proxy protects exactly this route; every other path of the game is proxied without asking the website and without those headers.
+- **Headers** (names configurable, defaults matching the website's bot-admin pattern): `X-Acting-User-Id` (stable website user id), `X-Acting-User` (display name), `X-Acting-User-Roles` (comma-separated website roles), `X-Acting-User-Email-Verified` (`true` or `false`).
+- **Trust:** the game accepts them only on that route, only in `website` mode, only from a peer address in `SBR_TRUSTED_PROXIES`, and only when the request carries the proxy secret in `X-Sbr-Proxy-Secret` (`SBR_WEBSITE_PROXY_SECRET`, generated by the installer, kept in `/etc/sbr/<env>.env` and the game's route file, both 0600; compared in constant time). Anywhere else they are ignored (no other code reads them); a local process on a trusted address without the secret signs nobody in (403). The proxy route file clears client-sent `X-Acting-User*` and `X-Sbr-Proxy-Secret` headers before it adds the website's answer, and sets the secret only after the authorize call, so the website never sees it.
+- **Account:** found or created by `(issuer, subject)` = (the site origin, `X-Acting-User-Id`) per §2.1: no password, no e-mail stored. The display name follows the website at each sign-in (a numeric suffix on collision, §2.1). Roles are mapped and recomputed at every sign-in (`source=idp_mapping`): `organiser` (or `organizer`) → `organizer` (may host, D40); `admin` → `game_admin` (a game admin, who may host too; D40, D41, 2026-11-03); every account keeps `player`; `super_admin` and `security_admin` are never granted by mapping (§2.1). `X-Acting-User-Email-Verified: true` sets the account's e-mail as verified for league points (03 §11), `false` clears it.
+- **Session:** the route starts the game's own session (03 §3, rotated) and redirects to `next` (D43): a same-origin path under the base path in printable ASCII, without a scheme, host, `//` or backslash; anything else goes to the base path (the lobby). The client's sign-in button goes to this route with the page it shows as `next`. The website's login sits in front: when the authorize endpoint refuses (not signed in), the proxy redirects to `<base>/auth/website/login` with the same query; the game answers 302 to `SBR_WEBSITE_LOGIN_PATH` (default `/login?next=`) followed by the URL-encoded `<base>/auth/website?next=<URL-encoded page>`, so after signing in the visitor comes back through the route to the page they wanted (D43, 2026-11-03).
+- **Deleting the account:** a website account has no password; it is deleted by typing its display name to confirm (`DELETE /me { displayName }`, D42). Everything else of account deletion is unchanged (03 §19).
+- **Session end:** the game session lasts as configured (03 §3). A website sign-out does not reach the game at once: the game session stays valid until it expires or the player signs out of the game. A deleted or locked website account is refused at its next game sign-in (the authorize endpoint answers 401/403, so the route is never reached); a suspended game account is refused by the route (403).
+- **Standalone installs** keep `local` mode unchanged: the route answers 404, registration and password sign-in work as before.
 
 ## 3. Embedding
 
@@ -83,19 +111,20 @@ Mapping into this game:
 
 | Website concept | Game |
 |---|---|
-| Website login | `oidc` (if the website exposes an OIDC provider) or `jwt-handoff` (otherwise) |
+| Website login | `proxy-header` (D37, §2.3): the website's proxy answers who the visitor is; players sign in only through the website login |
 | Members | role `player` |
-| Organizers / users allowed to start games | role `organizer` via `role_mapping` |
-| Website admins | **not** mapped automatically to `game_admin`/`security_admin`; assigned inside the game |
+| Organisers | role `organizer` (may host), mapped at every sign-in |
+| Website admins | **not** mapped to any game admin role; game admins are assigned inside the game |
 | Telegram/Discord linkage | stays on the website; the game receives only the resulting identity and roles |
-| Website pages | same-site iframe embed via `embed.js` |
+| Website pages | the game at `https://<site domain>/games/bingo`; the games page links to it |
 
-The website has its own server-side sessions and embed tokens but no OpenID Connect provider (checked 2026-10-19), so the website uses **`jwt-handoff`** (decision D3, [README](README.md) §4):
+**D37 (2026-11-02, replaces D3):** the website has its own server-side sessions and no OpenID Connect provider (checked 2026-10-19), and its proxy already authorizes the event bot's admin page with `auth_request`. The game uses the same delivery:
 
-- The game is served at `/games/bingo` on the website’s domain (the website’s rule for games, 2026-10-17). Its own cookie is scoped to `Path=/games/bingo` and does not collide with the website’s `__Host-se.sid`.
-- When the game page opens and has no game session, it calls a website endpoint (planned: `POST /api/games/bingo/handoff`, website repository) that returns a 60-second EdDSA-signed token for the logged-in website user, with the user’s roles. The game exchanges it at `/api/v1/auth/handoff`.
-- The website publishes its public key (JWKS) so the game can verify; key and issuer are entered once in the game’s admin panel.
-- The `oidc` adapter stays in v1 for other host sites.
+- The game is served at `/games/bingo` on the website's domain (the website's rule for games, 2026-10-17). Its own cookie is scoped to `Path=/games/bingo` and does not collide with the website's `__Host-se.sid`.
+- The website provides an authorize endpoint (default path `/api/games/bingo/authorize`, configurable in the game's installer) that answers a signed-in, unlocked user with 2xx and the four headers of §2.3, anyone else with 401/403; the game's installer writes the proxy route that calls it for `/games/bingo/auth/website` only.
+- The proxy route file is the game's own (nginx: a location file the website includes with one line; the website's own-Caddy mode: `routes/bingo.caddy` with `forward_auth`), never an edit of the website's files (09 §3).
+- **D38 (2026-11-02):** the game goes online on the owner's VPS only once this works end to end.
+- `jwt-handoff` (§2.2) and `oidc` stay described for other host sites; neither is built.
 
 ## 5. Notifications into the host
 

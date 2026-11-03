@@ -5,7 +5,8 @@
  *
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
- *                 auth, the live match engine and its routes (in development on the time-travel
+ *                 sign-in (local accounts, or in website mode the website's proxy headers, D37),
+ *                 the live match engine and its routes (in development on the time-travel
  *                 clock, with its route), the leaderboards and profiles (in development also the
  *                 demo league) onto a fresh Fastify instance, under the base path and behind the
  *                 trusted proxies; first of all, refuse a seed key that does not open the stored
@@ -16,7 +17,8 @@
  *                 ./plugins/problem, ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
  *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
  *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
- *                 ./routes/quicktest, ./routes/timeTravel, ./routes/webClient, ../match/runtime,
+ *                 ./routes/quicktest, ./routes/timeTravel, ./routes/webClient, ./routes/websiteSignIn,
+ *                 ../match/runtime,
  *                 ../realtime/gateway
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
@@ -25,7 +27,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
-import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
+import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
 import { maintenanceFlag, type MaintenanceCheck } from '../config/maintenance.js';
@@ -50,6 +52,7 @@ import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
 import { registerTimeTravel } from './routes/timeTravel.js';
 import { registerWebClient } from './routes/webClient.js';
+import { registerWebsiteSignIn } from './routes/websiteSignIn.js';
 
 interface AppDeps {
   readonly env: Env;
@@ -150,14 +153,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
   await registerSessions(fastify, deps.pool, cookie);
-  registerAuthRoutes(fastify, {
-    pool: deps.pool,
-    cookie,
-    features: featuresFrom(deps.env),
-    sessionEnds,
-  });
-  // Development only: quick sign-in as host or player (never in a production build).
-  if (isDev) registerDevSignIn(fastify, { pool: deps.pool, cookie, sessionEnds });
+  registerSignIn(fastify, { env: deps.env, pool: deps.pool, cookie, sessionEnds });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, { pool: deps.pool, isDev, maintenance, seedKey, match, clock });
   const io = attachGateway(fastify.server, {
@@ -173,6 +169,23 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     await io.close();
   });
   return { fastify, metrics, match };
+}
+
+// How players sign in: the game's own accounts, or in website mode only through the
+// website (D37); in development (local mode) also the quick sign-in, never in production.
+function registerSignIn(
+  fastify: FastifyInstance,
+  deps: { env: Env; pool: DbPool; cookie: CookieConfig; sessionEnds: SessionEnds },
+): void {
+  const { env } = deps;
+  registerAuthRoutes(fastify, {
+    ...deps,
+    features: featuresFrom(env),
+    mode: env.SBR_AUTH_MODE,
+    basePath: env.SBR_BASE_PATH,
+  });
+  registerWebsiteSignIn(fastify, deps);
+  if (env.SBR_DEV && env.SBR_AUTH_MODE === 'local') registerDevSignIn(fastify, deps);
 }
 
 // The built client in the image; the placeholder page in development (Vite serves it).

@@ -72,13 +72,23 @@ cmd_status() {
   else
     info "maintenance: off"
   fi
-  if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then check_proxy "$env"; fi
+  info "sign-in:     $(env_value "$file" SBR_AUTH_MODE)"
+  if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then
+    check_proxy "$env"
+    # 401 is the expected answer without a browser session (D37).
+    info "website:     authorize endpoint $(env_value "$file" SBR_WEBSITE_UPSTREAM)$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH): $(authorize_status "$env")"
+  fi
 }
 
 # Website installs trust the website network's ranges (plus the operator's extra proxies);
 # they hold while that network exists.
 check_proxy() {
   local env=$1 network now trusted extra
+  # nginx mode: the app's own network with its fixed subnet (ops/compose.website-nginx.yml).
+  if [[ $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_MODE) == nginx ]]; then
+    info "proxy:       the website's nginx on 127.0.0.1:$(env_value "$SBR_ETC/$env.env" SBR_APP_PORT)"
+    return 0
+  fi
   [[ -n $(website_caddy) ]] || { warn "the website's Caddy is not running"; return 0; }
   network=$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)
   extra=$(env_value "$SBR_ETC/$env.env" SBR_EXTRA_PROXIES)

@@ -68,9 +68,11 @@ embed_origins
 
 **sessions** — `id uuid`, `account_id FK` (NULL for a guest session), `token_hash bytea UNIQUE`, `csrf_token text` (synchronizer token, 03 §8), `kind` (`player`/`admin`/`guest`), `created_at`, `last_seen_at`, `expires_at`, `idle_expires_at`, `last_2fa_at`, `user_agent text`, `ip_prefix inet`, `revoked_at`. Index on `(account_id) WHERE revoked_at IS NULL`.
 
-**identity_providers** — `id`, `kind` (`oidc`/`jwt_handoff`), `name`, `issuer text UNIQUE`, `client_id`, `client_secret_enc bytea NULL`, `jwks_url NULL`, `pinned_public_key NULL`, `allowed_algs text[]`, `audience text`, `claim_mapping jsonb` (display name, avatar, roles), `role_mapping jsonb`, `enabled bool`, `created_at`, `updated_at`.
+**identity_providers** — `id`, `kind` (`oidc`/`jwt_handoff`/`proxy_header`), `name`, `issuer text UNIQUE`, `client_id`, `client_secret_enc bytea NULL`, `jwks_url NULL`, `pinned_public_key NULL`, `allowed_algs text[]`, `audience text`, `claim_mapping jsonb` (display name, avatar, roles), `role_mapping jsonb`, `enabled bool`, `created_at`, `updated_at`.
 
 **external_identities** — `id`, `account_id FK`, `provider_id FK`, `subject text`, `last_claims jsonb` (minimal: name, picture), `linked_at`. UNIQUE `(provider_id, subject)`.
+
+As built (WEBSITE-LOGIN, migration 0013): `identity_providers` with `id`, `kind`, `name`, `issuer` (UNIQUE), `enabled`, `created_at`; the website's provider (`proxy_header`, issuer = the site origin) is created at its first sign-in. The other columns (client, keys, mappings) come with the `oidc`/`jwt_handoff` adapters. `external_identities` as above, with `last_claims` holding the display name and roles of the last sign-in.
 
 **roles** — `id text PK` (`player`, `organizer`, …), `description`.
 **role_permissions** — `role_id`, `permission text`; PK both.
