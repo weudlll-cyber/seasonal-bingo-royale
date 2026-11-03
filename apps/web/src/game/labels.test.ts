@@ -5,13 +5,14 @@
  *
  * Responsibility: a cut line says "1 goes on, 1 is out" for one player; prize keys become
  *                 words; an unknown round-end reason or server code never shows itself; a
- *                 refusal under maintenance carries the operator's reason (D22).
+ *                 refusal under maintenance carries the operator's reason (D22); a lobby whose
+ *                 start countdown runs is "Starting…", not "Open to join".
  * Depends on:     ./labels
  * Spec:           docs/spec/01-game-design.md §3a.1, §7.3, §7.4, §7.6 (D22), §13
  */
 import { describe, expect, it } from 'vitest';
 
-import { cutLine, prizeName, problemText, roundEndLine } from './labels.js';
+import { cutLine, prizeName, problemText, roundEndLine, statusName } from './labels.js';
 
 describe('plain-English labels', () => {
   it('counts one player in the singular', () => {
@@ -42,5 +43,11 @@ describe('plain-English labels', () => {
     );
     expect(problemText('MAINTENANCE')).toBe('Maintenance is on — matches cannot start now.');
     expect(problemText('MATCH_STARTING')).toBe('The countdown is already running.');
+  });
+
+  it('says "Starting…", not "Open to join", while the start countdown runs', () => {
+    expect(statusName({ status: 'lobby', startsAt: null })).toBe('Open to join');
+    expect(statusName({ status: 'lobby', startsAt: Date.now() + 5_000 })).toBe('Starting…');
+    expect(statusName({ status: 'running', startsAt: null })).toBe('Running');
   });
 });

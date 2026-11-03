@@ -3,7 +3,8 @@
  * @module server/http
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
- * Responsibility: GET /matches (open, running and recent matches), POST /matches (match.create;
+ * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
+ *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
  *                 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
@@ -13,6 +14,7 @@
  *                 become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
+ *                 ./myMatches,
  *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
  * Used by:        ../app, ./matchHost, ./awaySummary
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
@@ -25,6 +27,7 @@ import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerAwaySummary } from './awaySummary.js';
 import { registerHostRoutes } from './matchHost.js';
+import { myMatches } from './myMatches.js';
 import { LiveViews } from '../../view/liveViews.js';
 import { playerNames } from '../../view/playerNames.js';
 import type { WatchQuery } from '../../view/watchView.js';
@@ -83,7 +86,10 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;
-    return { matches: matches.map((m) => matchSummary(m, viewer, deps.engine.clockFacts(m))) };
+    const summaries = matches.map((m) => matchSummary(m, viewer, deps.engine.clockFacts(m)));
+    // The caller's own matches in the same answer, so the lobby never shows two states (D39).
+    const mine = viewer === null ? [] : await myMatches(deps.pool, viewer, summaries);
+    return { matches: summaries, mine };
   });
 }
 

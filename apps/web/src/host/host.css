@@ -1,13 +1,14 @@
 /**
  * @file   apps/web/src/host/host.css
  * @module web/host
- * @brief  The host's screens: console grid, Draw next, the create form, "Your matches".
+ * @brief  The host's screens: console grid, Draw next, the create form.
  *
  * Responsibility: the host console in three columns from 960 px (filling the window while
  *                 the match runs, so the page does not scroll), the open-match
  *                 notice, the big Draw next (readable when disabled: muted text on surface-2,
- *                 4.5:1 in both themes), the create form with its prize grid, and the list
- *                 of the host's matches above it. Colours and sizes from @sbr/ui tokens.
+ *                 4.5:1 in both themes), and the create form with its prize grid (the rows of
+ *                 the host's matches above it: ../game/game.css own-matches). Colours and sizes
+ *                 from @sbr/ui tokens.
  * Used by:        ./HostConsole, ./CreateMatch
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/11-admin-panel.md §3.2
  */
@@ -127,27 +128,9 @@
   min-height: var(--hit-target);
 }
 
-/* The host's matches above the create form */
+/* The create page: the host's matches above the form */
 .create-page {
   display: grid;
   gap: var(--space-3);
   max-width: 40rem;
-}
-
-.your-matches {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.your-match {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
-  padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-border);
 }

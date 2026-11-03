@@ -9,35 +9,46 @@
  *                 open match its registration status (./Registration); "Manage"
  *                 for the match's host (the server says who that is) while it is open or
  *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
- *                 POST /matches/:code/join and opens the match. Without a session it points
- *                 to the sign-in buttons.
- * Depends on:     react, ../shell/http, ../shell/router, ../shell/session,
- *                 ./useLiveMatch (types), ./labels, ./Registration, ./game.css
+ *                 POST /matches/:code/join and opens the match. A signed-in player's own
+ *                 matches that are not over come first, from the same answer (./MyMatches, D39). Without a session it
+ *                 points to the sign-in buttons.
+ * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ../shell/session,
+ *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches
- * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13
+ * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13 (D39)
  */
+import type { MyMatch } from '@sbr/contracts';
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { gameTypeName, problemText, rulesLine, runningBadge, statusName } from './labels.js';
+import { MyMatches } from './MyMatches.js';
 import { RegistrationStatus } from './Registration.js';
 import type { MatchSummary } from './useLiveMatch.js';
 import './game.css';
 
+// GET /matches: the list and, for a signed-in player, their own matches not over (`mine`,
+// D39), in one answer every 3 seconds, so the cards and My matches never disagree.
+interface MatchList {
+  readonly matches: readonly MatchSummary[];
+  readonly mine: readonly MyMatch[];
+}
+
 export function useMatchList(): {
   readonly matches: readonly MatchSummary[] | null;
+  readonly mine: readonly MyMatch[];
   readonly error: string | null;
 } {
-  const [matches, setMatches] = useState<readonly MatchSummary[] | null>(null);
+  const [list, setList] = useState<MatchList | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     const load = (): void => {
-      api<{ matches: MatchSummary[] }>('/matches')
+      api<MatchList>('/matches')
         .then((r) => {
-          if (alive) setMatches(r.matches);
+          if (alive) setList(r);
         })
         .catch(() => {
           if (alive) setError('The lobby is not reachable right now.');
@@ -50,13 +61,13 @@ export function useMatchList(): {
       window.clearInterval(timer);
     };
   }, []);
-  return { matches, error };
+  return { matches: list?.matches ?? null, mine: list?.mine ?? [], error };
 }
 
 export function Lobby(): ReactElement {
   const { can } = useSession();
   // Finished matches show their result, cancelled ones their end page (D17).
-  const { matches, error } = useMatchList();
+  const { matches, mine, error } = useMatchList();
   const [joinError, setJoinError] = useState<string | null>(null);
   const join = (code: string): void => {
     api(`/matches/${code}/join`, { method: 'POST', body: {} })
@@ -72,6 +83,7 @@ export function Lobby(): ReactElement {
   return (
     <div className="sbr-stack">
       <LobbyHead />
+      <MyMatches matches={mine} />
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
       {matches === null ? <p className="sbr-muted">Loading…</p> : null}
       {matches?.length === 0 ? (
@@ -128,7 +140,7 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
         <span className="sbr-chip">
           {m.players} / {m.maxPlayers} players
         </span>
-        <span className="sbr-chip">{statusName(m.status)}</span>
+        <span className="sbr-chip">{statusName(m)}</span>
         <span className="sbr-chip" data-testid={`code-${m.code}`}>
           Code {m.code}
         </span>

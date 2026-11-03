@@ -94,7 +94,7 @@ function ConsoleHead({
         <p className="sbr-muted">
           Code <strong data-testid="host-code">{live.match.code}</strong> ·{' '}
           <span data-testid="host-status" data-status={live.match.status}>
-            {statusName(live.match.status)}
+            {statusName(live.match)}
           </span>
           {live.match.status === 'running' || live.match.status === 'finished'
             ? ` · ${progressText(live, view)}`
