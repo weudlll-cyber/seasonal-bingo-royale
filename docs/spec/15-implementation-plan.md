@@ -79,10 +79,12 @@ Accept: E2E journey 8. Owner sees: kill network in dev tools mid-round → game 
 **WP-14 Asynchronous matches**
 Spec: 01 §5, §11; 06 §6. Async cadence, quiet hours, catch-up, away summary, `last_seen_event_seq`.
 Accept: E2E journey 2 with time-travel hook. Owner sees: away summary after a simulated day.
+As built (first draft, on master since SLOW-FINISH): migration 0010 (`timezone`, quiet hours on `matches`); the create form's "Pace" for the royale (`royale-async` ruleset, minutes 1–1440, automatic marking, quiet hours in the host's time zone); quiet hours and catch-up in `packages/application` (`quietHours.ts`, `asyncCadence.ts`, wired in `flow.ts`); `last_seen_event_seq` from the join, acknowledged by `GET /matches/:code/away-summary`; the summary built from the event log (`awaySummary.ts`) and shown on top of the player screen with Dismiss; the engine's clock takes the match id, and development builds run on `apps/server/src/dev/devClock.ts` with `POST /api/v1/dev/time-travel`; E2E `e2e/asyncMatch.spec.ts`. Left for later: notifications (WP-16), late join until the first cut and the 24 h lobby window, asynchronous classic types, `presence.ping`.
 
 **WP-15 Leaderboards, profiles, badges**
 Spec: 01 §10, 04 §3.4, 05 §2.2, §2.4. Periods, league awards (idempotent), boards, profiles, badges, account deletion/export.
 Accept: integration tests for awarding once; min-players rule. Owner sees: season board and profile pages.
+As built (first draft, on master since SLOW-FINISH): migration 0009 (periods with the all-time period seeded, season periods per calendar quarter created on the first award, league entries and awards, badges with `season-complete`); awards and the Season Complete badge written in the `matchFinished` projection transaction, idempotent (`apps/server/src/leaderboard/awards.ts`, rules in `packages/application/src/leaderboard`, defaults `LEADERBOARD_DEFAULTS`); a match counts only with the switch on, no bots and ≥ 8 verified humans; `GET /leaderboards`, `/leaderboards/:periodId`, `/leaderboards/:periodId/me`, `/players/:displayName`, `/me/export`; web pages `#/leaderboard`, `#/players/<name>`, `#/account` (export, deletion) and profile links in the live standings and final placement. Left for later: adjustments, `player_profiles` and avatars, `GET`/`PATCH /me`, the match board, the admin's leaderboard settings (WP-20).
 
 **WP-16 Notifications and verification page**
 Spec: 06 §6, 05 §2.3, §2.5, 01 §9. In-app notifications, e-mail digest, Web Push, verify bundle and page.

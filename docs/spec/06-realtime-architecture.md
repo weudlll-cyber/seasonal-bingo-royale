@@ -118,6 +118,7 @@ Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed windo
 - **Away summary** = events since `match_entries.last_seen_event_seq`, condensed: number of draws, marks, patterns, seasons activated, rank before → now, cuts survived/eliminated, Season Complete, jackpot changes.
 - Notifications (opt-in): e-mail digest (daily or per cut), Web Push for “you were eliminated / you survived the cut / final starts / you won”. Never one notification per draw.
 - Catch-up after downtime: missed draws are executed in order with `catchUpInterval` (default 2 s) up to `maxCatchUpDraws` (default 75), then normal cadence resumes; affected players get one summary.
+- **As built (WP-14, first draft):** the defaults are `ASYNC_CATCH_UP` in `packages/contracts` (a server setting, not part of a ruleset). Each timed draw carries its planned time through its window close (`plannedAt` in the scheduled action's payload); when the next planned time has already passed, the next draw comes at the catch-up pace — in practice every 3 s, since a draw never comes before the previous draw's speed window has closed (D10) — and draws planned more than 75 intervals ago are dropped. No catch-up draw falls inside quiet hours (01 §5). There is no `presence.ping` yet: the away summary is acknowledged by its own fetch (`GET /matches/:code/away-summary`, 05 §2.3a), which the player screen makes on opening, when the page is hidden (what was on screen counts as seen) and when it is shown again. The summary leaves out jackpot changes.
 
 ## 7. Chat
 

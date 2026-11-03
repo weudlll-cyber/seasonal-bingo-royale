@@ -5,7 +5,8 @@
  *
  * Responsibility: the row type of sbr.matches and its mapping to MatchRecord: the frozen
  *                 ruleset document, the starter's settings (marking, missed numbers, draw
- *                 mode and seconds, pause between rounds, start rule) and the status. The seed never leaves the database here.
+ *                 mode and interval, pause between rounds, start rule, quiet hours and time
+ *                 zone) and the status. The seed never leaves the database here.
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types)
  * Used by:        ./pgMatchStore
  * Spec:           docs/spec/04-database-design.md §3.3
@@ -39,6 +40,12 @@ export interface MatchRow {
   created_by: string | null;
   // The end of a running countdown.
   starts_at: Date | null;
+  // Asynchronous matches (0010): the time zone and quiet hours (both NULL without).
+  timezone: string;
+  quiet_start_hour: number | null;
+  quiet_end_hour: number | null;
+  // The end of an asynchronous lobby (0012, D31, D33); NULL for realtime matches.
+  lobby_closes_at: Date | null;
 }
 
 export function recordFrom(row: MatchRow): MatchRecord {
@@ -64,9 +71,15 @@ export function recordFrom(row: MatchRow): MatchRecord {
       roundPause:
         row.round_pause_ms === null ? { kind: 'host' } : { kind: 'wait', ms: row.round_pause_ms },
       startRule: startRuleOf(row),
+      quietHours:
+        row.quiet_start_hour === null || row.quiet_end_hour === null
+          ? null
+          : { startHour: row.quiet_start_hour, endHour: row.quiet_end_hour },
+      timeZone: row.timezone,
     },
     createdBy: row.created_by,
     startsAt: row.starts_at === null ? null : row.starts_at.getTime(),
+    lobbyClosesAt: row.lobby_closes_at === null ? null : row.lobby_closes_at.getTime(),
   };
 }
 

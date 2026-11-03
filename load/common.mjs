@@ -8,7 +8,7 @@
  *                 server's CPU, memory and event-loop lag from /metrics every 2 s, and count
  *                 errors with a few examples.
  * Depends on:     nothing (Node's fetch)
- * Used by:        ./drawLatency.mjs, ./spectatorStream.mjs
+ * Used by:        ./drawLatency.mjs, ./spectatorStream.mjs, ../apps/server/demo-league.mjs (BASE, ORIGIN)
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/08-devops-architecture.md §6
  */
 export const BASE = 'http://127.0.0.1:3900';

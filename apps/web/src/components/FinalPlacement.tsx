@@ -9,7 +9,8 @@
  *                 "out" below a divider, ranked by when they went out, each with the cut and
  *                 the points at that moment (01 §7.5, D23); classic
  *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
- *                 states how places are decided.
+ *                 states how places are decided. Names link to profiles when the screen
+ *                 passes `profileHref` (the live match screen).
  * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
@@ -18,14 +19,18 @@ import type { ReactElement } from 'react';
 
 import type { PlaybackProps } from './Playback.js';
 import { Podium } from './Podium.js';
-import { GroupLabel, RankRow } from './RankRow.js';
+import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
 import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 
 type Placed = QuickTestResult['players'][number];
 
-export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
+export function FinalPlacement({
+  result,
+  view,
+  profileHref,
+}: PlaybackProps & { readonly profileHref?: ProfileHref | undefined }): ReactElement {
   const byId = new Map(view.standings.map((p) => [p.accountId, p]));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
   const owner = sorted.find((p) => p.isOwner);
@@ -33,16 +38,8 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
   const rest = sorted.filter((p, i) => p.place > 3 && (i < 20 || p.isOwner));
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   const row = (p: Placed) => ({
-    note: finalNote(result, view, byId.get(p.accountId), p),
-    out: byId.get(p.accountId)?.eliminated === true,
-    // A royale out row says "out in cut K · P pts" itself (D23).
-    outNoted:
-      result.gameType === 'royale' && (byId.get(p.accountId)?.eliminatedCut ?? null) !== null,
-    attrs: {
-      'data-testid': `final-row-${String(p.place)}`,
-      'data-place': p.place,
-      'data-account': p.accountId,
-    },
+    ...rowFacts(result, view, byId.get(p.accountId), p),
+    href: profileHref?.(p.accountId) ?? null,
   });
   return (
     <section className="sbr-panel final" data-testid="final-placement">
@@ -59,6 +56,7 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
         entries={podium.map((p) => ({
           place: p.place,
           name: p.accountId,
+          href: row(p).href,
           note: row(p).note,
           own: p.isOwner,
           attrs: row(p).attrs,
@@ -83,6 +81,26 @@ export function FinalPlacement({ result, view }: PlaybackProps): ReactElement {
       )}
     </section>
   );
+}
+
+// What one placed row shows: note, "out" and the test hooks.
+function rowFacts(
+  result: QuickTestResult,
+  view: PlaybackView,
+  player: PlayerView | undefined,
+  p: Placed,
+) {
+  return {
+    note: finalNote(result, view, player, p),
+    out: player?.eliminated === true,
+    // A royale out row says "out in cut K · P pts" itself (D23).
+    outNoted: result.gameType === 'royale' && (player?.eliminatedCut ?? null) !== null,
+    attrs: {
+      'data-testid': `final-row-${String(p.place)}`,
+      'data-place': p.place,
+      'data-account': p.accountId,
+    },
+  };
 }
 
 // Royale: points; a player out says the cut and the points at that moment (01 §7.5, D23).

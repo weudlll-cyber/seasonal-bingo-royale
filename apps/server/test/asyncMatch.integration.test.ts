@@ -1,0 +1,235 @@
+/**
+ * @file   apps/server/test/asyncMatch.integration.test.ts
+ * @module server/test
+ * @brief  Asynchronous matches over HTTP: create, time travel, "While you were away" (WP-14).
+ *
+ * Responsibility: POST /matches creates an asynchronous royale (mode, interval, quiet hours, time
+ *                 zone in the summary); an unknown time zone is refused, an asynchronous classic
+ *                 match too. A player joins, the match starts with bots, the development time
+ *                 travel moves it a day ahead (its draws run through the scheduler rows); the
+ *                 player's away summary counts the draws in the log and the player's marks and
+ *                 is acknowledged (the next fetch has nothing, last_seen_event_seq is the current
+ *                 seq). A stranger gets no summary; a guest 401. A lobby open 24 h (D31) starts
+ *                 itself with enough players and is cancelled by the system with fewer, also when
+ *                 a restarted server runs the due step. The matches are aborted at the end.
+ * Depends on:     ./harness, ./session
+ * Spec:           docs/spec/01-game-design.md §5, §11; docs/spec/05-api-design.md §2.3;
+ *                 docs/spec/06-realtime-architecture.md §6; docs/spec/12-testing-strategy.md §4
+ */
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { signIn, type Client } from './session.js';
+
+const DAY = 86_400_000;
+let harness: Harness;
+let host: Client;
+let player: Client;
+
+beforeAll(async () => {
+  harness = await startHarness();
+  host = await signIn(harness.built.fastify, 'host');
+  player = await signIn(harness.built.fastify, 'player-1');
+}, SUITE_TIMEOUT_MS);
+afterAll(async () => {
+  await stopHarness(harness);
+}, SUITE_TIMEOUT_MS);
+
+const asyncMatch = {
+  title: 'Slow royale',
+  gameType: 'royale',
+  mode: 'async',
+  drawMode: 'auto',
+  missedNumbers: { kind: 'noAutoMark' },
+  maxPlayers: 8,
+  quietHours: { startHour: 1, endHour: 3 },
+  timeZone: 'Europe/Berlin',
+};
+
+interface Summary {
+  readonly draws: number;
+  readonly marks: number;
+  readonly toSeq: number;
+  readonly cutsSurvived: number;
+  readonly eliminated: boolean;
+}
+
+describe('creating an asynchronous match', () => {
+  it('stores the mode, interval, quiet hours and time zone', async () => {
+    const created = await host.post('/api/v1/matches', asyncMatch);
+    expect(created.statusCode).toBe(201);
+    const { code } = created.json<{ code: string }>();
+    const summary = (await host.get(`/api/v1/matches/${code}`)).json<{
+      mode: string;
+      settings: {
+        drawIntervalMs: number;
+        markingMode: string;
+        quietHours: unknown;
+        timeZone: string;
+      };
+    }>();
+    expect(summary.mode).toBe('async');
+    expect(summary.settings).toMatchObject({
+      drawIntervalMs: 15 * 60_000,
+      markingMode: 'auto',
+      quietHours: { startHour: 1, endHour: 3 },
+      timeZone: 'Europe/Berlin',
+    });
+  });
+
+  it('refuses an unknown time zone and an asynchronous classic match', async () => {
+    const zone = await host.post('/api/v1/matches', { ...asyncMatch, timeZone: 'Mars/Olympus' });
+    expect(zone.statusCode).toBe(400);
+    const classic = await host.post('/api/v1/matches', {
+      ...asyncMatch,
+      gameType: 'classic',
+      prizes: ['rows-1'],
+    });
+    expect(classic.statusCode).toBe(422);
+    expect(classic.json<{ code: string }>().code).toBe('ASYNC_ROYALE_ONLY');
+  });
+});
+
+describe('a day away (journey 2)', () => {
+  it('summarises the draws and marks since the player last looked, once', async () => {
+    const created = await host.post('/api/v1/matches', { ...asyncMatch, quietHours: null });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    expect((await player.post(`/api/v1/matches/${code}/join`, {})).statusCode).toBe(204);
+    const engine = harness.built.match.engine;
+    await engine.fillWithBots(id, 8);
+    await engine.start(id, 0);
+    // Nothing happened yet since the join but the start: no summary.
+    const early = await player.get(`/api/v1/matches/${code}/away-summary`);
+    expect(early.json<{ summary: Summary | null }>().summary).toBeNull();
+    const travel = await host.post('/api/v1/dev/time-travel', { code, ms: DAY });
+    expect(travel.statusCode).toBe(200);
+    expect(travel.json<{ actions: number }>().actions).toBeGreaterThan(90);
+    const log = await harness.built.match.store.events(id, 0);
+    const draws = log.filter((e) => e.event.type === 'drawMade').length;
+    // 15-minute draws, the pause between rounds aside: about 96 in a day.
+    expect(draws).toBeGreaterThan(90);
+    const away = await player.get(`/api/v1/matches/${code}/away-summary`);
+    const summary = away.json<{ summary: Summary | null }>().summary;
+    expect(summary?.draws).toBe(draws);
+    expect(summary?.marks).toBeGreaterThan(0);
+    expect(summary?.toSeq).toBe(log.length);
+    const seen = await harness.pool.query<{ seq: string }>(
+      `SELECT last_seen_event_seq AS seq FROM sbr.match_entries
+        WHERE match_id = $1 AND account_id IS NOT NULL`,
+      [id],
+    );
+    expect(Number(seen.rows[0]?.seq)).toBe(log.length);
+    const again = await player.get(`/api/v1/matches/${code}/away-summary`);
+    expect(again.json<{ summary: Summary | null }>().summary).toBeNull();
+    // The host plays not: no summary. A guest has to sign in.
+    const theirs = await host.get(`/api/v1/matches/${code}/away-summary`);
+    expect(theirs.json<{ summary: Summary | null }>().summary).toBeNull();
+    const guest = await harness.built.fastify.inject({
+      method: 'GET',
+      url: `/api/v1/matches/${code}/away-summary`,
+    });
+    expect(guest.statusCode).toBe(401);
+  }, 120_000);
+});
+
+// A lobby of `bots` bots (and nobody else), `ms` later on the match's clock, on `app`;
+// `extra` adds to the create body (an announced start time, D33).
+async function lobbyLater(bots: number, ms: number, app = harness.built, extra = {}) {
+  const body = { ...asyncMatch, quietHours: null, ...extra };
+  const created = await host.post('/api/v1/matches', body);
+  const { code, id } = created.json<{ code: string; id: string }>();
+  if (bots > 0) await harness.built.match.engine.fillWithBots(id, bots);
+  const traveller = app === harness.built ? host : await signIn(app.fastify, 'host');
+  expect((await traveller.post('/api/v1/dev/time-travel', { code, ms })).statusCode).toBe(200);
+  const summary = (await traveller.get(`/api/v1/matches/${code}`)).json<{
+    status: string;
+    startsAt: number | null;
+    lobbyClosesAt: number | null;
+  }>();
+  return { ...summary, id };
+}
+
+// The reason and author of the match's abort, from its event log.
+async function abortFacts(id: string) {
+  const log = await harness.built.match.store.events(id, 0);
+  const aborted = log.find((e) => e.event.type === 'matchAborted')?.event;
+  return aborted?.type === 'matchAborted' ? { reason: aborted.reason, by: aborted.by } : null;
+}
+
+describe('the lobby window of an asynchronous match (D31)', () => {
+  it('stays open for 24 hours', async () => {
+    const summary = await lobbyLater(3, DAY - 60_000);
+    expect(summary).toMatchObject({ status: 'lobby', startsAt: null });
+  });
+
+  it('starts by itself after 24 hours with enough players (the 10-second countdown)', async () => {
+    const summary = await lobbyLater(3, DAY);
+    expect(summary.status).toBe('lobby');
+    expect(summary.startsAt).not.toBeNull();
+  });
+
+  it('is cancelled by the system after 24 hours with too few players', async () => {
+    const created = await host.post('/api/v1/matches', { ...asyncMatch, quietHours: null });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    await harness.built.match.engine.fillWithBots(id, 1);
+    await host.post('/api/v1/dev/time-travel', { code, ms: DAY });
+    const summary = (await host.get(`/api/v1/matches/${code}`)).json<{ status: string }>();
+    expect(summary.status).toBe('aborted');
+    expect(await abortFacts(id)).toEqual({
+      reason: 'Too few players joined within 24 hours',
+      by: 'system',
+    });
+  });
+
+  it('runs on a restarted server: the step is in the scheduler table', async () => {
+    const restarted = await buildOn(harness.pool, harness.container.getConnectionUri());
+    try {
+      const summary = await lobbyLater(3, DAY, restarted);
+      expect(summary.startsAt).not.toBeNull();
+    } finally {
+      await restarted.fastify.close();
+    }
+  });
+});
+
+describe('the lobby window with an announced start time (D33, D34)', () => {
+  // Two days ahead, without the automatic start: the window alone starts or cancels it.
+  const at = Date.now() + 2 * DAY;
+  const announced = { startRule: { kind: 'at', at, auto: false } };
+  // A second past the start time: the 10-second countdown it begins has not run out yet.
+  const pastStart = () => at - Date.now() + 1_000;
+
+  it('stays open past 24 hours until the start time, which the summary names', async () => {
+    const summary = await lobbyLater(3, DAY + 60_000, harness.built, announced);
+    expect(summary).toMatchObject({ status: 'lobby', startsAt: null, lobbyClosesAt: at });
+  });
+
+  it('starts by itself at the start time with enough players', async () => {
+    const summary = await lobbyLater(3, pastStart(), harness.built, announced);
+    expect(summary.status).toBe('lobby');
+    expect(summary.startsAt).not.toBeNull();
+  });
+
+  it('is cancelled by the system at the start time with too few players', async () => {
+    const summary = await lobbyLater(1, pastStart(), harness.built, announced);
+    expect(summary.status).toBe('aborted');
+    expect(await abortFacts(summary.id)).toEqual({
+      reason: 'Too few players joined by the start time',
+      by: 'system',
+    });
+  });
+
+  it('names 24 hours after creation without a start time, nothing for realtime', async () => {
+    const closesAt = async (mode: string) => {
+      const created = await host.post('/api/v1/matches', { ...asyncMatch, mode, quietHours: null });
+      const { code } = created.json<{ code: string }>();
+      return (await host.get(`/api/v1/matches/${code}`)).json<{ lobbyClosesAt: number | null }>()
+        .lobbyClosesAt;
+    };
+    const before = Date.now();
+    const open = await closesAt('async');
+    expect(open).toBeGreaterThanOrEqual(before + DAY);
+    expect(open).toBeLessThanOrEqual(Date.now() + DAY);
+    expect(await closesAt('realtime')).toBeNull();
+  });
+});

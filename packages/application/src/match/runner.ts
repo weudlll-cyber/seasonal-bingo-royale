@@ -75,7 +75,7 @@ export class MatchRunner {
     options: ApplyOptions = {},
   ): Promise<readonly DomainEvent[]> {
     const loaded = await this.current(matchId);
-    const now = this.clock.now();
+    const now = this.clock.now(matchId);
     let state = loaded.state;
     const produced: DomainEvent[] = [];
     for (const command of commands) {

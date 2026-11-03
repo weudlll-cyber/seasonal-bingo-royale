@@ -5,11 +5,12 @@
  *
  * Responsibility: a top bar on the website's season gradient (emblem, wordmark,
  *                 navigation as pills with the current one solid, the round light/dark toggle,
- *                 account and the dev sign-in menu) over a centred main column, sticky from 640 px with focus kept below
- *                 it; on phones the bar wraps into two rows, scrolls away with the page and
- *                 the navigation scrolls sideways. On desktop a live screen (.fit-window: the
- *                 arena, the running host console) fills the window below the bar exactly, so
- *                 the page does not scroll during a round. Colours come from @sbr/ui.
+ *                 the account chip linking to the account page, and the dev sign-in menu)
+ *                 over a centred main column, sticky from 640 px with focus kept below it; on
+ *                 phones the bar wraps into two rows, scrolls away with the page and the
+ *                 navigation scrolls sideways. On desktop a live screen (.fit-window: the arena,
+ *                 the running host console) fills the window below the bar exactly, so the page
+ *                 does not scroll during a round. Colours come from @sbr/ui.
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -129,6 +130,16 @@
   gap: 0.4rem;
 }
 
+/* The account chip is the way to the account page: a chip that reacts like a button */
+.shell-account-link {
+  min-height: var(--hit-target);
+  text-decoration: none;
+}
+
+.shell-account-link:hover {
+  background: var(--color-active-bg);
+}
+
 .shell-main {
   width: 100%;
   max-width: var(--content-width);
@@ -190,8 +201,12 @@
   .theme-toggle {
     order: 1;
   }
+}
 
-  /* The chip names the account and role; "Signed in as" is read out, not shown */
+/* The chip names the account and role; "Signed in as" is read out, not shown, up to wide
+   screens: with the leaderboard in the navigation, a host's bar stays one row at 1280 px
+   (the sticky bar's scroll padding covers one row) */
+@media (max-width: 1440px) {
   .shell-account .chip-prefix {
     position: absolute;
     width: 1px;

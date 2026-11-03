@@ -3,8 +3,9 @@
  * @module web/game
  * @brief  The live match screens around the arena: lobby, waiting room, "Verify this match".
  *
- * Responsibility: the lobby list, the waiting room and its countdown, the verify page. The
- *                 arena (ball, drawn numbers, card) is in ./arena.css, the host's screens in
+ * Responsibility: the lobby list, the waiting room and its countdown, the verify page, the
+ *                 "While you were away" panel of an asynchronous match. The arena (ball, drawn
+ *                 numbers, card) is in ./arena.css, the host's screens in
  *                 ../host/host.css. Colours and sizes from @sbr/ui tokens.
  * Spec:           docs/spec/01-game-design.md §13
  */
@@ -121,4 +122,25 @@
 .verify-rounds td {
   padding: var(--space-1);
   border-bottom: 1px solid var(--color-surface-2);
+}
+
+/* "While you were away" on top of an asynchronous match (01 §11). */
+.away-summary__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.away-summary__head h2 {
+  margin: 0;
+  font-size: var(--font-size-lead);
+}
+
+.away-summary ul {
+  margin: var(--space-2) 0 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--space-1);
 }

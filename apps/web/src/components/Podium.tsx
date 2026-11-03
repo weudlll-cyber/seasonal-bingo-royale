@@ -3,8 +3,8 @@
  * @module web
  * @brief  Places 1–3 as a podium in season colours.
  *
- * Responsibility: one step per entry with its place, name and a note (points or prizes),
- *                 the viewer's own step highlighted; extracted from the final placement so
+ * Responsibility: one step per entry with its place, name (a profile link when given) and a
+ *                 note (points or prizes), the viewer's own step highlighted; extracted from the final placement so
  *                 the round recap's top three (D20) uses the same podium.
  * Depends on:     react, ./results.css
  * Used by:        ./FinalPlacement, ../game/InterludeCards
@@ -17,6 +17,7 @@ import './results.css';
 interface PodiumEntry {
   readonly place: number;
   readonly name: string;
+  readonly href?: string | null | undefined;
   readonly note: string;
   readonly own: boolean;
   // Test hooks and data the tests read (data-place …).
@@ -33,7 +34,9 @@ export function Podium({ entries }: { readonly entries: readonly PodiumEntry[] }
           {...e.attrs}
         >
           <span className="podium-place">{e.place}</span>
-          <span className="podium-name">{e.name}</span>
+          <span className="podium-name">
+            {e.href == null ? e.name : <a href={e.href}>{e.name}</a>}
+          </span>
           <span className="podium-note">{e.note}</span>
         </li>
       ))}

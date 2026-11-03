@@ -9,7 +9,8 @@
  *                 error code.
  * Depends on:     nothing
  * Used by:        ./session, ./useMaintenance, ./DevTools, ../quicktest/*, ../game/*, ../host/*,
- *                 ../account/accountText, ../api
+ *                 ../account/accountText, ../account/AccountPage, ../league/LeaderboardPage,
+ *                 ../league/useApiGet, ../api
  * Spec:           docs/spec/05-api-design.md §1; docs/spec/03-security-architecture.md §8
  */
 

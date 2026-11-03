@@ -1,13 +1,14 @@
 /**
  * @file   packages/contracts/src/config/defaults/index.ts
  * @module contracts/config/defaults
- * @brief  Barrel exposing the four published default rulesets.
+ * @brief  Barrel exposing the four published default rulesets and the leaderboard defaults.
  *
  * Responsibility: aggregate the four defaults the install script seeds (04 §6) under
  *                 one list so the server-side seed can loop over them. Each entry
- *                 carries the admin-visible name of 04 §3.2.
+ *                 carries the admin-visible name of 04 §3.2. Passes on the default
+ *                 leaderboard settings (./leaderboard, 01 §10).
  * Depends on:     ../ruleset and the four files below., ./classicRealtime,
- *                 ./classicSeasonsRealtime, ./royaleAsync, ./royaleRealtime
+ *                 ./classicSeasonsRealtime, ./royaleAsync, ./royaleRealtime, ./leaderboard
  * Used by:        apps/server seed, admin "clone from default" entry point., ../../index
  * Spec:           docs/spec/04-database-design.md §6, docs/spec/11-admin-panel.md §3.3
  */
@@ -35,3 +36,4 @@ export {
   royaleAsyncDefault,
   royaleRealtimeDefault,
 };
+export { LEADERBOARD_DEFAULTS, type LeaderboardConfig } from './leaderboard.js';

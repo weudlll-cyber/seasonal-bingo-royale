@@ -7,7 +7,8 @@
  *                 into temporary folders and fail when any shipped file (source maps
  *                 aside: they quote the sources, comments included) contains a marker of
  *                 development code: the Quick Test route or page, the dev sign-in menu,
- *                 or the development server address.
+ *                 the time-travel route and its "Jump ahead" buttons, the demo league or the
+ *                 development server address.
  * Depends on:     nothing (runs ../build.mjs and the web client's vite build)
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/03-security-architecture.md §13
  */
@@ -22,8 +23,11 @@ const DEV_MARKERS = [
   'dev/quicktest',
   'dev-sign-in',
   '/dev/sign-in',
+  'dev/demo-league',
+  'Jump ahead',
   'Quick Test',
   '127.0.0.1:3900',
+  '/dev/time-travel',
 ];
 const SERVER_DIR = path.resolve(import.meta.dirname, '..');
 const WEB_DIR = path.resolve(SERVER_DIR, '../web');

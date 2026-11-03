@@ -1,0 +1,178 @@
+/**
+ * @file   apps/web/src/league/league.css
+ * @module web/league
+ * @brief  The leaderboard and profile pages.
+ *
+ * Responsibility: a page card with the title and the period selector side by side (stacked on
+ *                 phones), the board as a compact table with the own row highlighted like the
+ *                 standings and every name on one line (a long one shortened with an ellipsis),
+ *                 the profile's figures as tiles and the recent matches as rows.
+ *                 Colours, spacing and radii from @sbr/ui tokens only.
+ * Spec:           docs/spec/01-game-design.md §10, §13
+ */
+
+.league-page {
+  max-width: 48rem;
+  margin: 0 auto;
+}
+
+.league-page h1,
+.league-page h2 {
+  margin: 0;
+}
+
+.league-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.league-period {
+  min-width: 12rem;
+}
+
+.league-sub,
+.league-rule {
+  margin: 0;
+  font-size: var(--font-size-small);
+}
+
+/* The board: numbers right-aligned, the name takes the remaining width */
+.league-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.league-table th,
+.league-table td {
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+}
+
+.league-table thead th {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-strong);
+  vertical-align: bottom;
+}
+
+.league-table th[scope='row'],
+.league-table thead th:nth-child(2) {
+  width: 100%;
+  text-align: left;
+}
+
+/* A name stays on one line (never "demo-" / "02" on a phone); a long one ends in an
+   ellipsis, the full name is on the profile it links to. max-width: 0 lets the cell
+   shrink below its text so the ellipsis can show; the number columns keep only the width
+   of their longest word ("Season" / "Completes" on two lines), the name gets the rest. */
+.league-table th[scope='row'] {
+  max-width: 0;
+}
+
+.league-table td,
+.league-table thead th:not(:nth-child(2)) {
+  width: 1%;
+}
+
+/* Phones: narrower gaps between the columns, so a usual name fits without an ellipsis */
+@media (max-width: 640px) {
+  .league-table th,
+  .league-table td {
+    padding-inline: 0.2rem;
+  }
+}
+
+.league-table th[scope='row'] a {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.league-table td:first-child,
+.league-table thead th:first-child {
+  text-align: left;
+}
+
+.league-table tr.is-own {
+  background: var(--color-active-bg);
+  font-weight: var(--font-weight-strong);
+}
+
+/* The profile's figures: four tiles in a row, two per row on phones */
+.league-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .league-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.league-stats > div {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+}
+
+.league-stats dt {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+.league-stats dd {
+  margin: 0;
+  font-size: var(--font-size-lead);
+  font-weight: var(--font-weight-heading);
+}
+
+.league-matches {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.league-match {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.league-match > a {
+  flex: 1 1 10rem;
+  font-weight: var(--font-weight-strong);
+  overflow-wrap: anywhere;
+}
+
+.league-place {
+  font-variant-numeric: tabular-nums;
+}
+
+.league-note {
+  flex-basis: 100%;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+}
+
+.league-note.is-counted {
+  color: var(--color-text);
+}
+
+.league-back {
+  justify-self: start;
+}

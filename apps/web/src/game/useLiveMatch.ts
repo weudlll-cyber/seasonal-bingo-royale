@@ -33,6 +33,8 @@ export interface MatchSummary {
   readonly code: string;
   readonly title: string;
   readonly gameType: QuickTestResult['gameType'];
+  // Realtime or asynchronous (01 §11).
+  readonly mode: 'realtime' | 'async';
   readonly status: 'lobby' | 'running' | 'finished' | 'aborted';
   readonly players: number;
   readonly maxPlayers: number;
@@ -50,9 +52,13 @@ export interface MatchSummary {
       | { readonly kind: 'host' }
       | { readonly kind: 'at'; readonly at: number; readonly auto: boolean }
       | { readonly kind: 'whenFull' };
+    // Asynchronous matches: no draws inside these hours of the match's time zone (01 §5).
+    readonly quietHours: { readonly startHour: number; readonly endHour: number } | null;
+    readonly timeZone: string;
   };
-  // The end of the running countdown; null before it runs.
+  // The end of the running countdown; when an async lobby starts or closes (D34). Else null.
   readonly startsAt: number | null;
+  readonly lobbyClosesAt: number | null;
   // When the next round starts after a cut (the cut screen counts down); null if unknown.
   readonly nextRoundAt: number | null;
   // When Draw next unlocks (D13); null before a round's first draw or outside a round.
@@ -65,6 +71,8 @@ export interface MatchSummary {
   readonly tooFewAtStart: boolean;
   // Maintenance holds the automatic start (D22).
   readonly startHeld?: boolean;
+  // When the quiet hours the match is in end (01 §5); null outside them.
+  readonly quietUntil: number | null;
   // From the server: the signed-in account created this match and may run it. Null in
   // room-wide updates; then the value already known is kept.
   readonly youHost: boolean | null;

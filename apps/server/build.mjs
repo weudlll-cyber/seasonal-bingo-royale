@@ -7,10 +7,10 @@
  *                 e.g. create-super) with esbuild into dist/ (or the folder given as the
  *                 first argument), the workspace packages (@sbr/*, TypeScript sources)
  *                 inlined and the npm dependencies left as imports for node_modules,
- *                 without comments or spacing; the
- *                 development modules (src/dev/*, the Quick Test and dev sign-in routes)
- *                 replaced by ./devStub.mjs; copy src/db/migrations to <out>/migrations,
- *                 where the bundled migrator looks for them. Run by the Dockerfile.
+ *                 without comments or spacing; the development modules (src/dev/*, the
+ *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs;
+ *                 copy src/db/migrations to <out>/migrations, where the bundled migrator
+ *                 looks for them. Run by the Dockerfile.
  * Depends on:     esbuild, ./devStub.mjs
  * Used by:        Dockerfile
  * Spec:           docs/spec/08-devops-architecture.md §4; docs/spec/09-deployment-architecture.md §1
@@ -35,7 +35,8 @@ const npmExternal = {
 
 // Development code stays out of the production bundle (audit B): the app registers these
 // modules only with SBR_DEV=1, so the stub is never called in a production install.
-const DEV_MODULE = /[\\/]src[\\/](dev[\\/][^\\/]+|http[\\/]routes[\\/](quicktest|devSignIn))\.js$/;
+const DEV_MODULE =
+  /[\\/]src[\\/](dev[\\/][^\\/]+|http[\\/]routes[\\/](quicktest|devSignIn|timeTravel))\.js$/;
 const devStub = {
   name: 'dev-stub',
   setup(builder) {

@@ -3,24 +3,25 @@
  * @module web/shell
  * @brief  The player client's frame: top bar, navigation, account, screens.
  *
- * Responsibility: show the Seasonal Entertainment emblem, the "Seasonal Bingo Royale" wordmark,
- *                 the light/dark toggle, links to the lobby and hosting (with `match.create`),
- *                 the account with sign-out ("Signed in as <name> (host|player)") or "Sign in"
- *                 and "Register" (../account). Below the bar, the current route's screen; in
- *                 maintenance (./useMaintenance, shared below as its context) the lobby and
- *                 create form show the maintenance page, the host console a banner (09 §4); "Verify this match" after a match
- *                 (../game/VerifyMatch). Dev-only Quick Test and "Dev sign-in" (./DevTools) load
- *                 on demand and are left out of production builds.
+ * Responsibility: emblem, wordmark, light/dark toggle, links to the lobby, hosting (with
+ *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
+ *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
+ *                 "Register" (../account). Below the bar the current route's screen (boards and
+ *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
+ *                 the lobby and create form show the maintenance page, the host console a banner
+ *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch). Dev-only Quick
+ *                 Test and "Dev sign-in" (./DevTools) load on demand, out of production builds.
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance,
  *                 ./DevTools and ../App (lazy,
- *                 development only), ../game/*, ../host/*, ../account/*, ./shell.css,
+ *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
  * Used by:        ../main
- * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.1
+ * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
 import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
+import { AccountPage } from '../account/AccountPage.js';
 import { Register } from '../account/Register.js';
 import { SignIn } from '../account/SignIn.js';
 import { Lobby } from '../game/Lobby.js';
@@ -28,6 +29,8 @@ import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
 import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
+import { LeaderboardPage } from '../league/LeaderboardPage.js';
+import { ProfilePage } from '../league/ProfilePage.js';
 import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { useSession } from './session.js';
@@ -93,6 +96,11 @@ function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): 
             route.name === 'hostNew' || route.name === 'host',
           )
         : null}
+      {link(
+        { name: 'leaderboard', periodId: null },
+        'Leaderboard',
+        route.name === 'leaderboard' || route.name === 'player',
+      )}
       {dev && QuickTestLink !== null ? (
         <Suspense fallback={null}>
           <QuickTestLink active={route.name === 'quicktest'} />
@@ -108,10 +116,15 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
     <div className="shell-account" data-testid="account">
       {session?.account ? (
         <>
-          <span className="sbr-chip" data-testid="signed-in-as">
+          {/* The chip opens the account page (data download, deletion). */}
+          <a
+            className="sbr-chip shell-account-link"
+            href={hrefOf({ name: 'account' })}
+            data-testid="signed-in-as"
+          >
             <span className="chip-prefix">Signed in as </span>
             {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
-          </span>
+          </a>
           <button
             type="button"
             className="sbr-btn"
@@ -183,10 +196,29 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
       return <VerifyMatch key={route.code} code={route.code} />;
     case 'quicktest':
       return <QuickTestScreen dev={dev} view={route.view} />;
+    default:
+      return <AccountScreen route={route} />;
+  }
+}
+
+type AccountRoute = Extract<
+  Route,
+  { readonly name: 'signIn' | 'register' | 'account' | 'leaderboard' | 'player' }
+>;
+
+// The screens around the player: sign-in, register, account, leaderboard and profiles.
+function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElement {
+  switch (route.name) {
     case 'signIn':
       return <SignIn />;
     case 'register':
       return <Register />;
+    case 'account':
+      return <AccountPage />;
+    case 'leaderboard':
+      return <LeaderboardPage periodId={route.periodId} />;
+    case 'player':
+      return <ProfilePage key={route.displayName} displayName={route.displayName} />;
   }
 }
 

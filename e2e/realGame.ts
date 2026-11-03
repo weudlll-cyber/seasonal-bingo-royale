@@ -45,6 +45,8 @@ export interface NewMatch {
   readonly pause?: 'host' | number;
   // Development only: the server's fast test profile (a short royale).
   readonly fast?: boolean;
+  // The leaderboard switch; otherwise the default of the game type (on for royale only).
+  readonly leaderboard?: boolean;
 }
 
 // Creates the match from the host's form and returns its code (the console shows it).
@@ -60,6 +62,8 @@ export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
   if (m.intervalSec !== undefined)
     await page.getByTestId('start-draw-interval').fill(String(m.intervalSec));
   await page.getByTestId('missed-numbers').selectOption(m.missed);
+  if (m.leaderboard !== undefined)
+    await page.getByTestId('create-leaderboard').setChecked(m.leaderboard);
   await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
   if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
   if (typeof m.pause === 'number')

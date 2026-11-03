@@ -8,9 +8,11 @@
  *                 30-second lease (safe with several instances), runs each through the
  *                 engine in due order, and marks it done. A failing action is retried up to
  *                 five times with a growing delay. Because pending work lives in the
- *                 database, a restarted server continues every match where it stopped.
+ *                 database, a restarted server continues every match where it stopped. The
+ *                 payload keeps a draw index and an async draw's planned time (catch-up, 06
+ *                 §6); `runNextFor` steps one match for the development time travel.
  * Depends on:     @sbr/application (types), ../db/pool
- * Used by:        ./runtime
+ * Used by:        ./runtime, ../dev/devClock, ../http/routes/timeTravel
  * Spec:           docs/spec/02-software-architecture.md §5.3; docs/spec/04-database-design.md §3.3
  */
 import { randomUUID } from 'node:crypto';
@@ -26,7 +28,7 @@ interface ActionRow {
   id: string;
   match_id: string;
   kind: ActionKind;
-  payload: { drawIndex?: number };
+  payload: { drawIndex?: number; plannedAt?: number };
   due_at: Date;
   attempts: number;
 }
@@ -39,7 +41,10 @@ export class PgScheduler implements Scheduler {
   constructor(private readonly pool: DbPool) {}
 
   async schedule(action: ScheduledAction): Promise<void> {
-    const payload = action.drawIndex === undefined ? {} : { drawIndex: action.drawIndex };
+    const payload = {
+      ...(action.drawIndex === undefined ? {} : { drawIndex: action.drawIndex }),
+      ...(action.plannedAt === undefined ? {} : { plannedAt: action.plannedAt }),
+    };
     await this.pool.query(
       `INSERT INTO sbr.scheduled_actions (match_id, kind, payload, due_at)
        VALUES ($1, $2, $3, to_timestamp($4 / 1000.0))`,
@@ -92,16 +97,34 @@ export class PgScheduler implements Scheduler {
     for (const row of rows) await this.runOne(row, run);
   }
 
+  // Development time travel (../dev/devClock): claims the earliest pending action of one
+  // match due by `until` (epoch ms) and runs it as the loop would; null when none is left.
+  async runNextFor(
+    matchId: string,
+    until: number,
+    run: (action: ScheduledAction) => Promise<void>,
+  ): Promise<ScheduledAction | null> {
+    const claimed = await this.pool.query<ActionRow>(
+      `UPDATE sbr.scheduled_actions SET lease_owner = $1, lease_until = now() + interval '30 seconds'
+       WHERE id = (
+         SELECT id FROM sbr.scheduled_actions
+         WHERE match_id = $2 AND done_at IS NULL AND due_at <= to_timestamp($3 / 1000.0)
+           AND (lease_until IS NULL OR lease_until < now())
+         ORDER BY due_at, id LIMIT 1 FOR UPDATE SKIP LOCKED)
+       RETURNING id, match_id, kind, payload, due_at, attempts`,
+      [this.owner, matchId, until],
+    );
+    const row = claimed.rows[0];
+    if (row === undefined) return null;
+    await this.runOne(row, run);
+    return actionOf(row);
+  }
+
   private async runOne(
     row: ActionRow,
     run: (action: ScheduledAction) => Promise<void>,
   ): Promise<void> {
-    const action: ScheduledAction = {
-      matchId: row.match_id,
-      kind: row.kind,
-      dueAt: row.due_at.getTime(),
-      ...(row.payload.drawIndex === undefined ? {} : { drawIndex: row.payload.drawIndex }),
-    };
+    const action = actionOf(row);
     try {
       await run(action);
       await this.pool.query('UPDATE sbr.scheduled_actions SET done_at = now() WHERE id = $1', [
@@ -122,4 +145,15 @@ export class PgScheduler implements Scheduler {
       );
     }
   }
+}
+
+function actionOf(row: ActionRow): ScheduledAction {
+  const { drawIndex, plannedAt } = row.payload;
+  return {
+    matchId: row.match_id,
+    kind: row.kind,
+    dueAt: row.due_at.getTime(),
+    ...(drawIndex === undefined ? {} : { drawIndex }),
+    ...(plannedAt === undefined ? {} : { plannedAt }),
+  };
 }

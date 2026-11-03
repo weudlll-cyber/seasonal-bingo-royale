@@ -10,13 +10,15 @@
  *                 server; beside them the status in sentences, patterns this round, classic prize
  *                 list, the standings in a bounded panel); for a player out or a spectator the
  *                 top 4 still in or one followed player (./WatchCards, D24); the cut screen with
- *                 the next-round countdown (a survivor's goes at the next round's first draw) or
- *                 "Waiting for the host to start round N" (D14), the final's fresh start (D23)
- *                 over the round recap (./Interlude, D20, for everyone); the final placement on
- *                 top; ./MatchCancelled for a match without result (D17). Remounted per code.
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard,
+ *                 the next-round countdown or "Waiting for the host to start round N" (D14), the
+ *                 final's fresh start (D23) over the round recap (./Interlude, D20); the final
+ *                 placement on top; names link to profiles; ./MatchCancelled (D17); in an
+ *                 asynchronous match "While you were away" on top (./AwaySummary) and the
+ *                 quiet-hours notice (01 §5, §11). Remounted per code.
+ * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./LiveCard, ./AwaySummary,
  *                 ./CurrentBall, ./HostLink, ./Interlude, ./WaitingRoom, ./MatchCancelled, ./labels,
- *                 ./EndActions, ./WatchCards, ./arena.css, ./game.css
+ *                 ./Registration (whenText), ./EndActions, ./WatchCards, ../league/playerHref,
+ *                 ./arena.css, ./game.css
  * Used by:        ../shell/AppShell; BallAndNumbers also by ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -31,14 +33,17 @@ import { PatternsPanel } from '../components/PatternsPanel.js';
 import { PrizeList } from '../components/Playback.js';
 import { RecentEvents } from '../components/RecentEvents.js';
 import { Standings } from '../components/Standings.js';
+import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
+import { AwaySummary } from './AwaySummary.js';
 import { CurrentBall } from './CurrentBall.js';
 import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
 import { currentRecap, Interlude } from './Interlude.js';
-import { progressText, rulesLine } from './labels.js';
+import { progressText, rulesLine, runningBadge } from './labels.js';
 import { LiveCard } from './LiveCard.js';
 import { MatchCancelled } from './MatchCancelled.js';
+import { whenText } from './Registration.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
 import { WatchCards } from './WatchCards.js';
@@ -80,6 +85,8 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
       <ArenaHeader live={live} view={view} />
       {/* Under the title on desktop, below the play area on a phone (arena.css). */}
       <p className="sbr-muted arena-rules">{rulesLine(live.match)}</p>
+      {/* An asynchronous match tells a returning player what happened (01 §11). */}
+      {live.match.mode === 'async' ? <AwaySummary code={live.match.code} /> : null}
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
         {/* Ball, drawn numbers, the newest lines and the whole card (or the watched cards)
@@ -109,7 +116,12 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
           {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
           {/* At the end the final placement above replaces the live standings. */}
           {view.finished ? null : (
-            <Standings result={result} view={view} onFollow={watching ? choose : undefined} />
+            <Standings
+              result={result}
+              view={view}
+              onFollow={watching ? choose : undefined}
+              profileHref={playerHref}
+            />
           )}
         </aside>
       </div>
@@ -126,12 +138,15 @@ export function BallAndNumbers({
   readonly result: LiveState['view'];
   readonly view: PlaybackView;
 }): ReactElement {
+  // Automatic marking (asynchronous matches, 01 §6, §11) has no taps: no speed window.
+  const tapping = result.markingMode !== 'auto';
   return (
     <>
       <div className="arena-ball">
         <CurrentBall
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
+          showWindow={tapping}
           roundOver={view.roundOver}
           finished={view.finished}
         />
@@ -140,7 +155,7 @@ export function BallAndNumbers({
         <DrawTicker
           draws={view.drawsSoFar}
           speedWindowMs={result.speedWindowMs}
-          showWindow={!view.finished}
+          showWindow={tapping && !view.finished}
           paused={view.roundOver && !view.finished}
         />
       </div>
@@ -165,7 +180,7 @@ function ArenaNotice({
   if (view.finished) {
     return (
       <>
-        <FinalPlacement result={live.view} view={view} />
+        <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
         <EndActions host={false} code={live.match.code} />
       </>
     );
@@ -191,6 +206,11 @@ function ArenaNotice({
           me={live.me}
         />
       )}
+      {live.match.quietUntil !== null ? (
+        <p className="sbr-panel" role="status" data-testid="quiet-hours">
+          Quiet hours — the next number comes {whenText(live.match.quietUntil, Date.now())}.
+        </p>
+      ) : null}
       {live.match.waitingForHost ? (
         <p className="sbr-panel" role="status" data-testid="waiting-for-host">
           Waiting for the host to start round {view.currentRound + 2}
@@ -271,7 +291,9 @@ function ArenaHeader({
       </div>
       <div className="sbr-row">
         <HostLink match={live.match} />
-        {live.match.status === 'running' ? <span className="sbr-badge-live">LIVE</span> : null}
+        {live.match.status === 'running' ? (
+          <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+        ) : null}
       </div>
     </header>
   );

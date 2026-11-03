@@ -9,11 +9,12 @@
  *                 counting down live, plus "starts automatically" or "the host starts it"
  *                 (D16), or once the automatic start found too few players "Waiting for
  *                 players — at least N are needed to start" (N from the server); under
- *                 "start when full" "N places left"; "Starting…" only while the real
- *                 10-second countdown runs. Display only.
+ *                 "start when full" "N places left"; an asynchronous lobby "Starts or closes
+ *                 at 22:25 (in 23 h 59 min)", the time the server names (D33, D34);
+ *                 "Starting…" only while the real 10-second countdown runs. Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
- * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby
- * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
+ * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./MatchScreen (whenText)
+ * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';
 
@@ -36,7 +37,7 @@ function inText(seconds: number): string {
 }
 
 // "at 22:25" today, "on Friday 23 October at 22:25" on another day.
-function whenText(at: number, now: number): string {
+export function whenText(at: number, now: number): string {
   const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' }).format(at);
   if (new Date(at).toDateString() === new Date(now).toDateString()) return `at ${time}`;
   const day = new Intl.DateTimeFormat('en-GB', {
@@ -47,6 +48,8 @@ function whenText(at: number, now: number): string {
   return `on ${day} at ${time}`;
 }
 
+const secondsTo = (at: number, now: number): number => Math.max(0, Math.ceil((at - now) / 1000));
+
 export function registrationText(match: MatchSummary, now: number): string {
   if (match.startsAt !== null) return 'Starting…';
   // D22: the start is due, but maintenance holds it.
@@ -55,9 +58,13 @@ export function registrationText(match: MatchSummary, now: number): string {
   if (match.tooFewAtStart) {
     return `Waiting for players — at least ${String(match.minPlayers)} are needed to start`;
   }
+  // An asynchronous lobby starts with enough players or is cancelled at this time (D33, D34).
+  if (match.lobbyClosesAt !== null) {
+    return `Starts or closes ${whenText(match.lobbyClosesAt, now)} (${inText(secondsTo(match.lobbyClosesAt, now))})`;
+  }
   const rule = match.settings.startRule;
   if (rule.kind === 'at') {
-    const seconds = Math.max(0, Math.ceil((rule.at - now) / 1000));
+    const seconds = secondsTo(rule.at, now);
     const who = rule.auto ? 'starts automatically' : 'the host starts it';
     return `Starts ${whenText(rule.at, now)} (${inText(seconds)}) · ${who}`;
   }
@@ -75,8 +82,14 @@ export function RegistrationStatus({
   readonly match: MatchSummary;
   readonly testId: string;
 }): ReactElement {
-  const rule = match.settings.startRule;
-  // Re-renders four times a second while a set time counts down; the text reads the clock.
-  useSecondsUntil(rule.kind === 'at' && match.startsAt === null ? rule.at : null);
+  // Re-renders four times a second while a set time or an async lobby's end counts down;
+  // the text reads the clock.
+  useSecondsUntil(match.startsAt === null ? countingTo(match) : null);
   return <span data-testid={testId}>{registrationText(match, Date.now())}</span>;
+}
+
+function countingTo(match: MatchSummary): number | null {
+  if (match.lobbyClosesAt !== null) return match.lobbyClosesAt;
+  const rule = match.settings.startRule;
+  return rule.kind === 'at' ? rule.at : null;
 }

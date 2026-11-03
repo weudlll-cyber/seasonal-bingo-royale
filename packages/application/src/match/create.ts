@@ -4,19 +4,23 @@
  * @brief  A new match from the starter's choices and the published default ruleset (11 §3.2).
  *
  * Responsibility: check the prize list (classic types: at least one built-in prize, kept
- *                 in catalogue order; royale: none), clamp the timed-draw seconds into the
- *                 allowed range (D12), raise a missed-number delay to the speed window,
- *                 keep the pause between royale rounds at its minimum or above (D14), and build the match record plus the `openLobby` command that
+ *                 in catalogue order; royale: none) and the mode (asynchronous: royale only),
+ *                 clamp the timed-draw interval into the mode's range (D12; async 1 min–24 h),
+ *                 raise a missed-number delay to the speed window, take the async defaults
+ *                 (automatic marking, quiet hours, time zone), keep the pause between royale
+ *                 rounds at its minimum or above (D14), set when an asynchronous lobby closes
+ *                 (D31, D33), and build the match record plus the `openLobby` command that
  *                 freezes the ruleset and the seed (01 §3a, §5, §6, §9).
- * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./rulesets, ./timing
+ * Depends on:     @sbr/contracts, @sbr/domain, ./ports, ./quietHours, ./rulesets, ./timing
  * Used by:        ./engine, ../index
- * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §3a.1, §5, §6
+ * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §3a.1, §5, §6, §7.6, §11
  */
 import {
   BUILTIN_PRIZE_CATALOGUE_ORDER,
   type Command,
   type GameType,
   type MarkingMode,
+  type MatchMode,
   type MissedNumbers,
 } from '@sbr/domain';
 
@@ -24,16 +28,24 @@ import {
   DEFAULT_ROUND_PAUSE_MS,
   DEFAULT_RULESETS,
   MIN_ROUND_PAUSE_MS,
+  type QuietHours,
   type Ruleset,
 } from '@sbr/contracts';
 
-import type { DrawMode, NewMatchRecord, RoundPause, StartRule } from './ports.js';
+import type { DrawMode, MatchSettings, NewMatchRecord, RoundPause, StartRule } from './ports.js';
+import { isTimeZone } from './quietHours.js';
 import { defaultRulesetFor, toMatchRuleset } from './rulesets.js';
 import { chosenMissedNumbers, withinDrawRange } from './timing.js';
 
 export interface CreateMatchInput {
   readonly title: string;
   readonly gameType: GameType;
+  // Realtime by default; asynchronous only for the royale (01 §11).
+  readonly mode?: MatchMode | undefined;
+  // Asynchronous only (01 §5): the ruleset's quiet hours when left out, none with null,
+  // read in the starter's IANA time zone (UTC when missing or unknown).
+  readonly quietHours?: QuietHours | null | undefined;
+  readonly timeZone?: string | undefined;
   readonly prizes?: readonly string[] | undefined;
   readonly markingMode?: MarkingMode | undefined;
   readonly drawMode: DrawMode;
@@ -56,6 +68,11 @@ function chosenRoundPause(chosen: RoundPause | undefined): RoundPause {
   return { kind: 'wait', ms: Math.max(MIN_ROUND_PAUSE_MS, chosen?.ms ?? DEFAULT_ROUND_PAUSE_MS) };
 }
 
+// Only the royale has an asynchronous ruleset (01 §11).
+export function modeAllowed(input: CreateMatchInput): boolean {
+  return input.mode !== 'async' || input.gameType === 'royale';
+}
+
 // Royale has no prize list; a classic type needs at least one known prize (01 §3a.1).
 export function prizesFor(input: CreateMatchInput): readonly string[] | null {
   if (input.gameType === 'royale') return [];
@@ -70,6 +87,42 @@ interface NewMatchIds {
   readonly code: string;
   readonly seed: Uint8Array;
   readonly createdBy: string | null;
+  // The time of creation (the match's clock), from which an async lobby's window runs.
+  readonly now: number;
+}
+
+// The draw settings: realtime as before; an asynchronous match marks automatically by
+// default, draws every 15 minutes by default within its range, and has quiet hours in its
+// time zone (01 §5, §6, §11).
+function drawSettings(
+  input: CreateMatchInput,
+  ruleset: Ruleset,
+): Omit<MatchSettings, 'drawMode' | 'roundPause' | 'startRule'> {
+  const windowMs = ruleset.marking.speedWindowMs;
+  const missedNumbers = chosenMissedNumbers(input.missedNumbers, windowMs);
+  const isAsync = ruleset.mode === 'async';
+  const fallbackMs = isAsync ? ruleset.draws.intervalMsAsync : ruleset.draws.intervalMsRealtime;
+  // null switches the ruleset's quiet hours off.
+  const quiet = input.quietHours === undefined ? ruleset.draws.quietHours : input.quietHours;
+  return {
+    markingMode: input.markingMode ?? (isAsync ? ruleset.marking.mode : 'manual'),
+    missedNumbers,
+    drawIntervalMs: withinDrawRange(
+      input.drawIntervalMs ?? fallbackMs,
+      windowMs,
+      missedNumbers,
+      ruleset.mode,
+    ),
+    quietHours: isAsync ? quiet : null,
+    timeZone: input.timeZone !== undefined && isTimeZone(input.timeZone) ? input.timeZone : 'UTC',
+  };
+}
+
+// When an asynchronous lobby closes (D31, D33): at the announced start time, else after the
+// ruleset's window (lobby.openMsAsync, 24 h) from creation; a realtime lobby has no end.
+export function lobbyClosesAt(rule: StartRule, ruleset: Ruleset, now: number): number | null {
+  if (ruleset.mode !== 'async') return null;
+  return rule.kind === 'at' ? rule.at : now + ruleset.lobby.openMsAsync;
 }
 
 export function toNewMatch(
@@ -77,10 +130,9 @@ export function toNewMatch(
   prizes: readonly string[],
   ids: NewMatchIds,
 ): { readonly record: NewMatchRecord; readonly openLobby: Command } {
-  const ruleset = input.ruleset?.ruleset ?? defaultRulesetFor(input.gameType);
-  const windowMs = ruleset.marking.speedWindowMs;
-  const markingMode = input.markingMode ?? 'manual';
-  const missedNumbers = chosenMissedNumbers(input.missedNumbers, windowMs);
+  const ruleset = input.ruleset?.ruleset ?? defaultRulesetFor(input.gameType, input.mode);
+  const draws = drawSettings(input, ruleset);
+  const startRule = input.startRule ?? { kind: 'host' };
   const record: NewMatchRecord = {
     id: ids.id,
     code: ids.code,
@@ -95,25 +147,20 @@ export function toNewMatch(
     prizes,
     countsForLeaderboard: input.countsForLeaderboard ?? ruleset.countsForLeaderboard,
     settings: {
-      markingMode,
-      missedNumbers,
+      ...draws,
       drawMode: input.drawMode,
-      drawIntervalMs: withinDrawRange(
-        input.drawIntervalMs ?? ruleset.draws.intervalMsRealtime,
-        windowMs,
-        missedNumbers,
-      ),
       roundPause: chosenRoundPause(input.roundPause),
-      startRule: input.startRule ?? { kind: 'host' },
+      startRule,
     },
     createdBy: ids.createdBy,
+    lobbyClosesAt: lobbyClosesAt(startRule, ruleset, ids.now),
     seed: ids.seed,
   };
   const openLobby: Command = {
     type: 'openLobby',
     matchId: ids.id,
     gameType: input.gameType,
-    ruleset: toMatchRuleset(ruleset, markingMode, missedNumbers),
+    ruleset: toMatchRuleset(ruleset, draws.markingMode, draws.missedNumbers),
     seed: ids.seed,
     tickedPrizes: prizes,
   };

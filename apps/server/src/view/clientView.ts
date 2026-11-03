@@ -74,7 +74,11 @@ export function buildClientView(input: ClientViewInput): ClientView {
   return {
     ...input.settings,
     gameType: input.gameType,
-    drawIntervalRangeMs: drawRange(ruleset.marking.speedWindowMs, input.settings.missedNumbers),
+    drawIntervalRangeMs: drawRange(
+      ruleset.marking.speedWindowMs,
+      input.settings.missedNumbers,
+      ruleset.mode,
+    ),
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,
     maxSpeedBonus: ruleset.scoring.maxSpeedBonus,

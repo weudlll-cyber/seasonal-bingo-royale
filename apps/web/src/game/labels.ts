@@ -4,16 +4,17 @@
  * @brief  Plain-English names and event lines, shared by all screens.
  *
  * Responsibility: "Battle royale" / "Classic with seasons" / "Classic" for the game types
- *                 (01 §3a) and their order in the forms, prize names ("2 rows", "Full card"), one line describing draws
- *                 and missed numbers with the same words as the Quick Test ("Draws: timed
- *                 (every N seconds)" …), never the word "auto" alone, and every event line
- *                 the banners and the match log show ("Round 1 over — all 40 numbers
- *                 drawn", "Cut 1: 12 go on, 8 are out" …), never an internal identifier.
+ *                 (01 §3a) and their order in the forms, prize names ("2 rows", "Full card"), one
+ *                 line describing draws, missed numbers and quiet hours with the same words as
+ *                 the Quick Test ("Draws: timed (every N seconds)", async "every 15 minutes" …;
+ *                 never "auto" alone), a running match's badge ("LIVE", async "In progress"),
+ *                 and every event line the banners and the match log show ("Round 1 over — all
+ *                 40 numbers drawn", "Cut 1: 12 go on, 8 are out" …), never an internal id.
  * Depends on:     ../types, ./useLiveMatch (types), ../playback
  * Used by:        ./Lobby, ./MatchScreen, ../host/*, ../playback, ../components/*, ./LiveCard,
  *                 ./WaitingRoom, ../playbackScoring, ./Interlude, ./InterludeCards, ./interludePlan,
  *                 ../quicktest/*
- * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §13
+ * Spec:           docs/spec/01-game-design.md §3a, §5, §6, §7.3, §7.4, §8.3, §11, §13
  */
 import { ballLabel, secondsText as seconds, type GameType } from '../types.js';
 import type { PlaybackView } from '../playback.js';
@@ -39,21 +40,48 @@ export function statusName(status: MatchSummary['status']): string {
   return names[status];
 }
 
+// An interval in plain words: seconds up to a minute (realtime), else minutes or hours
+// (asynchronous, 01 §5): "5 seconds", "15 minutes", "1 hour".
+export function intervalText(ms: number): string {
+  if (ms <= 60_000 || ms % 60_000 !== 0) return `${seconds(ms)} seconds`;
+  const [n, unit] = ms % 3_600_000 === 0 ? [ms / 3_600_000, 'hour'] : [ms / 60_000, 'minute'];
+  return `${String(n)} ${unit}${n === 1 ? '' : 's'}`;
+}
+
+// The badge of a running match: "LIVE" in realtime, "In progress" for an asynchronous
+// match, whose numbers come minutes or hours apart (01 §11).
+export function runningBadge(mode: MatchSummary['mode']): string {
+  return mode === 'async' ? 'In progress' : 'LIVE';
+}
+
 export function drawLine(settings: MatchSummary['settings']): string {
   return settings.drawMode === 'auto'
-    ? `Draws: timed (every ${seconds(settings.drawIntervalMs)} seconds)`
+    ? `Draws: timed (every ${intervalText(settings.drawIntervalMs)})`
     : 'Draws: host presses Draw next';
 }
 
 export function missedLine(settings: MatchSummary['settings']): string {
+  // Asynchronous matches mark every drawn number for every player (01 §6).
+  if (settings.markingMode === 'auto') return 'Marking: automatic';
   const rule = settings.missedNumbers;
   return rule.kind === 'autoMarkAfter'
     ? `Missed numbers: marked for you after ${seconds(rule.delayMs)} seconds`
     : 'Missed numbers: left open (tap later without bonus)';
 }
 
+const hourText = (h: number): string => `${String(h).padStart(2, '0')}:00`;
+
+// "Quiet hours 00:00–07:00 (Europe/Berlin)" for an asynchronous match that has them (01 §5).
+export function quietLine(settings: MatchSummary['settings']): string | null {
+  const q = settings.quietHours;
+  if (q === null) return null;
+  return `Quiet hours ${hourText(q.startHour)}–${hourText(q.endHour)} (${settings.timeZone})`;
+}
+
 export function rulesLine(match: MatchSummary): string {
-  return `${drawLine(match.settings)} · ${missedLine(match.settings)}`;
+  const quiet = quietLine(match.settings);
+  const lines = [drawLine(match.settings), missedLine(match.settings)];
+  return (quiet === null ? lines : [...lines, quiet]).join(' · ');
 }
 
 // Classic prize keys in plain words (01 §3a.1): "rows-2" → "2 rows", "fullCard" → "Full card".
@@ -180,6 +208,8 @@ export function problemText(code: string, reason: string | null = null): string 
     SIGN_IN_REQUIRED: 'Please sign in first.',
     INVALID_PRIZES: 'Please tick at least one prize.',
     VALIDATION_FAILED: 'Please check the form.',
+    QUIET_HOURS: 'Quiet hours — no numbers are drawn until they end.',
+    ASYNC_ROYALE_ONLY: 'Only a battle royale can be played asynchronously.',
   };
   return texts[code] ?? 'Something went wrong — please try again.';
 }

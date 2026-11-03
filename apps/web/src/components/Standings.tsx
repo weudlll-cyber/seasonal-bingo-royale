@@ -12,14 +12,15 @@
  *                 above the others; in the final "In the final" and "Out of the match", each
  *                 out row with the cut and the points at that moment (from the server). The
  *                 order and the placement rule are unchanged (01 §7.5). With `onFollow` (a
- *                 player out or a spectator, D24) the names of players still in are buttons.
+ *                 player out or a spectator, D24) the names of players still in are buttons;
+ *                 otherwise names link to profiles when the screen passes `profileHref`.
  * Depends on:     react, ./RankRow, ../playback, ../types, ./matchSide.css
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §7.5, §13 (D23, D24), docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from 'react';
 
-import { GroupLabel, RankRow } from './RankRow.js';
+import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 import './matchSide.css';
@@ -29,9 +30,11 @@ interface StandingsProps {
   readonly view: PlaybackView;
   // A watcher follows a player still in (D24).
   readonly onFollow?: ((accountId: string) => void) | undefined;
+  // Names link to profiles (the live match screen).
+  readonly profileHref?: ProfileHref | undefined;
 }
 
-export function Standings({ result, view, onFollow }: StandingsProps): ReactElement {
+export function Standings({ result, view, onFollow, profileHref }: StandingsProps): ReactElement {
   const royale = result.gameType === 'royale';
   const final = royale && result.stagePlan[view.currentStage]?.kind === 'final';
   const shown = view.standings.filter((p, i) => i < 20 || p.isOwner);
@@ -46,6 +49,7 @@ export function Standings({ result, view, onFollow }: StandingsProps): ReactElem
       showSeasons={royale}
       outNote={final}
       onFollow={onFollow}
+      href={profileHref?.(player.accountId) ?? null}
       pinned={pin}
     />
   );
@@ -106,6 +110,7 @@ interface RowProps {
   // In the final an out row says when the player went out and with how many points.
   readonly outNote: boolean;
   readonly onFollow: StandingsProps['onFollow'];
+  readonly href: string | null;
   // The copy of the viewer's row in the strip below the list.
   readonly pinned: boolean;
 }
@@ -120,6 +125,7 @@ function PlayerRow(props: RowProps): ReactElement {
     <RankRow
       rank={rank}
       name={player.accountId}
+      href={props.href}
       note={note}
       seasons={showSeasons ? player.seasons : null}
       own={player.isOwner}

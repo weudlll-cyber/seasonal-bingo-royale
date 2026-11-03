@@ -9,9 +9,11 @@
  *                 "Starts at 22:25 (in 12 min)" (with the day on another day) and who starts
  *                 it (D16), and counts down live; "start when full" says how many places are
  *                 left; "Starting…" and the countdown appear only while the real countdown runs.
+ *                 An asynchronous lobby says when it starts or closes, live, in the console and
+ *                 the waiting room (D33, D34).
  * Depends on:     @testing-library/react, ./Registration, ./Lobby, ./MatchScreen,
  *                 ../host/HostConsole, ../test/matchFixture, ./useLiveMatch
- * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
+ * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */
 import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -124,5 +126,32 @@ describe('the time until a set start', () => {
     const soon = withRule({ kind: 'at', at: NOW + 62_000, auto: true });
     expect(registrationText(soon, NOW)).toContain('(in 1 min)');
     expect(registrationText(soon, NOW - 30_000)).toContain('(in 2 min)');
+  });
+});
+
+describe('the closing time of an asynchronous lobby (D33, D34)', () => {
+  it('reads "Starts or closes at …" in the console and the waiting room, live', async () => {
+    const closes = Date.now() + 2 * 3_600_000;
+    const asyncLobby = { mode: 'async' as const, lobbyClosesAt: closes };
+    serveMatch(matchSummary({ ...asyncLobby, youHost: true }));
+    await show(<HostConsole code="MATCH1" />);
+    expect(screen.getByTestId('host-start-rule').textContent).toMatch(
+      /^Starts or closes (at|on .+ at) \d\d:\d\d \(in 2 h\)$/,
+    );
+    cleanup();
+    serveMatch(matchSummary(asyncLobby));
+    await show(<MatchScreen code="MATCH1" />);
+    expect(screen.getByTestId('registration').textContent).toMatch(
+      /^Starts or closes .+\(in 2 h\)$/,
+    );
+  });
+
+  it('names the day when it is not today, and counts down', () => {
+    const lobby = withRule({ kind: 'host' }, { mode: 'async', lobbyClosesAt: AT + 24 * 3_600_000 });
+    expect(registrationText(lobby, NOW)).toBe(
+      'Starts or closes on Friday 23 October at 22:25 (in 1 day)',
+    );
+    // The next day it is today's time.
+    expect(registrationText(lobby, AT + 23 * 3_600_000)).toBe('Starts or closes at 22:25 (in 1 h)');
   });
 });

@@ -123,6 +123,8 @@ function serveLive(view: QuickTestResult, youHost: boolean): void {
       drawIntervalMs: 5000,
       roundPause: { kind: 'wait', ms: 6000 },
       startRule: { kind: 'host' },
+      quietHours: null,
+      timeZone: 'UTC',
     },
     startsAt: null,
     nextRoundAt: null,

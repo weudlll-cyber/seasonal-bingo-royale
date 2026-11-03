@@ -3,19 +3,18 @@
  * @module server/http
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
- * Responsibility: GET /matches (open, running and recent matches), POST /matches
- *                 (match.create; 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET /matches/:code/state?since= (the live view the client folds, ./matchViews;
- *                 during the pause after a royale round it carries the round's recap, D20; a
- *                 watching screen adds &follow= and &known=, D24),
- *                 POST /matches/:code/join (match.join), and for the match's creator with
- *                 match.manage: /start (countdown), /draw-next, PUT /draw-mode, /abort;
- *                 POST /matches/:code/marks is the fallback for clients without a socket.
- *                 Development builds also have POST /matches/:code/bots. Errors of the
- *                 engine become 4xx with their code.
+ * Responsibility: GET /matches (open, running and recent matches), POST /matches (match.create;
+ *                 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET
+ *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
+ *                 the pause after a royale round with the round's recap, D20; a watching screen
+ *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
+ *                 /matches/:code/away-summary (./awaySummary), the host's routes (./matchHost:
+ *                 start, draws, abort, the mark fallback; in development /bots). Engine errors
+ *                 become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
- *                 ../../config/maintenance, ./matchHost, ./matchInput, ./matchViews,
+ *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
  *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
- * Used by:        ../app, ./matchHost
+ * Used by:        ../app, ./matchHost, ./awaySummary
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
 import type { MaintenanceCheck } from '../../config/maintenance.js';
@@ -24,6 +23,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
 import type { PgMatchStore } from '../../match/pgMatchStore.js';
+import { registerAwaySummary } from './awaySummary.js';
 import { registerHostRoutes } from './matchHost.js';
 import { LiveViews } from '../../view/liveViews.js';
 import { playerNames } from '../../view/playerNames.js';
@@ -83,7 +83,7 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;
-    return { matches: matches.map((m) => matchSummary(m, viewer, deps.engine.startHeld(m))) };
+    return { matches: matches.map((m) => matchSummary(m, viewer, deps.engine.clockFacts(m))) };
   });
 }
 
@@ -112,9 +112,9 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       // The recap of the royale round just played, during the pause after it (D20).
       const recap = await views.recapFor(m, entry);
       const me = request.session?.accountId ?? null;
-      const startHeld = deps.engine.startHeld(m);
+      const clock = deps.engine.clockFacts(m);
       const watch = watchQuery(request.query);
-      return liveView({ match: m, entry, me, since, recap, startHeld, watch });
+      return liveView({ match: m, entry, me, since, recap, clock, watch });
     },
   );
 }
@@ -166,7 +166,7 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     const id = await matchIdByCode(deps.pool, request.params.code);
     if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
     const m = await deps.engine.runner.current(id);
-    return matchSummary(m, request.session?.accountId ?? null, deps.engine.startHeld(m));
+    return matchSummary(m, request.session?.accountId ?? null, deps.engine.clockFacts(m));
   });
   registerStateRoute(app, deps);
   app.post<{ Params: { code: string } }>('/api/v1/matches/:code/join', async (request, reply) => {
@@ -182,4 +182,5 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     }
   });
   registerHostRoutes(app, deps);
+  registerAwaySummary(app, deps);
 }

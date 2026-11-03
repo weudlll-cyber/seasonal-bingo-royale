@@ -1,10 +1,11 @@
 /**
  * @file   apps/web/src/account/account.css
  * @module web/account
- * @brief  The sign-in and register forms.
+ * @brief  The sign-in and register forms, and the account page.
  *
- * Responsibility: a narrow card centred in the column, fields stacked with their hints;
- *                 colours and spacing from @sbr/ui tokens.
+ * Responsibility: a narrow card centred in the column, fields stacked with their hints; the
+ *                 account page's parts (data download, deletion) one below the other with a
+ *                 hairline between; colours and spacing from @sbr/ui tokens.
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -21,5 +22,30 @@
 }
 
 .account-form p {
+  margin: 0;
+}
+
+.account-page {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.account-page h1,
+.account-page h2,
+.account-page p {
+  margin: 0;
+}
+
+.account-part {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.account-part > .sbr-btn {
+  justify-self: start;
+}
+
+/* The deletion's second step sits left in the page, not centred like the sign-in card */
+.account-page .account-delete {
   margin: 0;
 }

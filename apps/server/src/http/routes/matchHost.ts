@@ -17,7 +17,7 @@
  *                 docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { START_COUNTDOWN_MS } from '@sbr/contracts';
+import { ASYNC_DRAW_INTERVAL_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
 import { matchIdByCode, requirePermission, type MatchRouteDeps } from './matches.js';
@@ -27,7 +27,8 @@ type CodeRequest = FastifyRequest<{ Params: { code: string } }>;
 
 const drawModeBody = z.object({
   mode: z.enum(['auto', 'host']),
-  intervalMs: z.number().int().min(1).max(3_600_000).optional(),
+  // Up to a day (async); the engine keeps it in the mode's range (01 §5, D12).
+  intervalMs: z.number().int().min(1).max(ASYNC_DRAW_INTERVAL_MS.max).optional(),
 });
 const abortBody = z.object({ reason: z.string().trim().min(3).max(200) });
 const autoStartBody = z.object({ auto: z.boolean() });
