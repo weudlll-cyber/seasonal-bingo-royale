@@ -45,8 +45,8 @@ Inside the website, players sign in **only with their website account** (D37): t
 
 **What the website must provide first** (website repository; the game goes online only once this works end to end, D38):
 
-- An authorize endpoint for the game, like the event bot's admin page uses: by default `GET /api/games/bingo/authorize` on the website app (`127.0.0.1:3800` in nginx mode, the `site` service on port 3800 in own-Caddy mode). For a signed-in, unlocked user it answers `204` with four headers: `X-Acting-User-Id` (the stable user id), `X-Acting-User` (the display name), `X-Acting-User-Roles` (comma-separated, e.g. `member,organiser`) and `X-Acting-User-Email-Verified` (`true` or `false`); otherwise `401` (not signed in) or `403`. Organisers may host matches; members play. Only a verified e-mail counts for league points.
-- A login page that takes a return path: the game sends a visitor who is not signed in to `/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite`.
+- An authorize endpoint for the game, like the event bot's admin page uses: by default `GET /api/games/bingo/authorize` on the website app (`127.0.0.1:3800` in nginx mode, the `site` service on port 3800 in own-Caddy mode). For a signed-in, unlocked user it answers `204` with four headers: `X-Acting-User-Id` (the stable user id), `X-Acting-User` (the display name), `X-Acting-User-Roles` (comma-separated, e.g. `member,organiser`) and `X-Acting-User-Email-Verified` (`true` or `false`); otherwise `401` (not signed in) or `403`. Organisers and admins may host matches; website admins are game admins; members play. Only a verified e-mail counts for league points.
+- A login page that takes a return path in `next` and, after signing in, sends the browser to it (a path on the same site): the game sends a visitor who is not signed in to `/login?next=` followed by the URL-encoded `/games/bingo/auth/website?next=<URL-encoded page>`, e.g. `/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite%3Fnext%3D%252Fgames%252Fbingo%252F%2523%252Fleaderboard`, so the player lands on the page they wanted.
 - One include line for the game's route file (below) and a link to `https://<website domain>/games/bingo/` on the games page.
 
 **Install:**
@@ -65,7 +65,7 @@ Inside the website, players sign in **only with their website account** (D37): t
      ```
      then `nginx -t && systemctl reload nginx`.
    - **Own-Caddy mode:** the file is `/opt/sbr/routes/bingo.caddy`. Once, in the website's checkout on the same server:
-     1. Create the folder `deploy/site/routes/` and copy `/opt/sbr/routes/bingo.caddy` into it.
+     1. Create the folder `deploy/site/routes/` and copy the route file into it, kept private (it holds the proxy secret; keep `routes/` out of version control): `install -m 0600 /opt/sbr/routes/bingo.caddy <website checkout>/deploy/site/routes/`.
      2. In `deploy/site/Caddyfile`, inside the `{$SITE_DOMAIN} { … }` block, add the line `import /etc/caddy/routes/*.caddy`.
      3. In `deploy/site/docker-compose.yml`, give the `caddy` service the volume `- ./routes:/etc/caddy/routes:ro`.
      4. Apply it: `cd <website checkout>/deploy/site && docker compose up -d caddy`.
@@ -73,10 +73,11 @@ Inside the website, players sign in **only with their website account** (D37): t
 
 **Good to know about the website login:**
 
-- The route file sends only `/games/bingo/auth/website` to the website for the check, clears any `X-Acting-User…` headers a browser sends on every game path, and keeps `/games/bingo/metrics` closed (404). The game believes those headers only on that one route and only from the proxy's address.
+- The route file sends only `/games/bingo/auth/website` to the website for the check, clears any `X-Acting-User…` and `X-Sbr-Proxy-Secret` headers a browser sends on every game path, and keeps `/games/bingo/metrics` closed (404). The game believes those headers only on that one route, only from the proxy's address and only with the proxy secret: the installer makes it once, keeps it in `/etc/sbr/<env>.env` and the route file (both readable by root only) and never prints it. The website never sees it.
 - Signing out of the website does not sign the player out of the game at once: the game session lasts as configured (7 days idle, 30 days at most) or until the player signs out in the game. A website account that is deleted or locked cannot sign in to the game again (the authorize endpoint refuses it).
-- Display names follow the website at each sign-in (letters, digits, `_`, `.` and `-`; another character becomes `_`; a name already taken gets a number, e.g. `Anna2`). Hosting follows the website's organiser role at each sign-in; no admin role is ever given by the website.
-- In nginx mode the game listens on `127.0.0.1:<app port>` of the server only. Anyone with a shell on the server could reach it there directly; keep shell access to the server limited to its operators.
+- Display names follow the website at each sign-in (letters, digits, `_`, `.` and `-`; another character becomes `_`; a name already taken gets a number, e.g. `Anna2`). Hosting follows the website's `organiser` and `admin` roles at each sign-in, and a website `admin` is a game admin as long as the website says so. The game's super admin (who grants or removes admins) is never given by the website: create it with `sudo sbr admin create-super`.
+- To delete their game account, a website player types their display name to confirm (there is no game password).
+- In nginx mode the game listens on `127.0.0.1:<app port>` of the server only. Another program on the server can reach that port, but without the proxy secret it cannot sign anybody in.
 
 ## 4. Create the first admin
 

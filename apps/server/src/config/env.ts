@@ -88,6 +88,15 @@ const envSchema = z.object({
   SBR_WEBSITE_HEADER_NAME: headerName('X-Acting-User'),
   SBR_WEBSITE_HEADER_ROLES: headerName('X-Acting-User-Roles'),
   SBR_WEBSITE_HEADER_EMAIL_VERIFIED: headerName('X-Acting-User-Email-Verified'),
+  // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
+  // (website mode needs it; the installer generates it). No other process knows it.
+  SBR_WEBSITE_PROXY_SECRET: z.string().min(32).max(256).optional(),
+  // The website's login page; the return path is appended URL-encoded (D43). A path on the
+  // website's own origin, never another site.
+  SBR_WEBSITE_LOGIN_PATH: z
+    .string()
+    .regex(/^\/(?![/\\])[\x21-\x7e]*$/, 'a path on the website, e.g. /login?next=')
+    .default('/login?next='),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -122,12 +131,18 @@ function checkDevSafe(env: Env): Env {
   return env;
 }
 
-// Website mode needs the public address (its origin is the identity issuer) and the proxy
-// whose headers it believes (07 §2.3).
+// Website mode needs the public address (its origin is the identity issuer), the proxy
+// whose headers it believes and the secret that proxy sends (07 §2.3).
 function checkWebsiteMode(env: Env): Env {
   if (env.SBR_AUTH_MODE !== 'website') return env;
-  if (env.SBR_PUBLIC_URL === undefined || env.SBR_TRUSTED_PROXIES.length === 0) {
-    throw new Error('SBR_AUTH_MODE=website needs SBR_PUBLIC_URL and SBR_TRUSTED_PROXIES');
+  if (
+    env.SBR_PUBLIC_URL === undefined ||
+    env.SBR_TRUSTED_PROXIES.length === 0 ||
+    env.SBR_WEBSITE_PROXY_SECRET === undefined
+  ) {
+    throw new Error(
+      'SBR_AUTH_MODE=website needs SBR_PUBLIC_URL, SBR_TRUSTED_PROXIES and SBR_WEBSITE_PROXY_SECRET',
+    );
   }
   return env;
 }

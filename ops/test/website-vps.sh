@@ -10,10 +10,14 @@
 #                 `ops/install.sh --type website` from /src for the given git ref, activates the
 #                 game's route file the way the printed steps say, and checks through the
 #                 website's proxy: health, the sign-in route sending a visitor without a website
-#                 session to the website's login, a website user signed in with name and hosting
-#                 role, forged identity headers signing nobody in (on another route and on the
-#                 sign-in route without a website session), /games/bingo/metrics 404, and
-#                 `sbr status` naming the sign-in mode and the authorize endpoint's 401.
+#                 session through the game's login hop to the website's login with the wanted
+#                 page (D43), a website user signed in with name and hosting role and sent back
+#                 to that page, a website admin as game admin (D41), forged identity headers
+#                 signing nobody in (on another route, on the sign-in route without a website
+#                 session, and sent to the app directly, past the proxy, without the proxy
+#                 secret), the secret neither printed by the installer nor sent to the website,
+#                 the route file 0600, /games/bingo/metrics 404, and `sbr status` naming the
+#                 sign-in mode and the authorize endpoint's 401.
 #                 --broken-header makes the stand-in send a wrong id header name: the test must
 #                 fail. Everything it made is removed at the end (--keep leaves it for a look).
 #                 Test only: never part of an install.
@@ -59,6 +63,9 @@ check() {
     FAILED=1
   fi
 }
+
+# The game session cookie ("name=value") in curl -D headers.
+cookie_of() { sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*\).*/\1/p' <<<"$1" | head -1; }
 
 # The "VPS": Ubuntu 24.04 with systemd as PID 1 and the installer's own tools.
 docker build -q -t "$IMAGE" - <<'EOF' >/dev/null
@@ -120,10 +127,12 @@ fi
 # The install, as an operator would run it (unattended).
 vps "bash /src/ops/install.sh --yes --type website --env prod --website-domain example.org \
   --email admin@example.org --age-key age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs3290gq \
-  --repo /src --ref $REF" | tail -12
+  --repo /src --ref $REF >/root/install.log 2>&1; tail -12 /root/install.log"
 if [[ $MODE == nginx ]]; then
+  ROUTE_FILE=/etc/seasonal/routes/bingo.conf
   vps 'nginx -t -q && systemctl reload nginx'
 else
+  ROUTE_FILE=/opt/sbr/routes/bingo.caddy
   vps 'cp /opt/sbr/routes/bingo.caddy /srv/site/routes/ && docker exec seasonal-site-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null'
 fi
 
@@ -132,18 +141,38 @@ URL=http://127.0.0.1/games/bingo
 H='-H Host:example.org'
 FORGED='-H X-Acting-User-Id:u-1 -H X-Acting-User:Walter -H X-Acting-User-Roles:organiser -H X-Acting-User-Email-Verified:true'
 check "the app answers through the proxy" "$(vps "curl -s $H $URL/healthz")" 'ok'
-# Forged headers without a website session: the website's login, nobody signed in.
-refused=$(vps "curl -s -o /dev/null -D - $H $FORGED $URL/auth/website")
+# The proxy secret: made by the installer, never printed, only in 0600 files.
+secret=$(vps '. /etc/sbr/prod.env && printf %s "$SBR_WEBSITE_PROXY_SECRET"')
+check "the installer made a proxy secret" "${#secret}" '64'
+check "... and did not print it" "$(vps "grep -c '$secret' /root/install.log || true")" '0'
+check "the route file is private" "$(vps "stat -c %a $ROUTE_FILE")" '600'
+# Forged headers without a website session: via the game's login hop to the website's login
+# with the wanted page (D43), nobody signed in.
+PAGE='%2Fgames%2Fbingo%2F%23%2Fmatch%2FABC123'
+refused=$(vps "curl -s -o /dev/null -D - $H $FORGED '$URL/auth/website?next=$PAGE'")
 check "without a website session the sign-in route answers 302" "$refused" ' 302'
-check "... to the website's login, back to the sign-in route" "$refused" '/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite'
+check "... to the game's login hop with the page" "$refused" "/games/bingo/auth/website/login?next=$PAGE"
 check "... and sets no game session" "$(grep -ci 'sbr_session' <<<"$refused" || true)" '0'
-jar=$(vps "curl -s -o /dev/null -D - $H -b stub_user=u-1 '$URL/auth/website?next=%2Fgames%2Fbingo%2F%23%2F'")
-check "a website user is signed in and sent back" "$(tr 'A-Z' 'a-z' <<<"$jar")" 'location: /games/bingo/#/'
-cookie=$(sed -n 's/^[Ss]et-[Cc]ookie: \([^;]*\).*/\1/p' <<<"$jar" | head -1)
+hop=$(vps "curl -s -o /dev/null -D - $H '$URL/auth/website/login?next=$PAGE'")
+check "... then to the website's login, back to the sign-in route and the page" "$hop"   '/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite%3Fnext%3D%252Fgames%252Fbingo%252F%2523%252Fmatch%252FABC123'
+jar=$(vps "curl -s -o /dev/null -D - $H -b stub_user=u-1 '$URL/auth/website?next=$PAGE'")
+check "a website user is signed in and sent back to the page" "$(tr 'A-Z' 'a-z' <<<"$jar")" 'location: /games/bingo/#/match/abc123'
+cookie=$(cookie_of "$jar")
 session=$(vps "curl -s $H -b '$cookie' $URL/api/v1/session")
 check "the session has the website name" "$session" '"displayName":"Walter"'
 check "an organiser may host" "$session" 'match.create'
 check "forged headers on another route sign nobody in" "$(vps "curl -s $H $FORGED $URL/api/v1/session")" '"signedIn":false'
+admin=$(vps "curl -s -o /dev/null -D - $H -b stub_user=u-3 $URL/auth/website")
+admin_cookie=$(cookie_of "$admin")
+check "a website admin is a game admin" "$(vps "curl -s $H -b '$admin_cookie' $URL/api/v1/session")" 'match.abort'
+# Past the proxy, as another process on the server would: the right address, no secret.
+if [[ $MODE == nginx ]]; then
+  direct=$(vps "curl -s -o /dev/null -w '%{http_code}' $FORGED http://127.0.0.1:3900/games/bingo/auth/website")
+else
+  WGET_FORGED='--header X-Acting-User-Id:u-1 --header X-Acting-User:Walter --header X-Acting-User-Roles:organiser'
+  direct=$(vps "docker exec seasonal-site-caddy-1 wget -q -S -O /dev/null $WGET_FORGED http://sbr-bingo-prod:3000/games/bingo/auth/website 2>&1 || true")
+fi
+check "forged headers sent to the app directly sign nobody in" "$direct" '403'
 check "metrics stay inside" "$(vps "curl -s -o /dev/null -w '%{http_code}' $H $URL/metrics")" '404'
 status=$(vps 'sbr status 2>&1')
 check "sbr status names the sign-in mode" "$status" 'sign-in:     website'

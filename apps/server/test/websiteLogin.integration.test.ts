@@ -13,23 +13,23 @@
  *                 headers sign nobody in: from an untrusted peer, on another route, or on a
  *                 server in local mode (404 there). Registration, password sign-in and the dev
  *                 sign-in answer 404 in website mode.
- * Depends on:     vitest, ../src/index (types), ./harness
+ * Depends on:     vitest, ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/03-security-architecture.md §2.2
  */
-import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { App } from '../src/index.js';
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import {
+  BASE,
+  cookieOf,
+  headersOf,
+  sessionOf,
+  signInAs as signInVia,
+  WEBSITE,
+  type Visitor,
+} from './websiteHelpers.js';
 
-const BASE = '/games/bingo/';
-const WEBSITE = {
-  SBR_DEV: '0',
-  SBR_AUTH_MODE: 'website',
-  SBR_BASE_PATH: BASE,
-  SBR_PUBLIC_URL: `https://example.org${BASE}`,
-  SBR_TRUSTED_PROXIES: '127.0.0.1',
-};
 let harness: Harness;
 let local: App;
 
@@ -42,49 +42,11 @@ afterAll(async () => {
   await stopHarness(harness);
 }, SUITE_TIMEOUT_MS);
 
-interface Visitor {
-  readonly id: string;
-  readonly name: string;
-  readonly roles?: string;
-  readonly verified?: 'true' | 'false';
-}
-
-const headersOf = (v: Visitor) => ({
-  'x-acting-user-id': v.id,
-  'x-acting-user': v.name,
-  'x-acting-user-roles': v.roles ?? 'member',
-  'x-acting-user-email-verified': v.verified ?? 'false',
-});
-
 // The proxy's request for the sign-in route, from `peer`.
-function signInAs(v: Visitor, peer = '127.0.0.1', next = `${BASE}#/`, app = harness.built) {
-  return app.fastify.inject({
-    method: 'GET',
-    url: `${BASE}auth/website?next=${encodeURIComponent(next)}`,
-    headers: headersOf(v),
-    remoteAddress: peer,
-  });
-}
-
-const cookieOf = (r: LightMyRequestResponse): string | null => {
-  const c = r.cookies.find((x) => x.name.endsWith('sbr_session'));
-  return c === undefined ? null : `${c.name}=${c.value}`;
-};
-
-async function sessionOf(cookie: string | null, extra: Record<string, string> = {}) {
-  const r = await harness.built.fastify.inject({
-    method: 'GET',
-    url: `${BASE}api/v1/session`,
-    headers: { ...(cookie === null ? {} : { cookie }), ...extra },
-  });
-  return r.json<{
-    signedIn: boolean;
-    account: { id: string; displayName: string } | null;
-    permissions: string[];
-    authMode: string;
-    signInPath?: string;
-  }>();
-}
+const signInAs = (v: Visitor, peer = '127.0.0.1', next = `${BASE}#/`, app = harness.built) =>
+  signInVia(app, v, { peer, next });
+const session = (cookie: string | null, extra: Record<string, string> = {}) =>
+  sessionOf(harness.built, cookie, extra);
 
 const verifiedAt = async (accountId: string) =>
   (
@@ -103,7 +65,7 @@ describe('signing in through the website (D37)', () => {
     );
     expect(r.statusCode).toBe(302);
     expect(r.headers.location).toBe(`${BASE}#/match/ABC123`);
-    const s = await sessionOf(cookieOf(r));
+    const s = await session(cookieOf(r));
     expect(s).toMatchObject({
       signedIn: true,
       authMode: 'website',
@@ -117,7 +79,7 @@ describe('signing in through the website (D37)', () => {
 
   it('follows a new name, recomputes the roles and the verification at the next sign-in', async () => {
     const r = await signInAs({ id: 'u-1', name: 'Walter W.', roles: 'member', verified: 'false' });
-    const s = await sessionOf(cookieOf(r));
+    const s = await session(cookieOf(r));
     expect(s.account?.displayName).toBe('Walter_W.');
     expect(s.permissions).not.toContain('match.create');
     expect(s.permissions).toContain('match.join');
@@ -127,13 +89,13 @@ describe('signing in through the website (D37)', () => {
   it('gives another website user with a taken name a numeric suffix', async () => {
     await signInAs({ id: 'u-2', name: 'Anna' });
     const r = await signInAs({ id: 'u-3', name: 'Anna' });
-    expect((await sessionOf(cookieOf(r))).account?.displayName).toBe('Anna2');
+    expect((await session(cookieOf(r))).account?.displayName).toBe('Anna2');
   });
 
   it('sends a foreign next to the base path and refuses a suspended account', async () => {
     const away = await signInAs({ id: 'u-4', name: 'Bert' }, '127.0.0.1', 'https://evil.example/');
     expect(away.headers.location).toBe(BASE);
-    const id = (await sessionOf(cookieOf(away))).account?.id;
+    const id = (await session(cookieOf(away))).account?.id;
     await harness.pool.query(`UPDATE sbr.accounts SET status = 'suspended' WHERE id = $1`, [id]);
     const refused = await signInAs({ id: 'u-4', name: 'Bert' });
     expect(refused.statusCode).toBe(403);
@@ -149,7 +111,7 @@ describe('forged identity headers (D37)', () => {
   });
 
   it('are ignored on another route', async () => {
-    const s = await sessionOf(null, headersOf({ id: 'u-1', name: 'Walter', roles: 'organiser' }));
+    const s = await session(null, headersOf({ id: 'u-1', name: 'Walter', roles: 'organiser' }));
     expect(s.signedIn).toBe(false);
   });
 

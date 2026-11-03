@@ -8,7 +8,8 @@
  *                 and read the four identity headers (names from the settings) into a checked
  *                 identity: a stable id, a display name made fit for the game (letters, digits,
  *                 "_", "." and "-", 3–24 characters), the website roles and whether the e-mail
- *                 is verified; map the website roles to game roles. Only GET <base>auth/website
+ *                 is verified; map the website roles to game roles (organiser → organizer,
+ *                 admin → game_admin, which may host too; D40, D41). Only GET <base>auth/website
  *                 calls this; no other code reads the headers. No I/O.
  * Depends on:     node:net, node:crypto, ../config/env (types)
  * Used by:        ../http/routes/websiteSignIn, ./websiteAccounts
@@ -92,9 +93,15 @@ export function identityFrom(headers: Headers, env: Env): WebsiteIdentity | null
   };
 }
 
-// Website roles that let a player host (D37); no admin role is ever granted by mapping.
-const HOST_ROLES = new Set(['organiser', 'organizer']);
+// Website role → game role, recomputed at every sign-in: organiser and admin may host (D40;
+// game_admin hosts too), a website admin is a game admin (D41). super_admin and
+// security_admin are never mapped: they stay with `sbr admin create-super`.
+const ROLE_MAP: ReadonlyMap<string, string> = new Map([
+  ['organiser', 'organizer'],
+  ['organizer', 'organizer'],
+  ['admin', 'game_admin'],
+]);
 
 export function mappedRoles(websiteRoles: readonly string[]): readonly string[] {
-  return websiteRoles.some((r) => HOST_ROLES.has(r)) ? ['organizer'] : [];
+  return [...new Set(websiteRoles.flatMap((r) => ROLE_MAP.get(r) ?? []))];
 }

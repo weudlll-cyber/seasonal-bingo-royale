@@ -6,7 +6,7 @@
  * Responsibility: link to the own public profile; download everything the server keeps about
  *                 the account as a JSON file (GET /me/export, 03 §19); delete the account only
  *                 after a second step that asks for the password (DELETE /me { password }, 05
- *                 §2.2), saying what goes and what stays (match results under an anonymous
+ *                 §2.2) or, in website mode, for the display name typed (D42), saying what goes and what stays (match results under an anonymous
  *                 name); afterwards the session is gone and the page says the account was
  *                 deleted. Without a signed-in account it points to sign-in.
  * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ../game/socket,
@@ -134,19 +134,21 @@ function DeleteAccount({ onDeleted }: { readonly onDeleted: () => void }): React
   );
 }
 
-// The second step: the password, then DELETE /me; the session ends with the account.
+// The second step: the password (local mode) or the display name typed (website mode, whose
+// accounts have no password; D42), then DELETE /me; the session ends with the account.
 function DeleteForm(props: {
   readonly onDeleted: () => void;
   readonly onCancel: () => void;
 }): ReactElement {
-  const { refresh } = useSession();
-  const [password, setPassword] = useState('');
+  const { session, refresh } = useSession();
+  const byName = session?.authMode === 'website';
+  const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const confirm = (event: SyntheticEvent): void => {
     event.preventDefault();
     setBusy(true);
-    api('/me', { method: 'DELETE', body: { password } })
+    api('/me', { method: 'DELETE', body: byName ? { displayName: value } : { password: value } })
       .then(async () => {
         resetSocket();
         props.onDeleted();
@@ -154,22 +156,15 @@ function DeleteForm(props: {
       })
       .catch((e: unknown) => {
         setBusy(false);
-        setError(
-          e instanceof ApiError && e.code === 'PASSWORD_REQUIRED'
-            ? 'That is not your password.'
-            : 'Something went wrong — please try again.',
-        );
+        setError(deleteError(e));
       });
   };
   return (
     <form className="account-form account-delete" onSubmit={confirm}>
-      <AccountField
-        label="Your password, to confirm"
-        type="password"
-        autoComplete="current-password"
-        value={password}
-        testId="delete-password"
-        onChange={setPassword}
+      <ConfirmField
+        name={byName ? (session.account?.displayName ?? '') : null}
+        value={value}
+        onChange={setValue}
       />
       <FormError text={error} testId="delete-error" />
       <div className="sbr-row">
@@ -177,7 +172,7 @@ function DeleteForm(props: {
           type="submit"
           className="sbr-btn sbr-btn--danger"
           data-testid="delete-confirm"
-          disabled={busy || password === ''}
+          disabled={busy || value === ''}
         >
           Delete for good
         </button>
@@ -187,4 +182,41 @@ function DeleteForm(props: {
       </div>
     </form>
   );
+}
+
+// The password field, or with a display name the field to type it into.
+function ConfirmField(p: {
+  readonly name: string | null;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+}): ReactElement {
+  if (p.name === null) {
+    return (
+      <AccountField
+        label="Your password, to confirm"
+        type="password"
+        autoComplete="current-password"
+        value={p.value}
+        testId="delete-password"
+        onChange={p.onChange}
+      />
+    );
+  }
+  return (
+    <AccountField
+      label={`Type your name, ${p.name}, to confirm`}
+      type="text"
+      autoComplete="off"
+      value={p.value}
+      testId="delete-name"
+      onChange={p.onChange}
+    />
+  );
+}
+
+// The refusal as a sentence: wrong password (local mode) or name (website mode).
+function deleteError(e: unknown): string {
+  if (e instanceof ApiError && e.code === 'PASSWORD_REQUIRED') return 'That is not your password.';
+  if (e instanceof ApiError && e.code === 'NAME_REQUIRED') return 'That is not your name.';
+  return 'Something went wrong — please try again.';
 }

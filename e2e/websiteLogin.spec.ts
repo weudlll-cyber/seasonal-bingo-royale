@@ -4,14 +4,17 @@
  * @brief  Website mode end to end: sign in through the website, play, league points (D37).
  *
  * Responsibility: against a game server in website mode behind a stand-in of the website's
- *                 proxy (./websiteStack): in the browser, "Sign in" leads a visitor without a
- *                 website session to the website's login; with one, back to the game, signed in
- *                 under the website name. Nine website users (one in the browser, the
+ *                 proxy (./websiteStack): in the browser, "Sign in" on the leaderboard leads a
+ *                 visitor without a website session to the website's login and, once signed in
+ *                 there, back to the leaderboard, signed in under the website name (D43). Nine
+ *                 website users (one in the browser, the
  *                 organiser hosting) play one short counting royale; the eight with a verified
  *                 e-mail get league points ("counted"), the one without does not ("notVerified").
- *                 Forged identity headers sign nobody in, on another route and on the sign-in
- *                 route without a website session. The match finishes (or is aborted); the
- *                 website users' accounts are removed. Chromium only (it builds the client).
+ *                 Forged identity headers sign nobody in, on another route, on the sign-in
+ *                 route without a website session, and sent to the app directly from this
+ *                 machine without the proxy secret. The match finishes (or is aborted); the
+ *                 website users' accounts are removed (DELETE /me by name, D42). Chromium only
+ *                 (it builds the client).
  * Depends on:     @playwright/test, ./websiteStack
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/01-game-design.md §10
  */
@@ -47,7 +50,7 @@ test.beforeAll(async ({ browserName }) => {
 
 test.afterAll(async ({ browserName }) => {
   if (browserName !== 'chromium') return;
-  stack.removeAccounts();
+  await stack.removeAccounts();
   await stack.close();
 });
 
@@ -71,14 +74,17 @@ async function post(ctx: APIRequestContext, url: string, data: unknown) {
   return ctx.post(`${BASE}/api/v1${url}`, { data, headers: { 'x-csrf-token': session.csrfToken } });
 }
 
-// The browser player: "Sign in" goes to the website's login first, then back as w-02.
+// The browser player: "Sign in" on the leaderboard goes to the website's login first; signed
+// in there as w-02, the login sends back to the sign-in route and on to the leaderboard (D43).
 async function browserSignIn(page: Page): Promise<void> {
-  await page.goto(`${stack.origin}${BASE}/`);
+  await page.goto(`${stack.origin}${BASE}/#/leaderboard`);
   await page.getByTestId('open-sign-in').click();
   await expect(page.locator('body')).toHaveText('website login');
+  const back = new URL(page.url()).searchParams.get('next') ?? '';
+  expect(decodeURIComponent(back)).toBe(`${BASE}/auth/website?next=${BASE}/#/leaderboard`);
   await page.context().addCookies([{ name: 'stub_user', value: 'w-02', url: stack.origin }]);
-  await page.goto(`${stack.origin}${BASE}/`);
-  await page.getByTestId('open-sign-in').click();
+  await page.reload();
+  await expect(page).toHaveURL(`${stack.origin}${BASE}/#/leaderboard`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Web_Player_02 (player)');
   await expect(page.getByTestId('open-register')).toHaveCount(0);
 }
@@ -147,9 +153,16 @@ test('forged identity headers sign nobody in', async () => {
   expect(session.signedIn).toBe(false);
   const signIn = await ctx.get(`${BASE}/auth/website`, { maxRedirects: 0 });
   expect(signIn.status()).toBe(302);
-  expect(signIn.headers()['location']).toBe(
-    `/login?next=${encodeURIComponent(`${BASE}/auth/website`)}`,
-  );
+  expect(signIn.headers()['location']).toBe(`${BASE}/auth/website/login`);
+  expect(signIn.headers()['set-cookie']).toBeUndefined();
+  await ctx.dispose();
+});
+
+test('forged identity headers sent to the app directly sign nobody in without the secret', async () => {
+  // This machine's address is the trusted proxy's: only the proxy secret tells them apart.
+  const ctx = await request.newContext({ baseURL: stack.appOrigin, extraHTTPHeaders: FORGED });
+  const signIn = await ctx.get(`${BASE}/auth/website`, { maxRedirects: 0 });
+  expect(signIn.status()).toBe(403);
   expect(signIn.headers()['set-cookie']).toBeUndefined();
   await ctx.dispose();
 });

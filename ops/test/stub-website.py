@@ -4,8 +4,10 @@
 #
 # Responsibility: answer GET <authorize path> like the website's event-bot authorize route: with
 #                 the cookie "stub_user=<id>" of a known user 204 and the four identity headers,
-#                 otherwise 401; GET /login answers 200 (the website's login page). The id
-#                 header's name comes from STUB_ID_HEADER, so the test can send a broken one.
+#                 otherwise 401; a request carrying the game's proxy secret header gets 500 (the
+#                 secret must never reach the website); GET /login answers 200 (the website's
+#                 login page). The id header's name comes from STUB_ID_HEADER, so the test can
+#                 send a broken one.
 #                 Test only: never part of an install.
 # Used by:        ops/test/website-vps.sh
 # Spec:           docs/spec/07-integration-architecture.md §2.3
@@ -16,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 USERS = {
     "u-1": ("Walter", "member,organiser", "true"),
     "u-2": ("Anna", "member", "false"),
+    "u-3": ("Ada", "member,admin", "true"),
 }
 ID_HEADER = os.environ.get("STUB_ID_HEADER", "X-Acting-User-Id")
 AUTHORIZE = os.environ.get("STUB_AUTHORIZE_PATH", "/api/games/bingo/authorize")
@@ -32,7 +35,10 @@ def stub_user(cookie):
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
-        if path == AUTHORIZE:
+        if path == AUTHORIZE and self.headers.get("X-Sbr-Proxy-Secret") is not None:
+            self.send_response(500)
+            self.end_headers()
+        elif path == AUTHORIZE:
             user = USERS.get(stub_user(self.headers.get("Cookie", "")) or "")
             if user is None:
                 self.send_response(401)

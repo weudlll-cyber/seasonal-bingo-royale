@@ -36,7 +36,8 @@ In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and
 | DELETE | `/dev/load-accounts` | Development builds only: removes the load check's accounts (`dev-load-NNN`) with their sessions and roles; outside any session, so without a CSRF token; absent in production | none |
 | GET | `/auth/oidc/:providerId/start` | Redirect to provider (PKCE, state, nonce) | none |
 | GET | `/auth/oidc/:providerId/callback` | Finish OIDC login | none |
-| GET | `<base>/auth/website?next=` | Website mode only (D37, 07 §2.3): reads the identity headers the website's proxy set (trusted peer only), finds or creates the account, starts the game session and redirects to `next` (a path under the base path); 404 in local mode, 403 from an untrusted peer or without the id/name headers. Outside `/api/v1`, because the website's proxy protects exactly this path | the website's proxy |
+| GET | `<base>/auth/website?next=` | Website mode only (D37, 07 §2.3): reads the identity headers the website's proxy set (trusted peer only), finds or creates the account, starts the game session and redirects to `next` (a same-origin path under the base path, else the base path; D43); 404 in local mode, 403 from an untrusted peer, without the proxy secret `X-Sbr-Proxy-Secret` or without the id/name headers. Outside `/api/v1`, because the website's proxy protects exactly this path | the website's proxy |
+| GET | `<base>/auth/website/login?next=` | Website mode only (D43): where the proxy sends a visitor the website refused; 302 to `SBR_WEBSITE_LOGIN_PATH` + the URL-encoded `<base>/auth/website?next=<URL-encoded page>` (`next` checked as above); 404 in local mode | public |
 | POST | `/auth/handoff` | Later option, not built: exchange host-signed JWT for session or embed token | none |
 | POST | `/auth/embed/refresh` | Refresh embed token (bearer) | embed token |
 | GET | `/me/sessions` · DELETE `/me/sessions/:id` | List / revoke sessions | session |
@@ -90,7 +91,7 @@ The first draft serves these routes (base `/api/v1`, session cookie, `X-CSRF-Tok
 | POST | `/matches/:code/abort` | `{ reason }` | the host |
 | POST | `/matches/:code/bots` · `/matches/:code/dev-system-abort` | `{ upTo }` · `{ reason }` | development builds only |
 | POST | `/dev/time-travel` | `{ code, ms }` (up to a week) | development builds only, any session: moves that match's clock `ms` ahead and runs the actions due meanwhile, each at its due time (E2E journey 2, 12 §4); answers `{ actions, now }` |
-| DELETE | `/me` | `{ password }` | the signed-in account |
+| DELETE | `/me` | `{ password }`; in website mode `{ displayName }`, typed exactly (D42); refused: 403 `PASSWORD_REQUIRED` / `NAME_REQUIRED` | the signed-in account |
 | GET | `/maintenance` | — | anyone: `{ on, reason }` while `sbr maintenance on` is set (09 §4) |
 | GET | `/matches/:code/verify` | — | anyone, once the match has finished or was cancelled: the commitment and the revealed seed (hex), the ruleset, per round the numbers drawn and whether the draw order, the draws and the cards follow from the seed (counted, no account ids), and `verified`; before the end 409 `MATCH_NOT_OVER` (01 §9); its own limit of 20 calls a minute per address (429 `RATE_LIMITED`), since one answer recomputes the whole match; the answer of a match that is over never changes, so it is computed once and kept in memory (the newest 500 matches; calls arriving together share one computation) |
 

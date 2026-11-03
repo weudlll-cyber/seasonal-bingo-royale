@@ -7,8 +7,8 @@
  *                 sign-in; a disabled one refuses), the external identity and its account —
  *                 created without password or e-mail on the first sign-in, with the `player`
  *                 role —, the display name following the website's (a numeric suffix when
- *                 another account has it), the mapped roles recomputed (`idp_mapping`; never an
- *                 admin role), the e-mail verification mirrored for league points, the last
+ *                 another account has it), the mapped roles recomputed (`idp_mapping`; game_admin
+ *                 at most, never super_admin or security_admin), the e-mail verification mirrored for league points, the last
  *                 sign-in. A suspended game account is refused. Never links by e-mail.
  * Depends on:     ../db/pool, ./websiteIdentity
  * Used by:        ../http/routes/websiteSignIn

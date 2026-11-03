@@ -3,21 +3,26 @@
  * @module server/http
  * @brief  GET <base>auth/website: the only place that reads the website's identity headers (D37).
  *
- * Responsibility: website mode only (local mode: the route does not exist, 404). The website's
+ * Responsibility: website mode only (local mode: the routes do not exist, 404). The website's
  *                 proxy protects exactly this path with auth_request / forward_auth and passes
- *                 the visitor as headers. Accepted only from a peer in SBR_TRUSTED_PROXIES
- *                 (else 403, nobody signed in) and only with a valid id and name (else 403);
+ *                 the visitor as headers. Accepted only from a peer in SBR_TRUSTED_PROXIES that
+ *                 sends the proxy secret (X-Sbr-Proxy-Secret, compared in constant time; else
+ *                 403, nobody signed in) and only with a valid id and name (else 403);
  *                 then the account by (site origin, user id) (../../auth/websiteAccounts; a
  *                 suspended one 403), a fresh game session (./auth openSession) and a redirect
- *                 to `next` when it is a path under the base path, else to the base path.
- *                 Rate-limited per address.
- * Depends on:     fastify, ../../auth/websiteIdentity, ../../auth/websiteAccounts, ./auth,
+ *                 to `next` when it is a path under the base path, else to the base path (D43).
+ *                 Rate-limited per address. GET <base>auth/website/login: where the proxy
+ *                 sends a visitor the website refused; a redirect to SBR_WEBSITE_LOGIN_PATH
+ *                 with the sign-in route and `next` as return path (D43).
+ * Depends on:     node:crypto, fastify, ../../auth/websiteIdentity, ../../auth/websiteAccounts, ./auth,
  *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types),
  *                 ../../config/env (types), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2;
  *                 docs/spec/05-api-design.md §2.1
  */
+import { createHash, timingSafeEqual } from 'node:crypto';
+
 import type { FastifyInstance } from 'fastify';
 
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
@@ -42,19 +47,41 @@ export function safeNext(next: unknown, basePath: string): string {
   return /^[\x21-\x7e]+$/.test(next) && !/\/\/|\\/.test(next) ? next : basePath;
 }
 
+const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
+
+// A test for the proxy secret header, in constant time (both sides hashed to one length).
+function proxySecret(expected: string): (sent: string | string[] | undefined) => boolean {
+  const want = digest(expected);
+  return (sent) => typeof sent === 'string' && timingSafeEqual(digest(sent), want);
+}
+
 export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInDeps): void {
   if (deps.env.SBR_AUTH_MODE !== 'website') return;
   const trusted = trustedPeers(deps.env.SBR_TRUSTED_PROXIES);
-  // checkWebsiteMode (../../config/env) makes sure the public address is set.
+  // checkWebsiteMode (../../config/env) makes sure the public address and the secret are set.
+  const fromProxy = proxySecret(deps.env.SBR_WEBSITE_PROXY_SECRET ?? '');
   const issuer = new URL(deps.env.SBR_PUBLIC_URL ?? '').origin;
+  const base = deps.env.SBR_BASE_PATH;
   const config = { rateLimit: { max: 30, timeWindow: 60_000 } };
+  // D43: the proxy sends a visitor the website does not know here; on to the website's login
+  // with the sign-in route and the wanted page as its return path (encoded twice: the page is
+  // a parameter of the sign-in route, which is the login's parameter).
+  app.get<{ Querystring: { next?: string } }>('/auth/website/login', (request, reply) => {
+    const back = `${base}auth/website?next=${encodeURIComponent(safeNext(request.query.next, base))}`;
+    reply.header('cache-control', 'no-store');
+    return reply.redirect(`${deps.env.SBR_WEBSITE_LOGIN_PATH}${encodeURIComponent(back)}`, 302);
+  });
   app.get<{ Querystring: { next?: string } }>(
     '/auth/website',
     { config },
     async (request, reply) => {
       reply.header('cache-control', 'no-store');
       // The TCP peer, not X-Forwarded-For: only the website's proxy may name a visitor.
-      if (!trusted(request.socket.remoteAddress)) {
+      // And the proxy secret: another process on a trusted address names nobody.
+      if (
+        !trusted(request.socket.remoteAddress) ||
+        !fromProxy(request.headers['x-sbr-proxy-secret'])
+      ) {
         return reply.status(403).send({ code: 'UNTRUSTED_PROXY' });
       }
       const who = identityFrom(request.headers, deps.env);
@@ -62,7 +89,7 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       const accountId = await websiteAccount(deps.pool, issuer, who);
       if (accountId === null) return reply.status(403).send({ code: 'ACCOUNT_SUSPENDED' });
       await openSession(request, reply, deps, accountId);
-      return reply.redirect(safeNext(request.query.next, deps.env.SBR_BASE_PATH), 302);
+      return reply.redirect(safeNext(request.query.next, base), 302);
     },
   );
 }

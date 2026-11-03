@@ -7,8 +7,8 @@
 #                 --yes) keeps them; write that file (0600, single-quoted, atomic): secrets made
 #                 once (openssl rand), public URL (IPv6 in brackets), base path, trusted proxies
 #                 (install type plus --trusted-proxies), admin e-mail, optional SMTP, age key,
-#                 the sign-in mode (website installs: website, D37) with the website's mode and
-#                 route settings, other operator keys kept; write /etc/sbr/install.conf; copy compose files,
+#                 the sign-in mode (website installs: website, D37) with the website's mode,
+#                 route settings and the proxy secret (made once), other operator keys kept; write /etc/sbr/install.conf; copy compose files,
 #                 Caddyfile and the sbr CLI with its library to /opt/sbr; build the app image from
 #                 a git ref on the server (until a signed release image exists; fetch prunes)
 #                 unless that commit's image exists; drop app images older than the previous one.
@@ -41,7 +41,7 @@ ENV_KEYS=(SBR_INSTALL_TYPE SBR_ENV SBR_ENV_FILE SBR_IMAGE POSTGRES_PASSWORD DATA
   SBR_SITE_ADDRESS SBR_TLS SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT
   SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL SBR_AUTH_MODE
   SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH SBR_WEBSITE_LOGIN_PATH
-  SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET)
+  SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET SBR_WEBSITE_PROXY_SECRET)
 
 # operator_lines <env file>: its KEY= lines whose key write_env does not write.
 operator_lines() {
@@ -59,11 +59,14 @@ quoted() {
 
 # write_env <env>: from the answers in SBR_* variables; secrets survive a re-run.
 write_env() {
-  local env=$1 file="$SBR_ETC/$1.env" pg seed public base site tls key extra
+  local env=$1 file="$SBR_ETC/$1.env" pg seed proxy public base site tls key extra
   pg=$(env_value "$file" POSTGRES_PASSWORD)
   seed=$(env_value "$file" SBR_SEED_KEY)
+  proxy=$(env_value "$file" SBR_WEBSITE_PROXY_SECRET)
   [[ -n $pg ]] || pg=$(secret 24)
   [[ -n $seed ]] || seed=$(secret 32)
+  # The secret the game's route file sends with the identity headers (07 §2.3).
+  [[ -n $proxy || $SBR_TYPE != website ]] || proxy=$(secret 32)
   if [[ $SBR_TYPE == website ]]; then
     public="https://$(url_host "$SBR_WEBSITE_DOMAIN")/games/bingo/" base=/games/bingo/ site='' tls=''
   else
@@ -101,6 +104,7 @@ write_env() {
     for key in SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH       SBR_WEBSITE_LOGIN_PATH SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET; do
       quoted "$key" "$([[ $SBR_TYPE == website ]] && printf '%s' "${!key:-}")"
     done
+    quoted SBR_WEBSITE_PROXY_SECRET "$([[ $SBR_TYPE == website ]] && printf '%s' "$proxy")"
     operator_lines "$file"
   } | put_file "$file" 0600
 }

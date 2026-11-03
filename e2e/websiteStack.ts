@@ -6,24 +6,31 @@
  * Responsibility: a database of its own (`sbr_e2e_website` beside the e2e database, made once
  *                 and kept, so no other server's scheduler runs its matches); the player client
  *                 built for production; a stand-in proxy on an ephemeral port that plays the
- *                 website: GET /login is its login page; /games/bingo/auth/website asks the stub
- *                 users (cookie "stub_user=<id>", as the website's authorize endpoint would) and
- *                 passes the four X-Acting-User* headers, or sends a visitor without one to
- *                 /login; every request (WebSocket upgrades too) reaches the app with client-sent
- *                 X-Acting-User* headers removed. The server (development features on, for the
- *                 fast test rules) runs in website mode under /games/bingo/ on an ephemeral port
- *                 and trusts only the proxy's address. `removeAccounts` deletes the website
- *                 users' accounts at the end (as DELETE /me would); matches are never deleted.
- * Depends on:     node:child_process, node:http, node:net, node:fs, node:os, ./devStack
+ *                 website: GET /login is its login page (a known stub user goes on to `next`);
+ *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", as the
+ *                 website's authorize endpoint would) and passes the four X-Acting-User* headers
+ *                 with the proxy secret, or sends a visitor without one to the app's
+ *                 /games/bingo/auth/website/login with the same query (D43); every request
+ *                 (WebSocket upgrades too) reaches the app with client-sent X-Acting-User* and
+ *                 X-Sbr-Proxy-Secret headers removed. The server (development features on, for
+ *                 the fast test rules) runs in website mode under /games/bingo/ on an ephemeral
+ *                 port and trusts only the proxy's address. `removeAccounts` deletes the website
+ *                 users' accounts at the end through DELETE /me with the display name (D42);
+ *                 matches are never deleted.
+ * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
+ *                 @playwright/test, ./devStack
  * Used by:        ./websiteLogin.spec
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import http, { type IncomingMessage } from 'node:http';
 import net from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
+import { request } from '@playwright/test';
 
 import { databaseUrl, REPO_ROOT } from './devStack.js';
 
@@ -31,7 +38,8 @@ const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
 const DB_NAME = 'sbr_e2e_website';
 const SIGN_IN = '/games/bingo/auth/website';
-const IDENTITY = /^x-acting-user/i;
+const IDENTITY = /^(x-acting-user|x-sbr-proxy-secret)/i;
+const SECRET = randomBytes(32).toString('hex');
 
 export interface StubUser {
   readonly id: string;
@@ -41,18 +49,19 @@ export interface StubUser {
 }
 
 export interface WebsiteStack {
-  // The proxy's origin, e.g. http://127.0.0.1:51234.
+  // The proxy's origin, e.g. http://127.0.0.1:51234, and the app's own (behind it).
   readonly origin: string;
+  readonly appOrigin: string;
   // The website's users by id (the stub authorize endpoint reads them).
   readonly users: Map<string, StubUser>;
-  removeAccounts(): void;
+  removeAccounts(): Promise<void>;
   close(): Promise<void>;
 }
 
 // SQL through the server package's pg (the e2e package has none), outside any request.
-function sql(url: string, statement: string, params: readonly unknown[] = []): void {
+function sql(url: string, statement: string): void {
   const code = `import pg from 'pg'; const c = new pg.Client(${JSON.stringify(url)});
-    await c.connect(); try { await c.query(${JSON.stringify(statement)}, ${JSON.stringify(params)}); }
+    await c.connect(); try { await c.query(${JSON.stringify(statement)}); }
     catch (e) { if (e.code !== '42P04') throw e; } finally { await c.end(); }`;
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], {
     cwd: SERVER_DIR,
@@ -103,18 +112,32 @@ function identity(user: StubUser): Record<string, string> {
     'x-acting-user': user.name,
     'x-acting-user-roles': user.roles,
     'x-acting-user-email-verified': String(user.verified),
+    'x-sbr-proxy-secret': SECRET,
   };
+}
+
+// The website's login page: a known user goes on to `next`, else the page.
+function login(req: IncomingMessage, res: http.ServerResponse, users: Map<string, StubUser>) {
+  const next = new URL(req.url ?? '/', 'http://stub').searchParams.get('next') ?? '/';
+  if (!users.has(stubCookie(req.headers.cookie))) return void res.end('website login');
+  res.writeHead(302, { location: next });
+  res.end();
 }
 
 function startProxy(users: Map<string, StubUser>, app: { port: number }): http.Server {
   const server = http.createServer((req, res) => {
-    const pathname = (req.url ?? '/').split('?')[0] ?? '/';
-    if (pathname === '/login') return void res.end('website login');
+    const [pathname = '/', query] = (req.url ?? '/').split('?');
+    if (pathname === '/login') {
+      login(req, res, users);
+      return;
+    }
     let extra: Record<string, string> = {};
     if (pathname === SIGN_IN) {
       const user = users.get(stubCookie(req.headers.cookie));
       if (user === undefined) {
-        res.writeHead(302, { location: `/login?next=${encodeURIComponent(SIGN_IN)}` });
+        res.writeHead(302, {
+          location: `${SIGN_IN}/login${query === undefined ? '' : `?${query}`}`,
+        });
         return void res.end();
       }
       extra = identity(user);
@@ -168,6 +191,31 @@ function startServer(env: Record<string, string>): Promise<{ child: ChildProcess
   });
 }
 
+// Each website user signs in once more (a user who never played gets an account here) and
+// deletes the game account by typing its name (D42).
+async function removeAccounts(origin: string, ids: readonly string[]): Promise<void> {
+  for (const id of ids) {
+    const ctx = await request.newContext({
+      baseURL: origin,
+      extraHTTPHeaders: { cookie: `stub_user=${id}` },
+    });
+    await ctx.get(`${SIGN_IN}?next=%2Fgames%2Fbingo%2F`, { maxRedirects: 0 });
+    const session = (await (await ctx.get('/games/bingo/api/v1/session')).json()) as {
+      account: { displayName: string } | null;
+      csrfToken: string;
+    };
+    if (session.account !== null) {
+      const r = await ctx.delete('/games/bingo/api/v1/me', {
+        data: { displayName: session.account.displayName },
+        headers: { 'x-csrf-token': session.csrfToken },
+      });
+      if (r.status() !== 204)
+        throw new Error(`account of ${id} not deleted: ${String(r.status())}`);
+    }
+    await ctx.dispose();
+  }
+}
+
 export async function startWebsiteStack(): Promise<WebsiteStack> {
   const db = ownDatabase();
   const webDir = buildClient();
@@ -187,24 +235,16 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
     SBR_BASE_PATH: '/games/bingo/',
     SBR_PUBLIC_URL: `${origin}/games/bingo/`,
     SBR_TRUSTED_PROXIES: '127.0.0.1',
+    SBR_WEBSITE_PROXY_SECRET: SECRET,
     SBR_WEB_DIR: webDir,
     SBR_DATA_DIR: mkdtempSync(path.join(tmpdir(), 'sbr-website-data-')),
   });
   app.port = server.port;
   return {
     origin,
+    appOrigin: `http://127.0.0.1:${String(server.port)}`,
     users,
-    removeAccounts: () => {
-      // As DELETE /me does (apps/server/src/auth/accounts.ts deleteAccount): the matches keep
-      // their history without the link; sessions, roles and identities go with the account.
-      const ids = `SELECT account_id FROM sbr.external_identities WHERE subject = ANY($1)`;
-      const subjects = [...users.keys()];
-      sql(db, `UPDATE sbr.matches SET created_by = NULL WHERE created_by IN (${ids})`, [subjects]);
-      sql(db, `UPDATE sbr.match_entries SET account_id = NULL WHERE account_id IN (${ids})`, [
-        subjects,
-      ]);
-      sql(db, `DELETE FROM sbr.accounts WHERE id IN (${ids})`, [subjects]);
-    },
+    removeAccounts: () => removeAccounts(origin, [...users.keys()]),
     close: async () => {
       server.child.kill();
       await new Promise<void>((resolve) =>

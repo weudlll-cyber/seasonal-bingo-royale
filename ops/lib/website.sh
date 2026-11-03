@@ -10,18 +10,22 @@
 #                 (seasonal-site_default, else its only one, else asked), every subnet of it as
 #                 trusted proxy ranges, SITE_DOMAIN. nginx mode: the app publishes one loopback
 #                 port and its own network has a fixed subnet, which is trusted. Write the game's
-#                 own route file for that mode (never a website file): /games/bingo/ (HTTP and
-#                 WebSocket) to the app, client-sent X-Acting-User* headers cleared, the sign-in
-#                 route /games/bingo/auth/website asking the website's authorize endpoint
-#                 (auth_request / forward_auth) and passing its four identity headers, a refusal
-#                 sent to the website's login, /games/bingo/metrics 404 (D37); print the one line
-#                 the website must have. For sbr status: whether the authorize endpoint answers.
+#                 own route file for that mode (never a website file; 0600, it holds the proxy
+#                 secret): /games/bingo/ (HTTP and WebSocket) to the app, client-sent
+#                 X-Acting-User* and X-Sbr-Proxy-Secret headers cleared, the sign-in route
+#                 /games/bingo/auth/website asking the website's authorize endpoint (auth_request
+#                 / forward_auth), passing its four identity headers and the proxy secret (never
+#                 to the website), a refusal sent to the app's /games/bingo/auth/website/login
+#                 with the same query (the app sends on to the website's login with the wanted
+#                 page, D43), /games/bingo/metrics 404 (D37); print the one line the website
+#                 must have. For sbr status: whether the authorize endpoint answers.
 # Used by:        ops/install.sh, ops/sbr (status)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
 
 WEBSITE_PROJECT=seasonal-site
-# The game's sign-in route and where a refused visitor signs in on the website (D37).
+# The game's sign-in route (D37); the header with the proxy secret (07 §2.3).
 SIGN_IN_ROUTE=/games/bingo/auth/website
+SECRET_HEADER=X-Sbr-Proxy-Secret
 
 website_caddy() {
   command -v docker >/dev/null || return 0
@@ -113,9 +117,12 @@ detect_website() {
 }
 
 # The identity header names: the env file's (an operator may rename them), else the defaults
-# the app uses (07 §2.3). Sets H_ID, H_NAME, H_ROLES, H_VERIFIED.
+# the app uses (07 §2.3), and the proxy secret. Sets H_ID, H_NAME, H_ROLES, H_VERIFIED, SECRET.
 header_names() {
   local file="$SBR_ETC/$1.env"
+  # A dry run has written no env file: the route file it would write is not shown anyway.
+  SECRET=$(env_value "$file" SBR_WEBSITE_PROXY_SECRET)
+  SECRET=${SECRET:-unset-in-a-dry-run}
   H_ID=$(env_value "$file" SBR_WEBSITE_HEADER_ID)
   H_NAME=$(env_value "$file" SBR_WEBSITE_HEADER_NAME)
   H_ROLES=$(env_value "$file" SBR_WEBSITE_HEADER_ROLES)
@@ -127,21 +134,18 @@ header_names() {
 # The header name as nginx names a response header in a variable: lower case, "-" → "_".
 nginx_var() { printf '%s' "$1" | tr 'A-Z-' 'a-z_'; }
 
-# The website's login with the game's sign-in route as return path, URL-encoded.
-login_url() { printf '%s%s' "$SBR_WEBSITE_LOGIN_PATH" "${SIGN_IN_ROUTE//\//%2F}"; }
-
 # write_route_file <env>: the game's route for the website's proxy (route_steps says how).
 write_route_file() {
   header_names "$1"
   if [[ $SBR_WEBSITE_MODE == nginx ]]; then
-    write_nginx_route "$1" | put_file "$SBR_WEBSITE_ROUTES_DIR/bingo.conf" 0644
+    write_nginx_route "$1" | put_file "$SBR_WEBSITE_ROUTES_DIR/bingo.conf" 0600
   else
-    write_caddy_route "$1" | put_file "$SBR_ROOT/routes/bingo.caddy" 0644
+    write_caddy_route "$1" | put_file "$SBR_ROOT/routes/bingo.caddy" 0600
   fi
 }
 
 write_nginx_route() {
-  local h clear='' set=''
+  local h clear="    proxy_set_header $SECRET_HEADER \"\";"$'\n' set=''
   for h in "$H_ID" "$H_NAME" "$H_ROLES" "$H_VERIFIED"; do
     clear+="    proxy_set_header $h \"\";"$'\n'
     set+="    auth_request_set \$sbr_$(nginx_var "$h") \$upstream_http_$(nginx_var "$h");"$'\n'
@@ -150,8 +154,8 @@ write_nginx_route() {
   cat <<EOF
 # Seasonal Bingo Royale under /games/bingo (written by ops/install.sh, environment $1).
 # Included inside the website's server block:  include $SBR_WEBSITE_ROUTES_DIR/*.conf;
-# Only $SIGN_IN_ROUTE asks the website who the visitor is (D37); every route clears
-# client-sent identity headers.
+# Only $SIGN_IN_ROUTE asks the website who the visitor is (D37) and sends the app the
+# proxy secret (keep this file 0600); every other route clears client-sent identity headers.
 location = /games/bingo { return 308 /games/bingo/; }
 location ^~ /games/bingo/metrics { return 404; }
 location ^~ /games/bingo/ {
@@ -166,7 +170,8 @@ ${clear}    proxy_set_header Host \$host;
 }
 location = $SIGN_IN_ROUTE {
     auth_request /_sbr_bingo_authorize;
-${set}    error_page 401 403 = @sbr_bingo_login;
+${set}    proxy_set_header $SECRET_HEADER "$SECRET";
+    error_page 401 403 = @sbr_bingo_login;
     proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
@@ -181,7 +186,8 @@ location = /_sbr_bingo_authorize {
     proxy_set_header X-Original-Method \$request_method;
     proxy_set_header X-Original-URI \$request_uri;
 }
-location @sbr_bingo_login { return 302 $(login_url); }
+# A visitor the website refused: the app sends on to the website's login with the page (D43).
+location @sbr_bingo_login { return 302 $SIGN_IN_ROUTE/login\$is_args\$args; }
 EOF
 }
 
@@ -190,7 +196,8 @@ write_caddy_route() {
 # Seasonal Bingo Royale under /games/bingo (written by ops/install.sh, environment $1).
 # Imported inside the website's {\$SITE_DOMAIN} block (import /etc/caddy/routes/*.caddy);
 # "handle /games/bingo/*" (a path matcher) runs before the site's catch-all. Only
-# $SIGN_IN_ROUTE asks the website who the visitor is (D37).
+# $SIGN_IN_ROUTE asks the website who the visitor is (D37) and sends the app the proxy
+# secret (keep this file 0600 and out of version control).
 redir /games/bingo /games/bingo/ 308
 handle /games/bingo/* {
 	# In this order (Caddy's own order would run forward_auth before request_header).
@@ -198,20 +205,24 @@ handle /games/bingo/* {
 		# Metrics stay inside the server (the app refuses proxied requests to them as well).
 		@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
 		respond @sbr_metrics 404
-		# Client-sent identity headers never reach the app.
+		# Client-sent identity headers and proxy secrets never reach the app.
 		request_header -$H_ID
 		request_header -$H_NAME
 		request_header -$H_ROLES
 		request_header -$H_VERIFIED
+		request_header -$SECRET_HEADER
 		@sbr_signin path $SIGN_IN_ROUTE
 		forward_auth @sbr_signin $SBR_WEBSITE_UPSTREAM {
 			uri $SBR_WEBSITE_AUTHORIZE_PATH
 			copy_headers $H_ID $H_NAME $H_ROLES $H_VERIFIED
+			# A visitor the website refused: the app sends on to its login with the page (D43).
 			@sbr_refused status 401 403
 			handle_response @sbr_refused {
-				redir * $(login_url) 302
+				redir * $SIGN_IN_ROUTE/login?{query} 302
 			}
 		}
+		# After forward_auth, so the website never sees it.
+		request_header @sbr_signin $SECRET_HEADER $SECRET
 		# HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
 		reverse_proxy sbr-bingo-$1:3000
 	}
@@ -233,7 +244,9 @@ EOF
   fi
   cat <<EOF
 Add bingo to the website's Caddy (once, on this server):
-     a. In the website checkout, create deploy/site/routes/ and copy $SBR_ROOT/routes/bingo.caddy into it.
+     a. In the website checkout, create deploy/site/routes/ and copy the route file into it, kept
+        private (it holds the proxy secret; keep routes/ out of version control):
+          install -m 0600 $SBR_ROOT/routes/bingo.caddy <website checkout>/deploy/site/routes/
      b. In deploy/site/Caddyfile, inside the {\$SITE_DOMAIN} { … } block, add the line:
           import /etc/caddy/routes/*.caddy
      c. In deploy/site/docker-compose.yml, give the caddy service the volume:

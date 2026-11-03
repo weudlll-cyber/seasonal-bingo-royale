@@ -7,7 +7,8 @@
  *                 sign-in mode), POST /auth/register and /auth/login (local mode only; in website
  *                 mode players sign in through the website, D37), /auth/logout, /auth/guest,
  *                 DELETE /me
- *                 (the account, after its password is checked). Login answers
+ *                 (the account, after its password is checked; in website mode after its
+ *                 display name is typed, D42). Login answers
  *                 uniformly and verifies a dummy hash for unknown e-mails, so timing and
  *                 text never reveal whether an account exists (03 §2.1). Login and
  *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
@@ -184,17 +185,30 @@ async function startSession(
   return reply.status(status).send({ accountId });
 }
 
-// DELETE /me { password } (05 §2.2): the account is deleted after its password is checked.
+// DELETE /me (05 §2.2): local mode { password }, the account's password checked; website mode
+// { displayName }, the display name typed exactly, as website accounts have no password (D42).
 const deleteBody = z.object({ password: z.string().max(128) });
+const deleteByName = z.object({ displayName: z.string().max(64) });
+
+async function deleteConfirmed(request: FastifyRequest, deps: AuthDeps, accountId: string) {
+  if (deps.mode === 'website') {
+    const parsed = deleteByName.safeParse(request.body);
+    return parsed.success && parsed.data.displayName === request.session?.displayName;
+  }
+  const parsed = deleteBody.safeParse(request.body);
+  const encoded = await passwordHashOf(deps.pool, accountId);
+  return (
+    parsed.success && encoded !== null && (await verifyPassword(encoded, parsed.data.password))
+  );
+}
 
 async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: AuthDeps) {
   const accountId = request.session?.accountId ?? null;
   if (accountId === null) return reply.status(401).send({ code: 'SIGN_IN_REQUIRED' });
-  const parsed = deleteBody.safeParse(request.body);
-  const encoded = await passwordHashOf(deps.pool, accountId);
-  const valid =
-    parsed.success && encoded !== null && (await verifyPassword(encoded, parsed.data.password));
-  if (!valid) return reply.status(403).send({ code: 'PASSWORD_REQUIRED' });
+  if (!(await deleteConfirmed(request, deps, accountId))) {
+    const code = deps.mode === 'website' ? 'NAME_REQUIRED' : 'PASSWORD_REQUIRED';
+    return reply.status(403).send({ code });
+  }
   const sessions = await accountSessionIds(deps.pool, accountId);
   await deleteAccount(deps.pool, accountId);
   deps.sessionEnds.end(sessions);

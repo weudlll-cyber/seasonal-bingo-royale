@@ -35,17 +35,27 @@ describe('the settings (audit S1)', () => {
 });
 
 describe('the sign-in mode (D37)', () => {
-  it('is local by default; website mode needs the public address and trusted proxies', () => {
+  it('is local by default; website mode needs the public address, proxies and secret', () => {
     expect(loadEnv(DB).SBR_AUTH_MODE).toBe('local');
     expect(() => loadEnv({ ...DB, SBR_AUTH_MODE: 'website' })).toThrow(/needs SBR_PUBLIC_URL/);
-    const site = loadEnv({
+    const settings = {
       ...DB,
       SBR_AUTH_MODE: 'website',
       SBR_PUBLIC_URL: 'https://example.org/games/bingo/',
       SBR_TRUSTED_PROXIES: '172.18.0.0/16',
       SBR_WEBSITE_HEADER_ID: 'X-Site-User-Id',
-    });
+    };
+    expect(() => loadEnv(settings)).toThrow(/SBR_WEBSITE_PROXY_SECRET/);
+    const site = loadEnv({ ...settings, SBR_WEBSITE_PROXY_SECRET: 'ab'.repeat(32) });
     expect(site.SBR_WEBSITE_HEADER_ID).toBe('x-site-user-id');
     expect(site.SBR_WEBSITE_HEADER_NAME).toBe('x-acting-user');
+    expect(site.SBR_WEBSITE_LOGIN_PATH).toBe('/login?next=');
+  });
+
+  it('takes the website login only as a path on the website (D43)', () => {
+    const login = (path: string) => () => loadEnv({ ...DB, SBR_WEBSITE_LOGIN_PATH: path });
+    expect(login('/signin?return=')().SBR_WEBSITE_LOGIN_PATH).toBe('/signin?return=');
+    for (const bad of ['https://evil.example/login?next=', '//evil.example/', '/\\evil', 'login'])
+      expect(login(bad)).toThrow(/SBR_WEBSITE_LOGIN_PATH/);
   });
 });
