@@ -195,23 +195,23 @@ function startServer(env: Record<string, string>): Promise<{ child: ChildProcess
 // deletes the game account by typing its name (D42).
 async function removeAccounts(origin: string, ids: readonly string[]): Promise<void> {
   for (const id of ids) {
-    const ctx = await request.newContext({
-      baseURL: origin,
-      extraHTTPHeaders: { cookie: `stub_user=${id}` },
+    // The stub cookie on the sign-in request only: the game's session cookie it sets goes
+    // into the context's jar for the calls after it (a fixed cookie header would hide it).
+    const ctx = await request.newContext({ baseURL: origin });
+    await ctx.get(`${SIGN_IN}?next=%2Fgames%2Fbingo%2F`, {
+      maxRedirects: 0,
+      headers: { cookie: `stub_user=${id}` },
     });
-    await ctx.get(`${SIGN_IN}?next=%2Fgames%2Fbingo%2F`, { maxRedirects: 0 });
     const session = (await (await ctx.get('/games/bingo/api/v1/session')).json()) as {
       account: { displayName: string } | null;
       csrfToken: string;
     };
-    if (session.account !== null) {
-      const r = await ctx.delete('/games/bingo/api/v1/me', {
-        data: { displayName: session.account.displayName },
-        headers: { 'x-csrf-token': session.csrfToken },
-      });
-      if (r.status() !== 204)
-        throw new Error(`account of ${id} not deleted: ${String(r.status())}`);
-    }
+    if (session.account === null) throw new Error(`${id} is not signed in`);
+    const r = await ctx.delete('/games/bingo/api/v1/me', {
+      data: { displayName: session.account.displayName },
+      headers: { 'x-csrf-token': session.csrfToken },
+    });
+    if (r.status() !== 204) throw new Error(`account of ${id} not deleted: ${String(r.status())}`);
     await ctx.dispose();
   }
 }
