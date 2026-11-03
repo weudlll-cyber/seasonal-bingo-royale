@@ -15,7 +15,7 @@
  *                 verification and 2FA are behind feature flags that are off by default;
  *                 when verification is on, unverified accounts cannot sign in.
  * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ../../config/features
- * Used by:        ../app, ./websiteSignIn (openSession)
+ * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -156,7 +156,7 @@ async function login(
 }
 
 // A fresh session for the account, the old one ended (03 §3: rotate on login); also the
-// website sign-in's (./websiteSignIn).
+// website sign-in's (./websiteSignIn) and the dev quick sign-in's (./devSignIn).
 export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,

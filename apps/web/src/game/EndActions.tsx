@@ -7,7 +7,7 @@
  *                 (the revealed seed, 01 §9) and "Back to the lobby" for everyone; the host
  *                 also gets "Host another match". Links only, through the router.
  * Depends on:     react, ../shell/router
- * Used by:        ./MatchScreen, ../host/HostConsole, ./MatchCancelled
+ * Used by:        ./ArenaNotice, ../host/HostConsole, ./MatchCancelled
  * Spec:           docs/spec/01-game-design.md §13, §9
  */
 import type { ReactElement } from 'react';

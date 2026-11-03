@@ -10,7 +10,7 @@
  *                 final is won, worded from the ruleset's win condition (01 §7.5). It closes with
  *                 "Got it" and goes by itself after the final's first few draws.
  * Depends on:     react, ../playback, ../types, ./results.css
- * Used by:        ../game/MatchScreen, ../host/HostConsole
+ * Used by:        ../game/ArenaNotice, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §7.2, §7.5, §13 (D23)
  */
 import { useState, type ReactElement } from 'react';

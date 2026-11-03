@@ -8,7 +8,7 @@
  *                 name links to #/players/<name>. The live match screen passes it to its
  *                 standings and final placement; the Quick Test and the host console do not.
  * Depends on:     ../shell/router
- * Used by:        ../game/MatchScreen
+ * Used by:        ../game/MatchScreen, ../game/ArenaNotice
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
 import { hrefOf } from '../shell/router.js';

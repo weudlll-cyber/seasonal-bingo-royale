@@ -14,7 +14,7 @@
  * Depends on:     react, @sbr/contracts (types), ../playback (types), ../useReducedMotion,
  *                 ../useSecondsUntil, ./interludePlan, ./InterludeCards, ./labels,
  *                 ./interlude.css
- * Used by:        ./MatchScreen, ../host/HostConsole, ../components/Playback (Quick Test)
+ * Used by:        ./ArenaNotice, ../host/HostConsole, ../components/Playback (Quick Test)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import type { RoundRecap } from '@sbr/contracts';
