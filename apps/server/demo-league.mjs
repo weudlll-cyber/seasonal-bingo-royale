@@ -9,10 +9,11 @@
  *                 then name the pages to open; with `--remove` remove the demo accounts again
  *                 (DELETE) and say what went. Development only: the route exists with
  *                 SBR_DEV=1, and this file is not part of any build.
- * Depends on:     ../../load/common.mjs (server address and origin)
+ * Depends on:     ../../load/devDefaults.mjs, ../../load/common.mjs (server address and origin)
  * Used by:        ./package.json and ../../package.json (`demo-league` script)
  * Spec:           docs/spec/01-game-design.md §10; CONTRIBUTING.md (demo league)
  */
+import '../../load/devDefaults.mjs';
 import { BASE, ORIGIN } from '../../load/common.mjs';
 
 const ROUTE = `${BASE}/api/v1/dev/demo-league`;

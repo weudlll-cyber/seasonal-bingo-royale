@@ -82,7 +82,7 @@ seasonal-bingo-royale/
 │  │  └─ src/  routes/  features/(rulesets, matches, settings, integrations, moderation, accounts, audit)  (planned)
 │  └─ embed-loader/             embed.js (tiny, no deps; empty shell until WP-25)
 ├─ e2e/                         Playwright specs + fixtures
-├─ load/                        drawLatency.mjs (200-player check), spectatorStream.mjs (spectator bytes per draw), common.mjs; k6 scenarios (planned)
+├─ load/                        drawRun.mjs (one royale under load), drawLatency.mjs (the 200-player check on the development stack), loadcheck.mjs (`sbr loadcheck` on an install, bundled into the image), spectatorStream.mjs (spectator bytes per draw), common.mjs; k6 scenarios (planned)
 ├─ reports/                     Run, audit and review reports (dated); screens/ (screenshots)
 ├─ ops/
 │  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.website-nginx.yml  compose.dev.yml  Caddyfile

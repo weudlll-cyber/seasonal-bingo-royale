@@ -14,8 +14,15 @@
  *                 DATABASE_URL as the schema's owner and grants the app role its rights (./db/roles);
  *                 the stack's one-shot `migrate` service runs it before the app starts.
  *                 Exit 0 on success; a non-zero exit stops the app from starting.
- * Depends on:     ./config/env, ./config/seedKey, ./db/pool, ./db/migrator, ./db/roles,
- *                 ./auth/accounts, ./auth/password, ./match/sealedSeedCheck
+ *                 `loadcheck preflight|accounts|cleanup` serves `sbr loadcheck` (12 §5): why it
+ *                 must not run now (exit 3 with the reason), the temporary accounts with their
+ *                 session cookies as JSON on standard output (--players N --spectators M), and
+ *                 the cleanup that aborts their open match, removes them and verifies (exit 1
+ *                 when anything is left).
+ * Depends on:     ./config/env, ./config/seedKey, ./config/maintenance, ./db/pool,
+ *                 ./db/migrator, ./db/roles, ./auth/accounts, ./auth/password,
+ *                 ./auth/sessionPlugin, ./loadcheck/accounts, ./match/runtime,
+ *                 ./match/sealedSeedCheck
  * Used by:        ops/sbr (docker compose exec app node dist/cli.js …), ops/lib/backup.sh (drill),
  *                 ops/compose.yml (the migrate service)
  * Spec:           docs/spec/09-deployment-architecture.md §4–§6; docs/spec/03-security-architecture.md §2.1
@@ -25,11 +32,15 @@ import { Writable } from 'node:stream';
 
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
+import { cookieConfig } from './auth/sessionPlugin.js';
 import { loadEnv } from './config/env.js';
+import { maintenanceFlag } from './config/maintenance.js';
 import { seedKeyFrom } from './config/seedKey.js';
 import { migrate } from './db/migrator.js';
 import { createPool } from './db/pool.js';
 import { grantAppRole } from './db/roles.js';
+import { createLoadAccounts, loadCheckRefusal, removeLoadCheck } from './loadcheck/accounts.js';
+import { createMatchRuntime } from './match/runtime.js';
 import { openOneSealedSeed } from './match/sealedSeedCheck.js';
 
 function flag(args: readonly string[], name: string): string | null {
@@ -125,8 +136,45 @@ async function migrateAsOwner(): Promise<number> {
   }
 }
 
+// sbr loadcheck's steps inside the app container (12 §5); the cookies go to standard output only.
+async function loadCheck(args: readonly string[]): Promise<number> {
+  const env = loadEnv();
+  const pool = createPool(env.DATABASE_URL);
+  const maintenance = maintenanceFlag(env.SBR_DATA_DIR);
+  try {
+    if (args[0] === 'preflight') {
+      const refusal = await loadCheckRefusal(pool, maintenance() !== null);
+      if (refusal !== null) console.error(refusal);
+      return refusal === null ? 0 : 3;
+    }
+    if (args[0] === 'accounts') {
+      const counts = {
+        players: Number(flag(args, '--players') ?? 200),
+        spectators: Number(flag(args, '--spectators') ?? 50),
+      };
+      const name = cookieConfig(!env.SBR_DEV, env.SBR_BASE_PATH).name;
+      console.log(JSON.stringify(await createLoadAccounts(pool, counts, name)));
+      return 0;
+    }
+    if (args[0] === 'cleanup') {
+      const runtime = createMatchRuntime(pool, seedKeyFrom(env), maintenance);
+      const r = await removeLoadCheck(pool, runtime.engine);
+      const left = r.left.accounts + r.left.sessions + r.left.matches;
+      console.log(
+        `load check cleaned up: ${String(r.aborted)} match(es) aborted, ${String(r.removed)} account(s) removed; left: ${String(r.left.accounts)} accounts, ${String(r.left.sessions)} sessions, ${String(r.left.matches)} open matches`,
+      );
+      return left === 0 ? 0 : 1;
+    }
+    console.error('usage: loadcheck preflight | accounts --players N --spectators M | cleanup');
+    return 2;
+  } finally {
+    await pool.end();
+  }
+}
+
 const COMMANDS = new Map<string, (args: readonly string[]) => Promise<number>>([
   ['migrate', migrateAsOwner],
+  ['loadcheck', loadCheck],
   ['create-super', createSuper],
   ['check-seed-key', checkSeedKey],
 ]);
@@ -138,7 +186,7 @@ run.then(
   (code) => {
     if (code === -1) {
       console.error(
-        'commands: migrate | create-super --email <e-mail> --name <name> | check-seed-key',
+        'commands: migrate | create-super --email <e-mail> --name <name> | check-seed-key | loadcheck …',
       );
     }
     process.exit(code === -1 ? 2 : code);

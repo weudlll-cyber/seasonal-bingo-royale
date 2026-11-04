@@ -136,6 +136,22 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    - An install made earlier gets the roles on the first `sudo sbr update` that the new `sbr` command runs. The update that brings the new command still runs the old one, so after `sudo sbr confirm` run `sudo sbr update <the same ref>` once more; `sudo sbr status` says whether the roles are set up. `sudo sbr rollback` goes back to the earlier setup, the env file included.
    - A version older than the roles cannot be installed over them; `sbr update` refuses it.
 
+## 6a. Load check
+
+Before you announce the game, check once that the server keeps up with a full match:
+
+```
+sudo sbr maintenance on "Load check"
+sudo sbr loadcheck
+sudo sbr maintenance off
+```
+
+- What it does: it plays one realtime royale with 200 temporary players and 50 spectators for 10 minutes (draws every 4 s, every player tapping), on the server itself, inside the game's resource limits.
+- What it prints: how fast each draw reaches the screens, how fast taps are acknowledged, any errors, and the most CPU and memory the game and its database used, each with the target beside it.
+- Afterwards: it aborts the match and removes all its temporary accounts and their sessions, and says that nothing is left. It does this also when something goes wrong; a run you break off cleans up as well.
+- When it refuses: it does not run while real players are in a match, or while people are signed in and maintenance is off (it says why); with maintenance on nobody can start a match meanwhile.
+- Smaller runs: `--players 50 --spectators 10 --minutes 3`.
+
 ## 7. Hardening checklist
 
 1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `backup-pull` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.

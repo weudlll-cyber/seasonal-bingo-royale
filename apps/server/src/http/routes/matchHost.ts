@@ -5,7 +5,8 @@
  *
  * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1),
  *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 409
- *                 MATCH_STARTING while it runs, 503 MAINTENANCE with the reason, D22), POST
+ *                 MATCH_STARTING while it runs, 503 MAINTENANCE with the reason, D22; not for the
+ *                 load check's host, 12 §5), POST
  *                 /draw-next (D8, D13), POST /next-round (D14, D21), POST /draw-mode
  *                 { mode, intervalMs }, POST /auto-start { auto } (D16), POST /abort
  *                 { reason }. Development builds add POST /bots { upTo } and POST
@@ -20,7 +21,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { ASYNC_DRAW_INTERVAL_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
-import { matchIdByCode, requirePermission, type MatchRouteDeps } from './matches.js';
+import {
+  maintenanceExempt,
+  matchIdByCode,
+  requirePermission,
+  type MatchRouteDeps,
+} from './matches.js';
 import { sendEngineError } from './matchInput.js';
 
 type CodeRequest = FastifyRequest<{ Params: { code: string } }>;
@@ -73,8 +79,8 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
     });
   };
   // Refused while maintenance is on (D22) or while the countdown runs (MATCH_STARTING).
-  host('/api/v1/matches/:code/start', async (id) => ({
-    startsAt: await deps.engine.start(id, START_COUNTDOWN_MS),
+  host('/api/v1/matches/:code/start', async (id, request) => ({
+    startsAt: await deps.engine.start(id, START_COUNTDOWN_MS, maintenanceExempt(request)),
   }));
   host('/api/v1/matches/:code/draw-next', (id) => deps.engine.drawNext(id));
   host('/api/v1/matches/:code/next-round', (id) => deps.engine.startNextRound(id));

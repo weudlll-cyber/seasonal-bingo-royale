@@ -13,12 +13,23 @@
  *                 fetches, the part of them that is the watch block, and the server's CPU. Then
  *                 aborts the match (append-only log) and deletes the load accounts.
  *                 Usage: node load/spectatorStream.mjs [players=200] [minutes=4]
- * Depends on:     socket.io-client, ./common.mjs
+ * Depends on:     socket.io-client, ./devDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/01-game-design.md §13 (D24)
  */
+import './devDefaults.mjs';
 import { io } from 'socket.io-client';
 
-import { BASE, call, errors, fail, inBatches, ORIGIN, signIn, watchServer } from './common.mjs';
+import {
+  BASE,
+  call,
+  errors,
+  fail,
+  inBatches,
+  ORIGIN,
+  signIn,
+  SOCKET,
+  watchServer,
+} from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
 const MINUTES = Number(process.argv[3] ?? 4);
@@ -31,8 +42,8 @@ const APPENDABLE = new Set([
 
 // The spectator: counts every byte it receives and how much of it is the watch block.
 function connectSpectator(viewer, code, record) {
-  const socket = io(`${BASE}/play`, {
-    path: '/ws',
+  const socket = io(SOCKET.url, {
+    path: SOCKET.path,
     transports: ['websocket'],
     extraHeaders: { cookie: viewer.cookie, origin: ORIGIN },
     reconnection: false,

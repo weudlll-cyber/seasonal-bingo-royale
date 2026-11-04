@@ -88,6 +88,7 @@ describe('database bootstrap', () => {
     expect(result.rows.map((row) => row.id)).toEqual([
       'game_admin',
       'guest',
+      'load_check',
       'moderator',
       'organizer',
       'player',

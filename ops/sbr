@@ -13,7 +13,8 @@
 #                 later data is lost — previous image, stack files, env file and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
 #                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
-#                 file: no new matches, running ones finish); uninstall (./lib/uninstall.sh). --yes
+#                 file: no new matches, running ones finish); loadcheck (./lib/loadcheck.sh);
+#                 uninstall (./lib/uninstall.sh); status's proxy line in ./lib/website.sh. --yes
 #                 skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, /opt/sbr/lib/db-roles.sql, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
@@ -32,6 +33,8 @@ source "$HERE/lib/website.sh"
 source "$HERE/lib/backup.sh"
 # shellcheck source=lib/uninstall.sh
 source "$HERE/lib/uninstall.sh"
+# Added later: an update run by an older sbr may not have brought it yet (sbr update again).
+if [[ -f $HERE/lib/loadcheck.sh ]]; then source "$HERE/lib/loadcheck.sh"; fi
 
 usage() {
   cat <<'EOF'
@@ -49,6 +52,9 @@ usage: sbr [--env prod|staging] [--yes] <command>
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
+  loadcheck [--players 200] [--spectators 50] [--minutes 10]
+                                 one measured royale with temporary accounts (refused while
+                                 players play, or are signed in with maintenance off)
   uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
 EOF
 }
@@ -95,25 +101,6 @@ cmd_status() {
 
 # Website installs trust the website network's ranges (plus the operator's extra proxies);
 # they hold while that network exists.
-check_proxy() {
-  local env=$1 network now trusted extra
-  # nginx mode: the app's own network with its fixed subnet (ops/compose.website-nginx.yml).
-  if [[ $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_MODE) == nginx ]]; then
-    info "proxy:       the website's nginx on 127.0.0.1:$(env_value "$SBR_ETC/$env.env" SBR_APP_PORT)"
-    return 0
-  fi
-  [[ -n $(website_caddy) ]] || { warn "the website's Caddy is not running"; return 0; }
-  network=$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)
-  extra=$(env_value "$SBR_ETC/$env.env" SBR_EXTRA_PROXIES)
-  now=$(network_subnets "$network")
-  trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
-  if [[ $now${extra:+,$extra} == "$trusted" ]]; then
-    info "proxy:       the website's network $network ($now)"
-  else
-    warn "the website's network is now $now, the app trusts $trusted: run the installer again to update it"
-  fi
-}
-
 migrations() { compose "$1" exec -T postgres psql -U sbr -d sbr -tA -c 'SELECT count(*) FROM sbr.schema_migrations'; }
 
 # The images any environment runs or could roll back to; the others are pruned (audit O11).
@@ -292,6 +279,10 @@ main() {
     logs) compose "$env" logs -f --tail=200 "$@" ;;
     admin) cmd_admin "$env" "$@" ;;
     maintenance) cmd_maintenance "$env" "$@" ;;
+    loadcheck)
+      declare -F cmd_loadcheck >/dev/null || die "this install lacks the load check's files: run sudo sbr update <the same ref> once more"
+      cmd_loadcheck "$env" "$@"
+      ;;
     uninstall) cmd_uninstall "$env" "$@" ;;
     *) usage; exit 2 ;;
   esac
