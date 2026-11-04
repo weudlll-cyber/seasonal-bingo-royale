@@ -6,7 +6,7 @@
 #                 server's integration coverage report, the dependency/secret scans, the
 #                 license check of the production dependencies, the markdown link check
 #                 and the Playwright suite in three
-#                 browsers for every pull request to master and every push to master (a work
+#                 browsers (Chromium on three runners) for every pull request to master and every push to master (a work
 #                 branch is checked through its pull request, so one push starts one run);
 #                 on the way to master also the image build, scan and size check. Any red
 #                 job blocks merge.
@@ -116,21 +116,22 @@ jobs:
   e2e:
     # On every push and pull request: a branch learns of a red browser test before it
     # reaches master (MERGE-AUDIT-1: master went red four times on tests no branch had run).
-    # One job per browser, side by side; each runs its timing specs after its other specs,
+    # Firefox and WebKit mobile one job each; Chromium, the slowest (~11.5 min alone), on three
+    # runners (e2e-chromium-shard). Each job runs its timing specs after its other specs,
     # alone on its runner, so no other browser's load delays their timers. The Playwright
     # image brings the browsers and their system libraries: no apt step (an apt mirror once
     # took 38 of a 47-minute run).
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit-mobile]
+        browser: [firefox, webkit-mobile]
     name: e2e (${{ matrix.browser }})
     runs-on: ubuntu-latest
-    container:
+    container: &e2e-container
       image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
       # The runner's user: Firefox refuses to run as root, and the workspace belongs to it.
       options: --user 1001
-    services:
+    services: &e2e-services
       postgres:
         image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
@@ -156,6 +157,46 @@ jobs:
           name: playwright-results-${{ matrix.browser }}
           path: test-results
           retention-days: 7
+
+  e2e-chromium-shard:
+    # Chromium on three runners side by side: the regular specs in two shards, the timing
+    # specs alone (--no-deps: their dependency, the regular project, runs in the shards).
+    # Every test runs exactly once (a plain --shard would repeat the regular project in each
+    # shard as the timing project's dependency).
+    strategy:
+      fail-fast: false
+      matrix:
+        part:
+          - { name: 1/2, args: --project=chromium --shard=1/2 }
+          - { name: 2/2, args: --project=chromium --shard=2/2 }
+          - { name: timing, args: --project=chromium-timing --no-deps }
+    name: e2e (chromium ${{ matrix.part.name }})
+    runs-on: ubuntu-latest
+    container: *e2e-container
+    services: *e2e-services
+    env:
+      SBR_E2E_BROWSER: chromium
+      SBR_E2E_DATABASE_URL: postgres://sbr:ci-only@postgres:5432/sbr
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm e2e ${{ matrix.part.args }}
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-results-chromium-${{ strategy.job-index }}
+          path: test-results
+          retention-days: 7
+
+  e2e-chromium:
+    # The check under its old name "e2e (chromium)", for anything that requires it by name:
+    # green only when every Chromium part is.
+    name: e2e (chromium)
+    needs: e2e-chromium-shard
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.e2e-chromium-shard.result }}" = success
 
   image:
     # Only on the way to master: PRs to master and pushes to master.
