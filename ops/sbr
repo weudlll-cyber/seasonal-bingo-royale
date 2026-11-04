@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # @file   ops/sbr
 # @module ops
-# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance.
+# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance, uninstall.
 #
 # Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
 #                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
-#                 plain pre-update dump, restarts, the app migrates, prunes unused images);
-#                 confirm (drops the rollback data); rollback (backup, then the pre-update dump if
-#                 the schema migrated — later data is lost — previous image and ref); backup;
+#                 plain pre-update dump, installs the ref's stack files keeping the old ones,
+#                 restarts, the app migrates, prunes unused images); confirm (drops the rollback
+#                 data); rollback (backup, then the pre-update dump if the schema migrated —
+#                 later data is lost — previous image, stack files and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
 #                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
-#                 file: no new matches, running ones finish). --yes skips the confirmations.
+#                 file: no new matches, running ones finish); uninstall (./lib/uninstall.sh). --yes
+#                 skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail
@@ -26,6 +28,8 @@ source "$HERE/lib/config.sh"
 source "$HERE/lib/website.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
+# shellcheck source=lib/uninstall.sh
+source "$HERE/lib/uninstall.sh"
 
 usage() {
   cat <<'EOF'
@@ -42,6 +46,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
+  uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
 EOF
 }
 
@@ -127,6 +132,12 @@ cmd_update() {
   mv "$dir/pre-update.dump.partial" "$dir/pre-update.dump"
   printf 'PREVIOUS_IMAGE=%s\nPREVIOUS_REF=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" \
     "$(env_value "$conf" SBR_REF)" "$(migrations "$env")" | put_file "$dir/rollback.conf" 0600
+  # The new version's stack files too (caps, routes, this CLI); the old ones stay for a
+  # rollback, written after the rollback data so a failed copy can be rolled back (audit O1:
+  # an update changed the image only).
+  save_stack "$dir"
+  git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
+  install_files "$SBR_ROOT/src/ops"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
   set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d
@@ -140,7 +151,7 @@ cmd_update() {
 cmd_confirm() {
   local dir="$SBR_STATE/$1"
   [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
-  rm -f "$dir/pre-update.dump" "$dir/rollback.conf"
+  rm -rf "$dir/pre-update.dump" "$dir/rollback.conf" "$dir/stack"
   # shellcheck disable=SC2046 # one image name per word
   prune_images $(images_in_use)
   info "Update confirmed: the pre-update dump is deleted; a rollback is no longer possible."
@@ -171,6 +182,7 @@ cmd_rollback() {
   fi
   set_env_value "$file" SBR_IMAGE "$previous_image"
   if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
+  restore_stack "$dir"
   compose "$env" up -d
   restart_app_done
   wait_ready "$env"
@@ -254,6 +266,7 @@ main() {
     logs) compose "$env" logs -f --tail=200 "$@" ;;
     admin) cmd_admin "$env" "$@" ;;
     maintenance) cmd_maintenance "$env" "$@" ;;
+    uninstall) cmd_uninstall "$env" "$@" ;;
     *) usage; exit 2 ;;
   esac
 }
