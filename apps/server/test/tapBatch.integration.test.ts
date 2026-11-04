@@ -93,6 +93,13 @@ async function count(table: string): Promise<number> {
   return Number(r.rows[0]?.n);
 }
 
+// A statement of the store: one that writes or locks (reads by the live updates or the
+// scheduler may run meanwhile).
+function writesOrLocks(q: unknown): boolean {
+  const text = typeof q === 'string' ? q : ((q as { text?: string }).text ?? '');
+  return !/^\s*SELECT\b/i.test(text) || /FOR UPDATE/i.test(text);
+}
+
 describe('a batch of taps on PostgreSQL (12 §5)', () => {
   it('is stored in one round trip', async () => {
     const [me] = players;
@@ -101,7 +108,7 @@ describe('a batch of taps on PostgreSQL (12 §5)', () => {
     const sent = vi.spyOn(pg.Client.prototype, 'query');
     try {
       expect(await engine.mark(id, me?.accountId ?? '', 0, cells[0] ?? -1)).toBe(true);
-      expect(sent.mock.calls.length).toBe(1);
+      expect(sent.mock.calls.filter(([q]) => writesOrLocks(q))).toHaveLength(1);
     } finally {
       sent.mockRestore();
     }
