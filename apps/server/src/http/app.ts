@@ -137,7 +137,11 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const isDev = deps.env.SBR_DEV;
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
-  const match = createMatchRuntime(deps.pool, seedKey, maintenance, clock);
+  const metrics = createMetrics();
+  const match = createMatchRuntime(deps.pool, seedKey, maintenance, {
+    clock,
+    onTapBatch: metrics.taps.batch,
+  });
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();
@@ -146,7 +150,6 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await registerSecurityHeaders(fastify, { devPage: deps.env.SBR_WEB_DIR === undefined });
   registerProblemDetails(fastify);
   await registerRouteLimits(fastify);
-  const metrics = createMetrics();
   registerMetrics(fastify, metrics);
   registerHealth(fastify, deps.pool);
   registerClient(fastify, deps.env);
@@ -165,6 +168,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     allowedOrigins: allowedOrigins(deps.env),
     path: `${deps.env.SBR_BASE_PATH}ws`,
     sessionEnds,
+    taps: metrics.taps,
   });
   fastify.addHook('onClose', async () => {
     await io.close();

@@ -44,7 +44,7 @@ import type {
   Scheduler,
 } from './ports.js';
 import { MatchRunner } from './runner.js';
-import { TapQueue } from './taps.js';
+import { TapQueue, type TapBatchTiming } from './taps.js';
 import {
   minPlayersOf,
   planAutoStart,
@@ -81,6 +81,8 @@ interface EngineDeps {
   readonly maintenance: MaintenanceReader;
   readonly randomSeed: () => Uint8Array;
   readonly randomCode: () => string;
+  // Learns how each batch of taps went (the server's metrics, 12 §5).
+  readonly onTapBatch?: (batch: TapBatchTiming) => void;
 }
 
 export class MatchEngine {
@@ -97,7 +99,7 @@ export class MatchEngine {
       clock: deps.clock,
       maintenance: deps.maintenance,
     };
-    this.taps = new TapQueue(this.runner, deps.clock);
+    this.taps = new TapQueue(this.runner, deps.clock, deps.onTapBatch);
   }
 
   async create(input: CreateMatchInput, createdBy: string | null): Promise<MatchRecord> {

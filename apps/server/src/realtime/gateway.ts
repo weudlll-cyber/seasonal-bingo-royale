@@ -27,6 +27,7 @@ import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
+import type { TapMetrics } from '../http/routes/metrics.js';
 import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
 import { PlayerNameCache, playerNames } from '../view/playerNames.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
@@ -43,6 +44,8 @@ export interface GatewayDeps {
   readonly path: string;
   // Ended sessions (logout, account deletion, rotation): their sockets are closed.
   readonly sessionEnds: SessionEnds;
+  // The tap breakdown of the metrics (12 §5); none in tests that do not measure.
+  readonly taps?: TapMetrics;
 }
 
 export interface SocketData {

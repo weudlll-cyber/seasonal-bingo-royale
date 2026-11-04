@@ -8,7 +8,9 @@
  *                 decided one after another on the evolving state, the produced events
  *                 appended in one transaction (the store's version check is the safety
  *                 net: on a conflict the cache is dropped and the error rises) and then
- *                 published on the event bus. Keeps the draw times of the current round.
+ *                 published on the event bus. Keeps the draw times of the current round. A
+ *                 caller may ask how long deciding, appending and publishing took (`timing`,
+ *                 the tap breakdown of 12 §5).
  * Depends on:     @sbr/domain, ./ports
  * Used by:        ./engine, ../index, ./flow
  * Spec:           docs/spec/02-software-architecture.md §5.2, §5.4
@@ -23,9 +25,17 @@ export class MatchNotFound extends Error {
   }
 }
 
+// Filled in by apply, in the clock's milliseconds.
+export interface ApplyTiming {
+  decideMs: number;
+  appendMs: number;
+  publishMs: number;
+}
+
 interface ApplyOptions {
   readonly actorAccountId?: string | null;
   readonly mark?: MarkContext | null;
+  readonly timing?: ApplyTiming;
 }
 
 export class MatchRunner {
@@ -76,6 +86,7 @@ export class MatchRunner {
   ): Promise<readonly DomainEvent[]> {
     const loaded = await this.current(matchId);
     const now = this.clock.now(matchId);
+    const timing = options.timing;
     let state = loaded.state;
     const produced: DomainEvent[] = [];
     for (const command of commands) {
@@ -85,6 +96,8 @@ export class MatchRunner {
       }
     }
     if (produced.length === 0) return produced;
+    const decided = this.clock.now(matchId);
+    if (timing !== undefined) timing.decideMs = decided - now;
     try {
       const stored = await this.store.append({
         matchId,
@@ -97,7 +110,12 @@ export class MatchRunner {
       });
       const drawTimes = nextDrawTimes(loaded.drawTimes, produced, now);
       this.cache.set(matchId, { ...loaded, state, seq: loaded.seq + produced.length, drawTimes });
+      const appended = this.clock.now(matchId);
       this.bus.publish(matchId, stored);
+      if (timing !== undefined) {
+        timing.appendMs = appended - decided;
+        timing.publishMs = this.clock.now(matchId) - appended;
+      }
     } catch (error) {
       this.cache.delete(matchId);
       throw error;

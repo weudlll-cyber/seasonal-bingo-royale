@@ -165,8 +165,12 @@ async function mark(ctx: IntentContext, body: z.infer<typeof markData>): Promise
   allowed(ctx, 'match.join');
   const accountId = ctx.data.session.accountId;
   if (accountId === null) return { ok: false, code: 'FORBIDDEN' };
+  const started = Date.now();
   const id = await matchId(ctx, body.code);
+  // The tap breakdown (12 §5): the lookup before the engine, then the whole tap.
+  ctx.deps.taps?.lookup(Date.now() - started);
   const ok = await ctx.deps.engine.mark(id, accountId, body.cardIndex, body.cell);
+  ctx.deps.taps?.handled(Date.now() - started);
   return ok ? { ok: true } : { ok: false, code: 'MARK_REJECTED' };
 }
 
