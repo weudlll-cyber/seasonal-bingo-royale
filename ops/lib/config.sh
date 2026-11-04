@@ -128,7 +128,7 @@ install_files() {
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
   put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
-  for name in common.sh host.sh website.sh config.sh backup.sh; do
+  for name in common.sh host.sh website.sh config.sh backup.sh uninstall.sh; do
     put_file "$SBR_ROOT/lib/$name" 0644 <"$from/lib/$name"
   done
   put_file "$SBR_ROOT/sbr" 0755 <"$from/sbr"

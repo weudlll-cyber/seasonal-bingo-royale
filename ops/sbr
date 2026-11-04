@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # @file   ops/sbr
 # @module ops
-# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance.
+# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance, uninstall.
 #
 # Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
 #                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
@@ -10,7 +10,8 @@
 #                 the schema migrated — later data is lost — previous image and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
 #                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
-#                 file: no new matches, running ones finish). --yes skips the confirmations.
+#                 file: no new matches, running ones finish); uninstall (./lib/uninstall.sh). --yes
+#                 skips the confirmations.
 # Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail
@@ -26,6 +27,8 @@ source "$HERE/lib/config.sh"
 source "$HERE/lib/website.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
+# shellcheck source=lib/uninstall.sh
+source "$HERE/lib/uninstall.sh"
 
 usage() {
   cat <<'EOF'
@@ -42,6 +45,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
+  uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
 EOF
 }
 
@@ -254,6 +258,7 @@ main() {
     logs) compose "$env" logs -f --tail=200 "$@" ;;
     admin) cmd_admin "$env" "$@" ;;
     maintenance) cmd_maintenance "$env" "$@" ;;
+    uninstall) cmd_uninstall "$env" "$@" ;;
     *) usage; exit 2 ;;
   esac
 }
