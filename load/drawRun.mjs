@@ -107,7 +107,8 @@ function connectPlayer(player, code, record) {
       view.since = frame.s;
     } else fetchNew(draws);
     if (player.tapper && view.card !== null) await tap(intent, code, view, draws, record);
-    if (frame.events.some((e) => e.event.type === 'roundEnded')) record.rounds += 1;
+    // Every socket sees each round end: counted once, by its seq.
+    for (const e of frame.events) if (e.event.type === 'roundEnded') record.roundEnds.add(e.s);
     if (frame.events.some((e) => e.event.type === 'matchFinished')) record.finished = true;
   });
   return new Promise((resolve) => {
@@ -130,7 +131,7 @@ function report(record, server, extra) {
   const cpu = server.samples.map((s) => s.cpuPct);
   return {
     ...extra,
-    rounds: record.rounds,
+    rounds: record.roundEnds.size,
     finished: record.finished,
     frameLatencyMs: summary(record.frame),
     spectatorFrameLatencyMs: summary(record.spectatorFrame),
@@ -173,7 +174,7 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
     // Each draw's time by its seq: the gaps show whether draws keep their 4 s interval.
     drawAt: new Map(),
     roundStartBytes: [],
-    rounds: 0,
+    roundEnds: new Set(),
     finished: false,
   };
   const sockets = await inBatches([...players, ...spectators], 25, (p) =>
