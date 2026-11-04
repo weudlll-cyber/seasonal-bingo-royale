@@ -3,7 +3,8 @@
  * @module server/view
  * @brief  Builds the recap of a royale round from the match's own events (D20).
  *
- * Responsibility: replay the events with the domain's evolve and, for one round, collect: each
+ * Responsibility: replay the events with the domain's evolve up to what follows the round
+ *                 (the next round or stage, or the end) and, for one round, collect: each
  *                 active player's points in it (total at its end less total at its start, so
  *                 multipliers and carry are the domain's), standings place before and after
  *                 (among its players, cut tie-break, 01 §8.4), Season Complete, numbers drawn,
@@ -141,12 +142,21 @@ function collect(input: RecapInput): RoundFacts {
     inRound: false,
   };
   for (const timed of input.events) {
+    // Nothing after the round and its cut belongs to its recap: stop at what follows.
+    if (facts.end !== null && followsRound(timed.event)) break;
     // A tap's card cell is read before the mark changes the state.
     if (facts.inRound && timed.event.type === 'cellMarked') noteTap(facts, timed, input);
     facts.state = evolve(facts.state, timed.event);
     note(facts, timed, input.roundIndex);
   }
   return facts;
+}
+
+// The next round, the next stage or the end: the recap's round and its cut are over.
+function followsRound(event: DomainEvent): boolean {
+  return (
+    event.type === 'roundStarted' || event.type === 'stageStarted' || event.type === 'matchFinished'
+  );
 }
 
 // Everything but taps, after the event has been folded into the state.

@@ -95,9 +95,10 @@ describe('runQuickTest — payload for the player client', () => {
     expect(result.effectSeasons).toMatchObject({ growth: 'spring', multiplier: 'summer' });
   });
 
-  // CPU time, not wall clock, with a wide budget: alone it takes about 0.7 s, under a
-  // full parallel test run up to ~2 s; an algorithmic blow-up (e.g. quadratic replay)
-  // would still pass 5 s. The wall clock gets 30 s: under a full parallel run the default
+  // CPU time, not wall clock, with a wide budget: alone it takes about 2-3 s (two full
+  // qualification rounds at 200 players since the cut after the stage, 01 §7.1; each round
+  // recap replays only up to its round), more under a full parallel test run; an
+  // algorithmic blow-up (e.g. quadratic replay) would not pass 5 s. The wall clock gets 30 s: under a full parallel run the default
   // 5 s test timeout fired before the CPU check could (NIGHT-4).
   it('builds a 200-player royale within five seconds of CPU time', { timeout: 30_000 }, () => {
     const started = process.cpuUsage();
