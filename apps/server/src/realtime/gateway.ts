@@ -6,13 +6,13 @@
  * Responsibility: `/ws` (base path), namespace `/play`, WebSocket only (06 §1). The handshake
  *                 checks Origin, needs a live cookie session (06 §2), also on recovery. Sockets
  *                 join `session:<id>` and close when it ends (../auth/sessionEnds). Committed
- *                 events go to `match:<id>` as `{ s, events }`: public projection (no seed; round
- *                 starts lack cards, draw order; ../view/clientEvents liveEvent), players renamed
- *                 per match, cached 30 s (../view/playerNames); record changes as `match`.
+ *                 events go out per step (./liveSteps): one room frame to `match:<id>` as `events`
+ *                 (public: no seed, round starts without cards or draw order) and one `own`
+ *                 frame per socket; record changes as `match`.
  *                 `intent` goes to ./intents; a host intent on an ended session is answered, then
  *                 closed. Payloads max 16 KiB; frames recover for 2 min, then HTTP resync.
- * Depends on:     socket.io, ../auth/sessions, ../match/*, ../view/clientEvents,
- *                 ../view/playerNames, ./intents, ./inOrder, @sbr/application,
+ * Depends on:     socket.io, ../auth/sessions, ../match/eventBus (types), ../view/liveViews
+ *                 (types), ./intents, ./inOrder, ./liveSteps, @sbr/application,
  *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews,
  *                 ../http/routes/metrics (types), ./matchCodes
  * Used by:        ../http/app, ./intents
@@ -25,14 +25,13 @@ import { Server, type Socket } from 'socket.io';
 
 import { findSession, type Session } from '../auth/sessions.js';
 import type { DbPool } from '../db/pool.js';
-import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
-import type { TapMetrics } from '../http/routes/metrics.js';
-import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
-import { PlayerNameCache, playerNames } from '../view/playerNames.js';
+import type { LiveMetrics, TapMetrics } from '../http/routes/metrics.js';
+import type { LiveViews } from '../view/liveViews.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
+import { LiveSteps, type SocketLive } from './liveSteps.js';
 import { MatchCodes } from './matchCodes.js';
 import { handleIntent, SESSION_ENDED, type Answer, type IntentContext } from './intents.js';
 
@@ -46,14 +45,19 @@ export interface GatewayDeps {
   readonly path: string;
   // Ended sessions (logout, account deletion, rotation): their sockets are closed.
   readonly sessionEnds: SessionEnds;
-  // The tap breakdown of the metrics (12 §5); none in tests that do not measure.
+  // The tap breakdown and the live updates' cost (12 §5); none in tests that do not measure.
   readonly taps?: TapMetrics;
+  readonly live?: LiveMetrics;
+  // The server's one replay per live match, shared with the state fetches.
+  readonly views: LiveViews;
 }
 
 export interface SocketData {
   session: Session;
   lastSeq: number;
   rooms: Set<string>;
+  // Per watched match: what this socket got of the live frames (./liveSteps).
+  live: Map<string, SocketLive>;
 }
 
 export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
@@ -76,7 +80,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   play.use((socket, next) => {
     authenticate(socket, deps)
       .then((session) => {
-        (socket.data as SocketData) = { session, lastSeq: 0, rooms: new Set() };
+        (socket.data as SocketData) = { session, lastSeq: 0, rooms: new Set(), live: new Map() };
         next();
       })
       .catch((error: unknown) => {
@@ -86,18 +90,10 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   play.on('connection', (socket) => {
     onConnection(socket, deps, codes);
   });
-  // Names from the match's own entries, cached per match for a short while (../view/playerNames).
-  const names = new PlayerNameCache((matchId) => playerNames(deps.pool, matchId));
+  // One step per burst of events: the room's frame once, then each socket's own.
+  const steps = new LiveSteps({ play, engine: deps.engine, views: deps.views, live: deps.live });
   deps.bus.subscribe((matchId, events) => {
-    // Room-wide frames carry no cards and no draw order; screens fetch their own view.
-    const plain = events.map((e) => liveEvent(publicEvent(e.event), null));
-    void names.namesFor(matchId, accountIdsIn(plain)).then((book) => {
-      const renamed = renameAccounts(plain, book);
-      play.to(`match:${matchId}`).emit('events', {
-        s: events.at(-1)?.seq ?? 0,
-        events: events.map((e, i) => ({ s: e.seq, at: e.occurredAt, event: renamed[i] })),
-      });
-    });
+    steps.published(matchId, events);
   });
   deps.bus.onChanged((record) => {
     void deps.engine.runner.current(record.id).then((m) => {

@@ -123,6 +123,7 @@ const INTENTS: Readonly<
 > = {
   'match.watch': { data: (code) => ({ code }), allow: SESSION },
   'match.unwatch': { data: (code) => ({ code }), allow: SESSION },
+  'match.follow': { data: (code) => ({ code, follow: null }), allow: SESSION },
   mark: { data: (code) => ({ code, cardIndex: 0, cell: 0 }), allow: ACCOUNTS },
   'draw.next': { data: (code) => ({ code }), allow: HOST },
   'round.next': { data: (code) => ({ code }), allow: HOST },

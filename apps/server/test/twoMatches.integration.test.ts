@@ -117,8 +117,9 @@ describe('one player in an asynchronous and a realtime match at once (D39)', () 
     const liveTab = await tab(live.code);
     const slowTab = await tab(slow.code);
     expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
-    await expect.poll(() => liveTab.seqs.length).toBeGreaterThan(0);
     const before = await realtimeFacts(live.id);
+    // Every step of the live match so far has reached its tab (a step follows within 40 ms).
+    await expect.poll(() => Math.max(0, ...liveTab.seqs)).toBe(before.seq);
     const heardLive = liveTab.seqs.length;
     // A day of the asynchronous match while the realtime one waits for its host.
     const travel = await kit.host.post('/api/v1/dev/time-travel', { code: slow.code, ms: DAY });

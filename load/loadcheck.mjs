@@ -35,11 +35,14 @@ function print(r) {
   console.log(
     [
       `match ${r.code}: ${String(r.players)} players, ${String(r.spectators)} spectators, ${r.minutes.toFixed(1)} min, ${String(r.rounds)} round(s) ended`,
-      line('draw to screen, players', r.frameLatencyMs, '  [criterion p95 < 500 ms, p99 < 1 s]'),
-      line('draw to screen, spectators', r.spectatorFrameLatencyMs),
+      line('draw arrives, players', r.frameLatencyMs),
+      line('draw arrives, spectators', r.spectatorFrameLatencyMs),
+      line('draw on screen (all)', r.screenReadyMs, '  [criterion p95 < 500 ms, p99 < 1 s]'),
       line('tap acknowledgement', r.tapAckMs, '  [criterion p95 < 150 ms]'),
       "where a tap's time goes on the server:",
       r.tapBreakdown,
+      'what the live updates cost the server:',
+      r.liveBreakdown,
       line('gap between draws (4 s)', r.drawGapMs),
       `${'app event-loop lag'.padEnd(28)} p99 max ${ms(r.eventLoopLagP99MsMax)}`,
       `${'errors'.padEnd(28)} http ${String(e.http)}, socket ${String(e.socket)}, taps and watching ${String(e.intent)}${e.examples.length > 0 ? ` (${e.examples.slice(0, 3).join('; ')})` : ''}`,

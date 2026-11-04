@@ -6,7 +6,10 @@
  * Responsibility: a royale match simulated by the domain is replayed by `LiveViews` in two
  *                 steps (half the log, then all of it) and gives the same renamed events,
  *                 status timelines, stage baselines and first-round cards as one full
- *                 replay; two fetches at the same time add every event once.
+ *                 replay; two fetches at the same time add every event once; the events the
+ *                 caller holds are used instead of reading the log; a name that changed (a
+ *                 deleted account, audit S10) is read again after 30 s, or at once after a
+ *                 deletion here, and rebuilds the replay; unchanged names keep it.
  * Depends on:     @sbr/application, @sbr/domain, ./liveViews, ./clientEvents, ../match/codec
  * Spec:           docs/spec/06-realtime-architecture.md §8
  */
@@ -17,7 +20,7 @@ import {
   type StoredEvent,
 } from '@sbr/application';
 import { simulateMatch } from '@sbr/domain';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { publicEvent } from '../match/codec.js';
 import { LiveReplay } from './clientEvents.js';
@@ -41,13 +44,21 @@ function match(seq: number): LoadedMatch {
   return { record: { id: 'm1' }, state: sim.state, seq } as unknown as LoadedMatch;
 }
 
-function views(): LiveViews {
+// Over the simulated log; `reads` counts the log reads, `book` holds the current names.
+function views(book: Record<string, string> = names, reads = { log: 0 }): LiveViews {
   return new LiveViews({
-    events: (_id, afterSeq) => Promise.resolve(stored.filter((e) => e.seq > afterSeq)),
-    names: () => Promise.resolve(names),
+    events: (_id, afterSeq) => {
+      reads.log += 1;
+      return Promise.resolve(stored.filter((e) => e.seq > afterSeq));
+    },
+    names: () => Promise.resolve({ ...book }),
     manualTaps: () => Promise.resolve([]),
   });
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('shared live replay', () => {
   it('extended step by step equals one full replay', async () => {
@@ -71,5 +82,37 @@ describe('shared live replay', () => {
     ]);
     expect(a.replay.renamed).toHaveLength(stored.length);
     expect(b.replay).toBe(a.replay);
+  });
+
+  it('extends with the events the caller holds, without reading the log', async () => {
+    const reads = { log: 0 };
+    const live = views(names, reads);
+    await live.entryFor(match(10));
+    await live.entryFor(match(stored.length), stored.slice(10));
+    expect(reads.log).toBe(1);
+  });
+
+  it('names a deleted account as such after 30 s, or at once after a deletion here', async () => {
+    vi.useFakeTimers();
+    const book = { ...names };
+    const live = views(book);
+    const first = await live.entryFor(match(stored.length));
+    const gone = sim.state.playerOrder[0] ?? '';
+    book[gone] = 'deleted player 1a2b';
+    expect(await live.entryFor(match(stored.length))).toBe(first);
+    vi.advanceTimersByTime(30_000);
+    const later = await live.entryFor(match(stored.length));
+    expect(later.idMap.get(gone)).toBe('deleted player 1a2b');
+    book[gone] = 'deleted player 3c4d';
+    live.accountGone(gone);
+    expect((await live.entryFor(match(stored.length))).idMap.get(gone)).toBe('deleted player 3c4d');
+  });
+
+  it('keeps the replay when the names read again are the same', async () => {
+    vi.useFakeTimers();
+    const live = views();
+    const first = await live.entryFor(match(stored.length));
+    vi.advanceTimersByTime(30_000);
+    expect(await live.entryFor(match(stored.length))).toBe(first);
   });
 });

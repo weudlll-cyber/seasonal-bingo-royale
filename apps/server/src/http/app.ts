@@ -36,7 +36,8 @@ import type { DbPool } from '../db/pool.js';
 import { DevClock } from '../dev/devClock.js';
 import { registerDemoLeague } from '../dev/demoLeague.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
-import { attachGateway } from '../realtime/gateway.js';
+import { attachGateway, type GatewayDeps } from '../realtime/gateway.js';
+import { liveViewsOn, type LiveViews } from '../view/liveViews.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -46,7 +47,12 @@ import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
 import { registerMatchRoutes } from './routes/matches.js';
 import { registerVerifyRoute } from './routes/matchVerify.js';
-import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
+import {
+  createMetrics,
+  registerMetrics,
+  type LiveMetrics,
+  type MetricsHandle,
+} from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
 import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
@@ -106,6 +112,8 @@ interface GameRouteDeps {
   readonly match: MatchRuntime;
   // Development only: the time-travel clock the match runtime runs on.
   readonly clock: DevClock | undefined;
+  readonly live: LiveMetrics;
+  readonly views: LiveViews;
 }
 
 // The matches, Verify, the leaderboards and profiles; in development the time travel.
@@ -117,6 +125,8 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
     store: match.store,
     dev: deps.isDev,
     maintenance: deps.maintenance,
+    live: deps.live,
+    views: deps.views,
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
   registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
@@ -157,10 +167,24 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
   await registerSessions(fastify, deps.pool, cookie);
-  registerSignIn(fastify, { env: deps.env, pool: deps.pool, cookie, sessionEnds });
+  // One replay per live match, for the state fetches and the live frames alike.
+  const views = liveViewsOn(deps.pool, match.store);
+  const accountDeleted = (id: string): void => {
+    views.accountGone(id);
+  };
+  registerSignIn(fastify, { env: deps.env, pool: deps.pool, cookie, sessionEnds, accountDeleted });
   registerMaintenance(fastify, maintenance);
-  registerGameRoutes(fastify, { pool: deps.pool, isDev, maintenance, seedKey, match, clock });
-  const io = attachGateway(fastify.server, {
+  registerGameRoutes(fastify, {
+    pool: deps.pool,
+    isDev,
+    maintenance,
+    seedKey,
+    match,
+    clock,
+    live: metrics.live,
+    views,
+  });
+  registerGateway(fastify, {
     pool: deps.pool,
     engine: match.engine,
     bus: match.bus,
@@ -169,18 +193,31 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     path: `${deps.env.SBR_BASE_PATH}ws`,
     sessionEnds,
     taps: metrics.taps,
+    live: metrics.live,
+    views,
   });
+  return { fastify, metrics, match };
+}
+
+// The WebSocket gateway on the same server, closed with it.
+function registerGateway(fastify: FastifyInstance, deps: GatewayDeps): void {
+  const io = attachGateway(fastify.server, deps);
   fastify.addHook('onClose', async () => {
     await io.close();
   });
-  return { fastify, metrics, match };
 }
 
 // How players sign in: the game's own accounts, or in website mode only through the
 // website (D37); in development (local mode) also the quick sign-in, never in production.
 function registerSignIn(
   fastify: FastifyInstance,
-  deps: { env: Env; pool: DbPool; cookie: CookieConfig; sessionEnds: SessionEnds },
+  deps: {
+    env: Env;
+    pool: DbPool;
+    cookie: CookieConfig;
+    sessionEnds: SessionEnds;
+    accountDeleted: (accountId: string) => void;
+  },
 ): void {
   const { env } = deps;
   registerAuthRoutes(fastify, {

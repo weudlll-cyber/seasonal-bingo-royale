@@ -116,7 +116,11 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 - `sbr_tap_handled_seconds`: the whole tap until its answer;
 - `sbr_tap_batch_size`.
 
-`sbr loadcheck` reads them before and after its run and prints the breakdown.
+Also what the live updates cost (12 §5):
+- `sbr_live_build_seconds{kind=fetch|frame}`: building and serializing a state answer (after its waits) or a step's frames;
+- `sbr_live_bytes_total{kind}`: the answers' bytes, and the frames' bytes times their recipients.
+
+`sbr loadcheck` reads them before and after its run and prints the tap breakdown and the per-draw cost. `sbr loadcheck --cpuset <cpus>` pins the load generator to those CPUs (instead of capping it at 2), so its own work does not count as the game's.
 
 ## 7. Dependency and patch policy
 

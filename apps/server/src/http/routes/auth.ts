@@ -46,6 +46,8 @@ interface AuthDeps {
   readonly features: Features;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
+  // The live views name a deleted account as such at once (../../view/liveViews, audit S10).
+  readonly accountDeleted?: (accountId: string) => void;
   // D37: in website mode players sign in only through the website (./websiteSignIn at
   // `${basePath}auth/website`); registration and password sign-in are not there.
   readonly mode: 'local' | 'website';
@@ -211,6 +213,7 @@ async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: Auth
   }
   const sessions = await accountSessionIds(deps.pool, accountId);
   await deleteAccount(deps.pool, accountId);
+  deps.accountDeleted?.(accountId);
   deps.sessionEnds.end(sessions);
   clearSessionCookie(reply, deps.cookie);
   return reply.status(204).send();

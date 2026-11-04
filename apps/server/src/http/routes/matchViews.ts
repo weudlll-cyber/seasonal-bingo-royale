@@ -97,7 +97,7 @@ interface LiveViewInput {
 // Events after which the screens need the player list again: a join, the first round's
 // cards (later cards come in their roundStarted events), the final places. Other deltas
 // leave it out (at 200 players it is 169 of 175 KiB).
-function changesPlayers(e: DomainEvent): boolean {
+export function changesPlayers(e: DomainEvent): boolean {
   return (
     e.type === 'playerJoined' ||
     e.type === 'matchFinished' ||
@@ -140,7 +140,7 @@ export function liveView(input: LiveViewInput) {
 }
 
 // The client view with the viewer (a player, or null) as its owner, from the shared replay.
-function viewerView(m: LoadedMatch, entry: LiveEntry, owner: string | null) {
+export function viewerView(m: LoadedMatch, entry: LiveEntry, owner: string | null) {
   const { idMap, replay } = entry;
   const owners = new Map(owner === null ? [] : [[owner, idMap.get(owner) ?? owner]]);
   const s = m.record.settings;

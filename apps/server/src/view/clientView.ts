@@ -120,7 +120,7 @@ function replayOf(input: ClientViewInput): LiveReplay {
 
 // Before the first round (lobby) there is no card yet: an empty grid with a free centre.
 // Later rounds' cards come with their roundStarted events.
-const EMPTY_CARD: Card = {
+export const EMPTY_CARD: Card = {
   cells: Array.from({ length: 25 }, (_v, i) =>
     i === 12 ? { kind: 'free' as const } : { kind: 'number' as const, value: 0 },
   ),

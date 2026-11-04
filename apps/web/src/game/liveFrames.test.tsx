@@ -2,14 +2,15 @@
 /**
  * @file   apps/web/src/game/liveFrames.test.tsx
  * @module web/game
- * @brief  Live frames: other players' taps are appended, draws and own events fetch (NIGHT-3).
+ * @brief  Live steps: the room frame and the screen's own frame applied without a request (06 §8).
  *
- * Responsibility: a frame with only other players' taps is appended without a request; a
- *                 frame with a draw, or with the viewer's own tap, fetches the new events
- *                 (since the held seq); a gap fetches the new events too, never the whole
- *                 log again; a delta without the player list keeps the one held; events are
- *                 never held twice.
- * Depends on:     @testing-library/react, ./useLiveMatch, ../test/matchFixture,
+ * Responsibility: a step (a draw, the viewer's own tap) is applied when its own frame
+ *                 follows, with no request; the viewer's own cards of a round start go into
+ *                 it and the effect timeline is replaced after the entry the frame starts at;
+ *                 a step that does not follow the held seq (a gap) fetches only the new events,
+ *                 never the whole log again, and the player list is kept; events are never held
+ *                 twice.
+ * Depends on:     @testing-library/react, ./useLiveMatch, ./liveTypes, ../test/matchFixture,
  *                 ../test/quickTestFixture
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8
  */
@@ -17,7 +18,8 @@ import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { matchSummary } from '../test/matchFixture.js';
-import { royaleFixture } from '../test/quickTestFixture.js';
+import { numberCard, royaleFixture } from '../test/quickTestFixture.js';
+import type { LiveState } from './liveTypes.js';
 import { useLiveMatch } from './useLiveMatch.js';
 
 type Handler = (frame: unknown) => void;
@@ -76,12 +78,31 @@ function serve(): ReturnType<typeof vi.fn> {
   return fetch;
 }
 
-const tap = (s: number, accountId: string) => ({
-  s,
-  events: [
-    { s, event: { type: 'cellMarked', accountId, cardIndex: 0, cellIndex: 3, markPoints: 10 } },
-  ],
+// One step: the room frame and this screen's own frame (the server sends both, 06 §8).
+const step = (s: number, event: object, own: object = {}) => ({
+  room: {
+    s,
+    since: s - 1,
+    events: [{ s, at: 0, event }],
+    match: SUMMARY,
+    view: { rankedIn: [], recaps: null },
+  },
+  own: { s, me: 'owner-01', watch: null, ...own },
 });
+const myTap = {
+  type: 'cellMarked',
+  accountId: 'owner-01',
+  cardIndex: 0,
+  cellIndex: 3,
+  markPoints: 10,
+};
+
+function send(frames: ReturnType<typeof step>): void {
+  act(() => {
+    handlers.get('events')?.(frames.room);
+    handlers.get('own')?.(frames.own);
+  });
+}
 
 async function settle(): Promise<void> {
   await act(async () => {
@@ -89,43 +110,71 @@ async function settle(): Promise<void> {
   });
 }
 
-describe('live frames', () => {
-  it("appends other players' taps without fetching", async () => {
+describe('live steps', () => {
+  it('applies a draw and the own tap without fetching, events never twice', async () => {
     const fetch = serve();
     render(<Probe />);
     await settle();
     const before = fetch.mock.calls.length;
-    act(() => {
-      handlers.get('events')?.(tap(HELD + 1, 'bot-02'));
-    });
+    send(step(HELD + 1, DRAW));
+    send(step(HELD + 2, myTap));
+    send(step(HELD + 2, myTap));
     await settle();
     expect(fetch.mock.calls.length).toBe(before);
     expect(screen.getByTestId('probe').textContent).toBe(
-      `${String(HELD + 1)}:${String(HELD + 1)}:${String(PLAYERS)}`,
+      `${String(HELD + 2)}:${String(HELD + 2)}:${String(PLAYERS)}`,
     );
   });
 
-  it("fetches for a draw and for the viewer's own tap, without repeating held events", async () => {
-    const fetch = serve();
-    render(<Probe />);
+  it('puts the own cards into a round start and replaces the timeline after `from`', async () => {
+    serve();
+    let held: LiveState | null = null;
+    function Holder(): null {
+      held = useLiveMatch('LIVE1').live;
+      return null;
+    }
+    render(<Holder />);
     await settle();
-    act(() => {
-      handlers.get('events')?.(tap(HELD + 1, 'owner-01'));
+    const start = {
+      type: 'roundStarted',
+      roundIndex: 1,
+      stageIndex: 0,
+      roundInStage: 1,
+      drawSequence: [],
+      cardsByPlayer: {},
+    };
+    const card = numberCard(40);
+    const status = {
+      step: HELD + 1,
+      multiplier: null,
+      growth: null,
+      shieldCharges: 1,
+      seasons: [],
+    };
+    send(
+      step(HELD + 1, start, {
+        cards: { [String(HELD + 1)]: [card] },
+        status: { from: 1, entries: [status] },
+      }),
+    );
+    await settle();
+    const now = held as LiveState | null;
+    const last = now?.view.events.at(-1);
+    expect(last?.type === 'roundStarted' ? last.cardsByPlayer : null).toEqual({
+      'owner-01': [card],
     });
-    await settle();
-    expect(String(fetch.mock.calls.at(-1)?.[0])).toContain(`since=${String(HELD)}`);
-    expect(screen.getByTestId('probe').textContent).toBe(
-      `${String(HELD + 1)}:${String(HELD + 1)}:${String(PLAYERS)}`,
-    );
+    const timeline = now?.view.ownerStatus['owner-01'] ?? [];
+    expect(timeline).toHaveLength(2);
+    expect(timeline[1]).toEqual(status);
   });
+});
 
+describe('a gap in the live steps', () => {
   it('fetches only the new events after a gap and keeps the player list (NIGHT-4)', async () => {
     const fetch = serve();
     render(<Probe />);
     await settle();
-    act(() => {
-      handlers.get('events')?.(tap(HELD + 3, 'bot-02'));
-    });
+    send(step(HELD + 3, DRAW));
     await settle();
     const urls = (fetch.mock.calls as [string][]).map(([url]) => url);
     expect(urls.filter((u) => u.includes('since=0'))).toHaveLength(1);

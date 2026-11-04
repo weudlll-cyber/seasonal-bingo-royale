@@ -1,14 +1,16 @@
 /**
- * @file   load/tapBreakdown.mjs
+ * @file   load/serverBreakdown.mjs
  * @module load
- * @brief  Where a tap's time goes on the server, from its /metrics before and after a run (12 §5).
+ * @brief  Where a tap's time goes on the server, and what the live updates cost per draw (12 §5).
  *
  * Responsibility: read the server's tap histograms (sbr_tap_*: the gateway's match lookup,
  *                 the wait from arrival to the batch, the batch's decide, append and publish,
  *                 the whole tap until its answer, the batch size) at the start and the end of
  *                 a run and print, per step, how many, the mean and the p95 (the upper edge of
  *                 the histogram bucket that holds it). What the client measures beyond
- *                 "handled" is the socket transport and the event loops of both sides.
+ *                 "handled" is the socket transport and the event loops of both sides. From the
+ *                 live-update metrics (sbr_live_*), per draw: the state fetches, the time spent
+ *                 building fetch answers and frames, and the bytes each sent.
  * Depends on:     ./common.mjs (BASE)
  * Used by:        ./drawRun.mjs
  * Spec:           docs/spec/12-testing-strategy.md §5
@@ -25,7 +27,7 @@ const STEPS = [
   ['taps per batch', 'sbr_tap_batch_size', ''],
 ];
 
-export async function tapSnapshot() {
+export async function serverSnapshot() {
   return fetch(`${BASE}/metrics`)
     .then((r) => r.text())
     .catch(() => '');
@@ -57,6 +59,23 @@ function step(before, after, name, label, seconds) {
   const mean = ((b.sum - a.sum) / count) * scale;
   const p95 = b.buckets.find(([, v], i) => v - (a.buckets[i]?.[1] ?? 0) >= 0.95 * count)?.[0];
   return { count, mean, p95: p95 === undefined ? null : p95 * scale };
+}
+
+// Per draw: state fetches, the time building answers and frames, the bytes each sent.
+export function liveBreakdown(before, after, draws) {
+  if (draws <= 0) return '(no draws)';
+  const per = (v) => v / draws;
+  const counter = (text, kind) => {
+    const line = text.split('\n').find((l) => l.startsWith(`sbr_live_bytes_total{kind="${kind}"}`));
+    return line === undefined ? 0 : Number(line.slice(line.lastIndexOf(' ') + 1));
+  };
+  const lines = ['fetch', 'frame'].map((kind) => {
+    const a = histogram(before, 'sbr_live_build_seconds', `kind="${kind}"`);
+    const b = histogram(after, 'sbr_live_build_seconds', `kind="${kind}"`);
+    const kib = (counter(after, kind) - counter(before, kind)) / 1024;
+    return `${`per draw: ${kind === 'fetch' ? 'fetches' : 'frames'}`.padEnd(28)} ${per(b.count - a.count).toFixed(1)} built, ${per((b.sum - a.sum) * 1000).toFixed(0)} ms building, ${per(kib).toFixed(0)} KiB sent`;
+  });
+  return lines.join('\n');
 }
 
 export function tapBreakdown(before, after) {

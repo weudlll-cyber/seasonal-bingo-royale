@@ -5,34 +5,26 @@
  *
  * Responsibility: given a host and signed-in players and spectators (cookie, CSRF token, name),
  *                 the host creates a royale with timed draws every 4 s, the players join, every
- *                 socket watches it as the player screen does (appends taps, fetches new events
- *                 one fetch at a time; round-start fetch size recorded), every `tapEvery`-th
- *                 player taps its drawn numbers as they arrive, inside the speed window. Records
- *                 per draw and socket the time from the draw event's `at` to arrival and to
- *                 fetch end, per tap the time to its acknowledgement, the gaps between draws;
+ *                 socket watches it as the player screen does (06 §8): one full fetch first, then
+ *                 each step applied when its own frame follows the room frame (the own cards of a
+ *                 round start from it), a fetch of the new events only on a gap (one at a time;
+ *                 round-start fetch size recorded); every `tapEvery`-th player taps its drawn
+ *                 numbers as they arrive, inside the speed window. Records per draw and socket
+ *                 the time from the draw event's `at` to the room frame's arrival and to the
+ *                 screen having it all, per tap the time to its acknowledgement, the draw gaps;
  *                 samples the server's CPU, memory and event-loop lag from /metrics and reads
- *                 where the taps' time went on the server (./tapBreakdown.mjs). Ends with
+ *                 where the taps' time went and what the live updates cost per draw on the server
+ *                 (./serverBreakdown.mjs). Ends with
  *                 the match or after `minutes`, then the host aborts the match (append-only
  *                 log). Who signs the accounts in and removes them is the caller's.
- * Depends on:     socket.io-client, ./common.mjs, ./tapBreakdown.mjs
+ * Depends on:     socket.io-client, ./common.mjs, ./serverBreakdown.mjs
  * Used by:        ./drawLatency.mjs (local development stack), ./loadcheck.mjs (sbr loadcheck)
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
 import { io } from 'socket.io-client';
 
 import { call, errors, fail, inBatches, ORIGIN, SOCKET, summary, watchServer } from './common.mjs';
-import { tapBreakdown, tapSnapshot } from './tapBreakdown.mjs';
-
-// As the player screen does (apps/web/src/game/useLiveMatch.ts): other players' taps,
-// patterns, prizes and window closes are appended; anything else fetches.
-const APPENDABLE = new Set([
-  'cellMarked',
-  'patternScored',
-  'classicPrizeAwarded',
-  'speedWindowClosed',
-]);
-const appendable = (frame, me) =>
-  frame.events.every((e) => APPENDABLE.has(e.event.type) && e.event.accountId !== me);
+import { liveBreakdown, serverSnapshot, tapBreakdown } from './serverBreakdown.mjs';
 
 // A screen's fetches: at most one running and one waiting, as the screen does; the waiting
 // one covers every draw that arrived in the meantime. Returns `fetchNew(draws)`.
@@ -84,8 +76,9 @@ async function tap(intent, code, view, draws, record) {
   }
 }
 
-// A player's (or spectator's) socket: watches the match, fetches as the screen does, taps when
-// it is a tapper; records the latencies (a spectator's draw arrivals in `spectatorFrame`).
+// A player's (or spectator's) socket: watches the match, applies its steps as the screen does
+// (./apps/web/src/game/matchRoom.ts), fetches on a gap, taps when it is a tapper; records the
+// latencies (a spectator's draw arrivals in `spectatorFrame`).
 function connectPlayer(player, code, record) {
   const socket = io(SOCKET.url, {
     path: SOCKET.path,
@@ -97,26 +90,40 @@ function connectPlayer(player, code, record) {
   const view = { since: 0, card: null };
   const fetchNew = screenFetches(player, code, record, view);
   const intent = (t, data) => socket.emitWithAck('intent', { t, seq: (seq += 1), data });
+  let step = null;
   socket.on('connect_error', (e) => fail('socket', `${player.name}: ${e.message}`));
-  socket.on('events', async (frame) => {
+  socket.on('events', (frame) => {
     const arrived = Date.now();
     const draws = frame.events.filter((e) => e.event.type === 'drawMade');
     for (const d of draws) {
       (player.spectator ? record.spectatorFrame : record.frame).push(arrived - d.at);
       record.drawAt.set(d.s, d.at);
     }
-    if (frame.events[0]?.s === view.since + 1 && appendable(frame, player.name)) {
-      view.since = frame.s;
-    } else fetchNew(draws);
-    if (player.tapper && view.card !== null) await tap(intent, code, view, draws, record);
     // Every socket sees each round end: counted once, by its seq.
     for (const e of frame.events) if (e.event.type === 'roundEnded') record.roundEnds.add(e.s);
     if (frame.events.some((e) => e.event.type === 'matchFinished')) record.finished = true;
+    step = { frame, draws };
+  });
+  socket.on('own', async (own) => {
+    const room = step;
+    step = null;
+    if (room === null || room.frame.s !== own.s || room.frame.since !== view.since) {
+      fetchNew(room?.draws ?? []);
+      return;
+    }
+    view.since = own.s;
+    const cards = own.cards === undefined ? undefined : Object.values(own.cards).at(-1);
+    if (cards !== undefined) view.card = cards[0] ?? null;
+    const now = Date.now();
+    for (const d of room.draws) record.fetch.push(now - d.at);
+    if (player.tapper && view.card !== null) await tap(intent, code, view, room.draws, record);
   });
   return new Promise((resolve) => {
     socket.on('connect', async () => {
       const a = await intent('match.watch', { code });
       if (!a.ok) fail('intent', `watch ${String(a.code)}`);
+      // The whole view once, as a screen loads it; the steps follow it.
+      fetchNew([]);
       resolve(socket);
     });
     socket.on('connect_error', () => resolve(socket));
@@ -183,14 +190,14 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
     connectPlayer(p, code, record),
   );
   const server = watchServer();
-  const before = await tapSnapshot();
+  const before = await serverSnapshot();
   let after = '';
   try {
     await call(host, 'POST', `/matches/${code}/start`, {});
     const until = Date.now() + minutes * 60_000;
     while (!record.finished && Date.now() < until) await new Promise((r) => setTimeout(r, 1_000));
   } finally {
-    after = await tapSnapshot();
+    after = await serverSnapshot();
     await server.stop();
     for (const s of sockets) s.disconnect();
     if (!record.finished)
@@ -202,5 +209,6 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
     code,
     minutes: (Date.now() - started) / 60_000,
     tapBreakdown: tapBreakdown(before, after),
+    liveBreakdown: liveBreakdown(before, after, record.drawAt.size),
   });
 }

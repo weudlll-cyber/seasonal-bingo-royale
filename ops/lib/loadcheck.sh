@@ -41,28 +41,33 @@ loadcheck_peaks() {
     } END { printf "%.2f CPUs / %d MiB", maxc / 100, maxm }' "$1"
 }
 
-# loadcheck_options <args…>: sets LC_PLAYERS, LC_SPECTATORS, LC_MINUTES, checked.
+# loadcheck_options <args…>: sets LC_PLAYERS, LC_SPECTATORS, LC_MINUTES, LC_CPUSET, checked.
 loadcheck_options() {
-  LC_PLAYERS=200 LC_SPECTATORS=50 LC_MINUTES=10
+  LC_PLAYERS=200 LC_SPECTATORS=50 LC_MINUTES=10 LC_CPUSET=''
   while (($#)); do
     case $1 in
       --players) LC_PLAYERS=${2:-} && shift ;;
       --spectators) LC_SPECTATORS=${2:-} && shift ;;
       --minutes) LC_MINUTES=${2:-} && shift ;;
-      *) die "unknown option $1 (--players N, --spectators M, --minutes T)" ;;
+      --cpuset) LC_CPUSET=${2:-} && shift ;;
+      *) die "unknown option $1 (--players N, --spectators M, --minutes T, --cpuset CPUS)" ;;
     esac
     shift
   done
   [[ $LC_PLAYERS =~ ^[0-9]+$ ]] && ((LC_PLAYERS >= 2 && LC_PLAYERS <= 200)) || die "--players: 2 to 200"
   [[ $LC_SPECTATORS =~ ^[0-9]+$ ]] && ((LC_SPECTATORS <= 200)) || die "--spectators: 0 to 200"
   [[ $LC_MINUTES =~ ^[0-9]+$ ]] && ((LC_MINUTES >= 1 && LC_MINUTES <= 60)) || die "--minutes: 1 to 60"
+  [[ -z $LC_CPUSET || $LC_CPUSET =~ ^[0-9]+([,-][0-9]+)*$ ]] || die "--cpuset: CPU numbers, e.g. 6-7"
 }
 
-# cmd_loadcheck <env> [--players N] [--spectators M] [--minutes T]
+# cmd_loadcheck <env> [--players N] [--spectators M] [--minutes T] [--cpuset CPUS]: --cpuset
+# pins the generator to those CPUs (instead of capping it at 2), so its own work does not
+# count as the game's.
 cmd_loadcheck() {
-  local env=$1 file="$SBR_ETC/$1.env" work origin base name rc=0
+  local env=$1 file="$SBR_ETC/$1.env" work origin base name rc=0 cpus=(--cpus 2)
   shift
   loadcheck_options "$@"
+  [[ -z $LC_CPUSET ]] || cpus=(--cpuset-cpus "$LC_CPUSET")
   compose "$env" exec -T app node dist/cli.js loadcheck preflight ||
     die "the load check does not run now (the reason is above)"
   work=$(mktemp -d)
@@ -81,7 +86,7 @@ cmd_loadcheck() {
   info "One realtime royale for at most $LC_MINUTES minutes (draws every 4 s; the game's limits apply)"
   cleanup_container "$name"
   docker run --name "$name" --rm -i --network "sbr-${env}_data" --read-only --cap-drop ALL \
-    --security-opt no-new-privileges:true --cpus 2 --memory 1g \
+    --security-opt no-new-privileges:true --memory 1g "${cpus[@]}" \
     -e SBR_LOAD_BASE="http://app:3000${base%/}" -e SBR_LOAD_ORIGIN="$origin" \
     "$(env_value "$file" SBR_IMAGE)" node dist/loadcheck.js "$LC_MINUTES" <"$work/accounts.json" || rc=$?
   rm -f "$work/run"

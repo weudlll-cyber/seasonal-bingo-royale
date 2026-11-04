@@ -6,7 +6,8 @@
  * Responsibility: every intent is `{ t, seq, data }`, acknowledged `{ ok, data }` or `{ ok:
  *                 false, code }`. `seq` must grow strictly per socket, else `REPLAYED`.
  *                 Per-socket limits: 10 intents a second, marks 4, draw.next 2 (03 §13). Intents
- *                 (`INTENT_TYPES`): match.watch / match.unwatch (at most 3 rooms), mark (players,
+ *                 (`INTENT_TYPES`): match.watch / match.unwatch (at most 3 rooms), match.follow (a
+ *                 watcher of that match picks the player its frames follow, D24), mark (players,
  *                 manual marking), draw.next, round.next (D14, D21), draw.setMode (creator with
  *                 match.manage, D8); any other `t` answers UNKNOWN_INTENT. Host intents re-read
  *                 the session (../auth/sessions refreshSession): expired or revoked answers
@@ -23,6 +24,7 @@ import { z } from 'zod';
 import { RateLimiter } from '../auth/rateLimit.js';
 import { refreshSession } from '../auth/sessions.js';
 import type { GatewayDeps, SocketData } from './gateway.js';
+import { liveOf } from './liveSteps.js';
 import type { MatchCodes } from './matchCodes.js';
 
 export interface IntentContext {
@@ -49,6 +51,8 @@ const markData = codeData.extend({
   cardIndex: z.number().int().min(0).max(3),
   cell: z.number().int().min(0).max(24),
 });
+// A watcher follows one player still in, or the top again with null (D24).
+const followData = codeData.extend({ follow: z.string().min(1).max(64).nullable() });
 const modeData = codeData.extend({
   mode: z.enum(['auto', 'host']),
   intervalMs: z.number().int().min(1).max(3_600_000).optional(),
@@ -58,6 +62,7 @@ const modeData = codeData.extend({
 export const INTENT_TYPES = [
   'match.watch',
   'match.unwatch',
+  'match.follow',
   'mark',
   'draw.next',
   'round.next',
@@ -116,8 +121,11 @@ async function dispatch(ctx: IntentContext, t: IntentType, data: unknown): Promi
       const id = await matchId(ctx, codeData.parse(data).code);
       await ctx.socket.leave(`match:${id}`);
       ctx.data.rooms.delete(id);
+      ctx.data.live.delete(id);
       return { ok: true };
     }
+    case 'match.follow':
+      return follow(ctx, followData.parse(data));
     case 'mark':
       return mark(ctx, markData.parse(data));
     case 'draw.next': {
@@ -156,8 +164,20 @@ async function watch(ctx: IntentContext, code: string): Promise<Answer> {
     return { ok: false, code: 'TOO_MANY_ROOMS' };
   await ctx.socket.join(`match:${id}`);
   ctx.data.rooms.add(id);
+  // A fresh start for the live frames: the screen loads the whole view next (06 §8).
+  ctx.data.live.set(id, { status: 0, follow: null });
   const m = await ctx.deps.engine.runner.current(id);
   return { ok: true, data: { seq: m.seq } };
+}
+
+// The player a watching screen follows comes with its next frames (D24); only in a match the
+// socket watches.
+async function follow(ctx: IntentContext, body: z.infer<typeof followData>): Promise<Answer> {
+  allowed(ctx, 'match.watch');
+  const id = await matchId(ctx, body.code);
+  if (!ctx.data.rooms.has(id)) return { ok: false, code: 'NOT_WATCHING' };
+  liveOf(ctx.data, id).follow = body.follow;
+  return { ok: true };
 }
 
 async function mark(ctx: IntentContext, body: z.infer<typeof markData>): Promise<Answer> {
