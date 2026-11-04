@@ -7,7 +7,8 @@
  *                 promised moment on the page and save a full-page screenshot to
  *                 reports/screens/latest/showcase/<seed>.png (Chromium only, one file per seed).
  *                 The seeds were searched again after the sorted cards (D7) and the stage
- *                 multiplier changed every card and royale score.
+ *                 multiplier changed every card and royale score; showcase-2 replaced
+ *                 showcase-4 when the qualification began to cut after the stage (01 §7.1).
  * Depends on:     @playwright/test, ./devStack, ./quickTest
  * Spec:           docs/spec/15-implementation-plan.md WP-08; reports/run-2026-10-20-day.md
  */
@@ -38,17 +39,17 @@ test('showcase-10: Season Complete for owner-01 in round 1 (royale)', async ({ p
   await screenshot(page, info, 'showcase-10');
 });
 
-test('showcase-4: the Winter shield saves owner-01 at the first cut (royale)', async ({
+test('showcase-2: the Winter shield saves owner-01 at the first cut (royale)', async ({
   page,
 }, info) => {
-  await finalPlacement(page, { ...ROYALE, seed: 'showcase-4' });
+  await finalPlacement(page, { ...ROYALE, seed: 'showcase-2' });
   await page.getByText(/^Whole match log/).click();
   await expect(
     page
       .getByTestId('match-log')
       .getByText(/^Cut 1: .*owner-01 is through, saved by the Winter shield/),
   ).toBeVisible();
-  await screenshot(page, info, 'showcase-4');
+  await screenshot(page, info, 'showcase-2');
 });
 
 test('showcase-32: three players share fourCorners on draw 53 (classicSeasons)', async ({

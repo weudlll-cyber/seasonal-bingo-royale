@@ -48,6 +48,8 @@ export interface StagePlanEntry {
   readonly rounds: number;
   readonly roundEnd: RoundEnd;
   readonly cut?: CutRule;
+  // Absent: after each round (rulesets frozen before the choice existed, 01 §7.1).
+  readonly cutTiming?: 'afterStage' | 'afterEachRound';
   readonly scoreCarry: ScoreCarry;
   readonly stageMultiplier: number;
   readonly activePatterns: readonly string[];
