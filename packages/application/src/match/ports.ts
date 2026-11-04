@@ -82,11 +82,16 @@ export interface LoadedMatch {
   readonly drawTimes: readonly number[];
 }
 
-// How a mark came about, for the marks projection (04 §3.3).
+// How a batch's marks came about, for the marks projection (04 §3.3): tapped or marked by
+// the game, and each tap's speed bonus by markKey (none: 0).
 export interface MarkContext {
   readonly source: 'manual' | 'auto';
-  readonly speedBonus: number;
+  readonly speedBonuses?: ReadonlyMap<string, number>;
 }
+
+// The key of one marked cell in MarkContext.speedBonuses.
+export const markKey = (accountId: string, cardIndex: number, cellIndex: number): string =>
+  `${accountId}:${String(cardIndex)}:${String(cellIndex)}`;
 
 export interface AppendInput {
   readonly matchId: string;

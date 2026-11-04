@@ -53,7 +53,7 @@ async function standingsWrites(
     state,
     seq: 7,
     at: 0,
-    mark: manual ? { source: 'manual', speedBonus: 0 } : null,
+    mark: manual ? { source: 'manual' } : null,
   });
   return written;
 }

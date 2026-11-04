@@ -94,8 +94,10 @@ function connectPlayer(player, code, record) {
   socket.on('events', async (frame) => {
     const arrived = Date.now();
     const draws = frame.events.filter((e) => e.event.type === 'drawMade');
-    for (const d of draws)
+    for (const d of draws) {
       (player.spectator ? record.spectatorFrame : record.frame).push(arrived - d.at);
+      record.drawAt.set(d.s, d.at);
+    }
     if (frame.events[0]?.s === since + 1 && appendable(frame, player.name)) since = frame.s;
     else fetchNew(draws);
     if (player.tapper && card !== null) {
@@ -125,6 +127,11 @@ function connectPlayer(player, code, record) {
   });
 }
 
+function drawGaps(drawAt) {
+  const times = [...drawAt.entries()].sort((a, b) => a[0] - b[0]).map(([, at]) => at);
+  return times.slice(1).flatMap((t, i) => (t - times[i] < 30_000 ? [t - times[i]] : []));
+}
+
 async function main() {
   const started = Date.now();
   const host = await signIn('host');
@@ -152,6 +159,8 @@ async function main() {
     spectatorFrame: [],
     fetch: [],
     tapAck: [],
+    // Each draw's time by its seq: the gaps show whether draws keep their 4 s interval.
+    drawAt: new Map(),
     roundStartBytes: [],
     rounds: 0,
     finished: false,
@@ -182,6 +191,8 @@ async function main() {
         spectatorFrameLatencyMs: summary(record.spectatorFrame),
         screenReadyMs: summary(record.fetch),
         tapAckMs: summary(record.tapAck),
+        // Gaps between consecutive draws of a round (4 s planned; a round's start excluded).
+        drawGapMs: summary(drawGaps(record.drawAt)),
         // The size of a screen's fetch that brought a round start (its own cards).
         roundStartFetchBytes: summary(record.roundStartBytes),
         serverCpuPercent: {

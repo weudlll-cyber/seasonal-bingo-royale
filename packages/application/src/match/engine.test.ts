@@ -234,6 +234,46 @@ async function tapAfter(ctx: Awaited<ReturnType<typeof runningHostMatch>>, delay
   return null;
 }
 
+// A cell of the player holding a number drawn so far, or -1.
+async function drawnCell(engine: MatchEngine, id: string, player: string): Promise<number> {
+  const round = (await engine.runner.current(id)).state.currentRound;
+  const cells = round?.cards[player]?.[0]?.card.cells ?? [];
+  return cells.findIndex((c) => c.kind !== 'free' && (round?.draws ?? []).includes(c.value));
+}
+
+describe('taps waiting in the match queue', () => {
+  it('are applied together in one append, each answered on its own', async () => {
+    const ctx = setUp();
+    const { engine, scheduler, clock, store } = ctx;
+    const m = await engine.create(
+      { ...base, gameType: 'classic', drawMode: 'host', missedNumbers: { kind: 'noAutoMark' } },
+      null,
+    );
+    await engine.join(m.id, 'person', true);
+    await engine.join(m.id, 'other', true);
+    await engine.fillWithBots(m.id, 5);
+    await engine.start(m.id, 0);
+    await scheduler.runUntil(engine, clock, clock.t);
+    let cells = [-1, -1];
+    for (let i = 0; i < 30 && cells.some((c) => c < 0); i += 1) {
+      await engine.drawNext(m.id);
+      await scheduler.runUntil(engine, clock, clock.t + 5_000);
+      cells = [await drawnCell(engine, m.id, 'person'), await drawnCell(engine, m.id, 'other')];
+    }
+    let appends = 0;
+    const append = store.append.bind(store);
+    store.append = (input) => ((appends += 1), append(input));
+    const answers = await Promise.all([
+      engine.mark(m.id, 'person', 0, cells[0] ?? -1),
+      engine.mark(m.id, 'other', 0, cells[1] ?? -1),
+      engine.mark(m.id, 'other', 0, cells[1] ?? -1),
+    ]);
+    expect(appends).toBe(1);
+    // The second tap of the same cell is already marked: refused, the others accepted.
+    expect(answers).toEqual([true, true, false]);
+  });
+});
+
 describe('taps (01 §6)', () => {
   it('scores the speed bonus for a tap inside the window', async () => {
     expect(await tapAfter(await runningHostMatch(), 500)).toBeGreaterThan(10);

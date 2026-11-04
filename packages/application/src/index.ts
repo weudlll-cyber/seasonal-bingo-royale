@@ -23,6 +23,7 @@ export { minPlayersOf, tooFewAtStart } from './match/startRules.js';
 export { MatchNotFound } from './match/runner.js';
 export type { CreateMatchInput } from './match/create.js';
 export type * from './match/ports.js';
+export { markKey } from './match/ports.js';
 export { leagueAwards, type LeagueEntryInput } from './leaderboard/leaguePoints.js';
 export { seasonPeriodOf } from './leaderboard/seasonPeriod.js';
 export { boardRanks } from './leaderboard/boardRanks.js';

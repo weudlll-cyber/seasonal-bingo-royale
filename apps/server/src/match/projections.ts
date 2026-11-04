@@ -15,7 +15,7 @@
  * Used by:        ./pgMatchStore
  * Spec:           docs/spec/04-database-design.md §3.3, §3.4; docs/spec/02-software-architecture.md §5.2
  */
-import type { MarkContext } from '@sbr/application';
+import { markKey, type MarkContext } from '@sbr/application';
 import type { DomainEvent, MatchState } from '@sbr/domain';
 import type { PoolClient } from 'pg';
 
@@ -140,11 +140,13 @@ async function insertMarks(client: PoolClient, input: ProjectionInput): Promise<
     return cell === undefined || cell.kind === 'free' ? null : round.draws.indexOf(cell.value);
   };
   const manual = input.mark?.source === 'manual';
+  const bonusOf = (m: (typeof marks)[number]): number =>
+    input.mark?.speedBonuses?.get(markKey(m.accountId, m.cardIndex, m.cellIndex)) ?? 0;
   await client.query(
     `INSERT INTO sbr.marks (match_id, player_id, round_index, card_index, cell, draw_index, source, speed_bonus)
-     SELECT $1, u.player_id, $2, u.card_index, u.cell, u.draw_index, $6, $7
-       FROM unnest($3::text[], $4::smallint[], $5::smallint[], $8::smallint[])
-         AS u(player_id, card_index, cell, draw_index)
+     SELECT $1, u.player_id, $2, u.card_index, u.cell, u.draw_index, $6, u.speed_bonus
+       FROM unnest($3::text[], $4::smallint[], $5::smallint[], $7::smallint[], $8::smallint[])
+         AS u(player_id, card_index, cell, draw_index, speed_bonus)
      ON CONFLICT DO NOTHING`,
     [
       input.matchId,
@@ -153,8 +155,8 @@ async function insertMarks(client: PoolClient, input: ProjectionInput): Promise<
       marks.map((m) => m.cardIndex),
       marks.map((m) => m.cellIndex),
       manual ? 'manual' : 'auto',
-      manual ? input.mark.speedBonus : 0,
       marks.map(drawIndexOf),
+      marks.map(bonusOf),
     ],
   );
 }
