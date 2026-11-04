@@ -11,7 +11,8 @@
  *                 screen's own frame of one step together — the events appended (the viewer's own
  *                 cards put into its round starts; every held round start keeps only the viewer's
  *                 own cards before the current watched cards go into the newest), the summary (the
- *                 host flag kept), the players still in in order, the recap or its end, and the
+ *                 host flag kept) and the players still in in order (the held ones when the step
+ *                 leaves them out as unchanged), the recap or its end, and the
  *                 stage baselines, cut facts and player list (the viewer's row marked and given
  *                 its card) when the step brings them, the viewer's effect timeline replaced after
  *                 the entry the frame starts at, the watched cards taken or dropped (D24); a step
@@ -133,14 +134,14 @@ export function applyStep<S extends HostKnown>(
     ...(own.watch === null ? {} : { watch: own.watch }),
     ...(v.stagePoints === undefined ? {} : { stagePoints: v.stagePoints }),
     ...(v.cuts === undefined ? {} : { cuts: v.cuts }),
-    rankedIn: v.rankedIn,
+    ...(v.rankedIn === undefined ? {} : { rankedIn: v.rankedIn }),
     players: stepPlayers(held, step, own),
     ownerAccountIds: own.me === null ? [] : [own.me],
     ownerStatus,
     events: stepEvents(held, step, own),
   };
   return {
-    match: { ...step.match, youHost: held.match.youHost },
+    match: step.match === undefined ? held.match : { ...step.match, youHost: held.match.youHost },
     seq: step.s,
     me: own.me,
     view: withWatchedCards(view),

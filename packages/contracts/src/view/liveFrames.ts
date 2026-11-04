@@ -7,9 +7,10 @@
  *                 taps, a cut, a round start or end; events within 40 ms are one step) and the
  *                 client applies without fetching. `LiveStepFrame` goes once to the match room:
  *                 the new events (round starts without cards or draw order), the summary (no
- *                 `youHost`), the players still in in the server's order, the recap of the pause
- *                 (null outside one), and the stage baselines, cut facts and player list (no
- *                 cards) only in the steps that change them. `LiveOwnFrame` follows on each
+ *                 `youHost`) and the players still in in the server's order (each left out when
+ *                 equal to what the room last got), the recap of the pause (null outside one),
+ *                 and the stage baselines, cut facts and player list (no cards) only in the
+ *                 steps that change them. `LiveOwnFrame` follows on each
  *                 socket: who the viewer plays as, their new effect-timeline entries, their own
  *                 cards of the step's round starts and first-round card, and the watched cards
  *                 of a viewer who watches (D24). Nothing in either is secret: no seed, no undrawn
@@ -39,9 +40,11 @@ export interface LiveStepFrame<Summary = unknown> {
     readonly at: number;
     readonly event: DomainEventLike;
   }[];
-  readonly match: Summary;
+  // The summary and the players still in: left out when equal to what the room last got; the
+  // screen keeps what it holds (a screen that fetched holds the same, 06 §8).
+  readonly match?: Summary;
   readonly view: {
-    readonly rankedIn: readonly string[];
+    readonly rankedIn?: readonly string[];
     readonly recaps: readonly RoundRecap[] | null;
     readonly stagePoints?: QuickTestResult['stagePoints'];
     readonly cuts?: readonly CutFacts[];

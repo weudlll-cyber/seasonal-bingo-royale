@@ -7,12 +7,15 @@
  *                 once and then hold it only through the frames, applied with the protocol's own
  *                 rules the client uses (@sbr/contracts liveHeld: mergeAnswer, applyStep). After every step of a whole
  *                 royale (fast profile, host-started rounds: lobby, stages, rounds, cuts,
- *                 recaps, the final) and a whole classic match, each held view equals a fresh
+ *                 recaps, the final) and a whole classic match, the player tapping an open
+ *                 number after each draw as a step of its own, each held view equals a fresh
  *                 full fetch for that viewer; the only exception is the player list's live points,
  *                 seasons and shield, which a step sends only with the list (a join, the first
  *                 round, the finish) and the screens never read in between. A gap (a step that
  *                 does not fit) is fetched as the client does; only the one a screen may meet
- *                 while its first load runs is allowed. Every frame a player still in received
+ *                 while its first load runs is allowed. The room frames left out the summary and
+ *                 the standings order in some steps (unchanged) and carried each in others, so a
+ *                 part dropped while it changed fails the comparison. Every frame a player still in received
  *                 holds no other player's card, no draw order and no seed (a lobby event's seed
  *                 is stripped to zero bytes), and its own frames no watched cards (D24, 03 §11);
  *                 the spectator's own frames hold them. The comparison fetches of a screen
@@ -147,6 +150,31 @@ async function nextStep(engine: MatchEngine, id: string): Promise<boolean> {
   return true;
 }
 
+// The player taps one open cell holding a drawn number, if any; whether it was accepted.
+async function tapOpenCell(engine: MatchEngine, id: string, accountId: string): Promise<boolean> {
+  const round = (await engine.runner.current(id)).state.currentRound;
+  const card = round?.cards[accountId]?.[0];
+  if (round === null || card === undefined) return false;
+  const cell = card.card.cells.findIndex(
+    (c, i) => c.kind !== 'free' && round.draws.includes(c.value) && card.marks[i] !== true,
+  );
+  return cell >= 0 && (await engine.mark(id, accountId, 0, cell));
+}
+
+// The room frames left out the summary and the standings order in some steps and carried each
+// in others, so the comparisons after every step covered both (06 §8).
+function expectLeftOutAndCarried(frames: readonly unknown[]): void {
+  const rooms = frames.filter((f): f is LiveStepFrame => 'events' in (f as object));
+  const without = (has: (f: LiveStepFrame) => boolean) => rooms.filter((f) => !has(f)).length;
+  for (const has of [
+    (f: LiveStepFrame) => 'match' in f,
+    (f: LiveStepFrame) => 'rankedIn' in f.view,
+  ]) {
+    expect(without(has)).toBeGreaterThan(0);
+    expect(without(has)).toBeLessThan(rooms.length);
+  }
+}
+
 // Plays the match to its end with three screens, comparing them after every step.
 async function playWatched(code: string): Promise<Screen[]> {
   const engine = kit.harness.built.match.engine;
@@ -162,11 +190,15 @@ async function playWatched(code: string): Promise<Screen[]> {
   await engine.start(id, 0);
   await engine.handle({ matchId: id, kind: 'start_match', dueAt: Date.now() });
   await sameAsFetch(screens, engine, id);
+  const me = (await kit.player.get('/api/v1/session')).json<{ account: { id: string } }>();
   for (let i = 0; i < 400 && (await nextStep(engine, id)); i += 1) {
     await sameAsFetch(screens, engine, id);
+    // A step of a tap alone: the summary stays, the standings order may change.
+    if (await tapOpenCell(engine, id, me.account.id)) await sameAsFetch(screens, engine, id);
   }
   expect((await engine.runner.current(id)).record.status).toBe('finished');
   for (const s of screens) s.socket.disconnect();
+  expectLeftOutAndCarried(screens[1]?.frames ?? []);
   return screens;
 }
 
