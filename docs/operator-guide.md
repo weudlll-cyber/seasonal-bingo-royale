@@ -34,7 +34,6 @@ There is no signed release image yet, so the installer builds the game on the se
    ```
    git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh
    ```
-   (`master` holds the installer once the current work is merged into it; until then add `--ref <branch>` after `install.sh` and clone that branch.)
 3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
 4. Wait until it says **Done**. It installs Docker if needed, builds the game, starts it and checks that it answers.
 5. Create the first admin (section 4), then open `https://<your domain>/`.
@@ -133,7 +132,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 
 ## 7. Hardening checklist
 
-1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `sbr-backup` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
+1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `backup-pull` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
 2. Automatic security updates: `apt install unattended-upgrades` (on by default on Ubuntu 24.04).
 3. Firewall: allow only 22, 80 and 443 — `ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw enable`. (With the website installed, keep the website's own ports too, see its DEPLOYMENT.md.)
 4. fail2ban for SSH: `apt install fail2ban`.
@@ -141,10 +140,20 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
 7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses as well: run the installer again with `--trusted-proxies <range>,<range>,…` (Cloudflare's published ranges). They are added to the proxy the install type trusts and kept on later runs; `--trusted-proxies none` removes them.
 
-## 8. Good to know
+## 8. Removing the game
+
+To take the game off the server (the website and anything else on it stay as they are):
+
+```
+sudo sbr uninstall
+```
+
+It asks you to type the environment's name (`prod`), then removes the game's containers, its database and uploads, its backup timer, its settings and its route file for the website (in nginx mode it reloads nginx; in own-Caddy mode it tells you to remove `bingo.caddy` from the website's `deploy/site/routes/` yourself). The backups in `/var/backups/sbr/prod/` stay (add `--purge-backups` to delete them too); so do Docker, the `backup-pull` user and the `sbr-backup` group. The website's include line may stay: it then matches no file.
+
+## 9. Good to know
 
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
 - Resource limits: the game takes at most 3 CPUs and 1 GiB of memory for the app and 1.5 CPUs and 1 GiB for its database, without swap, so it never starves the website or other services on the same server. If the app reaches its limit, Docker restarts only the game's app container. To change them, add lines to `/etc/sbr/prod.env` (they are kept on re-runs) and run `sbr update <ref>`: `SBR_APP_CPUS='3'`, `SBR_APP_MEMORY='1g'`, `SBR_DB_CPUS='1.5'`, `SBR_DB_MEMORY='1g'`. Under a 200-player match the app used up to about 2 CPUs and 330 MiB, the database under 1 CPU and 80 MiB.
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
-- Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login.
+- Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending.
