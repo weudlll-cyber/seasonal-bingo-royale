@@ -58,6 +58,14 @@ describe('patterns this round', () => {
     expect(row.textContent).toContain('first: bot-02 (+50 %)');
     expect(screen.getByTestId('pattern-fourCorners').textContent).toContain('still open');
   });
+
+  it('names everyone the server gave the first bonus on the same draw (D45)', () => {
+    const r = withEvents(8, [scored('bot-02', true), scored('owner-01', true)]);
+    render(<PatternsPanel result={r} view={playbackAt(r, 10)} />);
+    expect(screen.getByTestId('pattern-rows-1').textContent).toContain(
+      'first: bot-02, owner-01 (+50 %)',
+    );
+  });
 });
 
 describe('newest event lines', () => {

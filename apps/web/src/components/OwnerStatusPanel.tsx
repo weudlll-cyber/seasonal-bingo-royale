@@ -5,8 +5,8 @@
  *
  * Responsibility: show what the server reports for one owner account: points and rank in the
  *                 standings; each active effect as one sentence with the season's name and the
- *                 numbers of the ruleset and the server's status ("Summer boost: all your points
- *                 count ×1.5 — 5 more numbers"), the Winter shield with its margin and charges
+ *                 numbers of the ruleset and the server's status ("Summer boost: your marks and
+ *                 speed bonus count ×1.5 — 5 more numbers"), the Winter shield with its margin and charges
  *                 while it has one, each shield save with the cut and how far below the line the
  *                 owner was; the four seasons of the match by name with the collected ones ticked
  *                 and lit, what all four give, and that seasons count over the whole match. The

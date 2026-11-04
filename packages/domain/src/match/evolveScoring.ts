@@ -12,7 +12,7 @@
  * Spec:           docs/spec/01-game-design.md §8.1–§8.5
  */
 import { applyEffect } from '../seasons/applyEffect.js';
-import type { MatchState, PlayerState } from './matchState.js';
+import type { MatchState, PlayerState, RoundState } from './matchState.js';
 import type { DomainEvent } from './events.js';
 
 export function onCellMarked(
@@ -29,7 +29,7 @@ export function onCellMarked(
   marks[ev.cellIndex] = true;
   const newCards = cards.slice();
   newCards[ev.cardIndex] = { ...target, marks };
-  const lastDraw = ev.markPoints > 0 ? Math.max(0, round.draws.length - 1) : player.lastScoringDraw;
+  const lastDraw = ev.markPoints > 0 ? matchDrawIndex(state) : player.lastScoringDraw;
   // Growth non-stacking bump: a mark inside the growth window increments nthMark.
   const newGrowth =
     player.effects.growth === null
@@ -62,10 +62,7 @@ export function onSeasonActivated(
     ev.season === 'spring' ? 1 : ev.season === 'summer' ? 2 : ev.season === 'autumn' ? 4 : 8;
   const effects = { ...applied.state, seasonsActivated: applied.state.seasonsActivated | bit };
   const shieldRankMargin = effect.type === 'shield' ? effect.rankMargin : p.shieldRankMargin;
-  const lastScoringDraw =
-    ev.instantPoints > 0
-      ? Math.max(0, (state.currentRound?.draws.length ?? 1) - 1)
-      : p.lastScoringDraw;
+  const lastScoringDraw = ev.instantPoints > 0 ? matchDrawIndex(state) : p.lastScoringDraw;
   return {
     ...state,
     players: {
@@ -92,10 +89,9 @@ export function onPatternScored(
   const target = cards?.[ev.cardIndex];
   if (player === undefined || cards === undefined || target === undefined) return state;
   const drawIndex = Math.max(0, round.draws.length - 1);
-  const firstToPrize =
-    round.firstToPrize[ev.prizeKey] === undefined
-      ? { ...round.firstToPrize, [ev.prizeKey]: { accountId: ev.accountId, drawIndex } }
-      : round.firstToPrize;
+  const firstToPrize = ev.firstInRound
+    ? { ...round.firstToPrize, [ev.prizeKey]: firstAfter(round, ev, drawIndex) }
+    : round.firstToPrize;
   const newCards = cards.slice();
   newCards[ev.cardIndex] = { ...target, scoredPrizes: [...target.scoredPrizes, ev.prizeKey] };
   const fullHouseBy =
@@ -106,7 +102,7 @@ export function onPatternScored(
     ...player,
     points: player.points + ev.points,
     patternsCount: player.patternsCount + 1,
-    lastScoringDraw: drawIndex,
+    lastScoringDraw: matchDrawIndex(state),
   };
   return {
     ...state,
@@ -118,6 +114,26 @@ export function onPatternScored(
     },
     players: { ...state.players, [ev.accountId]: nextPlayer },
   };
+}
+
+// The match-wide index of the latest draw: a last scoring draw compares across rounds
+// (01 §8.4; audit-3 G5: the round's own index made a later round's draw 5 come first).
+function matchDrawIndex(state: MatchState): number {
+  return Math.max(0, state.drawsInMatch - 1);
+}
+
+// The pattern's first-bonus record after one more taker on its draw (D45): the first
+// taker's id stays; `tapAt` keeps the earliest tap among the takers.
+function firstAfter(
+  round: RoundState,
+  ev: Extract<DomainEvent, { type: 'patternScored' }>,
+  drawIndex: number,
+): RoundState['firstToPrize'][string] {
+  const was = round.firstToPrize[ev.prizeKey];
+  const tapAt = ev.tapAt ?? null;
+  if (was === undefined) return { accountId: ev.accountId, drawIndex, tapAt };
+  if (tapAt === null || (was.tapAt !== null && was.tapAt <= tapAt)) return was;
+  return { ...was, tapAt };
 }
 
 export function onClassicPrize(

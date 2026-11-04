@@ -5,7 +5,8 @@
  *
  * Responsibility: every pattern active in the round's stage with its points (from the
  *                 server's view of the ruleset); a tick when the viewer's card has it this
- *                 round; "first: <name> (+50 %)" once someone completed it first, "still open"
+ *                 round; "first: <name> (+50 %)" once someone completed it first (every name
+ *                 the server gave the bonus on that draw, D45), "still open"
  *                 before. Who completed what comes from the server's patternScored events
  *                 (the fold, ../playbackScoring); nothing is evaluated here.
  * Depends on:     react, ../game/labels, ../playback, ../types, ./matchSide.css
@@ -46,9 +47,9 @@ export function PatternsPanel({
               <span className="pattern-name">{prizeName(key)}</span>
               <span className="pattern-points">{String(result.patternPoints[key] ?? 0)} pts</span>
               <span className="pattern-first sbr-muted">
-                {p?.first == null
+                {p === undefined || p.firsts.length === 0
                   ? 'still open'
-                  : `first: ${p.first} (+${String(result.firstBonusPercent)} %)`}
+                  : `first: ${p.firsts.join(', ')} (+${String(result.firstBonusPercent)} %)`}
               </span>
             </li>
           );

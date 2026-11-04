@@ -3,9 +3,10 @@
  * @module domain/scoring
  * @brief  Tests for mark/pattern scoring and the speed bonus (01 §8.1, 12 §3 inv. 9).
  *
- * Responsibility: cover the arithmetic — base points, growth additive before multiplier,
- *                 first-to-pattern bonus, speed-bonus linear decay including the boundary
- *                 and the past-window behaviour.
+ * Responsibility: cover the arithmetic — base points, growth and the speed bonus added
+ *                 before the boost multiplies the mark (D44), the first-to-pattern bonus
+ *                 (patterns are never multiplied), speed-bonus linear decay including the
+ *                 boundary and the past-window behaviour.
  * Depends on:     ../index
  * Spec:           docs/spec/01-game-design.md §8.1, docs/spec/12-testing-strategy.md §3
  */
@@ -44,6 +45,12 @@ describe('scoreMark', () => {
     // (10 + 8) * 1.5 = 27
     expect(scoreMark({ pointsPerMark: 10 }, state)).toBe(27);
   });
+
+  it('multiplies the speed bonus with the mark (D44)', () => {
+    const state = withEffects({ multiplier: { factor: 1.5, remainingDraws: 8 } });
+    // (10 + 6) * 1.5 = 24
+    expect(scoreMark({ pointsPerMark: 10 }, state, 6)).toBe(24);
+  });
 });
 
 describe('scorePattern', () => {
@@ -54,7 +61,6 @@ describe('scorePattern', () => {
       scorePattern(cfg, {
         prizeKey: 'rows-1',
         isFirstInRound: false,
-        effects: INITIAL_EFFECT_STATE,
       }),
     ).toBe(100);
   });
@@ -64,20 +70,12 @@ describe('scorePattern', () => {
       scorePattern(cfg, {
         prizeKey: 'rows-1',
         isFirstInRound: true,
-        effects: INITIAL_EFFECT_STATE,
       }),
     ).toBe(150);
   });
 
   it('returns 0 for an unknown prize key', () => {
-    expect(
-      scorePattern(cfg, { prizeKey: 'nope', isFirstInRound: true, effects: INITIAL_EFFECT_STATE }),
-    ).toBe(0);
-  });
-
-  it('applies the multiplier after the first bonus', () => {
-    const effects = withEffects({ multiplier: { factor: 2, remainingDraws: 5 } });
-    expect(scorePattern(cfg, { prizeKey: 'rows-1', isFirstInRound: true, effects })).toBe(300);
+    expect(scorePattern(cfg, { prizeKey: 'nope', isFirstInRound: true })).toBe(0);
   });
 });
 

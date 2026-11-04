@@ -274,6 +274,25 @@ describe('taps waiting in the match queue', () => {
     // The second tap of the same cell is already marked: refused, the others accepted.
     expect(answers).toEqual([true, true, false]);
   });
+
+  it('pass on when each tap arrived, for the first-player bonus on one draw (D45)', async () => {
+    const { engine, scheduler, clock, id } = await runningHostMatch({ kind: 'noAutoMark' });
+    let cell = -1;
+    for (let i = 0; i < 30 && cell < 0; i += 1) {
+      await engine.drawNext(id);
+      await scheduler.runUntil(engine, clock, clock.t + 5_000);
+      cell = await drawnCell(engine, id, 'person');
+    }
+    const sent: unknown[] = [];
+    const apply = engine.runner.apply.bind(engine.runner);
+    engine.runner.apply = (matchId, commands, opts) => (
+      sent.push(...commands),
+      apply(matchId, commands, opts)
+    );
+    const arrived = clock.t;
+    expect(await engine.mark(id, 'person', 0, cell)).toBe(true);
+    expect(sent).toEqual([expect.objectContaining({ type: 'markCell', receivedAt: arrived })]);
+  });
 });
 
 describe('taps (01 §6)', () => {

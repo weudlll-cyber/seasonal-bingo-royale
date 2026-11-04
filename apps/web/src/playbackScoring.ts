@@ -96,11 +96,13 @@ export function applyScoring(state: FoldState, ev: DomainEventLike): void {
   }
 }
 
-// Who completed the pattern first this round, whether the viewer has it, and the line.
+// Who took the first-player bonus this round (the server's flag; several on one draw,
+// D45), whether the viewer has it, and the line.
 function notePattern(state: FoldState, ev: Extract<DomainEventLike, { type: 'patternScored' }>) {
-  const was = state.roundPatterns[ev.prizeKey] ?? { first: null, mine: false };
+  const was = state.roundPatterns[ev.prizeKey] ?? { firsts: [], mine: false };
+  const takes = ev.firstInRound && !was.firsts.includes(ev.accountId);
   state.roundPatterns[ev.prizeKey] = {
-    first: was.first ?? (ev.firstInRound ? ev.accountId : null),
+    firsts: takes ? [...was.firsts, ev.accountId] : was.firsts,
     mine: was.mine || state.players.get(ev.accountId)?.isOwner === true,
   };
   pushBanner(

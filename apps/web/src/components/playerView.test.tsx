@@ -80,7 +80,7 @@ describe('OwnerStatusPanel', () => {
       />,
     );
     expect(screen.getByTestId('effect-multiplier').textContent).toBe(
-      'Summer boost: all your points count ×1.5 — 6 more numbers',
+      'Summer boost: your marks and speed bonus count ×1.5 — 6 more numbers',
     );
     expect(screen.getByTestId('effect-growth').textContent).toBe(
       'Spring growth: every mark earns extra points, more with each mark — 4 more numbers',

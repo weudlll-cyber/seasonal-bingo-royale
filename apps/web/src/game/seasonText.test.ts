@@ -15,13 +15,13 @@ import { boostSentence, growthSentence } from './seasonText.js';
 describe('the numbers an effect still covers', () => {
   it('counts the numbers to come, and says "this number only" on the last one', () => {
     expect(boostSentence('summer', 1.5, 5)).toBe(
-      'Summer boost: all your points count ×1.5 — 5 more numbers',
+      'Summer boost: your marks and speed bonus count ×1.5 — 5 more numbers',
     );
     expect(growthSentence('spring', 1)).toBe(
       'Spring growth: every mark earns extra points, more with each mark — 1 more number',
     );
     expect(boostSentence('summer', 1.5, 0)).toBe(
-      'Summer boost: all your points count ×1.5 — this number only',
+      'Summer boost: your marks and speed bonus count ×1.5 — this number only',
     );
   });
 });

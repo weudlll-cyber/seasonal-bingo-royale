@@ -56,6 +56,8 @@ export interface MarkCell {
   readonly inSpeedWindow: boolean;
   // Speed bonus points pre-computed by the application layer (01 §8.1 linear decay).
   readonly speedBonus: number;
+  // When the server received the tap: decides the first-player bonus on one draw (D45).
+  readonly receivedAt?: number;
 }
 // Issued by the scheduler once the missed-number delay after draw `drawIndex`
 // has passed (ruleset missedNumbers autoMarkAfter): every tapping player's still-open cell

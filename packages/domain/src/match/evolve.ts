@@ -69,6 +69,7 @@ export function createInitialMatchState(): MatchState {
     stageIndex: 0,
     roundInStage: 0,
     roundIndex: 0,
+    drawsInMatch: 0,
     players: {},
     playerOrder: [],
     currentRound: null,

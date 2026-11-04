@@ -4,9 +4,9 @@
  * @brief  The seasons and their effects in plain sentences (01 §8.2, §8.3, PLAYER-CLARITY).
  *
  * Responsibility: one short sentence per active effect with the season's name ("Summer boost:
- *                 all your points count ×1.5 — 5 more numbers", "— this number only" on its last
- *                 draw), the Winter shield with its
- *                 margin and charges left, what a used shield did ("Your Winter shield saved
+ *                 your marks and speed bonus count ×1.5 — 5 more numbers": patterns, the
+ *                 harvest and Season Complete are not multiplied, D44; "— this number only" on
+ *                 its last draw), the Winter shield with its margin and charges left, what a used shield did ("Your Winter shield saved
  *                 you in cut 1 (you were 2 places below the line)"), the owner's season as an
  *                 event line (the Autumn harvest with its points), and the Season Complete
  *                 note. Every number comes from the match's ruleset or the server's status.
@@ -41,7 +41,7 @@ const numbersLeft = (n: number): string =>
 const places = (n: number): string => `${String(n)} ${n === 1 ? 'place' : 'places'}`;
 
 export function boostSentence(season: Season, factor: number, remaining: number): string {
-  return `${seasonName(season)} boost: all your points count ×${String(factor)} — ${numbersLeft(remaining)}`;
+  return `${seasonName(season)} boost: your marks and speed bonus count ×${String(factor)} — ${numbersLeft(remaining)}`;
 }
 
 export function growthSentence(season: Season, remaining: number): string {
