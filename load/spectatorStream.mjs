@@ -13,9 +13,10 @@
  *                 fetches, the part of them that is the watch block, and the server's CPU. Then
  *                 aborts the match (append-only log) and deletes the load accounts.
  *                 Usage: node load/spectatorStream.mjs [players=200] [minutes=4]
- * Depends on:     socket.io-client, ./common.mjs
+ * Depends on:     socket.io-client, ./devDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/01-game-design.md §13 (D24)
  */
+import './devDefaults.mjs';
 import { io } from 'socket.io-client';
 
 import {

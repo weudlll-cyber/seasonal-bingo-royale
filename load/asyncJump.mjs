@@ -12,10 +12,11 @@
  *                 how many came back non-empty; samples CPU, memory and event-loop lag from
  *                 /metrics. Then aborts the match (append-only log) and deletes the load accounts.
  *                 Usage: node load/asyncJump.mjs [players=200]
- * Depends on:     ./common.mjs
+ * Depends on:     ./devDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/01-game-design.md §11; docs/spec/06-realtime-architecture.md §6;
  *                 docs/spec/12-testing-strategy.md §5
  */
+import './devDefaults.mjs';
 import { BASE, call, errors, inBatches, signIn, summary, watchServer } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);

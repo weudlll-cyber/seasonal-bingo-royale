@@ -11,9 +11,10 @@
  *                 same run is `sbr loadcheck` (./loadcheck.mjs).
  *                 Usage: node load/drawLatency.mjs [players=200] [spectators=50] [tapEvery=1]
  *                 [minutes=12] (the run ends with the match or after that many minutes)
- * Depends on:     ./common.mjs, ./drawRun.mjs
+ * Depends on:     ./devDefaults.mjs, ./common.mjs, ./drawRun.mjs
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
+import './devDefaults.mjs';
 import { BASE, inBatches, signIn } from './common.mjs';
 import { runDrawCheck } from './drawRun.mjs';
 
