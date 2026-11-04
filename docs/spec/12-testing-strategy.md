@@ -93,7 +93,20 @@ Headroom check: same scenario at 400 players must stay below 1 s p95 draw latenc
 
 Fixes (each measured again): a mark rewrites only its player's standings row (all 200 before); taps waiting in the match's queue are applied in one batch, timed on arrival; a snapshot at most once per draw (every 25 events before); the away summaries share one log read and one replay per seen seq. Open: the tap acknowledgement p95 (next steps in BACKLOG), the 400-player headroom check, the chat part of the scenario (chat is not built).
 
-**On a production install (2026-11-04):** `sudo sbr loadcheck` runs the same check against the install itself, without development code ([09](09-deployment-architecture.md) §4): 200 players, 50 spectators, one realtime royale with the published defaults (draws every 4 s; the fast profile is development-only), at most 10 minutes; its temporary accounts are removed afterwards. Rehearsed on the throw-away Ubuntu 24.04 machine on the owner's PC (Docker inside Docker, the generator on the same machine), 200 players and 50 spectators for 10 minutes of the published royale. Draw to screen p50 115 ms, p95 736 ms, p99 1001 ms (spectators p95 1072 ms); tap acknowledgement p50 594 ms, p95 1984 ms; gaps between draws p95 6.2 s; app event-loop lag up to 7.2 s; app 1.44 CPUs / 104 MiB, PostgreSQL 1.28 CPUs / 80 MiB at their peaks; 0 errors; all 251 accounts removed. The published royale's 40-draw rounds with the full field load the server more than the fast profile measured above, and draw latency now fails its p95 too: the owner runs the check once on the VPS after the install, and the tap acknowledgement is broken down in BACKLOG's load item.
+**On a production install (2026-11-04):** `sudo sbr loadcheck` runs the same check against the install itself, without development code ([09](09-deployment-architecture.md) §4): 200 players, 50 spectators, one realtime royale with the published defaults (draws every 4 s; the fast profile is development-only), at most 10 minutes; its temporary accounts are removed afterwards. Rehearsed on the throw-away Ubuntu 24.04 machine on the owner's PC (Docker inside Docker, the generator on the same machine), 200 players and 50 spectators for 10 minutes of the published royale. Draw to screen p50 115 ms, p95 736 ms, p99 1001 ms (spectators p95 1072 ms); tap acknowledgement p50 594 ms, p95 1984 ms; gaps between draws p95 6.2 s; app event-loop lag up to 7.2 s; app 1.44 CPUs / 104 MiB, PostgreSQL 1.28 CPUs / 80 MiB at their peaks; 0 errors; all 251 accounts removed. The published royale's 40-draw rounds with the full field load the server more than the fast profile measured above, and draw latency now fails its p95 too: the owner runs the check once on the VPS after the install, and the tap acknowledgement is broken down below.
+
+**Tap acknowledgement broken down (2026-11-04, perf/tap-ack):** `sbr loadcheck` now prints where a tap's time goes on the server (08 §6). Three runs of 200 players and 50 spectators, 5 minutes each, on the rehearsal machine:
+
+| Per tap (mean) | Before | After the lookup fix (two runs) |
+|---|---|---|
+| Gateway lookup of the match code (a database query) | 122 ms | 0 ms, 0 ms |
+| Wait for the batch | 220 ms | 304 ms, 288 ms |
+| Batch: decide / append (transaction) / publish | 2 / 371 / 0 ms | 2 / 392 / 0 ms, 9 / 438 / 0 ms |
+| Whole tap on the server | 860 ms | 956 ms, 944 ms |
+| Tap acknowledgement at the client, p50 / p95 | 938 / 1978 ms | 1060 / 2795 ms, 984 / 3195 ms |
+| App event-loop lag, p99 max | 1.6 s | 2.1 s, 6.4 s |
+
+The gateway now keeps each match code once. A code never changes and a match is never deleted, so this removed the lookup and about 64 database queries per draw, and the speed bonus's receive time now comes right at arrival. On this machine the acknowledgement end to end did not get shorter. The rest, the wait for the batch and the transaction, follows the app's busy event loop: up to seconds of lag while 250 screens fetch after every draw. The next step is the larger change named in BACKLOG (fewer fetches per draw, room frames coalesced), not a small fix.
 
 ## 6. Security tests
 

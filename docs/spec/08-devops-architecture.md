@@ -109,6 +109,15 @@ Note for operators of this repo: a green local check is not a green CI — after
 
 Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_connections`, `sbr_ws_intents_total{type,result}`, `sbr_draw_latency_seconds`, `sbr_matches{status}`, `sbr_players_active`, `sbr_chat_messages_total{result}`, `sbr_auth_logins_total{result}`, `sbr_rate_limited_total{route}`, `sbr_scheduler_lag_seconds`.
 
+**As built (2026-11-04):** besides Node's defaults (`sbr_process_*`, `sbr_nodejs_*`) and `sbr_matches_running`, the tap breakdown of 12 §5. It holds five histograms:
+- `sbr_tap_lookup_seconds`: the gateway before the engine;
+- `sbr_tap_wait_seconds`: arrival until the tap's batch starts;
+- `sbr_tap_batch_seconds{phase=decide|append|publish}`;
+- `sbr_tap_handled_seconds`: the whole tap until its answer;
+- `sbr_tap_batch_size`.
+
+`sbr loadcheck` reads them before and after its run and prints the breakdown.
+
 ## 7. Dependency and patch policy
 
 - Renovate weekly grouped PRs; security PRs immediately.

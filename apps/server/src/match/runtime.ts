@@ -16,7 +16,12 @@
  */
 import { randomBytes, randomInt } from 'node:crypto';
 
-import { MatchEngine, type Clock, type MaintenanceReader } from '@sbr/application';
+import {
+  MatchEngine,
+  type Clock,
+  type MaintenanceReader,
+  type TapBatchTiming,
+} from '@sbr/application';
 import { SEED_BYTES } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
@@ -38,13 +43,19 @@ export interface MatchRuntime {
 const SYSTEM_CLOCK: Clock = { now: () => Date.now() };
 
 // `maintenance` holds the automatic starts while `sbr maintenance on` is set (D22);
-// development builds pass their time-travel clock (../dev/devClock).
+// development builds pass their time-travel clock (../dev/devClock); `onTapBatch` feeds the
+// tap breakdown of the metrics (12 §5).
 export function createMatchRuntime(
   pool: DbPool,
   seedKey: Buffer,
   maintenance: MaintenanceReader,
-  clock: Clock = SYSTEM_CLOCK,
+  options: {
+    readonly clock?: Clock | undefined;
+    readonly onTapBatch?: (batch: TapBatchTiming) => void;
+  } = {},
 ): MatchRuntime {
+  const clock = options.clock ?? SYSTEM_CLOCK;
+  const onTapBatch = options.onTapBatch;
   const store = new PgMatchStore(pool, seedKey);
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();
@@ -54,6 +65,7 @@ export function createMatchRuntime(
     bus,
     clock,
     maintenance,
+    ...(onTapBatch === undefined ? {} : { onTapBatch }),
     randomSeed: () => new Uint8Array(randomBytes(SEED_BYTES)),
     randomCode: () =>
       Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''),

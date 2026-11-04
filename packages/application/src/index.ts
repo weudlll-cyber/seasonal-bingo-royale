@@ -21,6 +21,7 @@ export { isTimeZone } from './match/quietHours.js';
 export { nextDrawAt, waitingForHost } from './match/flow.js';
 export { minPlayersOf, tooFewAtStart } from './match/startRules.js';
 export { MatchNotFound } from './match/runner.js';
+export type { TapBatchTiming } from './match/taps.js';
 export type { CreateMatchInput } from './match/create.js';
 export type * from './match/ports.js';
 export { markKey } from './match/ports.js';

@@ -10,16 +10,18 @@
  *                 player taps its drawn numbers as they arrive, inside the speed window. Records
  *                 per draw and socket the time from the draw event's `at` to arrival and to
  *                 fetch end, per tap the time to its acknowledgement, the gaps between draws;
- *                 samples the server's CPU, memory and event-loop lag from /metrics. Ends with
+ *                 samples the server's CPU, memory and event-loop lag from /metrics and reads
+ *                 where the taps' time went on the server (./tapBreakdown.mjs). Ends with
  *                 the match or after `minutes`, then the host aborts the match (append-only
  *                 log). Who signs the accounts in and removes them is the caller's.
- * Depends on:     socket.io-client, ./common.mjs
+ * Depends on:     socket.io-client, ./common.mjs, ./tapBreakdown.mjs
  * Used by:        ./drawLatency.mjs (local development stack), ./loadcheck.mjs (sbr loadcheck)
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
 import { io } from 'socket.io-client';
 
 import { call, errors, fail, inBatches, ORIGIN, SOCKET, summary, watchServer } from './common.mjs';
+import { tapBreakdown, tapSnapshot } from './tapBreakdown.mjs';
 
 // As the player screen does (apps/web/src/game/useLiveMatch.ts): other players' taps,
 // patterns, prizes and window closes are appended; anything else fetches.
@@ -181,11 +183,14 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
     connectPlayer(p, code, record),
   );
   const server = watchServer();
+  const before = await tapSnapshot();
+  let after = '';
   try {
     await call(host, 'POST', `/matches/${code}/start`, {});
     const until = Date.now() + minutes * 60_000;
     while (!record.finished && Date.now() < until) await new Promise((r) => setTimeout(r, 1_000));
   } finally {
+    after = await tapSnapshot();
     await server.stop();
     for (const s of sockets) s.disconnect();
     if (!record.finished)
@@ -196,5 +201,6 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
     spectators: spectators.length,
     code,
     minutes: (Date.now() - started) / 60_000,
+    tapBreakdown: tapBreakdown(before, after),
   });
 }

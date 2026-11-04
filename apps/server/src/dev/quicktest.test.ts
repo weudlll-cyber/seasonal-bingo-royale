@@ -99,10 +99,11 @@ describe('runQuickTest — payload for the player client', () => {
 
   // CPU time, not wall clock, with a wide budget: alone it takes about 2-3 s (two full
   // qualification rounds at 200 players since the cut after the stage, 01 §7.1; each round
-  // recap replays only up to its round), more under a full parallel test run; an
-  // algorithmic blow-up (e.g. quadratic replay) would not pass 5 s. The wall clock gets 30 s: under a full parallel run the default
-  // 5 s test timeout fired before the CPU check could (NIGHT-4).
-  it('builds a 200-player royale within five seconds of CPU time', { timeout: 30_000 }, () => {
+  // recap replays only up to its round), up to 5.3 s under a full parallel test run on the
+  // owner's PC (2026-11-04); an algorithmic blow-up (e.g. quadratic replay) takes many times
+  // longer and would not pass 8 s. The wall clock gets 30 s: under a full parallel run the
+  // default 5 s test timeout fired before the CPU check could (NIGHT-4).
+  it('builds a 200-player royale within eight seconds of CPU time', { timeout: 30_000 }, () => {
     const started = process.cpuUsage();
     runQuickTest({
       gameType: 'royale',
@@ -113,7 +114,7 @@ describe('runQuickTest — payload for the player client', () => {
       markingMode: 'auto',
     });
     const used = process.cpuUsage(started);
-    expect((used.user + used.system) / 1000).toBeLessThan(5_000);
+    expect((used.user + used.system) / 1000).toBeLessThan(8_000);
   });
 });
 

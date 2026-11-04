@@ -8,7 +8,9 @@
  *                 taps; the first one to reach the match's queue takes all that are waiting and
  *                 applies them in one batch (one transaction, one frame), so 200 tapping players
  *                 no longer hold up the draws with one transaction per tap. Each tap is answered
- *                 on its own: accepted when the batch marked its cell.
+ *                 on its own: accepted when the batch marked its cell. An observer learns each
+ *                 batch's size, each tap's wait from arrival to the batch's start and the time
+ *                 the batch took to decide, append and publish (the tap breakdown of 12 §5).
  * Depends on:     @sbr/domain, ./ports, ./runner
  * Used by:        ./engine
  * Spec:           docs/spec/01-game-design.md §6; docs/spec/06-realtime-architecture.md §4;
@@ -17,7 +19,12 @@
 import { speedBonus, type Command, type DomainEvent } from '@sbr/domain';
 
 import { markKey, type Clock, type LoadedMatch } from './ports.js';
-import type { MatchRunner } from './runner.js';
+import type { ApplyTiming, MatchRunner } from './runner.js';
+
+export interface TapBatchTiming extends ApplyTiming {
+  readonly size: number;
+  readonly waitsMs: readonly number[];
+}
 
 interface Tap {
   readonly playerId: string;
@@ -35,6 +42,7 @@ export class TapQueue {
   constructor(
     private readonly runner: MatchRunner,
     private readonly clock: Clock,
+    private readonly observe: (batch: TapBatchTiming) => void = () => undefined,
   ) {}
 
   mark(matchId: string, playerId: string, cardIndex: number, cellIndex: number): Promise<boolean> {
@@ -54,6 +62,8 @@ export class TapQueue {
   private async applyWaiting(matchId: string): Promise<void> {
     const taps = this.waiting.get(matchId) ?? [];
     this.waiting.delete(matchId);
+    const started = this.clock.now(matchId);
+    const timing: ApplyTiming = { decideMs: 0, appendMs: 0, publishMs: 0 };
     try {
       const m = await this.runner.current(matchId);
       const commands = taps.flatMap((t) => markCommand(m, t));
@@ -69,8 +79,14 @@ export class TapQueue {
         // One player's taps keep the player as the actor; a batch of several has none.
         actorAccountId: actors.size === 1 ? ([...actors][0] ?? null) : null,
         mark: { source: 'manual', speedBonuses },
+        timing,
       });
       answerTaps(taps, produced);
+      this.observe({
+        ...timing,
+        size: taps.length,
+        waitsMs: taps.map((t) => started - t.receivedAt),
+      });
     } catch (error) {
       for (const t of taps) t.fail(error);
     }
