@@ -30,6 +30,9 @@ RUN pnpm fetch
 # build: install offline from the store, build the client and the server bundle, then
 # collect the server's production files (package.json "files": dist) and the client.
 FROM deps AS build
+# 1 keeps the development modules in the server bundle: the local load check only (12 §5);
+# an install never sets it.
+ARG SBR_BUILD_DEV=0
 COPY . .
 RUN pnpm install --frozen-lockfile --offline
 RUN pnpm --filter @sbr/web build && pnpm --filter @sbr/server build

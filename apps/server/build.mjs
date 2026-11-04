@@ -8,7 +8,8 @@
  *                 first argument), the workspace packages (@sbr/*, TypeScript sources)
  *                 inlined and the npm dependencies left as imports for node_modules,
  *                 without comments or spacing; the development modules (src/dev/*, the
- *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs;
+ *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs
+ *                 (kept with SBR_BUILD_DEV=1, only for the local load check, 12 §5);
  *                 copy src/db/migrations to <out>/migrations, where the bundled migrator
  *                 looks for them. Run by the Dockerfile.
  * Depends on:     esbuild, ./devStub.mjs
@@ -59,7 +60,9 @@ await build({
   sourcemap: true,
   // Drops comments and spacing; the source map still points at the sources.
   minifyWhitespace: true,
-  plugins: [npmExternal, devStub],
+  // SBR_BUILD_DEV=1 (docker build --build-arg, the local load check only) keeps the
+  // development modules, so the same bundle can run with SBR_DEV=1 on localhost.
+  plugins: process.env.SBR_BUILD_DEV === '1' ? [npmExternal] : [npmExternal, devStub],
   // Bundled CommonJS code may still call require().
   banner: {
     js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",

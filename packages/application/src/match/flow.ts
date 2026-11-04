@@ -61,7 +61,7 @@ export async function runAction(deps: FlowDeps, action: ScheduledAction): Promis
       await deps.runner.apply(
         action.matchId,
         [{ type: 'autoMarkMissed', drawIndex: action.drawIndex ?? -1 }],
-        { mark: { source: 'auto', speedBonus: 0 } },
+        { mark: { source: 'auto' } },
       );
       return;
   }

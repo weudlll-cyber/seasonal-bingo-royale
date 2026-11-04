@@ -9,8 +9,8 @@
  *                 and snapshots in the codec's stored encoding; load a match from its latest
  *                 snapshot plus the event tail, with the current round's draw times; append a
  *                 batch in one transaction (version check on the matches row, consecutive seq,
- *                 projections, a snapshot every 25 events, last 3 kept); set the status, draw
- *                 control and start rule (D16) on the row.
+ *                 projections, a snapshot with a draw at least 25 events after the last, last
+ *                 3 kept); set the status, draw control and start rule (D16) on the row.
  * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records,
  *                 ../db/pool
  * Used by:        ../http/routes/matches, ../http/routes/matchVerify, ./runtime
@@ -46,11 +46,19 @@ import {
 import { project } from './projections.js';
 import { recordFrom, type MatchRow } from './records.js';
 
+// A snapshot of the whole state with a draw, at least 25 events after the last one: at most
+// one per draw. Every 25 events wrote three or four sealed snapshots per draw when 200 players
+// tapped (load check of 2026-11-04), which held up the match's queue.
 const SNAPSHOT_EVERY = 25;
+const snapshotDue = (events: readonly DomainEvent[], seq: number, last: number): boolean =>
+  seq - last >= SNAPSHOT_EVERY && events.some((e) => e.type === 'drawMade');
 
 export class VersionConflict extends Error {}
 
 export class PgMatchStore implements MatchStore {
+  // Each match's latest snapshot seq, from its load and each snapshot written.
+  private readonly snapshotAt = new Map<string, number>();
+
   constructor(
     private readonly pool: DbPool,
     private readonly seedKey: Buffer,
@@ -132,6 +140,7 @@ export class PgMatchStore implements MatchStore {
         ? createInitialMatchState()
         : (decodeStored(base.state, this.seedKey, matchId) as MatchState);
     let seq = base === undefined ? 0 : Number(base.seq);
+    this.snapshotAt.set(matchId, seq);
     for (const e of await this.events(matchId, seq)) {
       state = evolve(state, e.event);
       seq = e.seq;
@@ -197,7 +206,8 @@ export class PgMatchStore implements MatchStore {
         lastSeq,
       ]);
       await project(client, { ...input, state: input.stateAfter, seq: lastSeq, mark: input.mark });
-      if (Math.floor(lastSeq / SNAPSHOT_EVERY) > Math.floor(input.expectedSeq / SNAPSHOT_EVERY)) {
+      const due = snapshotDue(input.events, lastSeq, this.snapshotAt.get(input.matchId) ?? 0);
+      if (due) {
         await snapshot(
           client,
           input.matchId,
@@ -206,6 +216,7 @@ export class PgMatchStore implements MatchStore {
         );
       }
       await client.query('COMMIT');
+      if (due) this.snapshotAt.set(input.matchId, lastSeq);
       return stored;
     } catch (error) {
       await client.query('ROLLBACK');

@@ -9,14 +9,15 @@
  *                 countdown; scheduled actions via ./flow; host draws in host mode (not before
  *                 the timed interval, D13, nor in an async match's quiet hours, 01 §5); start the
  *                 next round when it waits (D14); switch draw mode or interval anytime (D8, never
- *                 below D12); score a tap with the speed bonus from its draw time (01 §6);
+ *                 below D12); taps through ./taps (speed bonus from the draw to the tap's arrival,
+ *                 waiting taps in one batch, 01 §6);
  *                 `recover` after a crash. All commands run through ./runner.
- * Depends on:     @sbr/domain, ./asyncCadence, ./ports, ./runner, ./flow, ./timing,
+ * Depends on:     @sbr/domain, ./asyncCadence, ./ports, ./runner, ./flow, ./timing, ./taps,
  *                 ./startRules (set time, start when full), ./create
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes
  * Spec:           docs/spec/01-game-design.md §3–§8, §11; docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §4–§6
  */
-import { speedBonus, type Command } from '@sbr/domain';
+import type { Command } from '@sbr/domain';
 
 import { quietUntil } from './asyncCadence.js';
 import {
@@ -43,6 +44,7 @@ import type {
   Scheduler,
 } from './ports.js';
 import { MatchRunner } from './runner.js';
+import { TapQueue } from './taps.js';
 import {
   minPlayersOf,
   planAutoStart,
@@ -84,6 +86,7 @@ interface EngineDeps {
 export class MatchEngine {
   readonly runner: MatchRunner;
   private readonly flow: FlowDeps;
+  private readonly taps: TapQueue;
 
   constructor(private readonly deps: EngineDeps) {
     this.runner = new MatchRunner(deps.store, deps.bus, deps.clock);
@@ -94,6 +97,7 @@ export class MatchEngine {
       clock: deps.clock,
       maintenance: deps.maintenance,
     };
+    this.taps = new TapQueue(this.runner, deps.clock);
   }
 
   async create(input: CreateMatchInput, createdBy: string | null): Promise<MatchRecord> {
@@ -249,39 +253,10 @@ export class MatchEngine {
     });
   }
 
-  // A tap: accepted when the domain marks the cell; the speed bonus runs from its draw.
+  // A tap: accepted when the domain marks the cell; the speed bonus runs from its draw to the
+  // tap's arrival; taps waiting in the match's queue go in one batch (./taps).
   mark(matchId: string, playerId: string, cardIndex: number, cellIndex: number): Promise<boolean> {
-    return this.runner.serial(matchId, async () => {
-      const m = await this.runner.current(matchId);
-      const round = m.state.currentRound;
-      const cell = round?.cards[playerId]?.[cardIndex]?.card.cells[cellIndex];
-      if (round === null || cell === undefined || cell.kind === 'free') return false;
-      const drawIndex = round.draws.indexOf(cell.value);
-      const delta = this.deps.clock.now(matchId) - (m.drawTimes[drawIndex] ?? 0);
-      const windowMs = m.record.ruleset.marking.speedWindowMs;
-      const bonus = speedBonus(
-        { maxBonus: m.record.ruleset.scoring.maxSpeedBonus, windowMs },
-        delta,
-      );
-      const produced = await this.runner.apply(
-        matchId,
-        [
-          {
-            type: 'markCell',
-            accountId: playerId,
-            cardIndex,
-            cellIndex,
-            inSpeedWindow: delta <= windowMs,
-            speedBonus: bonus,
-          },
-        ],
-        {
-          actorAccountId: playerId,
-          mark: { source: 'manual', speedBonus: delta <= windowMs ? bonus : 0 },
-        },
-      );
-      return produced.length > 0;
-    });
+    return this.taps.mark(matchId, playerId, cardIndex, cellIndex);
   }
 
   // Ends the match without a result: by its host, or by the system (D17).

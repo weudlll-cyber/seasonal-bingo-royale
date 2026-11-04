@@ -84,7 +84,7 @@ markCell(manual), autoMarkMissed, closeSpeedWindow, endRound, applyCut, startSta
 
 - Every match event is appended to `match_events` (append-only, ordered by `seq`) in the same transaction that updates the `matches` row’s `version` (optimistic concurrency).
 - Read models (current standings, per-player card state, round summaries) are projected synchronously in the same transaction for v1. This is the **CQRS** split: commands go through the aggregate; queries read projection tables.
-- Recovery: on restart, a match is rebuilt from its latest snapshot (every 25 events) plus the tail of events. This also powers “While you were away” and the post-match replay.
+- Recovery: on restart, a match is rebuilt from its latest snapshot (taken with a draw at least 25 events after the previous one: at most one per draw, so 200 tapping players do not write several per draw) plus the tail of events. This also powers “While you were away” and the post-match replay.
 
 ### 5.3 Scheduling
 

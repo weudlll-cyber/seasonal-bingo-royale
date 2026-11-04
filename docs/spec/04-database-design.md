@@ -152,7 +152,7 @@ one entry in `prizes`.
 
 **prize_awards** — classic types only (01 §3a.1): `match_id`, `round_id`, `prize_key text` (e.g. `rows-2`, `fullCard`, or a custom pattern key), `draw_index smallint` (the draw that first completed the prize), `account_id`, `card_id`, `points int`, `awarded_at timestamptz`; PK `(round_id, prize_key, account_id)` so a prize is awarded to a given account at most once. Index `(match_id, prize_key)`.
 
-**standings** — projection: `match_id`, `account_id`, `rank int`, `score bigint`, `patterns int`, `seasons smallint`, `updated_seq bigint`; PK `(match_id, account_id)`; index `(match_id, rank)`.
+**standings** — projection: `match_id`, `account_id`, `rank int`, `score bigint`, `patterns int`, `seasons smallint`, `updated_seq bigint`; PK `(match_id, account_id)`; index `(match_id, rank)`. A mark writes only the marking player's row (its rank as of that moment); a round end, cut, stage or finish writes every row with the ranks (load check of 2026-11-04: rewriting all rows on every mark held up the draws).
 
 **scheduled_actions** — `id`, `match_id`, `kind` (`draw`, `close_speed_window`, `auto_mark`, `start_round`, `start_match`, `lobby_close`), `payload jsonb` (e.g. the draw index of a window close or auto-mark), `due_at`, `lease_owner text NULL`, `lease_until timestamptz NULL`, `attempts int`, `done_at NULL`. Partial index `(due_at) WHERE done_at IS NULL`.
 
