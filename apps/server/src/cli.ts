@@ -115,7 +115,9 @@ async function migrateAsOwner(): Promise<number> {
     const granted = await grantAppRole(pool);
     console.log(
       `${String(applied.length)} migrations applied${applied.length > 0 ? `: ${applied.join(', ')}` : ''}; ` +
-        (granted ? 'app role granted' : 'no app role (development)'),
+        (granted
+          ? 'app role granted'
+          : 'no app role on this database (development, or an install before the roles)'),
     );
     return 0;
   } finally {
