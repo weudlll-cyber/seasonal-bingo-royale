@@ -6,8 +6,8 @@
  * Responsibility: one query over the account's match entries: every match in its lobby or
  *                 running (asynchronous and realtime), newest first, with the start facts, the
  *                 newest round from the event log, the cuts the player came through and the cut
- *                 that put the player out; status and countdown taken from the lobby list of
- *                 the same answer. Only the session's own account.
+ *                 that put the player out, whether every place is taken; status, countdown and
+ *                 "full" taken from the lobby list of the same answer. Only the session's own account.
  * Depends on:     @sbr/contracts (types), ../../db/pool
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
@@ -25,6 +25,7 @@ interface MyMatchRow {
   start_rule: 'host' | 'at' | 'whenFull';
   start_at: Date | null;
   lobby_closes_at: Date | null;
+  full: boolean;
   round_index: number | null;
   cuts_survived: number;
   out_in_cut: number | null;
@@ -37,7 +38,7 @@ interface MyMatchRow {
 const MY_MATCHES = `
   WITH mine AS (
     SELECT m.id, m.code, m.title, m.mode, m.status, m.starts_at, m.start_rule, m.start_at,
-           m.lobby_closes_at, m.created_at, e.player_id
+           m.lobby_closes_at, m.max_players, m.created_at, e.player_id
       FROM sbr.match_entries e JOIN sbr.matches m ON m.id = e.match_id
      WHERE e.account_id = $1 AND m.status IN ('lobby', 'running')
   ), cuts AS (
@@ -47,6 +48,7 @@ const MY_MATCHES = `
   )
   SELECT x.code, x.title, x.mode, x.status, x.starts_at, x.start_rule, x.start_at,
          x.lobby_closes_at,
+         (SELECT count(*) FROM sbr.match_entries f WHERE f.match_id = x.id) >= x.max_players AS full,
          (SELECT max((v.payload->>'roundIndex')::int) FROM sbr.match_events v
            WHERE v.match_id = x.id AND v.type = 'roundStarted') AS round_index,
          (SELECT count(*) FROM cuts c
@@ -67,6 +69,7 @@ function myMatch(r: MyMatchRow): MyMatch {
     startsAt: ms(r.starts_at),
     startAt: r.start_rule === 'at' ? ms(r.start_at) : null,
     startsWhenFull: r.start_rule === 'whenFull',
+    full: r.full,
     lobbyClosesAt: ms(r.lobby_closes_at),
     roundIndex: r.round_index,
     cutsSurvived: r.cuts_survived,
@@ -74,9 +77,9 @@ function myMatch(r: MyMatchRow): MyMatch {
   };
 }
 
-// The lobby list's own summaries win for where a match stands (status, countdown), so the
-// lobby card and "My matches" in one answer always agree; one the list has as over is left out.
-type Listed = Pick<MyMatch, 'code' | 'startsAt'> & { readonly status: string };
+// The lobby list's own summaries win for where a match stands (status, countdown, full), so
+// the lobby card and "My matches" in one answer always agree; one the list has as over is left out.
+type Listed = Pick<MyMatch, 'code' | 'startsAt' | 'full'> & { readonly status: string };
 
 export async function myMatches(
   pool: DbPool,
@@ -89,6 +92,6 @@ export async function myMatches(
     const card = byCode.get(m.code);
     if (card === undefined) return [m];
     if (card.status !== 'lobby' && card.status !== 'running') return [];
-    return [{ ...m, status: card.status, startsAt: card.startsAt }];
+    return [{ ...m, status: card.status, startsAt: card.startsAt, full: card.full }];
   });
 }

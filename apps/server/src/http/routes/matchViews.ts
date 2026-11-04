@@ -52,6 +52,8 @@ export function matchSummary(m: LoadedMatch, viewer: string | null, clock: Clock
     status: statusOf(m),
     players: m.state.playerOrder.length,
     maxPlayers: r.maxPlayers,
+    // Every place is taken: the lobby says "Full" and offers no Join.
+    full: m.state.playerOrder.length >= r.maxPlayers,
     prizes: r.prizes,
     countsForLeaderboard: r.countsForLeaderboard,
     settings: r.settings,

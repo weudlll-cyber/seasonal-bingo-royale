@@ -40,6 +40,8 @@ export interface MatchSummary {
   readonly status: 'lobby' | 'running' | 'finished' | 'aborted';
   readonly players: number;
   readonly maxPlayers: number;
+  // Every place is taken (the server counts): no one can join, watching stays open.
+  readonly full: boolean;
   readonly prizes: readonly string[];
   readonly countsForLeaderboard: boolean;
   readonly settings: {

@@ -10,7 +10,9 @@
  *                 (D16), or once the automatic start found too few players "Waiting for
  *                 players — at least N are needed to start" (N from the server); under
  *                 "start when full" "N places left"; an asynchronous lobby "Starts or closes
- *                 at 22:25 (in 23 h 59 min)", the time the server names (D33, D34);
+ *                 at 22:25 (in 23 h 59 min)", the time the server names (D33, D34); with
+ *                 every place taken "Full · " before the start rule ("Full · the host starts
+ *                 the match" for a host start);
  *                 "Starting…" only while the real 10-second countdown runs. Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
  * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./ArenaNotice and ./MyMatches
@@ -59,6 +61,16 @@ export function registrationText(match: MatchSummary, now: number): string {
   if (match.tooFewAtStart) {
     return `Waiting for players — at least ${String(match.minPlayers)} are needed to start`;
   }
+  const open = openText(match, now);
+  // Every place is taken: no one can join; the start rule still holds.
+  if (!match.full) return open;
+  return match.settings.startRule.kind === 'host' && match.lobbyClosesAt === null
+    ? 'Full · the host starts the match'
+    : `Full · ${open}`;
+}
+
+// The start rule of a lobby that still takes players, in the same words everywhere.
+function openText(match: MatchSummary, now: number): string {
   // An asynchronous lobby starts with enough players or is cancelled at this time (D33, D34).
   if (match.lobbyClosesAt !== null) {
     return `Starts or closes ${whenText(match.lobbyClosesAt, now)} (${inText(secondsTo(match.lobbyClosesAt, now))})`;
