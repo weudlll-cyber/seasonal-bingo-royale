@@ -48,7 +48,7 @@ All messages are typed in `packages/contracts/ws/*` (zod). Envelope:
 |---|---|---|
 | `match.watch` | `{ code }` | Join `match:<id>` room (permission: public match or participant). Returns state snapshot seq. |
 | `match.unwatch` | `{ code }` | |
-| `mark` | `{ code, cardIndex, cell }` (planned: `{ roundId, cardId, cell }`) | Manual mode only; rejected with `MARK_REJECTED`. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. Rate limit 4/s. |
+| `mark` | `{ code, cardIndex, cell }` (planned: `{ roundId, cardId, cell }`) | Manual mode only; rejected with `MARK_REJECTED`. Accepted until the round ends: a tap inside the speed window earns the bonus, a later tap (possible under `noAutoMark`, 01 §6) marks without bonus. The speed window runs from the draw to the tap's arrival at the server; taps waiting in the match's queue are applied together in one batch (one transaction, one frame; each answered on its own), so 200 tapping players do not hold up the draws (load check of 2026-11-04). Rate limit 4/s. |
 | `chat.send` | `{ roomId, body, clientMsgId }` | Rate-limited per §7; `clientMsgId` for dedupe |
 | `chat.typing` | `{ roomId }` | Optional, throttled 1 / 3 s; flag `chat.typingIndicator` |
 | `presence.ping` | `{}` | Updates `last_seen` for async summaries |

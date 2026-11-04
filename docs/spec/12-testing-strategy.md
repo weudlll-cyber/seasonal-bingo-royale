@@ -76,6 +76,23 @@ Pass criteria on the reference VPS (4 vCPU / 8 GB):
 
 Headroom check: same scenario at 400 players must stay below 1 s p95 draw latency.
 
+**Measured 2026-11-04** (the production image built with `--build-arg SBR_BUILD_DEV=1` so the load accounts can sign in, `SBR_DEV=1` on localhost, the compose file's limits, Docker Desktop on the owner's Windows PC with the load generator on the same machine; `load/drawLatency.mjs 200 50 1`, `load/asyncJump.mjs 200`): 200 players in one realtime royale (fast profile, draws every 4 s, every player taps its numbers), 50 spectators.
+
+| Value | First run | After the fixes | Criterion |
+|---|---|---|---|
+| Gap between draws in a round (4 s planned) | 20 s – 2 min | p50 4.12 s, p95 4.23 s | (none named) |
+| Draw-to-screen latency, players | — (run crashed at the end) | p50 42 ms, p95 97 ms, p99 161 ms | pass |
+| Draw-to-screen latency, spectators | — | p50 78 ms, p95 160 ms, p99 206 ms | pass |
+| Tap acknowledgement | dev run: p95 23 s | p50 534 ms, p95 916 ms | **fail** (p95 < 150 ms) |
+| App CPU / memory peak | 2.69 CPUs / 322 MiB | 1.99 CPUs (its limit) / 328 MiB | memory pass; CPU over 50 % of the PC |
+| PostgreSQL CPU / memory peak, connections | 1.37 CPUs / 79 MiB, 11 | 0.78 CPU / 79 MiB, 12 | (none named) |
+| Errors | — | 0 | pass |
+| Lost or duplicated marks | — | 1477 accepted taps = 1477 manual marks in the log and the marks table, no cell twice in a round | pass |
+| Async royale, 200 players: "jump ahead 1 day" | 7.4 s | 5.5 s | (none named) |
+| … then all 200 away summaries at once | p95 64 s | p95 0.8 s | (none named) |
+
+Fixes (each measured again): a mark rewrites only its player's standings row (all 200 before); taps waiting in the match's queue are applied in one batch, timed on arrival; a snapshot at most once per draw (every 25 events before); the away summaries share one log read and one replay per seen seq. Open: the tap acknowledgement p95 (next steps in BACKLOG), the 400-player headroom check, the chat part of the scenario (chat is not built).
+
 ## 6. Security tests
 
 - **Authorization matrix test**: generated from the permission table — every route/WS intent is called with every role; expected allow/deny asserted. New routes fail CI until listed.

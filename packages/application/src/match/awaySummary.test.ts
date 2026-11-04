@@ -6,15 +6,16 @@
  * Responsibility: over a simulated asynchronous royale (8 players, automatic marking): nothing
  *                 new or a stranger gives no summary; a stretch of draws counts only its own
  *                 draws, the player's marks and the rank before and now; a stretch over the first cut tells survived or out; from the start
- *                 the whole match with the final place.
+ *                 the whole match with the final place; the summary from the states before and
+ *                 now and the events between equals the one from the whole log.
  * Depends on:     @sbr/contracts, @sbr/domain, ./awaySummary, ./rulesets
  * Spec:           docs/spec/01-game-design.md §11; docs/spec/06-realtime-architecture.md §6
  */
 import { royaleAsyncDefault } from '@sbr/contracts';
-import { simulateMatch, type DomainEvent } from '@sbr/domain';
+import { createInitialMatchState, evolve, simulateMatch, type DomainEvent } from '@sbr/domain';
 import { describe, expect, it } from 'vitest';
 
-import { buildAwaySummary } from './awaySummary.js';
+import { buildAwaySummary, summaryBetween } from './awaySummary.js';
 import { toMatchRuleset } from './rulesets.js';
 
 const { events: plain } = simulateMatch({
@@ -86,5 +87,24 @@ describe('buildAwaySummary', () => {
     expect(s.finished).toBe(true);
     expect(s.finalPlace).toBe(finished.placement.find((p) => p.accountId === ME)?.place);
     expect(s.rankBefore).toBeNull();
+  });
+});
+
+describe('the summary from two states and the events between (shared replays, 12 §5)', () => {
+  it('is the same as the summary from the whole log', () => {
+    const lastSeenSeq = seqOf('cutApplied') - 5;
+    const replay = (upTo: number) =>
+      events
+        .filter((e) => e.seq <= upTo)
+        .reduce((s, e) => evolve(s, e.event), createInitialMatchState());
+    const between = summaryBetween({
+      before: replay(lastSeenSeq),
+      after: replay(events.length),
+      tail: events.filter((e) => e.seq > lastSeenSeq),
+      lastSeenSeq,
+      playerId: ME,
+    });
+    expect(between).toEqual(buildAwaySummary({ events, lastSeenSeq, playerId: ME }));
+    expect(between).not.toBeNull();
   });
 });
