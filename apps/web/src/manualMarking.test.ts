@@ -7,7 +7,8 @@
  *                 owner exactly when the chosen delay has passed (not when the speed
  *                 window closes), without bonus; that under noAutoMark it stays open and
  *                 a later tap marks it without bonus; that taps inside the window earn the
- *                 decaying speed bonus; that undrawn taps are refused.
+ *                 speed bonus the server sent for that time (looked up, not computed,
+ *                 audit-3 H6); that undrawn taps are refused.
  * Depends on:     ./manualMarking, ./types
  * Spec:           docs/spec/01-game-design.md §6, §8.1
  */
@@ -18,14 +19,20 @@ import {
   feedbackText,
   initialManualState,
   nextAutoMark,
-  speedBonus,
+  sentSpeedBonus,
   tapCell,
   type ManualRules,
 } from './manualMarking.js';
 import type { Cell } from './types.js';
 
+// The server's speed bonus by time after the draw (any shape: the client only looks it up).
+const STEPS = [
+  { untilMs: 999, bonus: 10 },
+  { untilMs: 2_499, bonus: 4 },
+  { untilMs: 2_999, bonus: 1 },
+];
 const AFTER_5S: ManualRules = {
-  maxSpeedBonus: 10,
+  speedBonusSteps: STEPS,
   speedWindowMs: 3000,
   missedNumbers: { kind: 'autoMarkAfter', delayMs: 5000 },
 };
@@ -66,7 +73,7 @@ describe('autoMarkMissed', () => {
 });
 
 describe('tapCell', () => {
-  it('marks a drawn cell inside the window and earns the decaying speed bonus', () => {
+  it('marks a drawn cell inside the window with the speed bonus the server sent', () => {
     const state = initialManualState(CELLS);
     const tapped = tapCell({
       state,
@@ -77,8 +84,9 @@ describe('tapCell', () => {
       rules: AFTER_5S,
     });
     expect(tapped.marks[4]).toBe(true);
-    expect(tapped.feedback).toEqual({ kind: 'marked', bonus: 5 });
-    expect(tapped.bonusEarned).toBe(5);
+    // 1.5 s after the draw: the server's step up to 2.5 s.
+    expect(tapped.feedback).toEqual({ kind: 'marked', bonus: 4 });
+    expect(tapped.bonusEarned).toBe(4);
   });
 
   it('marks a late tap without bonus (noAutoMark keeps the cell tappable)', () => {
@@ -111,11 +119,13 @@ describe('tapCell', () => {
   });
 });
 
-describe('speedBonus and nextAutoMark', () => {
-  it('is the maximum at delta 0 and 0 at the end of the window', () => {
-    expect(speedBonus(AFTER_5S, 0)).toBe(10);
-    expect(speedBonus(AFTER_5S, 3_000)).toBe(0);
-    expect(speedBonus(AFTER_5S, 3_001)).toBe(0);
+describe('sentSpeedBonus and nextAutoMark', () => {
+  it("shows the server's bonus for the time since the draw, 0 past its last step (H6)", () => {
+    expect(sentSpeedBonus(AFTER_5S, 0)).toBe(10);
+    expect(sentSpeedBonus(AFTER_5S, 1_000)).toBe(4);
+    expect(sentSpeedBonus(AFTER_5S, 2_999)).toBe(1);
+    expect(sentSpeedBonus(AFTER_5S, 3_000)).toBe(0);
+    expect(sentSpeedBonus(AFTER_5S, -1)).toBe(0);
   });
 
   it('reports the earliest pending auto-mark at draw time plus the delay', () => {

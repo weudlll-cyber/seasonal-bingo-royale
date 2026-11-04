@@ -138,7 +138,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 4. fail2ban for SSH: `apt install fail2ban`.
 5. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
 6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
-7. Optional: Cloudflare in front for DDoS protection; then the game must trust Cloudflare's addresses as well: run the installer again with `--trusted-proxies <range>,<range>,…` (Cloudflare's published ranges). They are added to the proxy the install type trusts and kept on later runs; `--trusted-proxies none` removes them.
+7. No CDN in front: a CDN or Cloudflare proxy in front of the game is not supported for now. Behind it every visitor would share the same rate limits. Point your domain's DNS straight at the server (with Cloudflare: “DNS only”, the grey cloud). The installer's `--trusted-proxies <range>,…` is only for a proxy of your own in front of the website; `--trusted-proxies none` removes the ranges again.
 
 ## 8. Removing the game
 

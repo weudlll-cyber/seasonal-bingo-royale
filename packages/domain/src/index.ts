@@ -60,7 +60,12 @@ export {
   type VerifyMatchInput,
 } from './verifyMatch.js';
 export { scoreMark, type MarkScoring } from './scoring/basePoints.js';
-export { speedBonus, type SpeedBonusCfg } from './scoring/speedBonus.js';
+export {
+  speedBonus,
+  speedBonusSteps,
+  type SpeedBonusCfg,
+  type SpeedBonusStep,
+} from './scoring/speedBonus.js';
 export {
   scorePattern,
   type PatternScoringCfg,

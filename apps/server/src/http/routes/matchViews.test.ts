@@ -23,11 +23,16 @@ import {
   type StoredEvent,
 } from '@sbr/application';
 import { byTieBreak, candidateOf, simulateMatch } from '@sbr/domain';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { LiveViews } from '../../view/liveViews.js';
 import { NO_WATCH_QUERY, type WatchQuery } from '../../view/watchView.js';
 import { liveView, matchSummary } from './matchViews.js';
+
+// Every test replays this 200-player royale (about 9,000 events since the qualification
+// plays two full rounds, 01 §7.1): alone a test takes 1-3 s, under a full parallel run
+// longer than the default 5 s.
+vi.setConfig({ testTimeout: 30_000 });
 
 const sim = simulateMatch({
   matchId: 'm',

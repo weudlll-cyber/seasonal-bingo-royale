@@ -7,12 +7,14 @@
  *                 invariants the owner's manual acceptance depends on: the result is
  *                 deterministic (same input → same output), the final placement is a
  *                 total order 1..N over every entrant, the Winter shield reserves a
- *                 player's shieldCharges and the event log contains the lifecycle
- *                 events the client plays back.
+ *                 player's shieldCharges, the event log contains the lifecycle
+ *                 events the client plays back, and the speed bonus is sent as the
+ *                 domain scores it (the client only looks it up, audit-3 H6).
  * Depends on:     ./quicktest, @sbr/contracts
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
 import { DEFAULT_PRIZE_SELECTION, type QuickTestResult } from '@sbr/contracts';
+import { speedBonus } from '@sbr/domain';
 import { describe, expect, it } from 'vitest';
 
 import { runQuickTest } from './quicktest.js';
@@ -176,5 +178,23 @@ describe('runQuickTest — the round recap (D20)', () => {
       markingMode: 'auto',
     });
     expect(classic.recaps).toBeUndefined();
+  });
+});
+
+describe('runQuickTest — the speed bonus (audit-3 H6)', () => {
+  it('sends the speed bonus the server scores a tap with, by time after the draw (H6)', () => {
+    const result = runQuickTest({
+      gameType: 'royale',
+      playerCount: 3,
+      ownerCards: 1,
+      seedText: 'showcase-3',
+      tickedPrizes: [],
+      markingMode: 'manual',
+    });
+    const cfg = { maxBonus: 10, windowMs: result.speedWindowMs };
+    const sent = (ms: number) => result.speedBonusSteps.find((s) => ms <= s.untilMs)?.bonus ?? 0;
+    for (let ms = 0; ms <= result.speedWindowMs + 10; ms += 1) {
+      expect(sent(ms)).toBe(speedBonus(cfg, ms));
+    }
   });
 });

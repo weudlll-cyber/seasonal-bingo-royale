@@ -104,8 +104,8 @@ seasonal-bingo-royale/
 
 | Rule | Limit | Enforced by |
 |---|---|---|
-| File length | ≤ 300 lines (tests ≤ 400) | ESLint `max-lines` |
-| Function length | ≤ 60 lines | ESLint `max-lines-per-function` |
+| File length | ≤ 300 lines; test files have no limit (owner decision 2026-11-04, audit-3 H7) | ESLint `max-lines` |
+| Function length | ≤ 60 lines, tests included | ESLint `max-lines-per-function` |
 | Cyclomatic complexity | ≤ 12 | ESLint `complexity` |
 | Parameters | ≤ 4 (use an object beyond) | ESLint `max-params` |
 | Layer dependencies | §3 of [02-software-architecture.md](02-software-architecture.md) | `eslint-plugin-boundaries` |

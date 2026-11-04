@@ -83,7 +83,10 @@ export function royaleFixture(
     // Shorter than the 1 s draw interval, as every ruleset requires (D10).
     speedWindowMs: 500,
     pointsPerMark: 10,
-    maxSpeedBonus: 10,
+    speedBonusSteps: [
+      { untilMs: 249, bonus: 10 },
+      { untilMs: 500, bonus: 5 },
+    ],
     tickedPrizes: [],
     stagePlan: STAGES,
     ownerAccountIds: ['owner-01'],

@@ -23,7 +23,13 @@ import {
   type QuickTestResult as ClientView,
   type Ruleset,
 } from '@sbr/contracts';
-import { countBits, type DomainEvent, type GameType, type MatchState } from '@sbr/domain';
+import {
+  countBits,
+  speedBonusSteps,
+  type DomainEvent,
+  type GameType,
+  type MatchState,
+} from '@sbr/domain';
 
 import { effectSeasons, LiveReplay } from './clientEvents.js';
 
@@ -81,7 +87,10 @@ export function buildClientView(input: ClientViewInput): ClientView {
     ),
     speedWindowMs: ruleset.marking.speedWindowMs,
     pointsPerMark: ruleset.scoring.pointsPerMark,
-    maxSpeedBonus: ruleset.scoring.maxSpeedBonus,
+    speedBonusSteps: speedBonusSteps({
+      maxBonus: ruleset.scoring.maxSpeedBonus,
+      windowMs: ruleset.marking.speedWindowMs,
+    }),
     events: replay.renamed,
     players,
     stagePlan: state.stagePlan,

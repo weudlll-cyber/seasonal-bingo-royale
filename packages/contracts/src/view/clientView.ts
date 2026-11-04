@@ -184,7 +184,10 @@ export interface QuickTestResult {
   readonly drawIntervalRangeMs: { readonly min: number; readonly max: number };
   readonly speedWindowMs: number;
   readonly pointsPerMark: number;
-  readonly maxSpeedBonus: number;
+  // The speed bonus the server scores a tap with: a tap `untilMs` or less after its draw
+  // (after the previous step) earns `bonus`, 0 past the last step. The Quick Test shows it
+  // without computing it (audit-3 H6).
+  readonly speedBonusSteps: readonly { readonly untilMs: number; readonly bonus: number }[];
   readonly tickedPrizes: readonly string[];
   readonly events: readonly DomainEventLike[];
   readonly players: readonly PlayerSummary[];

@@ -4,8 +4,8 @@
  * @brief  Manual-marking rules of the Quick Test: tap, speed bonus, missed numbers (01 §6).
  *
  * Responsibility: pure state transitions for the owner's taps on one card. A tap on a drawn cell
- *                 marks it, with the decaying speed bonus inside the speed window, without it
- *                 later; taps on undrawn cells and after the round end are refused. A drawn cell
+ *                 marks it, with the speed bonus the server sent for that time inside the
+ *                 speed window (looked up, audit-3 H6), without it later; taps on undrawn cells and after the round end are refused. A drawn cell
  *                 left open follows the starter's missed-number rule: autoMarkAfter marks it
  *                 without bonus after the delay, noAutoMark leaves it open until tapped. Points
  *                 come from the server; this file tracks marks and the bonus taps earned, which
@@ -15,10 +15,10 @@
  * Used by:        ./components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §6, §8.1; docs/spec/15-implementation-plan.md WP-08
  */
-import { secondsText, type Cell, type MissedNumbers } from './types.js';
+import { secondsText, type Cell, type MissedNumbers, type QuickTestResult } from './types.js';
 
 export interface ManualRules {
-  readonly maxSpeedBonus: number;
+  readonly speedBonusSteps: QuickTestResult['speedBonusSteps'];
   readonly speedWindowMs: number;
   readonly missedNumbers: MissedNumbers;
   // The round has ended: taps are refused and nothing more is marked for the owner.
@@ -45,11 +45,12 @@ export function initialManualState(cells: readonly Cell[]): ManualState {
   return { marks: cells.map((c) => c.kind === 'free'), bonusEarned: 0, feedback: null };
 }
 
-// Same linear decay as the domain's speedBonus (packages/domain/src/scoring/speedBonus.ts):
-// maxBonus at delta 0, 0 at the end of the window.
-export function speedBonus(rules: ManualRules, deltaMs: number): number {
-  if (rules.speedWindowMs <= 0 || deltaMs < 0 || deltaMs > rules.speedWindowMs) return 0;
-  return Math.round(rules.maxSpeedBonus * (1 - deltaMs / rules.speedWindowMs));
+// The bonus the server sent for a tap this long after its draw (audit-3 H6: looked up,
+// never computed here); 0 before the draw and past the last step.
+export function sentSpeedBonus(rules: ManualRules, deltaMs: number): number {
+  if (deltaMs < 0) return 0;
+  const ms = Math.round(deltaMs);
+  return rules.speedBonusSteps.find((s) => ms <= s.untilMs)?.bonus ?? 0;
 }
 
 interface TapInput {
@@ -70,7 +71,7 @@ export function tapCell({ state, cells, index, drawTimes, now, rules }: TapInput
   const drawnAt = drawTimes.get(cell.value);
   if (drawnAt === undefined) return { ...state, feedback: { kind: 'refused' } };
   // Zero once the window has closed: a late tap marks without bonus.
-  const bonus = speedBonus(rules, now - drawnAt);
+  const bonus = sentSpeedBonus(rules, now - drawnAt);
   return {
     marks: withMark(state.marks, index),
     bonusEarned: state.bonusEarned + bonus,
