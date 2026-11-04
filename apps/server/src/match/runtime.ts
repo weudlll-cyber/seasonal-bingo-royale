@@ -26,7 +26,7 @@ import { SEED_BYTES } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
 import { LocalEventBus } from './eventBus.js';
-import { PgMatchStore } from './pgMatchStore.js';
+import { PgMatchStore, type AppendTiming } from './pgMatchStore.js';
 import { PgScheduler } from './pgScheduler.js';
 
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -43,7 +43,7 @@ export interface MatchRuntime {
 const SYSTEM_CLOCK: Clock = { now: () => Date.now() };
 
 // `maintenance` holds the automatic starts while `sbr maintenance on` is set (D22);
-// development builds pass their time-travel clock (../dev/devClock); `onTapBatch` feeds the
+// development builds pass their time-travel clock (../dev/devClock); `onTapBatch` and `onAppend` feed the
 // tap breakdown of the metrics (12 §5).
 export function createMatchRuntime(
   pool: DbPool,
@@ -52,11 +52,13 @@ export function createMatchRuntime(
   options: {
     readonly clock?: Clock | undefined;
     readonly onTapBatch?: (batch: TapBatchTiming) => void;
+    // Each stored batch's round trips and time (the metrics, 12 §5).
+    readonly onAppend?: (timing: AppendTiming) => void;
   } = {},
 ): MatchRuntime {
   const clock = options.clock ?? SYSTEM_CLOCK;
   const onTapBatch = options.onTapBatch;
-  const store = new PgMatchStore(pool, seedKey);
+  const store = new PgMatchStore(pool, seedKey, options.onAppend);
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();
   const engine = new MatchEngine({

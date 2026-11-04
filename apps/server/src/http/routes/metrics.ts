@@ -6,7 +6,7 @@
  * Responsibility: expose process metrics, placeholder sbr_* gauges and the tap breakdown
  *                 (12 §5: the gateway's match lookup, the wait in the match's queue, the
  *                 batch's decide, append and publish, the batch size, the whole tap until its
- *                 answer) and the live updates' cost (state fetches, the time spent building
+ *                 answer, the round trips per stored batch) and the live updates' cost (state fetches, the time spent building
  *                 fetch answers and room frames, the bytes each sends) in Prometheus text format, to scrapers inside the server only: a request that came
  *                 through a proxy (X-Forwarded-For) gets 404, in every install type (audit
  *                 S8). Later work packages add the full metric catalogue of 08 §6.
@@ -16,6 +16,8 @@
  */
 import type { FastifyInstance } from 'fastify';
 import type { TapBatchTiming } from '@sbr/application';
+
+import type { AppendTiming } from '../../match/pgMatchStore.js';
 import { Counter, Registry, collectDefaultMetrics, Gauge, Histogram } from 'prom-client';
 
 export interface TapMetrics {
@@ -23,6 +25,8 @@ export interface TapMetrics {
   readonly lookup: (ms: number) => void;
   readonly handled: (ms: number) => void;
   readonly batch: (timing: TapBatchTiming) => void;
+  // A stored batch: its round trips to PostgreSQL, by whether it was taps.
+  readonly appended: (timing: AppendTiming) => void;
 }
 
 // What the live updates cost the server (12 §5): `kind` is a state fetch's answer or a frame.
@@ -68,6 +72,13 @@ function tapMetrics(registry: Registry): TapMetrics {
   const wait = histogram('sbr_tap_wait_seconds', "A tap's wait from arrival to its batch.");
   const phase = histogram('sbr_tap_batch_seconds', 'A batch of taps, per phase.', ['phase']);
   const handled = histogram('sbr_tap_handled_seconds', 'A tap from the gateway to its answer.');
+  const trips = new Histogram({
+    name: 'sbr_store_append_round_trips',
+    help: 'Round trips to PostgreSQL per stored batch.',
+    labelNames: ['kind'],
+    buckets: [1, 2, 3, 4, 6, 8, 12, 20],
+    registers: [registry],
+  });
   const size = new Histogram({
     name: 'sbr_tap_batch_size',
     help: 'Taps applied in one batch.',
@@ -87,6 +98,9 @@ function tapMetrics(registry: Registry): TapMetrics {
       phase.observe({ phase: 'append' }, t.appendMs / 1000);
       phase.observe({ phase: 'publish' }, t.publishMs / 1000);
       size.observe(t.size);
+    },
+    appended: (t) => {
+      trips.observe({ kind: t.taps ? 'taps' : 'other' }, t.roundTrips);
     },
   };
 }
