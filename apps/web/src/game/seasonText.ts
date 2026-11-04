@@ -4,7 +4,8 @@
  * @brief  The seasons and their effects in plain sentences (01 §8.2, §8.3, PLAYER-CLARITY).
  *
  * Responsibility: one short sentence per active effect with the season's name ("Summer boost:
- *                 all your points count ×1.5 — 5 more numbers"), the Winter shield with its
+ *                 all your points count ×1.5 — 5 more numbers", "— this number only" on its last
+ *                 draw), the Winter shield with its
  *                 margin and charges left, what a used shield did ("Your Winter shield saved
  *                 you in cut 1 (you were 2 places below the line)"), the owner's season as an
  *                 event line (the Autumn harvest with its points), and the Season Complete
@@ -28,12 +29,14 @@ const EFFECT_WORD: Readonly<Record<Effect['type'], string>> = {
   revealNext: 'preview',
 };
 
-export function effectTitle(season: Season, effect: Effect): string {
+function effectTitle(season: Season, effect: Effect): string {
   const word = EFFECT_WORD[effect.type];
   return word === '' ? seasonName(season) : `${seasonName(season)} ${word}`;
 }
 
-const numbersLeft = (n: number): string => `${String(n)} more ${n === 1 ? 'number' : 'numbers'}`;
+// The draws still to come after this one (the server's count); 0 on the effect's last draw.
+const numbersLeft = (n: number): string =>
+  n === 0 ? 'this number only' : `${String(n)} more ${n === 1 ? 'number' : 'numbers'}`;
 
 const places = (n: number): string => `${String(n)} ${n === 1 ? 'place' : 'places'}`;
 

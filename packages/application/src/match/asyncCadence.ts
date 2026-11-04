@@ -34,7 +34,7 @@ interface NextDrawInput {
   readonly catchUp: { readonly intervalMs: number; readonly maxDraws: number };
 }
 
-export interface TimedDraw {
+interface TimedDraw {
   readonly dueAt: number;
   readonly plannedAt: number;
 }

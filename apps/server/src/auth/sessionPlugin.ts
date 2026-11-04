@@ -11,7 +11,8 @@
  *                 (404); limit a session to 120 API calls a minute, requests without one to
  *                 600 per address. Cookie name, path and Secure flag follow 03 §3.
  * Depends on:     fastify, @fastify/cookie, ./sessions, ./rateLimit, ../db/pool
- * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn
+ * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn,
+ *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/03-security-architecture.md §3, §8, §13
  */
 import { timingSafeEqual } from 'node:crypto';

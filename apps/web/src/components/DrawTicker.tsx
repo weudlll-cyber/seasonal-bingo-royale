@@ -11,7 +11,7 @@
  *                 Where a screen caps the row's height (the player screen, ../game/arena.css)
  *                 it scrolls, and each new draw scrolls it to the newest.
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
- * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
+ * Used by:        ./Playback, ../game/MatchScreen
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
  */
 import { useEffect, useRef, type ReactElement } from 'react';

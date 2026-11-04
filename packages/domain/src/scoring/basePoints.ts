@@ -18,8 +18,9 @@ export interface MarkScoring {
 
 export function scoreMark(cfg: MarkScoring, effects: EffectState): number {
   const base = cfg.pointsPerMark;
+  // nthMark further marks are made; this one is the next: +1×, +2×, +3× … (01 §8.2).
   const growthBonus =
-    effects.growth !== null ? effects.growth.pointsPerMark * effects.growth.nthMark : 0;
+    effects.growth !== null ? effects.growth.pointsPerMark * (effects.growth.nthMark + 1) : 0;
   const multiplier = effects.multiplier?.factor ?? 1;
   // Order from 01 §8.2: growth is additive, then the multiplier scales the mark total.
   return Math.round((base + growthBonus) * multiplier);

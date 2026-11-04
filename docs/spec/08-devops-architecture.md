@@ -18,7 +18,7 @@ Every environment runs the **same container image**; differences are environment
 |---|---|---|
 | Server (HTTP + WS) | **3900** | `pnpm dev` (apps/server) |
 | Player client (web, Vite) | **5390** | `pnpm dev` (apps/web) |
-| Admin client (admin, Vite) | **5391** | `pnpm dev` (apps/admin) |
+| Admin client (admin, Vite) | **5391** | planned: `pnpm dev` once apps/admin has a dev script (WP-19); reserved until then |
 | PostgreSQL | **5490** | `docker compose -f ops/compose.dev.yml up -d` |
 | Mailpit (SMTP) | **1090** | compose |
 | Mailpit (web UI) | **8490** | compose |
@@ -112,6 +112,6 @@ Key metrics: `sbr_http_requests_total`, `sbr_http_duration_seconds`, `sbr_ws_con
 ## 8. Developer experience
 
 - VS Code workspace file with recommended extensions (ESLint, Prettier, Vitest, Playwright, Docker, EditorConfig) and launch configs for server debug and Vitest.
-- `pnpm dev` starts everything for local work: the server on **3900** and both clients (player on **5390**, admin on **5391**) in parallel. PostgreSQL and Mailpit are started separately with `docker compose -f ops/compose.dev.yml up -d` so the dev stack keeps running across restarts. `pnpm verify` runs exactly what CI's blocking jobs run except e2e/image. The server restarts on changes to its own sources and the workspace packages only (`tsx watch`, excluding `node_modules`, test output, coverage, `reports/` and its data folder): before 2026-11-04 `node --watch` also restarted it when a file inside `node_modules` changed, which broke sign-ins in the middle of e2e runs. The full e2e suite in all browsers runs in CI only; locally the specs that read a change run in Chromium (CLAUDE.md, Testing).
+- `pnpm dev` starts everything for local work: the server on **3900** and the player client on **5390** in parallel (the admin client on **5391** joins once it has a dev script, WP-19). PostgreSQL and Mailpit are started separately with `docker compose -f ops/compose.dev.yml up -d` so the dev stack keeps running across restarts. `pnpm verify` runs exactly what CI's blocking jobs run except e2e/image. The server restarts on changes to its own sources and the workspace packages only (`tsx watch`, excluding `node_modules`, test output, coverage, `reports/` and its data folder): before 2026-11-04 `node --watch` also restarted it when a file inside `node_modules` changed, which broke sign-ins in the middle of e2e runs. The full e2e suite in all browsers runs in CI only; locally the specs that read a change run in Chromium (CLAUDE.md, Testing).
 - `CLAUDE.md` at the repo root tells Claude Code the rules (see [10-repository-structure.md](10-repository-structure.md)).
 - Pre-commit hook (lefthook): formats staged files only. Fast (< 5 s); gitleaks and every heavier check run in CI, not in the hook.

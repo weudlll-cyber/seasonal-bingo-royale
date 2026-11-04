@@ -29,10 +29,11 @@ describe('scoreMark', () => {
     expect(scoreMark({ pointsPerMark: 10 }, INITIAL_EFFECT_STATE)).toBe(10);
   });
 
-  it('adds growth bonus (nth mark × pointsPerMark) before multiplying', () => {
+  it('adds growth bonus (the number of this further mark × pointsPerMark) before multiplying', () => {
     const state = withEffects({ growth: { pointsPerMark: 2, remainingDraws: 10, nthMark: 3 } });
-    // base 10 + growth (2 × 3) = 16, no multiplier
-    expect(scoreMark({ pointsPerMark: 10 }, state)).toBe(16);
+    // Three further marks made, this is the fourth: base 10 + growth (2 × 4) = 18 (01 §8.2:
+    // +1×, +2×, +3× …; audit-3 G4: the first one earned +0× before).
+    expect(scoreMark({ pointsPerMark: 10 }, state)).toBe(18);
   });
 
   it('applies the multiplier after growth', () => {
@@ -40,8 +41,8 @@ describe('scoreMark', () => {
       growth: { pointsPerMark: 2, remainingDraws: 10, nthMark: 3 },
       multiplier: { factor: 1.5, remainingDraws: 8 },
     });
-    // (10 + 6) * 1.5 = 24
-    expect(scoreMark({ pointsPerMark: 10 }, state)).toBe(24);
+    // (10 + 8) * 1.5 = 27
+    expect(scoreMark({ pointsPerMark: 10 }, state)).toBe(27);
   });
 });
 

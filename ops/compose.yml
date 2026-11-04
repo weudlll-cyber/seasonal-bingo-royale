@@ -70,6 +70,10 @@ services:
       POSTGRES_USER: sbr
       POSTGRES_DB: sbr
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the env file}
+    # As the app: no process may gain privileges (audit-3 O2); the image's own user switch
+    # at start needs its default capabilities, so none are dropped.
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

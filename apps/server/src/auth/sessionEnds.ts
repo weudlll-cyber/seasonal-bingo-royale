@@ -7,7 +7,8 @@
  *                 session, account deletion); the gateway listens and disconnects every
  *                 socket of those sessions (room `session:<id>`).
  * Depends on:     nothing
- * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway
+ * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn,
+ *                 ../http/routes/websiteSignIn, ../realtime/gateway
  * Spec:           docs/spec/06-realtime-architecture.md §2.3; docs/spec/03-security-architecture.md §3
  */
 

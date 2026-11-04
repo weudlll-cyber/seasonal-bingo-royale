@@ -16,7 +16,7 @@
 import type { DbPool } from '../db/pool.js';
 import { decodeStored } from './codec.js';
 
-export type SealedSeedCheck = 'opened' | 'none';
+type SealedSeedCheck = 'opened' | 'none';
 
 export async function openOneSealedSeed(pool: DbPool, key: Buffer): Promise<SealedSeedCheck> {
   const r = await pool.query<{ match_id: string; payload: unknown }>(

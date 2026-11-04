@@ -10,7 +10,7 @@
  *                 case-insensitively; a clash is reported as one generic error so the
  *                 response never reveals which e-mail exists.
  * Depends on:     ../db/pool, ./password
- * Used by:        ../http/routes/auth, ../http/routes/devSignIn, ../cli
+ * Used by:        ../http/routes/auth, ../http/routes/devSignIn, ../cli, ../dev/demoLeague
  * Spec:           docs/spec/03-security-architecture.md §2.1; docs/spec/04-database-design.md §3.1
  */
 import { randomBytes } from 'node:crypto';

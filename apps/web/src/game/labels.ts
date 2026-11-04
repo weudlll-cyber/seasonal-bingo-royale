@@ -73,7 +73,7 @@ export function missedLine(settings: MatchSummary['settings']): string {
 const hourText = (h: number): string => `${String(h).padStart(2, '0')}:00`;
 
 // "Quiet hours 00:00–07:00 (Europe/Berlin)" for an asynchronous match that has them (01 §5).
-export function quietLine(settings: MatchSummary['settings']): string | null {
+function quietLine(settings: MatchSummary['settings']): string | null {
   const q = settings.quietHours;
   if (q === null) return null;
   return `Quiet hours ${hourText(q.startHour)}–${hourText(q.endHour)} (${settings.timeZone})`;

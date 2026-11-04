@@ -15,7 +15,7 @@
  *                 sends a visitor the website refused; a redirect to SBR_WEBSITE_LOGIN_PATH
  *                 with the sign-in route and `next` as return path (D43).
  * Depends on:     node:crypto, fastify, ../../auth/websiteIdentity, ../../auth/websiteAccounts, ./auth,
- *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types),
+ *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types), ../../auth/sessions,
  *                 ../../auth/rateLimit, ../../config/env (types), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2;
@@ -28,6 +28,7 @@ import type { FastifyInstance } from 'fastify';
 import { openRouteLimit } from '../../auth/rateLimit.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
+import { findSession } from '../../auth/sessions.js';
 import { websiteAccount } from '../../auth/websiteAccounts.js';
 import { identityFrom, trustedPeers } from '../../auth/websiteIdentity.js';
 import type { Env } from '../../config/env.js';
@@ -43,7 +44,7 @@ interface WebsiteSignInDeps {
 
 // Where to go after signing in: a path under the base path (the client's page, its hash
 // included, percent-encoded), never another site: printable ASCII only, no "//", no backslash.
-export function safeNext(next: unknown, basePath: string): string {
+function safeNext(next: unknown, basePath: string): string {
   if (typeof next !== 'string' || next.length > 512 || !next.startsWith(basePath)) return basePath;
   return /^[\x21-\x7e]+$/.test(next) && !/\/\/|\\/.test(next) ? next : basePath;
 }
@@ -93,6 +94,10 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       if (who === null) return reply.status(403).send({ code: 'NO_WEBSITE_USER' });
       const accountId = await websiteAccount(deps.pool, issuer, who);
       if (accountId === null) return reply.status(403).send({ code: 'ACCOUNT_SUSPENDED' });
+      // This route is outside /api, where the session hook does not look: find the browser's
+      // session here, so the new one replaces it (03 §3; audit-3 S2).
+      const token = request.cookies[deps.cookie.name];
+      request.session = token === undefined ? null : await findSession(deps.pool, token);
       await openSession(request, reply, deps, accountId);
       return reply.redirect(safeNext(request.query.next, base), 302);
     },

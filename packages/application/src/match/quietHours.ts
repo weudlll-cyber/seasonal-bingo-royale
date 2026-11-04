@@ -9,7 +9,7 @@
  *                 a spring night that skips it, the first moment after the gap. Pure: the
  *                 time zone rules come from the runtime's Intl data, the moment is passed in.
  * Depends on:     @sbr/contracts (types)
- * Used by:        ./asyncSchedule, ./create, ../index
+ * Used by:        ./asyncCadence, ./create, ../index
  * Spec:           docs/spec/01-game-design.md §5
  */
 import type { QuietHours } from '@sbr/contracts';

@@ -9,7 +9,7 @@
  *                 signed-in session (CSRF checked). The app registers this route only with
  *                 SBR_DEV=1; the production bundle replaces the module (build.mjs) and a test
  *                 proves a production build answers 404.
- * Depends on:     fastify, zod, ../../dev/devClock, ./matches
+ * Depends on:     fastify, zod, ../../dev/devClock, ../../match/pgScheduler (types), ./matches
  * Used by:        ../app
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/15-implementation-plan.md WP-14
  */

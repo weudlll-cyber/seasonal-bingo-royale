@@ -16,7 +16,7 @@
  *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
  *                 ./myMatches,
  *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
- * Used by:        ../app, ./matchHost, ./awaySummary
+ * Used by:        ../app, ./matchHost, ./awaySummary, ./timeTravel
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
 import type { MaintenanceCheck } from '../../config/maintenance.js';

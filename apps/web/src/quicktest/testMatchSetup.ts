@@ -26,8 +26,7 @@ import { hrefOf, navigate } from '../shell/router.js';
 import type { GameType } from '../types.js';
 
 // "Now": the host's Start with the 10-second countdown; else a set time N minutes ahead.
-export type StartChoice =
-  { readonly kind: 'now' } | { readonly kind: 'in'; readonly minutes: number };
+type StartChoice = { readonly kind: 'now' } | { readonly kind: 'in'; readonly minutes: number };
 
 export interface TestMatchValues {
   readonly gameType: GameType;

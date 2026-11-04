@@ -126,14 +126,14 @@ describe('round recap for a fixed seed (D20)', () => {
     const host = await signIn(harness.built.fastify, 'host');
     await playFirstRound({ harness, id, code, player: host, me: '' });
     const recaps = await recapsOf(() => host.get(`/api/v1/matches/${code}/state`));
-    // 8 bots, a 50 % cut keeps 4 (D18) and bot-01's Winter shield saves one more; bot-07
-    // ranks above bot-06 on equal points by the 01 §8.4 chain, though bot-06 joined first.
+    // 8 bots, a 50 % cut keeps 4 (D18) and bot-01's Winter shield saves one more; bot-07's
+    // Spring growth earns +1× from its first further mark (01 §8.2, audit-3 G4), 52 to 50.
     expect(recaps).toEqual([
       {
         roundIndex: 0,
         top: [
           { name: 'bot-03', points: 65 },
-          { name: 'bot-07', points: 50 },
+          { name: 'bot-07', points: 52 },
           { name: 'bot-06', points: 50 },
         ],
         climber: { name: 'bot-07', from: 7, to: 2 },

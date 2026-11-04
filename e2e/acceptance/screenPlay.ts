@@ -13,7 +13,7 @@
  */
 import { expect, type Browser, type Locator, type Page } from '@playwright/test';
 
-import { fillAndStart, hostMatch, post, signIn } from '../realGame.js';
+import { fillAndStart, hostMatch, post, signIn, stopMatch } from '../realGame.js';
 import { captureThemes, SHOTS_DIR } from '../screens.js';
 import { liveSnap } from './liveSnap.js';
 
@@ -70,12 +70,18 @@ export async function openMatch(
     // Royale: the host starts each next round (D14), see nextRound.
     ...(gameType === 'royale' ? { pause: 'host' as const, fast } : {}),
   });
-  expect((await post(host, `/api/v1/matches/${code}/join`, {})).status()).toBe(204);
-  const player = await host.context().newPage();
-  await player.goto(`/#/match/${code}`);
-  await fillAndStart(host, 11);
-  await expect(player.getByTestId('arena')).toBeVisible({ timeout: 30_000 });
-  return { code, console: host, player };
+  // A failure before the callers' try/finally aborts the match here (audit-3 T3).
+  try {
+    expect((await post(host, `/api/v1/matches/${code}/join`, {})).status()).toBe(204);
+    const player = await host.context().newPage();
+    await player.goto(`/#/match/${code}`);
+    await fillAndStart(host, 11);
+    await expect(player.getByTestId('arena')).toBeVisible({ timeout: 30_000 });
+    return { code, console: host, player };
+  } catch (error) {
+    await stopMatch(host, code);
+    throw error;
+  }
 }
 
 // The host starts each next round (D14) from the console tab, but not the final until its
