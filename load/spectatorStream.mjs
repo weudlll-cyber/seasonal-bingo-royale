@@ -7,10 +7,10 @@
  *                 join one royale with timed draws every 2 s (fast profile, missed numbers marked
  *                 after the speed window, so every player marks), and connect one spectator (a
  *                 load account that does not play) that behaves as the player screen does
- *                 (apps/web/src/game/useLiveMatch.ts): frames of other players' taps are appended
- *                 unless they name a watched player, anything else fetches `state?since=` with
- *                 `known=` (the watched cards it holds). Records per draw the bytes of frames and
- *                 fetches, the part of them that is the watch block, and the server's CPU. Then
+ *                 (apps/web/src/game/matchRoom.ts): each step's room and own frames applied,
+ *                 `state?since=` fetched only first and on a gap. Records per draw the bytes of
+ *                 frames and fetches, the part of them that is the watch block (in the own
+ *                 frames), and the server's CPU. Then
  *                 aborts the match (append-only log) and deletes the load accounts.
  *                 Usage: node load/spectatorStream.mjs [players=200] [minutes=4]
  * Depends on:     socket.io-client, ./devDefaults.mjs, ./common.mjs
@@ -33,14 +33,9 @@ import {
 
 const PLAYERS = Number(process.argv[2] ?? 200);
 const MINUTES = Number(process.argv[3] ?? 4);
-const APPENDABLE = new Set([
-  'cellMarked',
-  'patternScored',
-  'classicPrizeAwarded',
-  'speedWindowClosed',
-]);
-
-// The spectator: counts every byte it receives and how much of it is the watch block.
+// The spectator, as the screen does it (06 §8): one full fetch, then each step applied when
+// its own frame follows the room frame, a fetch of the new events only on a gap. Counts every
+// byte it receives and how much of it is the watch block.
 function connectSpectator(viewer, code, record) {
   const socket = io(SOCKET.url, {
     path: SOCKET.path,
@@ -49,48 +44,28 @@ function connectSpectator(viewer, code, record) {
     reconnection: false,
   });
   let since = 0;
-  let watched = new Set();
-  let known = { round: -1, names: [] };
-  let running = false;
-  let again = false;
+  let step = null;
   const fetchNew = async () => {
-    if (running) {
-      again = true;
-      return;
-    }
-    running = true;
-    do {
-      again = false;
-      const q = known.round < 0 ? '' : `&known=${String(known.round)}:${known.names.join(',')}`;
-      const fetched = await call(
-        viewer,
-        'GET',
-        `/matches/${code}/state?since=${String(since)}${q}`,
-      );
-      if (fetched === null) continue;
-      record.fetchBytes += JSON.stringify(fetched).length;
-      const watch = fetched.view.watch;
-      if (watch !== undefined) {
-        record.watchBytes += JSON.stringify(watch).length;
-        record.cardBytes += JSON.stringify(watch.cards).length;
-        watched = new Set(Object.keys(watch.oneToGo));
-        const start = fetched.view.events.findLast((e) => e.type === 'roundStarted');
-        if (start !== undefined) known = { round: start.roundIndex, names: [] };
-        known.names = [...new Set([...known.names, ...Object.keys(watch.cards)])];
-      }
-      since = Math.max(since, fetched.seq);
-    } while (again);
-    running = false;
+    const fetched = await call(viewer, 'GET', `/matches/${code}/state?since=${String(since)}`);
+    if (fetched === null) return;
+    record.fetchBytes += JSON.stringify(fetched).length;
+    since = Math.max(since, fetched.seq);
   };
   socket.on('connect_error', (e) => fail('socket', e.message));
   socket.on('events', (frame) => {
     record.frameBytes += JSON.stringify(frame).length;
     record.draws += frame.events.filter((e) => e.event.type === 'drawMade').length;
-    const plain = frame.events.every(
-      (e) => APPENDABLE.has(e.event.type) && !watched.has(e.event.accountId),
-    );
-    if (frame.events[0]?.s === since + 1 && plain) since = frame.s;
+    step = frame;
+  });
+  socket.on('own', (own) => {
+    record.frameBytes += JSON.stringify(own).length;
+    if (own.watch !== null) {
+      record.watchBytes += JSON.stringify(own.watch).length;
+      record.cardBytes += JSON.stringify(own.watch.cards).length;
+    }
+    if (step !== null && step.s === own.s && step.since === since) since = own.s;
     else void fetchNew();
+    step = null;
   });
   return new Promise((resolve) => {
     socket.on('connect', async () => {

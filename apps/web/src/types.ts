@@ -24,6 +24,8 @@ export {
   type Effect,
   type EffectKind,
   type GameType,
+  type LiveOwnFrame,
+  type LiveStepFrame,
   type MarkingMode,
   type MissedNumbers,
   type OwnerStatus,

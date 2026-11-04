@@ -69,6 +69,15 @@ export {
 } from './view/clientView.js';
 export { type MatchVerificationView, type RoundVerification } from './view/verification.js';
 export { type RecapScorer, type RoundRecap } from './view/roundRecap.js';
+export { type LiveOwnFrame, type LiveStepFrame } from './view/liveFrames.js';
+export {
+  applyStep,
+  lastRoundStart,
+  mergeAnswer,
+  withWatchedCards,
+  type LiveAnswer,
+  type LiveHeld,
+} from './view/liveHeld.js';
 export { type AwaySummary } from './view/awaySummary.js';
 export type {
   AccountExport,

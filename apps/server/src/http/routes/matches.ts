@@ -16,7 +16,7 @@
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
  *                 ./myMatches,
- *                 ../../view/liveViews, ../../view/playerNames, ../../view/watchView
+ *                 ../../view/liveViews (types), ../../view/watchView
  * Used by:        ../app, ./matchHost, ./awaySummary, ./timeTravel
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
@@ -30,8 +30,7 @@ import type { PgMatchStore } from '../../match/pgMatchStore.js';
 import { registerAwaySummary } from './awaySummary.js';
 import { registerHostRoutes } from './matchHost.js';
 import { myMatches } from './myMatches.js';
-import { LiveViews } from '../../view/liveViews.js';
-import { playerNames } from '../../view/playerNames.js';
+import type { LiveViews } from '../../view/liveViews.js';
 import type { WatchQuery } from '../../view/watchView.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
@@ -46,6 +45,8 @@ export interface MatchRouteDeps {
   readonly maintenance: MaintenanceCheck;
   // What building the state answers costs (./metrics, 12 §5); none in tests that do not measure.
   readonly live?: LiveMetrics;
+  // The server's one replay per live match (../../view/liveViews).
+  readonly views: LiveViews;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -76,16 +77,6 @@ export async function matchIdByCode(pool: DbPool, code: string): Promise<string 
   return r.rows[0]?.id ?? null;
 }
 
-// The marks of a round the players tapped themselves (the round recap's fastest tapper).
-async function manualTaps(pool: DbPool, matchId: string, roundIndex: number): Promise<string[]> {
-  const r = await pool.query<{ key: string }>(
-    `SELECT player_id || ':' || card_index || ':' || cell AS key FROM sbr.marks
-      WHERE match_id = $1 AND round_index = $2 AND source = 'manual'`,
-    [matchId, roundIndex],
-  );
-  return r.rows.map((row) => row.key);
-}
-
 // Open and running matches, and those finished in the last day, newest first.
 function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
   app.get('/api/v1/matches', async (request) => {
@@ -105,12 +96,8 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
 
 // The live view a screen folds (./matchViews), from one shared replay per match.
 function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
-  // One replay per match, extended as events come, for every screen's fetch.
-  const views = new LiveViews({
-    events: (id, afterSeq) => deps.store.events(id, afterSeq),
-    names: (id) => playerNames(deps.pool, id),
-    manualTaps: (id, round) => manualTaps(deps.pool, id, round),
-  });
+  // One replay per match, shared with the live frames (../../realtime/liveSteps).
+  const views = deps.views;
   app.get<{ Params: { code: string }; Querystring: WatchParams & { since?: string } }>(
     '/api/v1/matches/:code/state',
     async (request, reply) => {
