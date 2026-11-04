@@ -46,7 +46,12 @@ import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
 import { registerMatchRoutes } from './routes/matches.js';
 import { registerVerifyRoute } from './routes/matchVerify.js';
-import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
+import {
+  createMetrics,
+  registerMetrics,
+  type LiveMetrics,
+  type MetricsHandle,
+} from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
 import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
@@ -106,6 +111,7 @@ interface GameRouteDeps {
   readonly match: MatchRuntime;
   // Development only: the time-travel clock the match runtime runs on.
   readonly clock: DevClock | undefined;
+  readonly live: LiveMetrics;
 }
 
 // The matches, Verify, the leaderboards and profiles; in development the time travel.
@@ -117,6 +123,7 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
     store: match.store,
     dev: deps.isDev,
     maintenance: deps.maintenance,
+    live: deps.live,
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
   registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
@@ -159,7 +166,15 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await registerSessions(fastify, deps.pool, cookie);
   registerSignIn(fastify, { env: deps.env, pool: deps.pool, cookie, sessionEnds });
   registerMaintenance(fastify, maintenance);
-  registerGameRoutes(fastify, { pool: deps.pool, isDev, maintenance, seedKey, match, clock });
+  registerGameRoutes(fastify, {
+    pool: deps.pool,
+    isDev,
+    maintenance,
+    seedKey,
+    match,
+    clock,
+    live: metrics.live,
+  });
   const io = attachGateway(fastify.server, {
     pool: deps.pool,
     engine: match.engine,
@@ -169,6 +184,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     path: `${deps.env.SBR_BASE_PATH}ws`,
     sessionEnds,
     taps: metrics.taps,
+    live: metrics.live,
   });
   fastify.addHook('onClose', async () => {
     await io.close();

@@ -28,7 +28,7 @@ import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
-import type { TapMetrics } from '../http/routes/metrics.js';
+import type { LiveMetrics, TapMetrics } from '../http/routes/metrics.js';
 import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js';
 import { PlayerNameCache, playerNames } from '../view/playerNames.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
@@ -46,8 +46,9 @@ export interface GatewayDeps {
   readonly path: string;
   // Ended sessions (logout, account deletion, rotation): their sockets are closed.
   readonly sessionEnds: SessionEnds;
-  // The tap breakdown of the metrics (12 §5); none in tests that do not measure.
+  // The tap breakdown and the live updates' cost (12 §5); none in tests that do not measure.
   readonly taps?: TapMetrics;
+  readonly live?: LiveMetrics;
 }
 
 export interface SocketData {
@@ -92,11 +93,16 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
     // Room-wide frames carry no cards and no draw order; screens fetch their own view.
     const plain = events.map((e) => liveEvent(publicEvent(e.event), null));
     void names.namesFor(matchId, accountIdsIn(plain)).then((book) => {
+      const started = Date.now();
       const renamed = renameAccounts(plain, book);
-      play.to(`match:${matchId}`).emit('events', {
+      const room = `match:${matchId}`;
+      const frame = {
         s: events.at(-1)?.seq ?? 0,
         events: events.map((e, i) => ({ s: e.seq, at: e.occurredAt, event: renamed[i] })),
-      });
+      };
+      play.to(room).emit('events', frame);
+      const recipients = play.adapter.rooms.get(room)?.size ?? 0;
+      deps.live?.built('frame', Date.now() - started, JSON.stringify(frame).length * recipients);
     });
   });
   deps.bus.onChanged((record) => {

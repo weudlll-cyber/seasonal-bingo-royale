@@ -21,6 +21,7 @@
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
 import type { MaintenanceCheck } from '../../config/maintenance.js';
+import type { LiveMetrics } from './metrics.js';
 import type { MatchEngine } from '@sbr/application';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -43,6 +44,8 @@ export interface MatchRouteDeps {
   // `sbr maintenance on`: no new match is created (../../config/maintenance); the engine
   // holds every start (D22).
   readonly maintenance: MaintenanceCheck;
+  // What building the state answers costs (./metrics, 12 §5); none in tests that do not measure.
+  readonly live?: LiveMetrics;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -111,6 +114,7 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
   app.get<{ Params: { code: string }; Querystring: WatchParams & { since?: string } }>(
     '/api/v1/matches/:code/state',
     async (request, reply) => {
+      const started = Date.now();
       const id = await matchIdByCode(deps.pool, request.params.code);
       if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
       // Not in the match's command queue (fetches must not hold up draws): the shared
@@ -127,7 +131,10 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       const me = request.session?.accountId ?? null;
       const clock = deps.engine.clockFacts(m);
       const watch = watchQuery(request.query);
-      return liveView({ match: m, entry, me, since, recap, clock, watch });
+      // Serialized here, so its size and the time it took are measured once.
+      const body = JSON.stringify(liveView({ match: m, entry, me, since, recap, clock, watch }));
+      deps.live?.built('fetch', Date.now() - started, body.length);
+      return reply.type('application/json; charset=utf-8').send(body);
     },
   );
 }

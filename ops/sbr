@@ -52,7 +52,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
-  loadcheck [--players 200] [--spectators 50] [--minutes 10]
+  loadcheck [--players 200] [--spectators 50] [--minutes 10] [--cpuset CPUS]
                                  one measured royale with temporary accounts (refused while
                                  players play, or are signed in with maintenance off)
   uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
