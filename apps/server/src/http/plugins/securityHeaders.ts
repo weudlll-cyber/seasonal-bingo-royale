@@ -3,10 +3,11 @@
  * @module server/http
  * @brief  Registers helmet with the project's baseline Content Security Policy.
  *
- * Responsibility: hard-set the headers of 03 §7 for every response: CSP (self scripts
- *                 and styles), frame and referrer rules, nosniff and a Permissions-Policy
+ * Responsibility: hard-set the headers of 03 §7 for every response: CSP (self scripts,
+ *                 styles and fonts, no <base>; inline styles only for the development
+ *                 placeholder page), frame and referrer rules, nosniff and a Permissions-Policy
  *                 that denies camera, microphone, geolocation and payment. HSTS comes from
- *                 the TLS proxy (ops/Caddyfile).
+ *                 the TLS proxy (ops/Caddyfile; the website's proxy for website installs).
  * Depends on:     @fastify/helmet
  * Used by:        ../app.ts
  * Spec:           docs/spec/03-security-architecture.md §7, docs/spec/05-api-design.md §1
@@ -14,20 +15,25 @@
 import helmet from '@fastify/helmet';
 import type { FastifyInstance } from 'fastify';
 
-export async function registerSecurityHeaders(app: FastifyInstance): Promise<void> {
+// `devPage`: the development placeholder page (./routes/placeholder) styles itself inline.
+export async function registerSecurityHeaders(
+  app: FastifyInstance,
+  { devPage }: { readonly devPage: boolean },
+): Promise<void> {
   await app.register(helmet, {
     contentSecurityPolicy: {
-      // "default-src 'self'" plus explicit directives for the placeholder page. The admin
-      // app (apps/admin) will raise its own stricter CSP with frame-ancestors 'none' when
-      // its routes are wired (WP-19).
+      // 03 §7. frame-ancestors stays 'self' until the embed allowlist exists (07 §3.4); a
+      // website install is on the website's own origin. The admin app (apps/admin) will raise
+      // its own stricter CSP with frame-ancestors 'none' when its routes are wired (WP-19).
       directives: {
         'default-src': ["'self'"],
-        'base-uri': ["'self'"],
+        'base-uri': ["'none'"],
         'frame-ancestors': ["'self'"],
         'form-action': ["'self'"],
         'object-src': ["'none'"],
-        'img-src': ["'self'", 'data:'],
-        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:', 'blob:'],
+        'font-src': ["'self'"],
+        'style-src': devPage ? ["'self'", "'unsafe-inline'"] : ["'self'"],
         'script-src': ["'self'"],
         'connect-src': ["'self'"],
       },

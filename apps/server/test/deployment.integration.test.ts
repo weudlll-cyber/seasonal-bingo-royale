@@ -116,6 +116,19 @@ describe('under a base path (website installs, 09 §1)', () => {
     expect((await get('/games/bingo/readyz')).statusCode).toBe(200);
     expect((await get('/games/bingo/')).body).toContain('<title>bingo</title>');
     expect((await get('/games/bingo/../../etc/passwd')).statusCode).toBe(404);
+    // The CSP of 03 §7 in production: no inline styles, no <base>, fonts only from the game.
+    const csp = String((await get('/games/bingo/')).headers['content-security-policy']);
+    expect(csp).toContain("style-src 'self';");
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("font-src 'self'");
+    expect(csp).not.toContain('https:');
+    expect((await get('/games/bingo/admin')).body).not.toContain('style=');
+    // Routes outside /api are limited per address like anonymous API calls (03 §13).
+    for (const url of ['/games/bingo/readyz', '/games/bingo/']) {
+      let limited = 0;
+      for (let i = 0; i < 601; i += 1) if ((await get(url)).statusCode === 429) limited += 1;
+      expect(limited).toBeGreaterThan(0);
+    }
     await app.fastify.listen({ host: '127.0.0.1', port: 0 });
     const address = app.fastify.server.address();
     const port = typeof address === 'object' && address !== null ? address.port : 0;
