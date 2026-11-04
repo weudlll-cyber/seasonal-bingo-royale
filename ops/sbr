@@ -126,17 +126,18 @@ cmd_update() {
   do_backup "$env"
   info "Backup before the update: $BACKUP_FILE"
   install -d -m 0700 "$dir"
-  # The new version's stack files too (caps, routes, this CLI); the old ones stay for a
-  # rollback (audit O1: an update changed the image only).
-  save_stack "$dir"
-  git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
-  install_files "$SBR_ROOT/src/ops"
   # Written whole or not at all (audit O10); deleted by sbr confirm (audit O3).
   cleanup_path "$dir/pre-update.dump.partial"
   (umask 077 && compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump.partial")
   mv "$dir/pre-update.dump.partial" "$dir/pre-update.dump"
   printf 'PREVIOUS_IMAGE=%s\nPREVIOUS_REF=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" \
     "$(env_value "$conf" SBR_REF)" "$(migrations "$env")" | put_file "$dir/rollback.conf" 0600
+  # The new version's stack files too (caps, routes, this CLI); the old ones stay for a
+  # rollback, written after the rollback data so a failed copy can be rolled back (audit O1:
+  # an update changed the image only).
+  save_stack "$dir"
+  git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
+  install_files "$SBR_ROOT/src/ops"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
   set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d
