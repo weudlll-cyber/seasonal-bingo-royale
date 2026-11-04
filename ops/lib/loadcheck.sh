@@ -64,9 +64,10 @@ loadcheck_options() {
 # pins the generator to those CPUs (instead of capping it at 2), so its own work does not
 # count as the game's.
 cmd_loadcheck() {
-  local env=$1 file="$SBR_ETC/$1.env" work origin base name rc=0
+  local env=$1 file="$SBR_ETC/$1.env" work origin base name rc=0 cpus=(--cpus 2)
   shift
   loadcheck_options "$@"
+  [[ -z $LC_CPUSET ]] || cpus=(--cpuset-cpus "$LC_CPUSET")
   compose "$env" exec -T app node dist/cli.js loadcheck preflight ||
     die "the load check does not run now (the reason is above)"
   work=$(mktemp -d)
@@ -85,8 +86,7 @@ cmd_loadcheck() {
   info "One realtime royale for at most $LC_MINUTES minutes (draws every 4 s; the game's limits apply)"
   cleanup_container "$name"
   docker run --name "$name" --rm -i --network "sbr-${env}_data" --read-only --cap-drop ALL \
-    --security-opt no-new-privileges:true --memory 1g ${LC_CPUSET:---cpus 2} \
-    ${LC_CPUSET:+--cpuset-cpus "$LC_CPUSET"} \
+    --security-opt no-new-privileges:true --memory 1g "${cpus[@]}" \
     -e SBR_LOAD_BASE="http://app:3000${base%/}" -e SBR_LOAD_ORIGIN="$origin" \
     "$(env_value "$file" SBR_IMAGE)" node dist/loadcheck.js "$LC_MINUTES" <"$work/accounts.json" || rc=$?
   rm -f "$work/run"
