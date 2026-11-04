@@ -237,6 +237,9 @@ function onApplyCut(state: MatchState): readonly DomainEvent[] {
   if (round === null || !round.ended) return [];
   const stage = round.stage;
   if (stage.cut === undefined) return [];
+  // A stage cut once runs only after the stage's last round (01 §7.1); roundInStage
+  // already counts the round just ended.
+  if (stage.cutTiming === 'afterStage' && state.roundInStage < stage.rounds) return [];
   const activeIds = activeAccountIds(state);
   if (activeIds.length <= stage.cut.minSurvivors) return [];
   const candidates = activeIds.map((id) => candidateOf(state, id));

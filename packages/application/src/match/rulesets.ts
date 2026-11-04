@@ -62,7 +62,8 @@ function stagesOf(ruleset: Ruleset): MatchRuleset['stages'] {
       stageMultiplier: s.stageMultiplier,
       activePatterns: [...s.activePatterns],
     };
-    return s.cut === undefined ? base : { ...base, cut: s.cut };
+    const timing = s.cutTiming === undefined ? {} : { cutTiming: s.cutTiming };
+    return s.cut === undefined ? base : { ...base, cut: s.cut, ...timing };
   });
 }
 

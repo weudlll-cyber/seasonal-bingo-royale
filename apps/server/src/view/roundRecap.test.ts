@@ -7,7 +7,8 @@
  *                 check the top three by points scored in the round (ties by the place
  *                 after it, places tie-broken as the cut does, no one who scored nothing), the biggest climber (ties by points
  *                 in the round, none when nobody gained), the cut (count, at most 8 names,
- *                 shield saves; left out without a cut or when it changed nothing), Season
+ *                 shield saves; left out without a cut, when it changed nothing, or when
+ *                 only the stage's later round had one, 01 §7.1), Season
  *                 Complete, the fastest tapper (own taps inside the speed window, at least
  *                 5, ties by more taps), the facts, a second round measured from its own
  *                 start, and no recap before the round has ended.
@@ -193,6 +194,24 @@ describe('round recap: cut, Season Complete and facts (D20)', () => {
     expect(recap(base)?.cut).toBeUndefined();
     expect(recap(base)?.facts).toEqual({ numbersDrawn: 1, playersLeft: 10 });
     expect(recap([...base, cut(ten, [])])?.cut).toBeUndefined();
+  });
+
+  it('gives a round without its own cut none of the next round (cut after the stage, 01 §7.1)', () => {
+    const out = ten.slice(5);
+    const log = [
+      ...opened(ten),
+      roundStart(0, ten),
+      draw(0),
+      ended(0),
+      roundStart(1, ten),
+      draw(0),
+      ended(1),
+      cut(ten.slice(0, 5), out),
+    ];
+    expect(recap(log, 0)?.cut).toBeUndefined();
+    expect(recap(log, 0)?.facts).toEqual({ numbersDrawn: 1, playersLeft: 10 });
+    expect(recap(log, 1)?.cut?.outCount).toBe(5);
+    expect(recap(log, 1)?.facts).toEqual({ numbersDrawn: 1, playersLeft: 5 });
   });
 
   it('names who completed all four seasons in the round, and nobody else', () => {

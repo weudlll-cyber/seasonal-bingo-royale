@@ -80,7 +80,9 @@ describe('pause between royale rounds (D14)', () => {
     await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);
     const rounds = () => store.types(m.id).filter((t) => t === 'roundStarted').length;
     expect(rounds()).toBe(1);
-    expect(store.types(m.id)).toContain('cutApplied');
+    // The qualification cuts after its second round (01 §7.1): the pause follows the end.
+    expect(store.types(m.id)).toContain('roundEnded');
+    expect(store.types(m.id)).not.toContain('cutApplied');
     expect(waitingForHost(await engine.runner.current(m.id))).toBe(true);
     clock.t += 600_000;
     await scheduler.runUntil(engine, clock, Number.POSITIVE_INFINITY);

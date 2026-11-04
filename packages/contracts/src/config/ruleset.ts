@@ -145,6 +145,9 @@ const StageSchema = z.object({
   rounds: z.number().int().min(1).max(10),
   roundEnd: RoundEndSchema,
   cut: CutRuleSchema.optional(),
+  // When the cut runs (01 §7.1): once after the stage's last round, or after each of its
+  // rounds. Left out (rulesets frozen before it existed) means after each round.
+  cutTiming: z.enum(['afterStage', 'afterEachRound']).optional(),
   scoreCarry: ScoreCarrySchema,
   stageMultiplier: z.number().min(0.1).max(10),
   activePatterns: z.array(BuiltinPrizeKeySchema.or(PrizeKeySchema)).nonempty(),
