@@ -6,9 +6,11 @@
  * Responsibility: apply pending migrations under a single transaction each, record the
  *                 result in sbr.schema_migrations (name + sha256 + applied_at). Reject a
  *                 migration whose checksum no longer matches the recorded one — a published
- *                 migration file is immutable (10 §2, 04 §6).
+ *                 migration file is immutable (10 §2, 04 §6). `unappliedMigrations` lists what
+ *                 is not applied (or changed) for a server that may not migrate itself: in
+ *                 production the app role only checks, the owner migrates (`cli migrate`).
  * Depends on:     pg, ./pool
- * Used by:        ../main.ts, test/*, ../index
+ * Used by:        ../main.ts, ../cli, test/*, ../index
  * Spec:           docs/spec/04-database-design.md §6, docs/spec/02-software-architecture.md §7
  */
 import { createHash } from 'node:crypto';
@@ -45,6 +47,18 @@ export async function migrate(pool: DbPool): Promise<readonly string[]> {
     }
   }
   return newlyApplied;
+}
+
+// The migration files not applied, or changed since; reads only (the app role may run it).
+export async function unappliedMigrations(pool: DbPool): Promise<readonly string[]> {
+  const exists = await pool.query<{ found: string | null }>(
+    "SELECT to_regclass('sbr.schema_migrations')::text AS found",
+  );
+  const applied =
+    exists.rows[0]?.found == null ? new Map<string, string>() : await loadApplied(pool);
+  return listMigrations()
+    .filter((file) => applied.get(file.id) !== file.checksum)
+    .map((file) => file.id);
 }
 
 async function ensureMigrationsTable(pool: DbPool): Promise<void> {

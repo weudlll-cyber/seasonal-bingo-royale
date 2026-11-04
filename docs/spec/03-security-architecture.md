@@ -255,7 +255,7 @@ Checked against a production image running locally in Docker (no development rou
 | WebSocket Origin check | done at the `/play` namespace; an Engine.IO-level check and a per-IP socket cap are open (BACKLOG, WP-11) |
 | Rate limits on unauthenticated routes (§13) | done: login, registration, guest, anonymous API (600/min per address), the website sign-in (30/min), and since 2026-11-04 health, the client's files and the website login hop (600/min per address and route) |
 | Development routes | done: registered only with `SBR_DEV=1`, refused for a public address |
-| Separate database roles (04 §1) | open: the app connects as the database owner (owner decision) |
+| Separate database roles (04 §1) | built (2026-11-04, audit-3 S1): the app connects as `sbr_app` (rows only; no UPDATE, DELETE or TRUNCATE on `match_events` or the migration record), migrations run as `sbr_owner` in the one-shot `migrate` service; neither may create roles; the app never receives the superuser's or the owner's password |
 | Audit log (§16), 2FA, e-mail verification, cosign signing and verification | open (WP-19, WP-09, WP-27) |
 
 ZAP baseline (2026-11-04): before — 2 medium (CSP wildcard `font-src https:`, `style-src 'unsafe-inline'`), 1 low (COEP), 4 informational; after — 0 medium, 1 low (COEP, above), 3 informational (cacheable assets, a comment in theme-init.js, "modern web application"). No failures.

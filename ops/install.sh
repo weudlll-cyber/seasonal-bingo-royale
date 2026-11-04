@@ -181,6 +181,8 @@ main() {
   install_files "$OPS"
   [[ $SBR_TYPE == website ]] && write_route_file "$SBR_ENV"
   info "Starting the stack"
+  # The owner and app roles first: the migrate service connects as the owner (audit-3 S1).
+  apply_db_roles "$SBR_ENV"
   run compose "$SBR_ENV" up -d --remove-orphans
   [[ $SBR_DRY_RUN == 1 ]] || wait_ready "$SBR_ENV"
   # A changed Caddyfile takes effect without a restart; an unchanged one changes nothing.

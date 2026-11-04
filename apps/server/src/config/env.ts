@@ -38,6 +38,9 @@ const envSchema = z.object({
   SBR_PORT: z.coerce.number().int().min(0).max(65535).default(3900),
   // One libpq URL; the integration test overrides it with the Testcontainers URL.
   DATABASE_URL: z.url(),
+  // apply: migrate at start (development, the test suites); check: refuse to start while a
+  // migration is missing, which the owner role applies first (production, `cli migrate`).
+  SBR_MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
   SBR_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   // Feature flags (./features): e-mail verification and 2FA off, guests on.
   SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),

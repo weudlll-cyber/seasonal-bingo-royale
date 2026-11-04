@@ -7,7 +7,8 @@
  *                 /readyz. The pool is kept small for dev (max 10) and left to the
  *                 operator to tune for production via DATABASE_URL's `max=` query.
  * Depends on:     pg
- * Used by:        ../main.ts, ../http/app.ts, ../index, ../cli, ./migrator.ts, ../auth/accounts,
+ * Used by:        ../main.ts, ../http/app.ts, ../index, ../cli, ./migrator.ts, ./roles,
+ *                 ../auth/accounts,
  *                 ../auth/sessionPlugin, ../auth/sessions, ../auth/websiteAccounts,
  *                 ../dev/demoLeague, ../http/routes/* (auth, awaySummary, devSignIn, health,
  *                 leaderboards, matches, matchVerify, myMatches, profiles, websiteSignIn),
