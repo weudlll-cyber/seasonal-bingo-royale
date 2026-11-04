@@ -6,8 +6,8 @@
  * Responsibility: show the match's title, game type, prizes (classic types) and rules in
  *                 plain words, every player who joined, the registration status
  *                 (./Registration: the host, a set time with a live countdown, or places
- *                 left), and the 10-second countdown to the first round once it runs. A signed-in player who has not joined yet
- *                 gets a Join button. No host link here: the host's console has its own tab
+ *                 left, or "Full"), and the 10-second countdown to the first round once it runs. A signed-in
+ *                 player who has not joined yet gets a Join button while a place is left. No host link here: the host's console has its own tab
  *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
  * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil,
  *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration
@@ -64,7 +64,7 @@ export function WaitingRoom({
           ))}
         </ul>
       </section>
-      {!joined && can('match.join') ? (
+      {!joined && !live.match.full && can('match.join') ? (
         <button
           type="button"
           className="sbr-btn sbr-btn--primary sbr-btn--big"

@@ -30,10 +30,10 @@ export function gameTypeName(type: GameType): string {
 }
 
 // A match status in plain words; a lobby whose 10-second start countdown runs is starting,
-// no longer just open to join.
-export function statusName(m: Pick<MatchSummary, 'status' | 'startsAt'>): string {
+// no longer just open to join; one with every place taken is full.
+export function statusName(m: Pick<MatchSummary, 'status' | 'startsAt' | 'full'>): string {
   const names: Record<MatchSummary['status'], string> = {
-    lobby: m.startsAt === null ? 'Open to join' : 'Starting…',
+    lobby: m.startsAt !== null ? 'Starting…' : m.full ? 'Full' : 'Open to join',
     running: 'Running',
     finished: 'Finished',
     aborted: 'Cancelled',

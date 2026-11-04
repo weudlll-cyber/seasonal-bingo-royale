@@ -39,6 +39,7 @@ function mine(over: Partial<MyMatch> = {}): MyMatch {
     startsAt: null,
     startAt: null,
     startsWhenFull: false,
+    full: false,
     lobbyClosesAt: null,
     roundIndex: null,
     cutsSurvived: 0,

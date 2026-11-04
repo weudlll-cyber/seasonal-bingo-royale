@@ -8,7 +8,8 @@
  *                 type, status, code, players, draw mode and missed-number rule, and for an
  *                 open match its registration status (./Registration); "Manage"
  *                 for the match's host (the server says who that is) while it is open or
- *                 running, "Join" for an open lobby (signed-in players), "Watch" or "View". Joining calls
+ *                 running, "Join" for an open lobby with a place left (signed-in players; a full one
+ *                 reads "Full"), "Watch" or "View". Joining calls
  *                 POST /matches/:code/join and opens the match. A signed-in player's own
  *                 matches that are not over come first, from the same answer (./MyMatches, D39). Without a session it
  *                 points to the sign-in buttons.
@@ -160,7 +161,7 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
           >
             Manage
           </a>
-        ) : m.status === 'lobby' && canJoin ? (
+        ) : m.status === 'lobby' && !m.full && canJoin ? (
           <button
             type="button"
             className="sbr-btn sbr-btn--primary"

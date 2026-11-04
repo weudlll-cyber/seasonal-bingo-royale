@@ -5,8 +5,8 @@
  *
  * Responsibility: the `mine` part of the lobby's GET /matches answer (./Lobby, one refresh
  *                 for both, so they always agree) as one row per match with its title, pace ("Realtime" / "Asynchronous"), where it stands
- *                 ("Waiting for the host", "Starts at 22:25", "Starts or closes at …",
- *                 "Round 2 · you're through", "Out in cut 1 · watching") and "Open", which opens
+ *                 ("Waiting for the host", "Starts at 22:25", "Starts or closes at …", with
+ *                 every place taken "Full · " before it, "Round 2 · you're through", "Out in cut 1 · watching") and "Open", which opens
  *                 it in this tab. Hidden while the list is empty (a guest's is). The server
  *                 decides every fact; this only puts them into words.
  * Depends on:     react, @sbr/contracts (types), ../shell/router, ./Registration (whenText),
@@ -29,6 +29,12 @@ export function myMatchState(m: MyMatch, now: number): string {
     return m.cutsSurvived > 0 ? `${round} · you're through` : round;
   }
   if (m.startsAt !== null) return 'Starting…';
+  const start = lobbyStart(m, now);
+  // Every place is taken: the start rule still holds.
+  return m.full ? `Full · ${start}` : start;
+}
+
+function lobbyStart(m: MyMatch, now: number): string {
   // An asynchronous lobby starts or is cancelled at this time (D33, D34).
   if (m.lobbyClosesAt !== null) return `Starts or closes ${whenText(m.lobbyClosesAt, now)}`;
   if (m.startAt !== null) return `Starts ${whenText(m.startAt, now)}`;

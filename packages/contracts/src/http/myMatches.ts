@@ -24,6 +24,8 @@ export interface MyMatch {
   readonly startAt: number | null;
   // "Start when full": the match starts when every place is taken.
   readonly startsWhenFull: boolean;
+  // Every place is taken (the lobby card's own fact when the list has the match).
+  readonly full: boolean;
   // When an asynchronous lobby starts or closes (D33, D34); null for realtime.
   readonly lobbyClosesAt: number | null;
   // The newest round that started (0-based); null before the first.

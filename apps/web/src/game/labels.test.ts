@@ -46,8 +46,10 @@ describe('plain-English labels', () => {
   });
 
   it('says "Starting…", not "Open to join", while the start countdown runs', () => {
-    expect(statusName({ status: 'lobby', startsAt: null })).toBe('Open to join');
-    expect(statusName({ status: 'lobby', startsAt: Date.now() + 5_000 })).toBe('Starting…');
-    expect(statusName({ status: 'running', startsAt: null })).toBe('Running');
+    expect(statusName({ status: 'lobby', startsAt: null, full: false })).toBe('Open to join');
+    expect(statusName({ status: 'lobby', startsAt: Date.now() + 5_000, full: false })).toBe(
+      'Starting…',
+    );
+    expect(statusName({ status: 'running', startsAt: null, full: false })).toBe('Running');
   });
 });

@@ -8,7 +8,8 @@
  *                 match and one player-1 never joined stay out. The list is newest first with
  *                 the start facts, the round and the cuts as the event log has them, read in one
  *                 query; player-2 sees only their own match; a match counting down is in the same state
- *                 on its card and in `mine` (one answer); a guest gets none. Open matches are
+ *                 on its card and in `mine` (one answer), and so is a full lobby (`full`);
+ *                 a guest gets none. Open matches are
  *                 aborted at the end (./harness stopHarness).
  * Depends on:     vitest, ./harness, ./session
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
@@ -68,6 +69,7 @@ interface Card {
   readonly code: string;
   readonly status: string;
   readonly startsAt: number | null;
+  readonly full: boolean;
 }
 
 // The lobby's one answer: the cards and the player's own matches (`mine`).
@@ -149,6 +151,18 @@ describe('my matches in the lobby answer (D39)', () => {
     expect(card).toMatchObject({ status: 'lobby', startsAt });
     expect(own).toMatchObject({ status: 'lobby', startsAt });
     await engine.abort(counting.id, 'test cleanup', 'host');
+  });
+
+  it('say "full" on the card and in mine once every place is taken', async () => {
+    const lobby = await joined(player, { title: 'Full lobby', maxPlayers: 3 });
+    const engine = harness.built.match.engine;
+    const before = await lobbyOf(player);
+    expect(before.matches.find((m) => m.code === lobby.code)).toMatchObject({ full: false });
+    await engine.fillWithBots(lobby.id, 3);
+    const { matches, mine } = await lobbyOf(player);
+    expect(matches.find((m) => m.code === lobby.code)).toMatchObject({ players: 3, full: true });
+    expect(mine.find((m) => m.code === lobby.code)).toMatchObject({ full: true });
+    await engine.abort(lobby.id, 'test cleanup', 'host');
   });
 
   it('are none for a guest', async () => {

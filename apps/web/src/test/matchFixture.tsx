@@ -32,6 +32,7 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     status: 'lobby',
     players: 1,
     maxPlayers: 20,
+    full: false,
     prizes: [],
     countsForLeaderboard: true,
     settings: {
