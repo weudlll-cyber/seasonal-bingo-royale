@@ -1,16 +1,20 @@
 /**
  * @file   load/drawLatency.mjs
  * @module load
- * @brief  200-player check: draw latency at every socket, server CPU and memory.
+ * @brief  200-player check: draw latency at every socket, tap acknowledgements, server CPU and memory.
  *
- * Responsibility: against a running development stack (server 3900): sign in N load players (dev
- *                 sign-in `load-NNN`), join one royale with timed draws (fast profile, 4 s),
- *                 connect N watching sockets that, like the player screen, append taps and fetch
- *                 new events one fetch at a time (round-start fetch size recorded); every fifth
- *                 player taps. Records per draw and socket the time from the draw event's `at` to
- *                 arrival and to fetch end; samples CPU, memory and event-loop lag from /metrics.
- *                 Then aborts the match (append-only log) and deletes the load accounts.
- *                 Usage: node load/drawLatency.mjs [players=200]
+ * Responsibility: against a running stack with development features (server 3900): sign in N load
+ *                 players (dev sign-in `load-NNN`), join one royale with timed draws (fast profile,
+ *                 4 s, manual marking), connect N watching sockets that, like the player screen,
+ *                 append taps and fetch new events one fetch at a time (round-start fetch size
+ *                 recorded) and S spectators (load accounts that watch without playing); every
+ *                 `tapEvery`-th player taps its drawn numbers as they arrive, inside the speed
+ *                 window. Records per draw and socket the time from the draw event's `at` to
+ *                 arrival and to fetch end, per tap the time to its acknowledgement; samples CPU,
+ *                 memory and event-loop lag from /metrics. Then aborts the match (append-only log)
+ *                 and deletes the load accounts.
+ *                 Usage: node load/drawLatency.mjs [players=200] [spectators=50] [tapEvery=1]
+ *                 [minutes=12] (the run ends with the match or after that many minutes)
  * Depends on:     socket.io-client, ./common.mjs
  * Spec:           docs/spec/02-software-architecture.md; docs/spec/06-realtime-architecture.md §8;
  *                 docs/spec/08-devops-architecture.md §6 (draw latency p95 under 1 s)
@@ -30,7 +34,9 @@ import {
 } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
-const TAPPER_EVERY = 5;
+const SPECTATORS = Number(process.argv[3] ?? 50);
+const TAPPER_EVERY = Number(process.argv[4] ?? 1);
+const MINUTES = Number(process.argv[5] ?? 12);
 
 // As the player screen does (apps/web/src/game/useLiveMatch.ts): other players' taps,
 // patterns, prizes and window closes are appended; anything else fetches.
@@ -43,8 +49,9 @@ const APPENDABLE = new Set([
 const appendable = (frame, me) =>
   frame.events.every((e) => APPENDABLE.has(e.event.type) && e.event.accountId !== me);
 
-// A player's socket: watches the match, fetches the new events after every frame as the
-// screen does, taps drawn numbers when it is a tapper; records the latencies.
+// A player's (or spectator's) socket: watches the match, fetches the new events after every
+// frame as the screen does, taps drawn numbers when it is a tapper; records the latencies
+// (a spectator's draw arrivals in `record.spectatorFrame`).
 function connectPlayer(player, code, record) {
   const socket = io(`${BASE}/play`, {
     path: '/ws',
@@ -87,15 +94,22 @@ function connectPlayer(player, code, record) {
   socket.on('events', async (frame) => {
     const arrived = Date.now();
     const draws = frame.events.filter((e) => e.event.type === 'drawMade');
-    for (const d of draws) record.frame.push(arrived - d.at);
+    for (const d of draws)
+      (player.spectator ? record.spectatorFrame : record.frame).push(arrived - d.at);
     if (frame.events[0]?.s === since + 1 && appendable(frame, player.name)) since = frame.s;
     else fetchNew(draws);
     if (player.tapper && card !== null) {
       for (const d of draws) {
         const cell = card.cells.findIndex((c) => c.kind !== 'free' && c.value === d.event.item);
         if (cell < 0) continue;
-        const a = await intent('mark', { code, cardIndex: 0, cell });
-        if (!a.ok) fail('intent', `mark ${String(a.code)}`);
+        const sent = Date.now();
+        // A socket closed at the end of the run rejects its pending acknowledgements.
+        const a = await intent('mark', { code, cardIndex: 0, cell }).catch((e) => ({
+          ok: false,
+          code: e.message,
+        }));
+        if (a.ok) record.tapAck.push(Date.now() - sent);
+        else fail('intent', `mark ${String(a.code)}`);
       }
     }
     if (frame.events.some((e) => e.event.type === 'roundEnded')) record.rounds += 1;
@@ -124,15 +138,30 @@ async function main() {
     testProfile: 'fast',
   });
   const code = created.code;
-  const ids = Array.from({ length: PLAYERS }, (_v, i) => `load-${String(i + 1).padStart(3, '0')}`);
+  const loadId = (i) => `load-${String(i + 1).padStart(3, '0')}`;
+  const ids = Array.from({ length: PLAYERS }, (_v, i) => loadId(i));
   const players = await inBatches(ids, 20, signIn);
   players.forEach((p, i) => (p.tapper = i % TAPPER_EVERY === 0));
   await inBatches(players, 20, (p) => call(p, 'POST', `/matches/${code}/join`, {}));
-  const record = { frame: [], fetch: [], roundStartBytes: [], rounds: 0, finished: false };
-  const sockets = await inBatches(players, 25, (p) => connectPlayer(p, code, record));
+  // Spectators: the next load accounts, signed in but not joined.
+  const viewerIds = Array.from({ length: SPECTATORS }, (_v, i) => loadId(PLAYERS + i));
+  const viewers = await inBatches(viewerIds, 20, signIn);
+  viewers.forEach((v) => (v.spectator = true));
+  const record = {
+    frame: [],
+    spectatorFrame: [],
+    fetch: [],
+    tapAck: [],
+    roundStartBytes: [],
+    rounds: 0,
+    finished: false,
+  };
+  const sockets = await inBatches([...players, ...viewers], 25, (p) =>
+    connectPlayer(p, code, record),
+  );
   const server = watchServer();
   await call(host, 'POST', `/matches/${code}/start`, {});
-  const until = Date.now() + 12 * 60_000;
+  const until = Date.now() + MINUTES * 60_000;
   while (!record.finished && Date.now() < until) await new Promise((r) => setTimeout(r, 1_000));
   await server.stop();
   for (const s of sockets) s.disconnect();
@@ -145,11 +174,14 @@ async function main() {
     JSON.stringify(
       {
         players: PLAYERS,
+        spectators: SPECTATORS,
         code,
         rounds: record.rounds,
         finished: record.finished,
         frameLatencyMs: summary(record.frame),
+        spectatorFrameLatencyMs: summary(record.spectatorFrame),
         screenReadyMs: summary(record.fetch),
+        tapAckMs: summary(record.tapAck),
         // The size of a screen's fetch that brought a round start (its own cards).
         roundStartFetchBytes: summary(record.roundStartBytes),
         serverCpuPercent: {
