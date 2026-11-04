@@ -13,7 +13,8 @@
  *                 closed. Payloads max 16 KiB; frames recover for 2 min, then HTTP resync.
  * Depends on:     socket.io, ../auth/sessions, ../match/*, ../view/clientEvents,
  *                 ../view/playerNames, ./intents, ./inOrder, @sbr/application,
- *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews
+ *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews,
+ *                 ../http/routes/metrics (types), ./matchCodes
  * Used by:        ../http/app, ./intents
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */
@@ -32,6 +33,7 @@ import { accountIdsIn, liveEvent, renameAccounts } from '../view/clientEvents.js
 import { PlayerNameCache, playerNames } from '../view/playerNames.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
+import { MatchCodes } from './matchCodes.js';
 import { handleIntent, SESSION_ENDED, type Answer, type IntentContext } from './intents.js';
 
 export interface GatewayDeps {
@@ -55,6 +57,8 @@ export interface SocketData {
 }
 
 export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
+  // A match's code never changes: each is looked up once for all sockets (12 §5).
+  const codes = new MatchCodes(deps.pool);
   const io = new Server(server, {
     path: deps.path,
     transports: ['websocket'],
@@ -80,7 +84,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
       });
   });
   play.on('connection', (socket) => {
-    onConnection(socket, deps);
+    onConnection(socket, deps, codes);
   });
   // Names from the match's own entries, cached per match for a short while (../view/playerNames).
   const names = new PlayerNameCache((matchId) => playerNames(deps.pool, matchId));
@@ -105,8 +109,8 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
 
 // A socket joins its session's room and takes intents one at a time, in arrival order
 // (./inOrder).
-function onConnection(socket: Socket, deps: GatewayDeps): void {
-  const ctx: IntentContext = { socket, data: socket.data as SocketData, deps };
+function onConnection(socket: Socket, deps: GatewayDeps, codes: MatchCodes): void {
+  const ctx: IntentContext = { socket, data: socket.data as SocketData, deps, codes };
   void socket.join(`session:${ctx.data.session.id}`);
   const handle = inOrder(async (envelope: unknown, ack?: (answer: unknown) => void) => {
     const answer = await handleIntent(ctx, envelope).catch((): Answer => ({

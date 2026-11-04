@@ -12,7 +12,7 @@
  *                 the session (../auth/sessions refreshSession): expired or revoked answers
  *                 UNAUTHORIZED (./gateway then closes the socket), a lost match.manage FORBIDDEN.
  * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ../auth/sessions,
- *                 ./gateway (types)
+ *                 ./gateway (types), ./matchCodes (types)
  * Used by:        ./gateway
  * Spec:           docs/spec/06-realtime-architecture.md §2.3, §4.1, §8; docs/spec/03-security-architecture.md §3, §13
  */
@@ -23,11 +23,14 @@ import { z } from 'zod';
 import { RateLimiter } from '../auth/rateLimit.js';
 import { refreshSession } from '../auth/sessions.js';
 import type { GatewayDeps, SocketData } from './gateway.js';
+import type { MatchCodes } from './matchCodes.js';
 
 export interface IntentContext {
   readonly socket: Socket;
   readonly data: SocketData;
   readonly deps: GatewayDeps;
+  // Match code → id, shared by the gateway's sockets (./matchCodes).
+  readonly codes: MatchCodes;
 }
 
 export type Answer =
@@ -137,12 +140,8 @@ async function dispatch(ctx: IntentContext, t: IntentType, data: unknown): Promi
 }
 
 async function matchId(ctx: IntentContext, code: string): Promise<string> {
-  const r = await ctx.deps.pool.query<{ id: string }>(
-    'SELECT id FROM sbr.matches WHERE code = $1',
-    [code],
-  );
-  const id = r.rows[0]?.id;
-  if (id === undefined) throw new MatchNotFound(code);
+  const id = await ctx.codes.idOf(code);
+  if (id === null) throw new MatchNotFound(code);
   return id;
 }
 
