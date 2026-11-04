@@ -51,7 +51,8 @@ export interface ShieldSave {
 
 // One pattern of the round: who completed it first, and whether the viewer has it.
 export interface RoundPattern {
-  readonly first: string | null;
+  // Everyone the server gave the first-player bonus (several on one draw, D45).
+  readonly firsts: readonly string[];
   readonly mine: boolean;
 }
 

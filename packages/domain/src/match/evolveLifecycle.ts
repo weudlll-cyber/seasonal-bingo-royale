@@ -119,6 +119,7 @@ export function onDrawMade(state: MatchState): MatchState {
   return {
     ...state,
     players: nextPlayers,
+    drawsInMatch: state.drawsInMatch + 1,
     currentRound: { ...round, draws: [...round.draws, item] },
   };
 }

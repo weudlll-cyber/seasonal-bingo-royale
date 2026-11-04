@@ -62,7 +62,7 @@ export interface CellMarked {
   readonly accountId: string;
   readonly cardIndex: number;
   readonly cellIndex: number;
-  readonly markPoints: number; // base + growth × multiplier, 0 for free centre
+  readonly markPoints: number; // (base + growth + speed bonus) × boost, 0 for free centre
 }
 export interface SeasonActivated {
   readonly type: 'seasonActivated';
@@ -77,6 +77,9 @@ export interface PatternScored {
   readonly prizeKey: string;
   readonly points: number;
   readonly firstInRound: boolean;
+  // When the server received the tap that completed the pattern (D45); absent for an
+  // automatic mark, a missed-number auto-mark and events recorded before D45.
+  readonly tapAt?: number;
 }
 export interface SeasonCompleteFired {
   readonly type: 'seasonCompleteFired';

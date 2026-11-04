@@ -66,7 +66,7 @@ describe('round-end conditions (01 §7.3)', () => {
 
   it('firstBingo waits graceDraws after the first completed pattern', () => {
     const cond = { kind: 'firstBingo', graceDraws: 2 } as const;
-    const firstToPrize = { 'rows-1': { accountId: 'a', drawIndex: 3 } };
+    const firstToPrize = { 'rows-1': { accountId: 'a', drawIndex: 3, tapAt: null } };
     expect(royaleEndReason(round({ draws: draws(4) }), 10, cond)).toBeNull();
     expect(royaleEndReason(round({ draws: draws(5), firstToPrize }), 10, cond)).toBeNull();
     expect(royaleEndReason(round({ draws: draws(6), firstToPrize }), 10, cond)).toBe('firstBingo');
@@ -74,8 +74,9 @@ describe('round-end conditions (01 §7.3)', () => {
 
   it('bingoQuota ends once enough distinct players completed a pattern', () => {
     const cond = { kind: 'bingoQuota', quotaPercent: 30 } as const;
-    const two = { a: { accountId: 'p1', drawIndex: 1 }, b: { accountId: 'p2', drawIndex: 2 } };
-    const three = { ...two, c: { accountId: 'p3', drawIndex: 3 } };
+    const first = (accountId: string, drawIndex: number) => ({ accountId, drawIndex, tapAt: null });
+    const two = { a: first('p1', 1), b: first('p2', 2) };
+    const three = { ...two, c: first('p3', 3) };
     expect(royaleEndReason(round({ draws: draws(5), firstToPrize: two }), 10, cond)).toBeNull();
     expect(royaleEndReason(round({ draws: draws(5), firstToPrize: three }), 10, cond)).toBe(
       'bingoQuota',

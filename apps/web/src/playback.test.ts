@@ -96,7 +96,9 @@ describe('server facts in the playback (PLAYER-CLARITY)', () => {
 
   it('keeps who completed each pattern first this round and whether the viewer has it', () => {
     const r = withEvents(8, [scored('bot-02', true), scored('owner-01', false)]);
-    expect(playbackAt(r, 10).roundPatterns).toEqual({ 'rows-1': { first: 'bot-02', mine: true } });
+    expect(playbackAt(r, 10).roundPatterns).toEqual({
+      'rows-1': { firsts: ['bot-02'], mine: true },
+    });
     // A new round starts with every pattern open again.
     expect(playbackAt(r, 15).roundPatterns).toEqual({});
   });

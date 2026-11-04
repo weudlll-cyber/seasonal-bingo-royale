@@ -95,6 +95,7 @@ function markCommand(m: LoadedMatch, t: Tap): MarkCommand[] {
       cellIndex: t.cellIndex,
       inSpeedWindow: delta <= windowMs,
       speedBonus: bonus,
+      receivedAt: t.receivedAt,
     },
   ];
 }

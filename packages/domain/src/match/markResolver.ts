@@ -42,6 +42,8 @@ export interface MarkInput {
   readonly cellIndex: number;
   readonly inSpeedWindow: boolean;
   readonly speedBonus: number;
+  // When the server received the tap (D45); absent for automatic and auto-marks.
+  readonly receivedAt?: number;
 }
 
 // A struct passed between the helpers below so each one keeps ≤4 parameters.
@@ -83,7 +85,7 @@ function staged(ctx: Context, points: number): number {
 function buildMarkEvent(isFree: boolean, effects: EffectState, ctx: Context): CellMarked {
   const points = isFree
     ? 0
-    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects) + windowBonus(ctx);
+    : scoreMark({ pointsPerMark: ctx.state.ruleset.pointsPerMark }, effects, windowBonus(ctx));
   return {
     type: 'cellMarked',
     accountId: ctx.input.accountId,
@@ -180,9 +182,7 @@ function prizeEventsFor(
   const out: (PatternScored | ClassicPrizeAwarded)[] = [];
   for (const key of completed) {
     if (!active.has(key) || already.has(key)) continue;
-    out.push(
-      ctx.state.gameType === 'royale' ? royalePattern(ctx, effects, key) : classicPrize(ctx, key),
-    );
+    out.push(ctx.state.gameType === 'royale' ? royalePattern(ctx, key) : classicPrize(ctx, key));
     already.add(key);
   }
   return out;
@@ -196,15 +196,16 @@ function classicPrizesClosed(round: RoundState): readonly string[] {
     .map((a) => a.prizeKey);
 }
 
-function royalePattern(ctx: Context, effects: EffectState, key: string): PatternScored {
-  const first = ctx.round.firstToPrize[key] === undefined;
+function royalePattern(ctx: Context, key: string): PatternScored {
+  const first = isFirstToPattern(ctx, key);
   const points = scorePattern(
     {
       pointsByKey: ctx.state.ruleset.pointsByPrizeKey,
       firstToPatternBonusPercent: ctx.state.ruleset.firstToPatternBonusPercent,
     },
-    { prizeKey: key, isFirstInRound: first, effects },
+    { prizeKey: key, isFirstInRound: first },
   );
+  const tapAt = ctx.input.receivedAt;
   return {
     type: 'patternScored',
     accountId: ctx.input.accountId,
@@ -212,7 +213,19 @@ function royalePattern(ctx: Context, effects: EffectState, key: string): Pattern
     prizeKey: key,
     points: staged(ctx, points),
     firstInRound: first,
+    ...(tapAt === undefined ? {} : { tapAt }),
   };
+}
+
+// The first-player bonus (D45): the first completion in the round takes it; on that same
+// draw, so does every other one, unless a tap received earlier completed it. Automatic
+// marks, auto-marks and equal receive times cannot be told apart. A later draw never does.
+function isFirstToPattern(ctx: Context, key: string): boolean {
+  const was = ctx.round.firstToPrize[key];
+  if (was === undefined) return true;
+  if (was.drawIndex !== ctx.round.draws.length - 1) return false;
+  const tapAt = ctx.input.receivedAt;
+  return tapAt === undefined || was.tapAt === null || tapAt <= was.tapAt;
 }
 
 function classicPrize(ctx: Context, key: string): ClassicPrizeAwarded {

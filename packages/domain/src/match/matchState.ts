@@ -27,6 +27,7 @@ export interface PlayerState {
   readonly human: boolean;
   readonly points: number;
   readonly patternsCount: number;
+  // The match-wide index of the draw of the player's last scoring event (01 §8.4, G5).
   readonly lastScoringDraw: number | null;
   readonly effects: EffectState;
   readonly seasonCompleteFired: boolean;
@@ -61,8 +62,13 @@ export interface RoundState {
   readonly cards: Readonly<Record<string, readonly CardMarks[]>>;
   // First-to-complete bookkeeping for pattern-first bonuses (01 §8.1) and the
   // `firstBingo` round-end condition with `graceDraws` (01 §7.3).
+  // `tapAt`: the earliest receive time among the taps that took the bonus on that draw,
+  // null while only automatic marks did (D45).
   readonly firstToPrize: Readonly<
-    Record<string, { readonly accountId: string; readonly drawIndex: number }>
+    Record<
+      string,
+      { readonly accountId: string; readonly drawIndex: number; readonly tapAt: number | null }
+    >
   >;
   readonly fullHouseBy: readonly string[]; // account ids who hit a full house this round
   // Classic round book-keeping (01 §3a.1). Empty for royale.
@@ -90,6 +96,7 @@ export interface MatchState {
   readonly stageIndex: number;
   readonly roundInStage: number;
   readonly roundIndex: number; // monotonic across stages, used for seeding and jackpot
+  readonly drawsInMatch: number; // draws made in the whole match, for lastScoringDraw (G5)
   readonly players: Readonly<Record<string, PlayerState>>;
   readonly playerOrder: readonly string[]; // join order for stable iteration
   readonly currentRound: RoundState | null;
