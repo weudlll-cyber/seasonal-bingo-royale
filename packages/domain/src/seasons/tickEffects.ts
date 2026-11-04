@@ -28,14 +28,17 @@ export function onMarkInsideGrowth(state: EffectState): EffectState {
   return { ...state, growth: { ...state.growth, nthMark: state.growth.nthMark + 1 } };
 }
 
+// remainingDraws counts the draws still to come after the current one: an effect for "the
+// next N draws" covers the draw where it reaches 0 and ends on the one after (audit-3 G3: it
+// ended a draw early, while the screen still said "1 more number").
 function decayMultiplier(m: MultiplierState | null): MultiplierState | null {
   if (m === null) return null;
   const next = m.remainingDraws - 1;
-  return next > 0 ? { ...m, remainingDraws: next } : null;
+  return next >= 0 ? { ...m, remainingDraws: next } : null;
 }
 
 function decayGrowth(g: GrowthState | null): GrowthState | null {
   if (g === null) return null;
   const next = g.remainingDraws - 1;
-  return next > 0 ? { ...g, remainingDraws: next } : null;
+  return next >= 0 ? { ...g, remainingDraws: next } : null;
 }

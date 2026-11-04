@@ -38,8 +38,8 @@ function tickedDurations(factor: number, duration: number, pointsPerMark: number
   );
   let state = seeded.state;
   for (let i = 0; i < ticks; i += 1) state = onDraw(state);
-  if (state.multiplier !== null) expect(state.multiplier.remainingDraws).toBeGreaterThan(0);
-  if (state.growth !== null) expect(state.growth.remainingDraws).toBeGreaterThan(0);
+  if (state.multiplier !== null) expect(state.multiplier.remainingDraws).toBeGreaterThanOrEqual(0);
+  if (state.growth !== null) expect(state.growth.remainingDraws).toBeGreaterThanOrEqual(0);
 }
 
 function multiplierReplaces(f1: number, d1: number, f2: number, d2: number) {
@@ -61,7 +61,8 @@ function multiplierAfterGrowth(factor: number, duration: number, pointsPerMark: 
   const withMult = applyEffect(base.state, { type: 'multiplier', factor, durationDraws: duration });
   const bumped = onMarkInsideGrowth(withMult.state);
   const score = scoreMark({ pointsPerMark: 10 }, bumped);
-  expect(score).toBe(Math.round((10 + pointsPerMark) * factor));
+  // One further mark made, this is the second: +2× (01 §8.2).
+  expect(score).toBe(Math.round((10 + 2 * pointsPerMark) * factor));
 }
 
 describe('effect invariant 9: durations and non-stacking', () => {

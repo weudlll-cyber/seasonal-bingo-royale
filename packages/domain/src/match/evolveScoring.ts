@@ -169,6 +169,8 @@ export function onSeasonComplete(
   if (p === undefined || round === null) return state;
   const effect = state.ruleset.seasonComplete.effect;
   const applied = applyEffect(p.effects, effect, { markedCellsInScope: 0 });
+  // A shield arms with its margin, as from Winter (audit-3 G6: it stayed 0 and never saved).
+  const shieldRankMargin = effect.type === 'shield' ? effect.rankMargin : p.shieldRankMargin;
   return {
     ...state,
     players: {
@@ -179,6 +181,7 @@ export function onSeasonComplete(
         seasonCompleteFired: true,
         seasonCompleteRound: round.roundIndex,
         effects: applied.state,
+        shieldRankMargin,
       },
     },
   };

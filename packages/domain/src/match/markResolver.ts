@@ -61,7 +61,7 @@ export function buildMarkEvents(state: MatchState, input: MarkInput): readonly D
   const ctx: Context = { state, round, input };
   const events: DomainEvent[] = [buildMarkEvent(cell.kind === 'free', player.effects, ctx)];
   const effects = effectsAfterMark(cell.kind === 'free', player.effects);
-  const activation = buildActivation(marks.card.seasonCells, effects, ctx);
+  const activation = buildActivation(marks.card.seasonCells, marks.marks, effects, ctx);
   if (activation !== null) events.push(activation.event);
   const nextEffects = activation === null ? effects : activation.nextEffects;
   const projected = withMarked(marks.marks, input.cellIndex);
@@ -105,6 +105,7 @@ function effectsAfterMark(isFree: boolean, effects: EffectState): EffectState {
 
 function buildActivation(
   seasonCells: readonly number[] | null,
+  marked: readonly boolean[],
   effects: EffectState,
   ctx: Context,
 ): { readonly event: SeasonActivated; readonly nextEffects: EffectState } | null {
@@ -114,9 +115,11 @@ function buildActivation(
   const season = seasonForCellIndex(ctx.input.cellIndex, seasonCells);
   if (season === null) return null;
   if ((effects.seasonsActivated & bitFor(season)) !== 0) return null;
-  const applied = applyEffect(effects, ctx.state.ruleset.seasons[season].effect, {
-    markedCellsInScope: 0,
-  });
+  const effect = ctx.state.ruleset.seasons[season].effect;
+  // A harvest scores the cells already marked in its scope (01 §8.2; audit-3 G1: 0 before).
+  const markedCellsInScope =
+    effect.type === 'harvest' ? markedInScope(marked, ctx.input.cellIndex, effect.scope) : 0;
+  const applied = applyEffect(effects, effect, { markedCellsInScope });
   const nextEffects = markSeasonActivated(applied.state, season);
   return {
     event: {
@@ -127,6 +130,21 @@ function buildActivation(
     },
     nextEffects,
   };
+}
+
+// The cells already marked (before this mark) in the row, column or card of a cell of a
+// square card; the cell itself is the one being marked now.
+function markedInScope(
+  marked: readonly boolean[],
+  cellIndex: number,
+  scope: 'row' | 'column' | 'card',
+): number {
+  const size = Math.round(Math.sqrt(marked.length));
+  const inScope = (i: number): boolean =>
+    scope === 'card' ||
+    (scope === 'row' && Math.floor(i / size) === Math.floor(cellIndex / size)) ||
+    (scope === 'column' && i % size === cellIndex % size);
+  return marked.filter((m, i) => m && i !== cellIndex && inScope(i)).length;
 }
 
 function seasonForCellIndex(

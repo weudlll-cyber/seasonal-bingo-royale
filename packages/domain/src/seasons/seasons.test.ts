@@ -74,16 +74,18 @@ describe('applyEffect', () => {
 });
 
 describe('tickEffects', () => {
-  it('onDraw decrements remaining draws and expires at 0', () => {
+  it('onDraw counts down and keeps the effect for all of its draws (audit-3 G3)', () => {
     const seeded = applyEffect(INITIAL_EFFECT_STATE, {
       type: 'multiplier',
       factor: 2,
       durationDraws: 2,
     });
+    // "The next 2 draws": both count, the effect ends on the draw after them (01 §8.2).
     const once = onDraw(seeded.state);
     expect(once.multiplier?.remainingDraws).toBe(1);
     const twice = onDraw(once);
-    expect(twice.multiplier).toBeNull();
+    expect(twice.multiplier?.remainingDraws).toBe(0);
+    expect(onDraw(twice).multiplier).toBeNull();
   });
 
   it('onDraw never produces a negative duration', () => {
@@ -93,9 +95,10 @@ describe('tickEffects', () => {
       durationDraws: 1,
     });
     const once = onDraw(seeded.state);
-    expect(once.growth).toBeNull();
+    expect(once.growth?.remainingDraws).toBe(0);
     const twice = onDraw(once);
     expect(twice.growth).toBeNull();
+    expect(onDraw(twice).growth).toBeNull();
   });
 
   it('onMarkInsideGrowth increases nthMark only when growth is active', () => {
