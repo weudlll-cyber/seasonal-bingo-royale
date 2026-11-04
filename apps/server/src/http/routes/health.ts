@@ -5,21 +5,24 @@
  *
  * Responsibility: /healthz answers 200 as long as the process is alive; /readyz
  *                 answers 200 only when the database responds inside a short timeout
- *                 (05 §2.5). Both are unauthenticated and return minimal bodies.
- * Depends on:     fastify, ../../db/pool
+ *                 (05 §2.5). Both are unauthenticated, limited per address and return
+ *                 minimal bodies.
+ * Depends on:     fastify, ../../auth/rateLimit, ../../db/pool
  * Used by:        ../app.ts
  * Spec:           docs/spec/05-api-design.md §2.5, docs/spec/08-devops-architecture.md §4
  */
 import type { FastifyInstance } from 'fastify';
 
+import { openRouteLimit } from '../../auth/rateLimit.js';
 import { pingDatabase, type DbPool } from '../../db/pool.js';
 
 const READY_TIMEOUT_MS = 1_500;
 
 export function registerHealth(app: FastifyInstance, pool: DbPool): void {
-  app.get('/healthz', () => ({ status: 'ok' }));
+  // Limited per address (03 §13): /readyz asks the database.
+  app.get('/healthz', { config: openRouteLimit() }, () => ({ status: 'ok' }));
 
-  app.get('/readyz', async (_request, reply) => {
+  app.get('/readyz', { config: openRouteLimit() }, async (_request, reply) => {
     try {
       await Promise.race([pingDatabase(pool), timeoutRejection(READY_TIMEOUT_MS)]);
       return { status: 'ready' };

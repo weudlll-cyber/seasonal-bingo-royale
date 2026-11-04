@@ -142,7 +142,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();
   const fastify = createFastify(deps.env);
-  await registerSecurityHeaders(fastify);
+  // Without a built client the placeholder page shows, styled inline (./routes/placeholder).
+  await registerSecurityHeaders(fastify, { devPage: deps.env.SBR_WEB_DIR === undefined });
   registerProblemDetails(fastify);
   await registerRouteLimits(fastify);
   const metrics = createMetrics();

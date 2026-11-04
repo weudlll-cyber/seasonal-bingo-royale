@@ -15,3 +15,7 @@ Include what is affected, how to reproduce it, and the impact you expect. Report
 ## Supported versions
 
 Only the latest release receives security fixes.
+
+## Security checks
+
+Every pull request runs the dependency audit, osv-scanner, CodeQL, gitleaks, the license check and (on the way to master) the Trivy image scan. Before going live the production image was scanned with the OWASP ZAP baseline scan; the status of every control is in [03 §18.1](docs/spec/03-security-architecture.md).

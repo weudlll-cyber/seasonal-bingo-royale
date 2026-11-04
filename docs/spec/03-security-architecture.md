@@ -237,6 +237,29 @@ Account lockout is **soft** (delay), never a hard lock that an attacker could us
 - GitHub Actions pinned by full commit SHA; workflow permissions `contents: read` by default.
 - Vulnerability handling: `SECURITY.md` with a private reporting channel (GitHub private vulnerability reporting); triage within 7 days; fix critical within 7 days, high within 30.
 
+### 18.1 Status of the controls (go-live check, 2026-11-04)
+
+Checked against a production image running locally in Docker (no development routes), with the OWASP ZAP baseline scan (passive) of the player client and the API, `pnpm audit`, Trivy and a read-only code audit (reports/audit-3-2026-11-04.md).
+
+| Control | Status |
+|---|---|
+| Lockfile, frozen install, Renovate (3 days), `pnpm audit --prod`, osv-scanner, CodeQL, gitleaks, license check, actions pinned by SHA | done (CI) |
+| Trivy image scan | done; CI fails on high/critical with a fix; the runtime stage takes Alpine security fixes (`apk upgrade`); 0 findings at any severity on 2026-11-04 |
+| Production dependencies | `pnpm audit --prod`: 0 findings (fast-uri lifted to its patch releases by a pnpm override) |
+| CSP (§7) | done: `default-src 'self'`, `script-src 'self'`, `style-src 'self'` (inline styles only for the development placeholder page), `font-src 'self'`, `img-src 'self' data: blob:`, `base-uri 'none'`, `object-src 'none'`, `form-action 'self'`; `frame-ancestors 'self'` until the embed allowlist exists (07 §3.4) |
+| HSTS | done behind TLS: the standalone Caddy sends it; a website install relies on the website's proxy |
+| Referrer-Policy, Permissions-Policy, X-Content-Type-Options, X-Frame-Options, COOP, CORP | done |
+| Cross-Origin-Embedder-Policy | open (low): `require-corp` would block the website's embeddable call view (WP-25b) |
+| Cookies (§3) | done: `__Host-`/`__Secure-`, HttpOnly, Secure, SameSite=Lax; only the token's hash is stored |
+| CORS | done: no `Access-Control-Allow-*` header for any origin |
+| WebSocket Origin check | done at the `/play` namespace; an Engine.IO-level check and a per-IP socket cap are open (BACKLOG, WP-11) |
+| Rate limits on unauthenticated routes (§13) | done: login, registration, guest, anonymous API (600/min per address), the website sign-in (30/min), and since 2026-11-04 health, the client's files and the website login hop (600/min per address and route) |
+| Development routes | done: registered only with `SBR_DEV=1`, refused for a public address |
+| Separate database roles (04 §1) | open: the app connects as the database owner (owner decision) |
+| Audit log (§16), 2FA, e-mail verification, cosign signing and verification | open (WP-19, WP-09, WP-27) |
+
+ZAP baseline (2026-11-04): before — 2 medium (CSP wildcard `font-src https:`, `style-src 'unsafe-inline'`), 1 low (COEP), 4 informational; after — 0 medium, 1 low (COEP, above), 3 informational (cacheable assets, a comment in theme-init.js, "modern web application"). No failures.
+
 ## 19. Privacy (GDPR baseline)
 
 - Data collected: e-mail, display name, password hash, optional avatar choice, game history, chat messages, IP addresses (security only).

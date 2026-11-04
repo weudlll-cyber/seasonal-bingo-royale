@@ -10,7 +10,8 @@
  *                 scale-out step (02 §8). Lockout is soft: callers get a delay, never a lock.
  *                 Keys idle for a whole window are pruned, so the maps stay small.
  * Depends on:     nothing
- * Used by:        ./sessionPlugin, ../http/routes/auth, ../realtime/intents
+ * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/health,
+ *                 ../http/routes/webClient, ../http/routes/websiteSignIn, ../realtime/intents
  * Spec:           docs/spec/03-security-architecture.md §13
  */
 
@@ -77,3 +78,14 @@ export const RATE_RULES = {
   anonymous: { limit: 600, windowMs: 60_000 },
   guest: { limit: 10, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, RateRule>;
+
+// The routes outside /api (health, the client's files, the website login hop) get the
+// anonymous limit per address too, as @fastify/rate-limit route config (../http/app). A new
+// object per route: the plugin keeps its per-route state on the config it is given.
+export function openRouteLimit(): {
+  rateLimit: { max: number; timeWindow: number };
+} {
+  return {
+    rateLimit: { max: RATE_RULES.anonymous.limit, timeWindow: RATE_RULES.anonymous.windowMs },
+  };
+}

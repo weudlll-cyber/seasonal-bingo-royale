@@ -144,6 +144,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 ## 8. Good to know
 
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
+- Resource limits: the game takes at most 3 CPUs and 1 GiB of memory for the app and 1.5 CPUs and 1 GiB for its database, without swap, so it never starves the website or other services on the same server. If the app reaches its limit, Docker restarts only the game's app container. To change them, add lines to `/etc/sbr/prod.env` (they are kept on re-runs) and run `sbr update <ref>`: `SBR_APP_CPUS='3'`, `SBR_APP_MEMORY='1g'`, `SBR_DB_CPUS='1.5'`, `SBR_DB_MEMORY='1g'`. Under a 200-player match the app used up to about 2 CPUs and 330 MiB, the database under 1 CPU and 80 MiB.
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
 - Not there yet: a signed release image (the server builds from source), the admin area with two-factor login and its setup page, e-mail sending, the shared website login.
