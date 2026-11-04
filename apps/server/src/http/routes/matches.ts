@@ -114,7 +114,6 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
   app.get<{ Params: { code: string }; Querystring: WatchParams & { since?: string } }>(
     '/api/v1/matches/:code/state',
     async (request, reply) => {
-      const started = Date.now();
       const id = await matchIdByCode(deps.pool, request.params.code);
       if (id === null) return reply.status(404).send({ code: 'NOT_FOUND' });
       // Not in the match's command queue (fetches must not hold up draws): the shared
@@ -131,7 +130,9 @@ function registerStateRoute(app: FastifyInstance, deps: MatchRouteDeps): void {
       const me = request.session?.accountId ?? null;
       const clock = deps.engine.clockFacts(m);
       const watch = watchQuery(request.query);
-      // Serialized here, so its size and the time it took are measured once.
+      // Built and serialized here after every wait, so the size and the building time (not the
+      // waiting) are measured once.
+      const started = Date.now();
       const body = JSON.stringify(liveView({ match: m, entry, me, since, recap, clock, watch }));
       deps.live?.built('fetch', Date.now() - started, body.length);
       return reply.type('application/json; charset=utf-8').send(body);

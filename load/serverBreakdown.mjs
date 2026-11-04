@@ -73,7 +73,7 @@ export function liveBreakdown(before, after, draws) {
     const a = histogram(before, 'sbr_live_build_seconds', `kind="${kind}"`);
     const b = histogram(after, 'sbr_live_build_seconds', `kind="${kind}"`);
     const kib = (counter(after, kind) - counter(before, kind)) / 1024;
-    return `${`per draw: ${kind}s`.padEnd(28)} ${per(b.count - a.count).toFixed(1)} built, ${per((b.sum - a.sum) * 1000).toFixed(0)} ms building, ${per(kib).toFixed(0)} KiB sent`;
+    return `${`per draw: ${kind === 'fetch' ? 'fetches' : 'frames'}`.padEnd(28)} ${per(b.count - a.count).toFixed(1)} built, ${per((b.sum - a.sum) * 1000).toFixed(0)} ms building, ${per(kib).toFixed(0)} KiB sent`;
   });
   return lines.join('\n');
 }
