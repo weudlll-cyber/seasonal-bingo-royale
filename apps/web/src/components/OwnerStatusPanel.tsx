@@ -13,7 +13,7 @@
  *                 icons and season colours stay beside the words; lines wrap, never truncate.
  *                 Never from local taps. Once eliminated: "Out in cut N" instead.
  * Depends on:     react, ./SeasonIcon, ../game/seasonText, ../playbackTypes, ../types
- * Used by:        ./OwnerArea (OwnerStatusFor, also for ../game/MatchScreen)
+ * Used by:        ./OwnerArea
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement, ReactNode } from 'react';

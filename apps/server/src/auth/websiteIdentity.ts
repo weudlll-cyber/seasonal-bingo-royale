@@ -64,7 +64,7 @@ const CUT_PAIR = /[\uD800-\uDBFF]$/;
 // The website's name in the game's characters, at most 24 (cut never inside a surrogate
 // pair); a name with fewer than 3 usable characters becomes "player-" and six characters
 // of the id's hash.
-export function gameName(websiteName: string, subject: string): string {
+function gameName(websiteName: string, subject: string): string {
   const cleaned = websiteName.trim().replace(NAME_CHARS, '_').slice(0, 24).replace(CUT_PAIR, '');
   if (cleaned.replace(/_/g, '').length >= 3) return cleaned;
   return `player-${createHash('sha256').update(subject).digest('hex').slice(0, 6)}`;

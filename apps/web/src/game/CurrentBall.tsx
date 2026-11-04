@@ -11,7 +11,7 @@
  *                 the last number (D21); at the end of the match the last number stays with
  *                 "Match over". Announced to screen readers.
  * Depends on:     react, ../components/SeasonIcon, ../types, ../useReducedMotion, ./ball.css
- * Used by:        ./MatchScreen, ../host/HostConsole
+ * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §5, §6, §7 (D21), §13
  */
 import { useEffect, useState, type ReactElement } from 'react';

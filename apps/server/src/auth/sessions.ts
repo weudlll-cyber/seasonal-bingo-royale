@@ -24,7 +24,7 @@ import type { DbPool } from '../db/pool.js';
 // (03 §3); players and guests idle 7 days, absolute 30 days.
 const ADMIN_ROLES = ['super_admin', 'security_admin', 'game_admin', 'moderator'];
 
-export type SessionKind = 'player' | 'admin' | 'guest';
+type SessionKind = 'player' | 'admin' | 'guest';
 
 export interface Session {
   readonly id: string;

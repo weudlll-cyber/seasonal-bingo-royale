@@ -29,7 +29,7 @@ const EFFECT_WORD: Readonly<Record<Effect['type'], string>> = {
   revealNext: 'preview',
 };
 
-export function effectTitle(season: Season, effect: Effect): string {
+function effectTitle(season: Season, effect: Effect): string {
   const word = EFFECT_WORD[effect.type];
   return word === '' ? seasonName(season) : `${seasonName(season)} ${word}`;
 }

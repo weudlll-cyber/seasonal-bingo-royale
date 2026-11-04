@@ -7,14 +7,12 @@
  *                 /readyz. The pool is kept small for dev (max 10) and left to the
  *                 operator to tune for production via DATABASE_URL's `max=` query.
  * Depends on:     pg
- * Used by:        ../main.ts, ../http/app.ts, ../http/routes/health.ts, ./migrator.ts,
- *                 ../auth/accounts, ../auth/sessionPlugin, ../auth/sessions, ../cli,
- *                 ../http/routes/auth, ../http/routes/devSignIn, ../http/routes/matches,
- *                 ../http/routes/matchVerify, ../index, ../match/pgMatchStore,
- *                 ../match/pgScheduler, ../match/retention, ../match/runtime,
- *                 ../match/sealedSeedCheck, ../realtime/gateway, ../view/playerNames,
- *                 ../http/routes/leaderboards, ../http/routes/profiles, ../leaderboard/boards,
- *                 ../leaderboard/profiles, ../leaderboard/accountExport
+ * Used by:        ../main.ts, ../http/app.ts, ../index, ../cli, ./migrator.ts, ../auth/accounts,
+ *                 ../auth/sessionPlugin, ../auth/sessions, ../auth/websiteAccounts,
+ *                 ../dev/demoLeague, ../http/routes/* (auth, awaySummary, devSignIn, health,
+ *                 leaderboards, matches, matchVerify, myMatches, profiles, websiteSignIn),
+ *                 ../leaderboard/*, ../match/* (pgMatchStore, pgScheduler, retention, runtime,
+ *                 sealedSeedCheck), ../realtime/gateway, ../view/playerNames
  * Spec:           docs/spec/04-database-design.md §1, docs/spec/02-software-architecture.md §7
  */
 import pg from 'pg';

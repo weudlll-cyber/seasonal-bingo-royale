@@ -13,9 +13,10 @@
  *                 events every screen already folds. No seed, draw order or undrawn number.
  *                 `rankedIn`: the players still in, best first, also for the standings.
  * Depends on:     @sbr/contracts (WatchView, Card), @sbr/domain
- * Used by:        ../http/routes/matchViews (also `rankedIn` for every live view)
+ * Used by:        ../http/routes/matchViews (also `rankedIn` for every live view),
+ *                 ../http/routes/matches
  * Spec:           docs/spec/01-game-design.md §13 (D24); docs/spec/06-realtime-architecture.md §8;
- *                 docs/spec/03-security-concept.md §11
+ *                 docs/spec/03-security-architecture.md §11
  */
 import type { CompactCard, WatchView } from '@sbr/contracts';
 import {

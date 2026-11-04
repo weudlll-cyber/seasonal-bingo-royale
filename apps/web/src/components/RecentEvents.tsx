@@ -12,7 +12,7 @@
  *                 closed disclosure that scrolls inside itself when opened, so it never pushes
  *                 the page. Hidden while there is no line yet (01 §13).
  * Depends on:     react, ../playback, ../useReducedMotion, ./matchSide.css
- * Used by:        ../game/MatchScreen, ../host/HostConsole, ./Playback
+ * Used by:        ../game/MatchScreen, ./Playback
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';

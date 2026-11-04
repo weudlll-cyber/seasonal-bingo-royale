@@ -6,7 +6,7 @@
  * Responsibility: the sign-in form (e-mail, password), the server's refusal in plain words
  *                 (./accountText), then the lobby. A link leads to Register.
  * Depends on:     react, ../shell/session, ../shell/router, ./formParts, ./account.css
- * Used by:        ../shell/AppShell
+ * Used by:        ./WebsiteSignIn
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1
  */
 import { useState, type ReactElement } from 'react';

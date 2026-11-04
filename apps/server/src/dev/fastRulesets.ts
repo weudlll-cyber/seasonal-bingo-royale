@@ -11,7 +11,7 @@
  *                 new object; the published defaults are never changed. Development only:
  *                 the create route accepts `testProfile: 'fast'` only when `dev` is on.
  * Depends on:     @sbr/contracts
- * Used by:        ../http/routes/matchInput.ts
+ * Used by:        ../http/routes/matchInput.ts, ./demoLeague
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/01-game-design.md §7
  */
 import { RulesetSchema, royaleRealtimeDefault, type Ruleset } from '@sbr/contracts';

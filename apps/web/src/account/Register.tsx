@@ -9,7 +9,7 @@
  *                 its feature flag. A link leads to Sign in.
  * Depends on:     react, ../shell/session, ../shell/router, ./accountText, ./formParts,
  *                 ./account.css
- * Used by:        ../shell/AppShell
+ * Used by:        ./WebsiteSignIn
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1
  */
 import { useState, type ReactElement } from 'react';

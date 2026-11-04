@@ -10,7 +10,7 @@
  *                 another account has it), the mapped roles recomputed (`idp_mapping`; game_admin
  *                 at most, never super_admin or security_admin), the e-mail verification mirrored for league points, the last
  *                 sign-in. A suspended game account is refused. Never links by e-mail.
- * Depends on:     ../db/pool, ./websiteIdentity
+ * Depends on:     pg (types), ../db/pool, ./websiteIdentity
  * Used by:        ../http/routes/websiteSignIn
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/04-database-design.md §3.1
  */

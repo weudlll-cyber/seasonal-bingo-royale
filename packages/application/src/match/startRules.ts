@@ -75,8 +75,8 @@ async function heldByMaintenance(
 
 // D31, D33: the system's reasons when an asynchronous lobby closes with too few players,
 // after its 24 hours or at its announced start time.
-export const LOBBY_TOO_FEW = 'Too few players joined within 24 hours';
-export const LOBBY_TOO_FEW_BY_START = 'Too few players joined by the start time';
+const LOBBY_TOO_FEW = 'Too few players joined within 24 hours';
+const LOBBY_TOO_FEW_BY_START = 'Too few players joined by the start time';
 
 // An asynchronous match's lobby closes at the record's lobbyClosesAt (./create: the announced
 // start time, else 24 h after creation), through the persistent scheduler, so a restart keeps

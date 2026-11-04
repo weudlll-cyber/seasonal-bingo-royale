@@ -19,7 +19,16 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { App } from '../src/index.js';
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
-import { BASE, cookieOf, sessionOf, signInAs, WEBSITE, type Visitor } from './websiteHelpers.js';
+import {
+  BASE,
+  cookieOf,
+  headersOf,
+  SECRET,
+  sessionOf,
+  signInAs,
+  WEBSITE,
+  type Visitor,
+} from './websiteHelpers.js';
 
 let harness: Harness;
 let local: App;
@@ -47,6 +56,23 @@ async function signedIn(v: Visitor) {
   );
   return { cookie, session: s, roles: roles.rows.map((row) => row.role_id) };
 }
+
+describe('signing in again through the website (03 §3)', () => {
+  it('ends the session the browser had before (audit-3 S2)', async () => {
+    const visitor = { id: 'r-9', name: 'Rita' };
+    const first = cookieOf(await signInAs(website(), visitor));
+    expect((await sessionOf(website(), first)).signedIn).toBe(true);
+    const again = await website().fastify.inject({
+      method: 'GET',
+      url: `${BASE}auth/website?next=${encodeURIComponent(`${BASE}#/`)}`,
+      headers: { ...headersOf(visitor), 'x-sbr-proxy-secret': SECRET, cookie: first ?? '' },
+      remoteAddress: '127.0.0.1',
+    });
+    expect(again.statusCode).toBe(302);
+    expect((await sessionOf(website(), first)).signedIn).toBe(false);
+    expect((await sessionOf(website(), cookieOf(again))).signedIn).toBe(true);
+  });
+});
 
 describe('website roles (D40, D41)', () => {
   it('lets organiser and admin host, but not a member', async () => {
