@@ -173,15 +173,16 @@ EOF
 
 # install_files <source dir of ops/>: the stack files and the CLI into /opt/sbr.
 install_files() {
-  local from=$1 name
+  local from=$1 name path
   for name in compose.yml compose.website.yml compose.website-nginx.yml; do
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
   put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
-  # A version without one of these (an update to an older ref) keeps the installed one.
-  for name in common.sh host.sh website.sh config.sh backup.sh uninstall.sh loadcheck.sh \n    db-roles.sql; do
-    [[ -f $from/lib/$name ]] || continue
-    put_file "$SBR_ROOT/lib/$name" 0644 <"$from/lib/$name"
+  # Every file of the library, so a version that adds one brings it along (an update
+  # installs the new version's files with the CLI it replaces); none is ever removed here.
+  for path in "$from"/lib/*.sh "$from"/lib/*.sql; do
+    [[ -f $path ]] || continue
+    put_file "$SBR_ROOT/lib/${path##*/}" 0644 <"$path"
   done
   put_file "$SBR_ROOT/sbr" 0755 <"$from/sbr"
   [[ -L /usr/local/bin/sbr ]] || run ln -sf "$SBR_ROOT/sbr" /usr/local/bin/sbr
