@@ -208,6 +208,9 @@ export interface QuickTestResult {
   readonly cuts: readonly CutFacts[];
   // Live matches only, for a player who is out or a spectator (D24).
   readonly watch?: WatchView;
+  // Live matches: the players still in, best first, as the server ranks them (01 §8.4);
+  // the live standings order players with equal points by it.
+  readonly rankedIn?: readonly string[];
   // Recaps of royale rounds followed by a pause (D20): in a live match the one of the
   // pause now running, in the Quick Test every such round. Absent when there is none.
   readonly recaps?: readonly RoundRecap[];

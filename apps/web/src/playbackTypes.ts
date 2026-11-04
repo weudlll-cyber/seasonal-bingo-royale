@@ -37,6 +37,9 @@ export interface PlayerView {
   readonly eliminatedCut: number | null;
   // The player's points at the moment of elimination (server), null while in.
   readonly outPoints: number | null;
+  // The player's place among those out in the same cut, as the server ranked them (0 =
+  // best, the tie-break chain of 01 §8.4); null while in.
+  readonly outRank: number | null;
   // Every cut the Winter shield saved the player in, and how far below the line they were.
   readonly shieldSaves: readonly ShieldSave[];
 }
