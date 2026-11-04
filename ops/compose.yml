@@ -9,8 +9,8 @@
 #                 Website installs (ops/compose.website.yml on top) publish no port: the app joins
 #                 the website's network, whose Caddy forwards /games/bingo. Logs: Docker `local`
 #                 driver, 5 × 20 MB per service. Caps per spec 08 §4, set in the env file:
-#                 app SBR_APP_CPUS / SBR_APP_MEMORY (default 2 CPUs / 1 GiB), PostgreSQL
-#                 SBR_DB_CPUS / SBR_DB_MEMORY (1 CPU / 1 GiB), Caddy 0.25 CPU / 128 MiB; no swap.
+#                 app SBR_APP_CPUS / SBR_APP_MEMORY (default 3 CPUs / 1 GiB), PostgreSQL
+#                 SBR_DB_CPUS / SBR_DB_MEMORY (1.5 CPUs / 1 GiB), Caddy 0.25 CPU / 128 MiB; no swap.
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6
@@ -55,9 +55,10 @@ services:
     networks:
       - data
       - edge
-    # Caps from the env file (SBR_APP_CPUS, SBR_APP_MEMORY), defaults sized from the load
-    # check (08 §4). Swap equals the limit: no swap use. A hit restarts only this container.
-    cpus: ${SBR_APP_CPUS:-2}
+    # Caps from the env file (SBR_APP_CPUS, SBR_APP_MEMORY), defaults from the load check's
+    # peaks plus 50 % (08 §4). Swap equals the limit: no swap use. A hit restarts only this
+    # container.
+    cpus: ${SBR_APP_CPUS:-3}
     mem_limit: ${SBR_APP_MEMORY:-1g}
     memswap_limit: ${SBR_APP_MEMORY:-1g}
     logging: *logging
@@ -78,7 +79,7 @@ services:
       retries: 20
     networks:
       - data
-    cpus: ${SBR_DB_CPUS:-1}
+    cpus: ${SBR_DB_CPUS:-1.5}
     mem_limit: ${SBR_DB_MEMORY:-1g}
     memswap_limit: ${SBR_DB_MEMORY:-1g}
     logging: *logging
