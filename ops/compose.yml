@@ -11,6 +11,10 @@
 #                 driver, 5 × 20 MB per service. Caps per spec 08 §4, set in the env file:
 #                 app SBR_APP_CPUS / SBR_APP_MEMORY (default 3 CPUs / 1 GiB), PostgreSQL
 #                 SBR_DB_CPUS / SBR_DB_MEMORY (1.5 CPUs / 1 GiB), Caddy 0.25 CPU / 128 MiB; no swap.
+#                 Database roles (audit-3 S1): the one-shot `migrate` service applies the
+#                 migrations as the owner role `sbr_owner` and grants the app role; the app then
+#                 starts as `sbr_app` (DATABASE_URL), checks the migrations and never sees the
+#                 superuser's or the owner's password (blanked below).
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6
@@ -26,6 +30,29 @@ x-logging: &logging
     max-file: '5'
 
 services:
+  # The migrations, as the schema's owner, then the app role's grants (dist/cli.js migrate);
+  # it runs to its end before the app starts, on every `up`.
+  migrate:
+    image: ${SBR_IMAGE:?set SBR_IMAGE in the env file}
+    command: ['node', 'dist/cli.js', 'migrate']
+    environment:
+      NODE_ENV: production
+      # An install made before the roles (updated by its older sbr) has no owner URL yet: it
+      # migrates with DATABASE_URL, still the superuser's, until the next sbr update converts it.
+      DATABASE_URL: ${SBR_MIGRATION_DATABASE_URL:-${DATABASE_URL:?set DATABASE_URL in the env file}}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
+    logging: *logging
+    restart: 'no'
+
   app:
     image: ${SBR_IMAGE:?set SBR_IMAGE in the env file}
     env_file: ${SBR_ENV_FILE:?set SBR_ENV_FILE in the env file}
@@ -34,6 +61,12 @@ services:
       SBR_HOST: 0.0.0.0
       SBR_PORT: '3000'
       SBR_DATA_DIR: /data
+      # The app role cannot migrate: it only checks that the migrate service did.
+      SBR_MIGRATIONS: check
+      # Secrets of the env file the app must not hold: the superuser's and the owner's.
+      POSTGRES_PASSWORD: ''
+      SBR_DB_OWNER_PASSWORD: ''
+      SBR_MIGRATION_DATABASE_URL: ''
     read_only: true
     tmpfs:
       - /tmp
@@ -46,6 +79,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/healthz']
       interval: 15s

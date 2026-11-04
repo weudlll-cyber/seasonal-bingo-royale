@@ -6,14 +6,16 @@
 # Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
 #                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
 #                 plain pre-update dump, installs the ref's stack files keeping the old ones,
-#                 restarts, the app migrates, prunes unused images); confirm (drops the rollback
-#                 data); rollback (backup, then the pre-update dump if the schema migrated —
-#                 later data is lost — previous image, stack files and ref); backup;
+#                 converts an install made before the database roles once (env file kept for a
+#                 rollback), sets the roles up, restarts: the migrate service migrates as the owner,
+#                 prunes unused images; a ref older than the roles is refused); confirm (drops the
+#                 rollback data); rollback (backup, then the pre-update dump if the schema migrated —
+#                 later data is lost — previous image, stack files, env file and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
 #                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
 #                 file: no new matches, running ones finish); uninstall (./lib/uninstall.sh). --yes
 #                 skips the confirmations.
-# Depends on:     /opt/sbr/lib/*.sh, Docker Compose, age
+# Depends on:     /opt/sbr/lib/*.sh, /opt/sbr/lib/db-roles.sql, Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail
 # Errors inside $(…) stop the script too (audit O1).
@@ -35,7 +37,8 @@ usage() {
   cat <<'EOF'
 usage: sbr [--env prod|staging] [--yes] <command>
   status                         what runs, its health and the last backup
-  update <git ref>               build the ref, backup, restart (migrations run on start);
+  update <git ref>               build the ref, backup, restart (migrations run first, as
+                                 the owner role; an older install gets its database roles);
                                  refused until the last update is confirmed or rolled back
   confirm                        the update works: delete the pre-update dump and rollback data
   rollback                       back to the image (and data) before the last update
@@ -78,6 +81,11 @@ cmd_status() {
     info "maintenance: off"
   fi
   info "sign-in:     $(env_value "$file" SBR_AUTH_MODE)"
+  if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
+    info "database:    the app as sbr_app, migrations as sbr_owner"
+  else
+    warn "database: the app still connects as the superuser; the next sbr update sets up the roles"
+  fi
   if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then
     check_proxy "$env"
     # 401 is the expected answer without a browser session (D37).
@@ -123,6 +131,12 @@ cmd_update() {
   [[ ! -f $dir/rollback.conf ]] || die "the last update is not confirmed yet: sbr confirm (it works) or sbr rollback first"
   # The image first (minutes), then backup and dump: they hold the data right before the switch.
   build_image "$(env_value "$conf" SBR_REPO)" "$ref"
+  # An install with the database roles cannot go to a version without them (its app would
+  # connect as the app role and fail to migrate); sbr rollback goes back instead.
+  if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]] &&
+    ! git -C "$SBR_ROOT/src" cat-file -e "${SBR_IMAGE#sbr-app:}:ops/lib/db-roles.sql" 2>/dev/null; then
+    die "$ref is older than the database roles this install uses; it cannot be installed over them"
+  fi
   do_backup "$env"
   info "Backup before the update: $BACKUP_FILE"
   install -d -m 0700 "$dir"
@@ -138,6 +152,14 @@ cmd_update() {
   save_stack "$dir"
   git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
   install_files "$SBR_ROOT/src/ops"
+  # Once, for an install made before the database roles (audit-3 S1): the env file as it was
+  # stays for a rollback, then the roles' passwords and URLs; the roles on every update.
+  if [[ -z $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
+    install -m 0600 "$file" "$dir/env.before"
+    convert_db_roles "$env"
+    info "Database roles: the app now connects as sbr_app, the migrations run as sbr_owner."
+  fi
+  apply_db_roles "$env"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
   set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d
@@ -151,7 +173,7 @@ cmd_update() {
 cmd_confirm() {
   local dir="$SBR_STATE/$1"
   [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
-  rm -rf "$dir/pre-update.dump" "$dir/rollback.conf" "$dir/stack"
+  rm -rf "$dir/pre-update.dump" "$dir/rollback.conf" "$dir/stack" "$dir/env.before"
   # shellcheck disable=SC2046 # one image name per word
   prune_images $(images_in_use)
   info "Update confirmed: the pre-update dump is deleted; a rollback is no longer possible."
@@ -180,13 +202,17 @@ cmd_rollback() {
     stop_app "$env"
     restore_database "$env" "$dir/pre-update.dump"
   fi
+  # The env file from before the roles' conversion, if this update made it.
+  if [[ -f $dir/env.before ]]; then install -m 0600 "$dir/env.before" "$file"; fi
   set_env_value "$file" SBR_IMAGE "$previous_image"
   if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
   restore_stack "$dir"
+  # A restored dump belongs to the superuser: give it back to the owner when roles are in use.
+  if ((restore)) && [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then apply_db_roles "$env"; fi
   compose "$env" up -d
   restart_app_done
   wait_ready "$env"
-  rm -f "$dir/rollback.conf" "$dir/pre-update.dump"
+  rm -f "$dir/rollback.conf" "$dir/pre-update.dump" "$dir/env.before"
   info "Rolled back to $previous_image (ref ${previous_ref:-unknown})."
 }
 

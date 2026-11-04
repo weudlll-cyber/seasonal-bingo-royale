@@ -128,7 +128,13 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
 4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end; matches set to start at a time or when full wait in their lobby and start once you turn maintenance off. Afterwards `sudo sbr maintenance off`.
-5. Everyday checks: `sudo sbr status` (what runs, health, last backup) and `sudo sbr logs app`.
+5. Everyday checks: `sudo sbr status` (what runs, health, last backup, the database roles) and `sudo sbr logs app`.
+6. Database roles (since 4 November 2026): the game uses two database roles.
+   - The app connects as `sbr_app`, which can read and write the game's rows but cannot change the tables, drop them or touch roles. It can never change or delete a match event.
+   - The migrations run before the app starts as `sbr_owner`, in the short-lived `migrate` container. `sbr status` lists it as exited (that is normal).
+   - Their passwords are in `/etc/sbr/prod.env` (made by the installer, never shown).
+   - An install made earlier gets the roles on the first `sudo sbr update` that the new `sbr` command runs. The update that brings the new command still runs the old one, so after `sudo sbr confirm` run `sudo sbr update <the same ref>` once more; `sudo sbr status` says whether the roles are set up. `sudo sbr rollback` goes back to the earlier setup, the env file included.
+   - A version older than the roles cannot be installed over them; `sbr update` refuses it.
 
 ## 7. Hardening checklist
 

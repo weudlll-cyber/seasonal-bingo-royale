@@ -12,6 +12,11 @@
 - JSON: `jsonb` only for versioned configuration documents and event payloads; everything that is queried or joined is a column.
 - **No monetary columns anywhere** (no balance, currency, wallet, price). A migration adding one must reference a legal review (see [01-game-design.md](01-game-design.md) §1.1).
 - DB roles: `sbr_migrator` (DDL, used only by migrations), `sbr_app` (DML on all tables except restricted ones below), `sbr_readonly` (backups, reporting).
+  - **As built (2026-11-04, audit-3 S1):** `sbr_owner` owns the schema `sbr` and everything in it and runs the migrations (`dist/cli.js migrate`, the stack's one-shot `migrate` service). After every migration it grants `sbr_app` SELECT, INSERT, UPDATE and DELETE on every table and the sequences, minus UPDATE, DELETE and TRUNCATE on `match_events` (append-only, §3.3, besides its trigger) and the migration record (`apps/server/src/db/roles.ts`).
+  - Neither role is a superuser or may create roles or databases; both search `sbr, public` first.
+  - The app starts with `SBR_MIGRATIONS=check` and refuses to start while a migration is missing.
+  - `ops/lib/db-roles.sql` creates the roles (as the container's superuser, which also makes the backups) and gives an older install's schema to the owner.
+  - There is no `sbr_readonly`: backups use the superuser over the container's local socket.
 
 ## 2. Entity overview
 

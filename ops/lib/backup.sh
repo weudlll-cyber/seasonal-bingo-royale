@@ -9,10 +9,12 @@
 #                 public key, written .partial then renamed, group sbr-backup; keeps the 14 newest
 #                 plus the newest of 8 older weeks. A restore needs the age identity, refuses
 #                 another env's backup or seed key unless --force-env, asks, stops the app,
-#                 restores in one transaction; a drill uses a throw-away PostgreSQL, opens one
-#                 sealed seed. Timer 03:30; failures mark backup-failed.
+#                 restores in one transaction without owners or grants, then gives the schema to
+#                 the owner role again (./config.sh apply_db_roles; the migrate service grants
+#                 the app role); a drill uses a throw-away PostgreSQL, opens one sealed seed.
+#                 Timer 03:30; failures mark backup-failed.
 # Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
-#                 cleanup, stop_app), age, docker
+#                 cleanup, stop_app), ./config.sh (apply_db_roles), age, docker
 # Used by:        ops/sbr, ops/install.sh (timer)
 # Spec:           docs/spec/09-deployment-architecture.md §6; docs/spec/03-security-architecture.md §15
 
@@ -114,6 +116,9 @@ do_restore() {
   confirm "Restore $(basename "$file") over the live $env data? Everything since that backup is lost."
   stop_app "$env"
   restore_database "$env" "$work/db.dump"
+  # The restored schema belongs to the superuser: back to the owner role (audit-3 S1); the
+  # migrate service grants the app role again on the next up.
+  if [[ -n $(env_value "$SBR_ETC/$env.env" SBR_DB_APP_PASSWORD) ]]; then apply_db_roles "$env"; fi
   restore_uploads "$env" "$work/uploads.tar"
   if [[ $RESTORE_SEED_KEY != "$(env_value "$SBR_ETC/$env.env" SBR_SEED_KEY)" ]]; then
     set_env_value "$SBR_ETC/$env.env" SBR_SEED_KEY "$RESTORE_SEED_KEY"
@@ -134,7 +139,7 @@ do_restore() {
 restore_database() {
   {
     printf 'SET client_min_messages = warning;\nBEGIN;\nDROP SCHEMA IF EXISTS sbr CASCADE;\n'
-    compose "$1" exec -T postgres pg_restore --no-owner -f - <"$2" && printf 'COMMIT;\n'
+    compose "$1" exec -T postgres pg_restore --no-owner --no-acl -f - <"$2" && printf 'COMMIT;\n'
   } | compose "$1" exec -T postgres psql -X -q -o /dev/null -v ON_ERROR_STOP=1 -U sbr -d sbr
 }
 
@@ -168,7 +173,7 @@ do_drill() {
   key=$(backup_seed_key "$work")
   [[ -n $key ]] || die "this backup holds no seed key (made before backups carried it): its matches cannot be opened; take a new backup"
   drill_database "$name"
-  docker exec -i "$name" pg_restore -U sbr -d sbr --no-owner --exit-on-error <"$work/db.dump"
+  docker exec -i "$name" pg_restore -U sbr -d sbr --no-owner --no-acl --exit-on-error <"$work/db.dump"
   counts=$(docker exec "$name" psql -U sbr -d sbr -tA -c \
     "SELECT (SELECT count(*) FROM sbr.schema_migrations) || ' migrations, ' || (SELECT count(*) FROM sbr.accounts) || ' accounts, ' || (SELECT count(*) FROM sbr.matches) || ' matches, ' || (SELECT count(*) FROM sbr.match_events) || ' events'")
   [[ -n $counts ]] || die "the drill restored nothing readable"
