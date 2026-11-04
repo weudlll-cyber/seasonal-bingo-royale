@@ -80,7 +80,7 @@ Note for operators of this repo: a green local check is not a green CI — after
 - Multi-stage Dockerfile: `deps` (pnpm fetch) → `build` (tsc, vite) → `runtime` (`node:22-alpine` or distroless, non-root UID 10001, read-only root FS, `NODE_ENV=production`, only `dist/` and prod deps).
 - One image runs three commands: `server` (HTTP + WS + scheduler), `migrate`, `cli`.
 - Healthcheck: `GET /healthz`.
-- Resource defaults (Compose): app 1 CPU / 768 MiB, Postgres 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB.
+- Resource defaults (Compose, set in the env file): app `SBR_APP_CPUS` / `SBR_APP_MEMORY` 2 CPUs / 1 GiB, Postgres `SBR_DB_CPUS` / `SBR_DB_MEMORY` 1 CPU / 1 GiB, Caddy 0.25 CPU / 128 MiB; swap equals the limit (none). Sized from the load check of 2026-11-04 (12 §5). A container that reaches its memory limit is restarted by Docker (`restart: unless-stopped`); other containers on the host are not touched.
 
 ## 5. Configuration and secrets
 

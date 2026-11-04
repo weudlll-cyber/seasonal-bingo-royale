@@ -16,7 +16,7 @@
  *                 with the sign-in route and `next` as return path (D43).
  * Depends on:     node:crypto, fastify, ../../auth/websiteIdentity, ../../auth/websiteAccounts, ./auth,
  *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types),
- *                 ../../config/env (types), ../../db/pool (types)
+ *                 ../../auth/rateLimit, ../../config/env (types), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2;
  *                 docs/spec/05-api-design.md §2.1
@@ -25,6 +25,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import type { FastifyInstance } from 'fastify';
 
+import { openRouteLimit } from '../../auth/rateLimit.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
 import { websiteAccount } from '../../auth/websiteAccounts.js';
@@ -66,11 +67,15 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
   // D43: the proxy sends a visitor the website does not know here; on to the website's login
   // with the sign-in route and the wanted page as its return path (encoded twice: the page is
   // a parameter of the sign-in route, which is the login's parameter).
-  app.get<{ Querystring: { next?: string } }>('/auth/website/login', (request, reply) => {
-    const back = `${base}auth/website?next=${encodeURIComponent(safeNext(request.query.next, base))}`;
-    reply.header('cache-control', 'no-store');
-    return reply.redirect(`${deps.env.SBR_WEBSITE_LOGIN_PATH}${encodeURIComponent(back)}`, 302);
-  });
+  app.get<{ Querystring: { next?: string } }>(
+    '/auth/website/login',
+    { config: openRouteLimit() },
+    (request, reply) => {
+      const back = `${base}auth/website?next=${encodeURIComponent(safeNext(request.query.next, base))}`;
+      reply.header('cache-control', 'no-store');
+      return reply.redirect(`${deps.env.SBR_WEBSITE_LOGIN_PATH}${encodeURIComponent(back)}`, 302);
+    },
+  );
   app.get<{ Querystring: { next?: string } }>(
     '/auth/website',
     { config },
