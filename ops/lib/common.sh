@@ -8,9 +8,10 @@
 #                 command (--dry-run); writing a file atomically and only when its content changed
 #                 (re-runs change nothing); reading or replacing one value of an env file; a host
 #                 as a URL writes it (IPv6 in brackets); on exit, removing work files and
-#                 throw-away containers, and restarting an app stopped by stop_app when the script
-#                 fails before restart_app_done; Docker Compose for one environment with the right
-#                 files.
+#                 throw-away containers, restarting an app stopped by stop_app when the script
+#                 fails before restart_app_done, and removing the accounts of a load check that
+#                 did not get to its own cleanup; Docker Compose for one environment with the
+#                 right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
 
@@ -24,6 +25,8 @@ SBR_DRY_RUN=${SBR_DRY_RUN:-0}
 SBR_TMP_PATHS=()
 SBR_TMP_CONTAINERS=()
 SBR_RESTART_APP=''
+# The environment of a load check under way (./loadcheck.sh), until its own cleanup ran.
+SBR_LOADCHECK_ENV=''
 
 # Work files and throw-away containers go when the script ends, also after an error. A
 # script that stopped the app (restore, rollback) and then fails starts it again (audit H3).
@@ -32,6 +35,10 @@ sbr_cleanup() {
   if ((status != 0)) && [[ -n $SBR_RESTART_APP ]]; then
     warn "stopped with an error: starting the app of $SBR_RESTART_APP again"
     compose "$SBR_RESTART_APP" start app || warn "the app did not start: sbr status, sbr logs app"
+  fi
+  if [[ -n $SBR_LOADCHECK_ENV ]]; then
+    compose "$SBR_LOADCHECK_ENV" exec -T app node dist/cli.js loadcheck cleanup ||
+      warn "the load check's accounts may be left: run sudo sbr loadcheck again, it removes them first"
   fi
   ((${#SBR_TMP_PATHS[@]})) && rm -rf "${SBR_TMP_PATHS[@]}"
   ((${#SBR_TMP_CONTAINERS[@]})) && docker rm -f "${SBR_TMP_CONTAINERS[@]}" >/dev/null 2>&1

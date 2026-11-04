@@ -11,7 +11,10 @@
  *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs
  *                 (kept with SBR_BUILD_DEV=1, only for the local load check, 12 §5);
  *                 copy src/db/migrations to <out>/migrations, where the bundled migrator
- *                 looks for them. Run by the Dockerfile.
+ *                 looks for them; bundle the load generator of `sbr loadcheck`
+ *                 (../../load/loadcheck.mjs) with its npm packages into <out>/loadcheck.js, so
+ *                 the production image can run it without development code. Run by the
+ *                 Dockerfile.
  * Depends on:     esbuild, ./devStub.mjs
  * Used by:        Dockerfile
  * Spec:           docs/spec/08-devops-architecture.md §4; docs/spec/09-deployment-architecture.md §1
@@ -70,3 +73,20 @@ await build({
   logLevel: 'info',
 });
 cpSync('src/db/migrations', path.join(out, 'migrations'), { recursive: true });
+
+// The load generator (12 §5) with socket.io-client inside: the server's node_modules do not
+// hold it. ws's optional native helpers stay out (it works without them).
+await build({
+  entryPoints: { loadcheck: '../../load/loadcheck.mjs' },
+  outdir: out,
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'esm',
+  minifyWhitespace: true,
+  external: ['bufferutil', 'utf-8-validate'],
+  banner: {
+    js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);",
+  },
+  logLevel: 'info',
+});

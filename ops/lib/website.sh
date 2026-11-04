@@ -18,7 +18,8 @@
 #                 to the website), a refusal sent to the app's /games/bingo/auth/website/login
 #                 with the same query (the app sends on to the website's login with the wanted
 #                 page, D43), /games/bingo/metrics 404 (D37); print the one line the website
-#                 must have. For sbr status: whether the authorize endpoint answers.
+#                 must have. For sbr status: whether the authorize endpoint answers, and the proxy
+#                 the app trusts (check_proxy).
 # Used by:        ops/install.sh, ops/sbr (status)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
 
@@ -273,4 +274,25 @@ authorize_status() {
     [[ -n $caddy ]] && code=$(docker exec "$caddy" wget -S -q -O /dev/null -T 5 "$url" 2>&1 | awk '/HTTP\//{print $2; exit}' || true)
   fi
   [[ -n ${code:-} && $code != 000 ]] && printf '%s' "$code" || printf 'no answer'
+}
+
+# check_proxy <env>: sbr status's line on the proxy in front (nginx port, or the website's
+# network the app trusts).
+check_proxy() {
+  local env=$1 network now trusted extra
+  # nginx mode: the app's own network with its fixed subnet (ops/compose.website-nginx.yml).
+  if [[ $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_MODE) == nginx ]]; then
+    info "proxy:       the website's nginx on 127.0.0.1:$(env_value "$SBR_ETC/$env.env" SBR_APP_PORT)"
+    return 0
+  fi
+  [[ -n $(website_caddy) ]] || { warn "the website's Caddy is not running"; return 0; }
+  network=$(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK)
+  extra=$(env_value "$SBR_ETC/$env.env" SBR_EXTRA_PROXIES)
+  now=$(network_subnets "$network")
+  trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
+  if [[ $now${extra:+,$extra} == "$trusted" ]]; then
+    info "proxy:       the website's network $network ($now)"
+  else
+    warn "the website's network is now $now, the app trusts $trusted: run the installer again to update it"
+  fi
 }

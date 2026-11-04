@@ -18,7 +18,17 @@
  */
 import { io } from 'socket.io-client';
 
-import { BASE, call, errors, fail, inBatches, ORIGIN, signIn, watchServer } from './common.mjs';
+import {
+  BASE,
+  call,
+  errors,
+  fail,
+  inBatches,
+  ORIGIN,
+  signIn,
+  SOCKET,
+  watchServer,
+} from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
 const MINUTES = Number(process.argv[3] ?? 4);
@@ -31,8 +41,8 @@ const APPENDABLE = new Set([
 
 // The spectator: counts every byte it receives and how much of it is the watch block.
 function connectSpectator(viewer, code, record) {
-  const socket = io(`${BASE}/play`, {
-    path: '/ws',
+  const socket = io(SOCKET.url, {
+    path: SOCKET.path,
     transports: ['websocket'],
     extraHeaders: { cookie: viewer.cookie, origin: ORIGIN },
     reconnection: false,

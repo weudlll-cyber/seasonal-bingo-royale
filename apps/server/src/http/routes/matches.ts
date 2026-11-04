@@ -5,7 +5,8 @@
  *
  * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
  *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
- *                 503 MAINTENANCE while `sbr maintenance on`), GET /matches/:code, GET
+ *                 503 MAINTENANCE while `sbr maintenance on`, except for the load check's host,
+ *                 12 §5), GET /matches/:code, GET
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
  *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
@@ -42,6 +43,12 @@ export interface MatchRouteDeps {
   // `sbr maintenance on`: no new match is created (../../config/maintenance); the engine
   // holds every start (D22).
   readonly maintenance: MaintenanceCheck;
+}
+
+// The operator's load-check host (role load_check, made only by the CLI) creates and starts
+// its match also while maintenance is on (12 §5); every other account is refused.
+export function maintenanceExempt(request: FastifyRequest): boolean {
+  return request.session?.permissions.includes('match.loadcheck') === true;
 }
 
 export function requirePermission(
@@ -154,7 +161,7 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     const parsed = createBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     const maintenance = deps.maintenance();
-    if (maintenance !== null) {
+    if (maintenance !== null && !maintenanceExempt(request)) {
       return reply.status(503).send({ code: 'MAINTENANCE', reason: maintenance.reason });
     }
     // The fast test profile exists in development builds only.

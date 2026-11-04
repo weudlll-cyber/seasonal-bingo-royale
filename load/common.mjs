@@ -1,18 +1,27 @@
 /**
  * @file   load/common.mjs
  * @module load
- * @brief  What the load checks share: dev sign-in, API calls, batches, percentiles, server samples.
+ * @brief  What the load checks share: the target, dev sign-in, API calls, batches, percentiles, server samples.
  *
- * Responsibility: sign in a development account and call the API as it (cookie, CSRF token,
- *                 origin), run calls in batches, sum up latencies (p50/p95/p99/max), sample the
- *                 server's CPU, memory and event-loop lag from /metrics every 2 s, and count
- *                 errors with a few examples.
+ * Responsibility: the server to load (the local development stack by default; SBR_LOAD_BASE,
+ *                 with the base path, and SBR_LOAD_ORIGIN for `sbr loadcheck` on a production
+ *                 install) and its WebSocket address; sign in a development account and call the
+ *                 API as it (cookie, CSRF token, origin), run calls in batches, sum up latencies
+ *                 (p50/p95/p99/max), sample the server's CPU, memory and event-loop lag from
+ *                 /metrics every 2 s, and count errors with a few examples.
  * Depends on:     nothing (Node's fetch)
- * Used by:        ./drawLatency.mjs, ./spectatorStream.mjs, ../apps/server/demo-league.mjs (BASE, ORIGIN)
+ * Used by:        ./drawRun.mjs, ./drawLatency.mjs, ./loadcheck.mjs, ./spectatorStream.mjs,
+ *                 ./asyncJump.mjs, ../apps/server/demo-league.mjs (BASE, ORIGIN)
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/08-devops-architecture.md §6
  */
-export const BASE = 'http://127.0.0.1:3900';
-export const ORIGIN = 'http://localhost:5390';
+export const BASE = (process.env.SBR_LOAD_BASE ?? 'http://127.0.0.1:3900').replace(/\/$/, '');
+export const ORIGIN = process.env.SBR_LOAD_ORIGIN ?? 'http://localhost:5390';
+
+// Socket.IO takes the namespace from the URL's path, so the base path goes into `path`.
+export const SOCKET = {
+  url: `${new URL(BASE).origin}/play`,
+  path: `${new URL(BASE).pathname.replace(/\/$/, '')}/ws`,
+};
 
 export const errors = { http: 0, socket: 0, intent: 0, examples: [] };
 export function fail(kind, detail) {

@@ -168,7 +168,9 @@ export class MatchEngine {
     }
   }
 
-  start(matchId: string, countdownMs: number): Promise<number> {
+  // `maintenanceExempt`: the operator's load check starts its own match also while
+  // maintenance is on (12 §5); nobody else does.
+  start(matchId: string, countdownMs: number, maintenanceExempt = false): Promise<number> {
     return this.runner.serial(matchId, async () => {
       const m = await this.runner.current(matchId);
       if (m.record.status !== 'lobby') throw new MatchError('MATCH_NOT_IN_LOBBY');
@@ -176,7 +178,9 @@ export class MatchEngine {
       if (m.record.startsAt !== null) throw new MatchError('MATCH_STARTING');
       // D22: not while maintenance is on; the host sees the operator's reason.
       const maintenance = this.deps.maintenance();
-      if (maintenance !== null) throw new MatchError('MAINTENANCE', maintenance.reason);
+      if (maintenance !== null && !maintenanceExempt) {
+        throw new MatchError('MAINTENANCE', maintenance.reason);
+      }
       if (m.state.playerOrder.length < minPlayersOf(m)) throw new MatchError('NOT_ENOUGH_PLAYERS');
       const startsAt = this.deps.clock.now(matchId) + countdownMs;
       await scheduleStart(this.flow, matchId, startsAt);
