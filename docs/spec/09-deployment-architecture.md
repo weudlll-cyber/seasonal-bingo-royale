@@ -127,4 +127,4 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 - SSH keys only, root login off (`PermitRootLogin no`; the operator works with `sudo` and pulls backups as a user in the group `sbr-backup`), `unattended-upgrades` on, `ufw` allowing 22/80/443 only, fail2ban for SSH.
 - Docker daemon: `live-restore`, `userns-remap` optional, log rotation.
 - Domain: CAA record for the ACME CA, DNSSEC if the registrar supports it.
-- Optional: Cloudflare (proxy) in front for DDoS absorption; then the installer's `--trusted-proxies` adds the Cloudflare ranges to `SBR_TRUSTED_PROXIES`.
+- A CDN or Cloudflare proxy in front is not supported for now (owner decision 2026-11-04, audit-3 S3; 03 §13 layer 3): every visitor would share the CDN's rate limits. Point DNS straight at the server (with Cloudflare: “DNS only”).

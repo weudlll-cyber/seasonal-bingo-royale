@@ -121,9 +121,10 @@ export default defineConfig(
     },
   },
   {
-    // Test files of every kind, the Playwright specs included, may run to 400 lines.
+    // Test files of every kind, the Playwright specs included, have no file-length limit;
+    // their functions keep the 60-line limit (owner decision 2026-11-04, audit-3 H7).
     files: ['**/*.test.ts', '**/*.test.tsx', 'e2e/**/*.spec.ts'],
-    rules: { 'max-lines': ['error', { max: 400 }] },
+    rules: { 'max-lines': 'off' },
   },
   {
     // Tool config files must default-export their configuration (Vite, Vitest, etc.);

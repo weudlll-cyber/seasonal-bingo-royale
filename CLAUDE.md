@@ -14,7 +14,7 @@ Everything in this repository is English: code, comments, commit messages, docs,
 
 - Layers: `domain` ← `application` ← `apps/server`. `domain` has no I/O, no clock, no randomness except injected ports. `contracts` holds every shape shared across the wire.
 - Client code never computes scores, patterns or rankings. The server decides; the client renders.
-- File ≤ 300 lines, function ≤ 60 lines, complexity ≤ 12. Split by responsibility, not by line count.
+- File ≤ 300 lines (test files have no file limit), function ≤ 60 lines (tests included), complexity ≤ 12. Split by responsibility, not by line count.
 - Every source file starts with the standard header (docs/spec/10-repository-structure.md §3). Important blocks get inline comments.
 
 ## Hygiene in every task
