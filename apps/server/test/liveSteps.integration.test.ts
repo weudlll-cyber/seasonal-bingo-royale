@@ -11,9 +11,11 @@
  *                 full fetch for that viewer; the only exception is the player list's live points,
  *                 seasons and shield, which a step sends only with the list (a join, the first
  *                 round, the finish) and the screens never read in between. A gap (a step that
- *                 does not fit) fails the test. Every frame a player still in received holds no
- *                 other player's card, no draw order and no seed, and its own frames no
- *                 watched cards (D24, 03 §11); the spectator's own frames hold them.
+ *                 does not fit) is fetched as the client does; only the one a screen may meet
+ *                 while its first load runs is allowed. Every frame a player still in received
+ *                 holds no other player's card, no draw order and no seed value (a lobby event's
+ *                 seed is the stripped `{}`), and its own frames no watched cards (D24, 03 §11);
+ *                 the spectator's own frames hold them.
  * Depends on:     vitest, @sbr/application, @sbr/contracts, ./socketKit, ./session, ./harness
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/01-game-design.md §9, §13
  */
@@ -78,8 +80,16 @@ async function screen(client: Client, code: string): Promise<Screen> {
     room = null;
     if (s.held === null || own.s <= s.held.seq) return;
     const next = step === null ? null : applyStep(s.held, step, own);
-    if (next === null) s.gaps += 1;
-    else s.held = next;
+    if (next !== null) {
+      s.held = next;
+      return;
+    }
+    // A gap: the events after the held seq, as the client fetches them.
+    s.gaps += 1;
+    const held = s.held;
+    void client
+      .get(`/api/v1/matches/${code}/state?since=${String(held.seq)}`)
+      .then((r) => (s.held = mergeAnswer(s.held ?? held, r.json<LiveAnswer<Summary>>())));
   });
   expect((await kit.send(socket, 'match.watch', { code })).ok).toBe(true);
   s.held = await fullFetch(client, code);
@@ -105,7 +115,8 @@ async function sameAsFetch(screens: readonly Screen[], engine: MatchEngine, id: 
     .poll(() => screens.every((s) => (s.held?.seq ?? 0) >= seq), { timeout: 5_000, interval: 10 })
     .toBe(true);
   for (const s of screens) {
-    expect(s.gaps).toBe(0);
+    // At most the one gap of a step that came while the first load ran.
+    expect(s.gaps).toBeLessThanOrEqual(1);
     expect(comparable(s.held as LiveState)).toEqual(comparable(await fullFetch(s.client, code)));
   }
 }
@@ -192,7 +203,8 @@ describe('live frames equal full fetches (06 §8)', () => {
     expect(whileIn.length).toBeGreaterThan(10);
     for (const f of whileIn) {
       expect(cardHolders(f).filter((name) => name !== me)).toEqual([]);
-      expect(JSON.stringify(f)).not.toMatch(/"seed"/);
+      // A lobby event's seed is stripped to {}; never a value.
+      expect(JSON.stringify(f)).not.toMatch(/"seed":(?!\{\})/);
     }
     // The spectator watches from the start: its own frames carry the watched cards.
     expect(watcher?.frames.some((f) => cardHolders(f).length > 0)).toBe(true);

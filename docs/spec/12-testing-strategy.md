@@ -108,6 +108,24 @@ Fixes (each measured again): a mark rewrites only its player's standings row (al
 
 The gateway now keeps each match code once. A code never changes and a match is never deleted, so this removed the lookup and about 64 database queries per draw, and the speed bonus's receive time now comes right at arrival. On this machine the acknowledgement end to end did not get shorter. The rest, the wait for the batch and the transaction, follows the app's busy event loop: up to seconds of lag while 250 screens fetch after every draw. The next step is the larger change named in BACKLOG (fewer fetches per draw, room frames coalesced), not a small fix.
 
+**One live update per step (2026-11-04, PERF-FANOUT, 06 §8).** The same harness, now pinned: the load generator on its own CPUs (`sbr loadcheck --cpuset 6-11`), the app on CPUs 0–3 and PostgreSQL on 4–5 (`docker update --cpuset-cpus`) on the 14-CPU rehearsal machine. 200 players all tapping and 50 spectators, the published royale with draws every 4 s, 5 minutes per run. "Draw on screen" is when a screen has everything to show the draw: before, after its state fetch; after, when its own frame has followed the room frame.
+
+| Measure | Before (fetch per screen) | After, run 1 | After, run 2 | Target |
+|---|---|---|---|---|
+| Draw on screen, p50 / p95 / p99 | 2811 / 4101 / 4843 ms | 104 / 291 / 554 ms | 127 / 369 / 537 ms | p95 < 500 ms, p99 < 1 s ✓ |
+| Room frame arrives (players), p95 | 928 ms | 197 ms | 275 ms | |
+| Tap acknowledgement, p50 / p95 | 854 / 2429 ms | 33 / 313 ms | 85 / 418 ms | p95 < 150 ms ✗ |
+| Whole tap on the server, mean (wait / transaction) | 872 ms (252 / 479) | 53 ms (16 / 29) | 87 ms (22 / 45) | |
+| Gaps between draws, p95 | 6452 ms | 4215 ms | 4245 ms | ≤ 4.3 s ✓ |
+| App event-loop lag, p99 max | 1898 ms | 162 ms | 192 ms | < 200 ms ✓ |
+| State fetches per draw | 341 | 0 | 0.2 | |
+| Building per draw (fetch answers + frames) | 1033 + 177 ms | 0 + 68 ms | 0 + 103 ms | |
+| Bytes per draw (fetch answers + frames × recipients) | 5456 + 2558 KiB | 1 + 6333 KiB | 10 + 6848 KiB | |
+| App / PostgreSQL peak | 1.54 / 1.31 CPUs | 1.02 / 0.53 CPUs | 1.14 / 0.84 CPUs | |
+| Errors | 21 (taps pending when the run closed its sockets) | 0 | 0 | ✓ |
+
+The tap acknowledgement still misses its target, in the tail. Its median fell from 854 ms to 33–85 ms, but the p95 is 313–418 ms. On the server a tap's mean is now 53–87 ms: the wait for the batch plus the batch's transaction, whose p95 reaches the 100–250 ms histogram bucket. The next cause is the per-batch transaction: about seven round trips (lock, insert events, version, projections, commit), with taps that arrive meanwhile waiting the whole of it. The rest is the transport and the load generator's own single event loop for 250 sockets. Next steps are in BACKLOG. The bytes per draw are about a quarter lower in total but now all in frames (about 25 KiB per socket per draw): each step repeats `rankedIn` (200 names) and the summary.
+
 ## 6. Security tests
 
 - **Authorization matrix test**: generated from the permission table — every route/WS intent is called with every role; expected allow/deny asserted. New routes fail CI until listed.

@@ -103,9 +103,12 @@ describe('rooms, events and intents', () => {
       code: 'FORBIDDEN',
     });
     expect((await kit.send(hostSocket, 'draw.next', { code })).ok).toBe(true);
-    // Room-wide frames carry a round start without anyone's cards or the draw order.
-    const start = frames.flatMap((f) => f.events).find((e) => e.event.type === 'roundStarted');
-    expect(start?.event).toMatchObject({ cardsByPlayer: {}, drawSequence: [] });
+    // Room-wide frames carry a round start without anyone's cards or the draw order; a step
+    // goes out within 40 ms of its events (06 §8).
+    const roundStart = () =>
+      frames.flatMap((f) => f.events).find((e) => e.event.type === 'roundStarted');
+    await expect.poll(roundStart).toBeDefined();
+    expect(roundStart()?.event).toMatchObject({ cardsByPlayer: {}, drawSequence: [] });
     await expect
       .poll(() => frames.some((f) => f.events.some((e) => e.event.type === 'drawMade')))
       .toBe(true);
