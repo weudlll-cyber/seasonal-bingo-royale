@@ -35,8 +35,9 @@ function print(r) {
   console.log(
     [
       `match ${r.code}: ${String(r.players)} players, ${String(r.spectators)} spectators, ${r.minutes.toFixed(1)} min, ${String(r.rounds)} round(s) ended`,
-      line('draw to screen, players', r.frameLatencyMs, '  [criterion p95 < 500 ms, p99 < 1 s]'),
-      line('draw to screen, spectators', r.spectatorFrameLatencyMs),
+      line('draw arrives, players', r.frameLatencyMs),
+      line('draw arrives, spectators', r.spectatorFrameLatencyMs),
+      line('draw on screen (all)', r.screenReadyMs, '  [criterion p95 < 500 ms, p99 < 1 s]'),
       line('tap acknowledgement', r.tapAckMs, '  [criterion p95 < 150 ms]'),
       "where a tap's time goes on the server:",
       r.tapBreakdown,
