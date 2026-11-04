@@ -126,6 +126,26 @@ The gateway now keeps each match code once. A code never changes and a match is 
 
 The tap acknowledgement still misses its target, in the tail. Its median fell from 854 ms to 33–85 ms, but the p95 is 313–418 ms. On the server a tap's mean is now 53–87 ms: the wait for the batch plus the batch's transaction, whose p95 reaches the 100–250 ms histogram bucket. The next cause is the per-batch transaction: about seven round trips (lock, insert events, version, projections, commit), with taps that arrive meanwhile waiting the whole of it. The rest is the transport and the load generator's own single event loop for 250 sockets. Next steps are in BACKLOG. The bytes per draw are about a quarter lower in total but now all in frames (about 25 KiB per socket per draw): each step repeats `rankedIn` (200 names) and the summary.
 
+**Lighter tap batches and leaner frames (2026-11-04, PERF-TAPS, 06 §8).** The same pinned harness and scenario as PERF-FANOUT, one run on master before, two after. A batch of taps (and a draw or a window close) is now one statement: the version move `UPDATE … WHERE version = expected RETURNING id` heads data-modifying CTEs that insert the events and write the read models, so the batch is one round trip instead of eight (a join, the finish and a batch with a snapshot still run in a transaction). Taps that arrive while a batch is stored form the next batch at once (as before, now with a test). The room frame leaves out the summary and `rankedIn` when unchanged.
+
+| Measure | Before (master) | After, run 1 | After, run 2 | Target |
+|---|---|---|---|---|
+| Tap acknowledgement, p50 / p95 / p99 | 33 / 194 / 347 ms | 18 / 90 / 127 ms | 24 / 144 / 227 ms | p95 < 150 ms ✓ |
+| Whole tap on the server, mean (wait / transaction) | 45 ms (15 / 25) | 19 ms (6 / 10) | 28 ms (6 / 14) | |
+| Wait for the batch, p95 bucket | ≤ 100 ms | ≤ 25 ms | ≤ 25 ms | |
+| Batch transaction, p95 bucket | ≤ 100 ms | ≤ 50 ms | ≤ 100 ms | |
+| Taps per batch, mean | 16.9 | 14.9 | 14.9 | |
+| Round trips per tap batch | 8 (counted in the test) | 1.0 | 1.0 | |
+| Draw on screen, p50 / p95 / p99 | 103 / 232 / 313 ms | 87 / 142 / 174 ms | 98 / 182 / 362 ms | p95 < 500 ms ✓ |
+| Gaps between draws, p95 | 4241 ms | 4116 ms | 4190 ms | ≤ 4.3 s ✓ |
+| App event-loop lag, p99 max | 92 ms | 52 ms | 127 ms | < 200 ms ✓ |
+| Frames per draw: building / bytes × recipients | 60 ms / 6247 KiB | 38 ms / 3972 KiB | 50 ms / 4129 KiB | |
+| Bytes per socket per draw | about 25 KiB | about 16 KiB | about 16.5 KiB | |
+| App / PostgreSQL peak | 1.37 / 0.64 CPUs | 0.86 / 0.48 CPUs | 1.38 / 0.55 CPUs | |
+| Errors | 0 | 0 | 0 | ✓ |
+
+The tap acknowledgement meets its target in both runs; run 2's p95 (144 ms) is close to it, so the margin is small. The p99 of the gaps (about 22 s) is the pause after the round end, not a slow draw. The next cause in the tail is the transaction itself in the 50–100 ms bucket under load and the load generator's single event loop for 250 sockets.
+
 ## 6. Security tests
 
 - **Authorization matrix test**: generated from the permission table — every route/WS intent is called with every role; expected allow/deny asserted. New routes fail CI until listed.
