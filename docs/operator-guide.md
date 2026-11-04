@@ -118,7 +118,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback and starts the new version (the game is away for a few seconds; running matches continue). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
+   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback, installs the new version's stack files (limits, routes, the `sbr` command; the old ones are kept for a rollback) and starts the new version (the game is away for a few seconds; running matches continue). An install made before 4 November 2026 gets the new stack files once by running the installer again (step 2 of the install: the same command; it keeps your answers and secrets). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
 2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
    ```
    sudo sbr confirm

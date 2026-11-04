@@ -5,9 +5,10 @@
 #
 # Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
 #                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
-#                 plain pre-update dump, restarts, the app migrates, prunes unused images);
-#                 confirm (drops the rollback data); rollback (backup, then the pre-update dump if
-#                 the schema migrated — later data is lost — previous image and ref); backup;
+#                 plain pre-update dump, installs the ref's stack files keeping the old ones,
+#                 restarts, the app migrates, prunes unused images); confirm (drops the rollback
+#                 data); rollback (backup, then the pre-update dump if the schema migrated —
+#                 later data is lost — previous image, stack files and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
 #                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
 #                 file: no new matches, running ones finish); uninstall (./lib/uninstall.sh). --yes
@@ -125,6 +126,11 @@ cmd_update() {
   do_backup "$env"
   info "Backup before the update: $BACKUP_FILE"
   install -d -m 0700 "$dir"
+  # The new version's stack files too (caps, routes, this CLI); the old ones stay for a
+  # rollback (audit O1: an update changed the image only).
+  save_stack "$dir"
+  git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
+  install_files "$SBR_ROOT/src/ops"
   # Written whole or not at all (audit O10); deleted by sbr confirm (audit O3).
   cleanup_path "$dir/pre-update.dump.partial"
   (umask 077 && compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump.partial")
@@ -144,7 +150,7 @@ cmd_update() {
 cmd_confirm() {
   local dir="$SBR_STATE/$1"
   [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
-  rm -f "$dir/pre-update.dump" "$dir/rollback.conf"
+  rm -rf "$dir/pre-update.dump" "$dir/rollback.conf" "$dir/stack"
   # shellcheck disable=SC2046 # one image name per word
   prune_images $(images_in_use)
   info "Update confirmed: the pre-update dump is deleted; a rollback is no longer possible."
@@ -175,6 +181,7 @@ cmd_rollback() {
   fi
   set_env_value "$file" SBR_IMAGE "$previous_image"
   if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
+  restore_stack "$dir"
   compose "$env" up -d
   restart_app_done
   wait_ready "$env"

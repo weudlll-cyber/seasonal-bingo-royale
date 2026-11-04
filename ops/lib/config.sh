@@ -9,7 +9,8 @@
 #                 (install type plus --trusted-proxies), admin e-mail, optional SMTP, age key,
 #                 the sign-in mode (website installs: website, D37) with the website's mode,
 #                 route settings and the proxy secret (made once), other operator keys kept; write /etc/sbr/install.conf; copy compose files,
-#                 Caddyfile and the sbr CLI with its library to /opt/sbr; build the app image from
+#                 Caddyfile and the sbr CLI with its library to /opt/sbr (an update keeps the
+#                 previous ones for a rollback: save_stack, restore_stack); build the app image from
 #                 a git ref on the server (until a signed release image exists; fetch prunes)
 #                 unless that commit's image exists; drop app images older than the previous one.
 # Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
@@ -133,6 +134,23 @@ install_files() {
   done
   put_file "$SBR_ROOT/sbr" 0755 <"$from/sbr"
   [[ -L /usr/local/bin/sbr ]] || run ln -sf "$SBR_ROOT/sbr" /usr/local/bin/sbr
+}
+
+# The stack files an update replaces (install_files): kept for a rollback (audit O1).
+STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr)
+
+# save_stack <dir>: copies the installed stack files to <dir>/stack.
+save_stack() {
+  rm -rf "$1/stack"
+  install -d -m 0700 "$1/stack"
+  (cd "$SBR_ROOT" && cp -a "${STACK_FILES[@]}" "$1/stack/")
+}
+
+# restore_stack <dir>: puts the stack files saved by save_stack back.
+restore_stack() {
+  [[ -d $1/stack ]] || return 0
+  (cd "$1/stack" && cp -a "${STACK_FILES[@]}" "$SBR_ROOT/")
+  rm -rf "$1/stack"
 }
 
 # build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and builds it when missing.
