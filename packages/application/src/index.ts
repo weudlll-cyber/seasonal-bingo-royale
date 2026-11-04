@@ -16,7 +16,7 @@ export { defaultRulesetFor, toMatchRuleset } from './match/rulesets.js';
 export { chosenMissedNumbers, delayOf, drawRange, withinDrawRange } from './match/timing.js';
 export { MatchEngine, MatchError, type ClockFacts } from './match/engine.js';
 export { quietUntil } from './match/asyncCadence.js';
-export { buildAwaySummary } from './match/awaySummary.js';
+export { buildAwaySummary, summaryBetween } from './match/awaySummary.js';
 export { isTimeZone } from './match/quietHours.js';
 export { nextDrawAt, waitingForHost } from './match/flow.js';
 export { minPlayersOf, tooFewAtStart } from './match/startRules.js';

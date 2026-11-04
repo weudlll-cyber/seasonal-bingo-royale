@@ -92,21 +92,27 @@ function tallyOwn(t: Tally, e: DomainEvent, me: string): void {
 const newsIn = (t: Tally): boolean =>
   t.draws > 0 || t.cutsSurvived > 0 || t.eliminated || t.finished;
 
-export function buildAwaySummary({ events, lastSeenSeq, playerId }: AwayInput): AwaySummary | null {
-  let state = createInitialMatchState();
-  let before: MatchState | null = null;
+interface BetweenInput {
+  // The match before the first unseen event and now, and the events in between.
+  readonly before: MatchState;
+  readonly after: MatchState;
+  readonly tail: readonly { readonly seq: number; readonly event: DomainEvent }[];
+  readonly lastSeenSeq: number;
+  readonly playerId: string;
+}
+
+// The summary from the two states and the events between: a server replays the state before
+// once for every player who last looked at the same seq (200 players after a day, 12 §5).
+export function summaryBetween(input: BetweenInput): AwaySummary | null {
+  const { before, after, tail, lastSeenSeq, playerId } = input;
   const t = emptyTally();
-  for (const { seq, event } of events) {
-    if (seq > lastSeenSeq) {
-      before ??= state;
-      tallyMatch(t, event, playerId);
-      tallyOwn(t, event, playerId);
-    }
-    state = evolve(state, event);
+  for (const { event } of tail) {
+    tallyMatch(t, event, playerId);
+    tallyOwn(t, event, playerId);
   }
-  const last = events.at(-1);
-  const me = state.players[playerId];
-  if (before === null || last === undefined || me === undefined || !newsIn(t)) return null;
+  const last = tail.at(-1);
+  const me = after.players[playerId];
+  if (last === undefined || me === undefined || !newsIn(t)) return null;
   return {
     fromSeq: lastSeenSeq,
     toSeq: last.seq,
@@ -114,7 +120,20 @@ export function buildAwaySummary({ events, lastSeenSeq, playerId }: AwayInput): 
     pointsBefore: before.players[playerId]?.points ?? 0,
     pointsNow: me.points,
     rankBefore: rankOf(before, playerId),
-    rankNow: rankOf(state, playerId),
-    playersIn: playersIn(state).length,
+    rankNow: rankOf(after, playerId),
+    playersIn: playersIn(after).length,
   };
+}
+
+// The summary from the whole log, replayed here.
+export function buildAwaySummary({ events, lastSeenSeq, playerId }: AwayInput): AwaySummary | null {
+  let state = createInitialMatchState();
+  let before: MatchState | null = null;
+  for (const { seq, event } of events) {
+    if (seq > lastSeenSeq) before ??= state;
+    state = evolve(state, event);
+  }
+  if (before === null) return null;
+  const tail = events.filter((e) => e.seq > lastSeenSeq);
+  return summaryBetween({ before, after: state, tail, lastSeenSeq, playerId });
 }
