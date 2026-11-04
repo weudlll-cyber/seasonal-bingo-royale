@@ -8,7 +8,9 @@
  *                 order (./clientEvents liveEvent), the summary without `youHost`, the players
  *                 still in in the server's order, the recap of the pause or null, and the stage
  *                 baselines, cut facts and player list (no cards) only when the step changes
- *                 them — the same values a state fetch would carry (../http/routes/matchViews).
+ *                 them — the same values a state fetch would carry (../http/routes/matchViews);
+ *                 `leaveOutUnchanged` drops the summary and the order of the players still in
+ *                 when they equal what the room last got.
  *                 Per socket: who the viewer plays as, their effect timeline after what this
  *                 socket already got, their own cards of the step's round starts, their
  *                 first-round card with the player list, and the watched cards when they watch
@@ -16,7 +18,7 @@
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types),
  *                 ../http/routes/matchViews, ./clientEvents, ./clientView, ./liveViews (types),
  *                 ./watchView
- * Used by:        ../realtime/liveSteps, test/liveSteps.integration.test.ts
+ * Used by:        ../realtime/liveSteps, ./stepFrames.test, test/liveSteps.integration.test.ts
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/01-game-design.md §9, §13
  */
 import type { ClockFacts, LoadedMatch } from '@sbr/application';
@@ -62,6 +64,29 @@ export function roomFrame(input: StepInput): LiveStepFrame {
       ...(players === undefined ? {} : { players }),
     },
   };
+}
+
+// What the room last got of the parts a frame leaves out when unchanged, as JSON.
+export interface RoomSent {
+  readonly match: string;
+  readonly rankedIn: string;
+}
+
+// The room frame without the summary and the standings order when they equal what the room
+// last got (a screen keeps what it holds, @sbr/contracts applyStep); what it got afterwards.
+export function leaveOutUnchanged<S>(
+  full: LiveStepFrame<S>,
+  last: RoomSent | undefined,
+): { frame: LiveStepFrame<S>; sent: RoomSent } {
+  const sent = { match: JSON.stringify(full.match), rankedIn: JSON.stringify(full.view.rankedIn) };
+  const { match, view, ...rest } = full;
+  const { rankedIn, ...kept } = view;
+  const frame: LiveStepFrame<S> = {
+    ...rest,
+    ...(sent.match === last?.match ? {} : { match }),
+    view: { ...kept, ...(sent.rankedIn === last?.rankedIn ? {} : { rankedIn }) },
+  };
+  return { frame, sent };
 }
 
 interface OwnInput {

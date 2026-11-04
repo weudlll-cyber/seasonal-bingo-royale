@@ -151,6 +151,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const match = createMatchRuntime(deps.pool, seedKey, maintenance, {
     clock,
     onTapBatch: metrics.taps.batch,
+    onAppend: metrics.taps.appended,
   });
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).

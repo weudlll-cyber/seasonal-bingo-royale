@@ -5,7 +5,8 @@
  *
  * Responsibility: read the server's tap histograms (sbr_tap_*: the gateway's match lookup,
  *                 the wait from arrival to the batch, the batch's decide, append and publish,
- *                 the whole tap until its answer, the batch size) at the start and the end of
+ *                 the whole tap until its answer, the batch size, the round trips per stored
+ *                 batch of taps) at the start and the end of
  *                 a run and print, per step, how many, the mean and the p95 (the upper edge of
  *                 the histogram bucket that holds it). What the client measures beyond
  *                 "handled" is the socket transport and the event loops of both sides. From the
@@ -25,6 +26,7 @@ const STEPS = [
   ['batch: publish', 'sbr_tap_batch_seconds', 'phase="publish"'],
   ['whole tap on the server', 'sbr_tap_handled_seconds', ''],
   ['taps per batch', 'sbr_tap_batch_size', ''],
+  ['round trips per tap batch', 'sbr_store_append_round_trips', 'kind="taps"'],
 ];
 
 export async function serverSnapshot() {
@@ -80,7 +82,7 @@ export function liveBreakdown(before, after, draws) {
 
 export function tapBreakdown(before, after) {
   return STEPS.map(([label, name, l]) => {
-    const seconds = name !== 'sbr_tap_batch_size';
+    const seconds = name.endsWith('_seconds');
     const s = step(before, after, name, l, seconds);
     const unit = seconds ? ' ms' : '';
     const p95 = s?.p95 === Infinity ? 'over the last bucket' : `≤ ${String(s?.p95)}${unit}`;

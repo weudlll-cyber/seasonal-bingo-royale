@@ -8,10 +8,11 @@
  *                 check at startup that the seed key opens what is stored; write and read events
  *                 and snapshots in the codec's stored encoding; load a match from its latest
  *                 snapshot plus the event tail, with the current round's draw times; append a
- *                 batch in one transaction (version check on the matches row, consecutive seq,
- *                 projections, a snapshot with a draw at least 25 events after the last, last
- *                 3 kept); set the status, draw control and start rule (D16) on the row.
- * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./projections, ./records,
+ *                 batch (./appendBatch: one statement, or one transaction with a join, the finish
+ *                 or a snapshot; version check on the matches row, consecutive seq, projections;
+ *                 a snapshot with a draw at least 25 events after the last), reporting its round
+ *                 trips; set the status, draw control and start rule (D16) on the row.
+ * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./appendBatch, ./records,
  *                 ../db/pool
  * Used by:        ../http/routes/matches, ../http/routes/matchVerify, ./runtime
  * Spec:           docs/spec/02-software-architecture.md §5.2; docs/spec/04-database-design.md §3.3
@@ -43,7 +44,7 @@ import {
   SEED_COLUMN_VERSION,
   type SeedColumn,
 } from './codec.js';
-import { project } from './projections.js';
+import { appendBatch } from './appendBatch.js';
 import { recordFrom, type MatchRow } from './records.js';
 
 // A snapshot of the whole state with a draw, at least 25 events after the last one: at most
@@ -53,7 +54,14 @@ const SNAPSHOT_EVERY = 25;
 const snapshotDue = (events: readonly DomainEvent[], seq: number, last: number): boolean =>
   seq - last >= SNAPSHOT_EVERY && events.some((e) => e.type === 'drawMade');
 
-export class VersionConflict extends Error {}
+export { VersionConflict } from './appendBatch.js';
+
+// What one append took (the metrics of 12 §5): its round trips, its time, whether it was taps.
+export interface AppendTiming {
+  readonly roundTrips: number;
+  readonly ms: number;
+  readonly taps: boolean;
+}
 
 export class PgMatchStore implements MatchStore {
   // Each match's latest snapshot seq, from its load and each snapshot written.
@@ -62,6 +70,7 @@ export class PgMatchStore implements MatchStore {
   constructor(
     private readonly pool: DbPool,
     private readonly seedKey: Buffer,
+    private readonly onAppend: (timing: AppendTiming) => void = () => undefined,
   ) {}
 
   // At startup: the key must open what is stored (the newest sealed seed), so a wrong key
@@ -172,58 +181,27 @@ export class PgMatchStore implements MatchStore {
     return result.rows.map((r) => r.occurred_at.getTime());
   }
 
+  // The batch in one statement (taps, draws, window closes) or one transaction (a join, the
+  // finish, a snapshot): ./appendBatch. A stale version raises VersionConflict.
   async append(input: AppendInput): Promise<readonly StoredEvent[]> {
-    const client = await this.pool.connect();
-    try {
-      await client.query('BEGIN');
-      const v = await client.query<{ version: string }>(
-        'SELECT version FROM sbr.matches WHERE id = $1 FOR UPDATE',
-        [input.matchId],
-      );
-      if (Number(v.rows[0]?.version ?? -1) !== input.expectedSeq)
-        throw new VersionConflict(input.matchId);
-      const stored = input.events.map((event, i) => ({
-        seq: input.expectedSeq + i + 1,
-        event,
-        occurredAt: input.at,
-      }));
-      await client.query(
-        `INSERT INTO sbr.match_events (match_id, seq, type, payload, occurred_at, actor_account_id)
-         SELECT $1, u.seq, u.type, u.payload::jsonb, to_timestamp($5 / 1000.0), $6
-           FROM unnest($2::bigint[], $3::text[], $4::text[]) AS u(seq, type, payload)`,
-        [
-          input.matchId,
-          stored.map((s) => s.seq),
-          stored.map((s) => s.event.type),
-          stored.map((s) => encodeStored(s.event, this.seedKey, input.matchId)),
-          input.at,
-          input.actorAccountId,
-        ],
-      );
-      const lastSeq = input.expectedSeq + input.events.length;
-      await client.query('UPDATE sbr.matches SET version = $2 WHERE id = $1', [
-        input.matchId,
-        lastSeq,
-      ]);
-      await project(client, { ...input, state: input.stateAfter, seq: lastSeq, mark: input.mark });
-      const due = snapshotDue(input.events, lastSeq, this.snapshotAt.get(input.matchId) ?? 0);
-      if (due) {
-        await snapshot(
-          client,
-          input.matchId,
-          lastSeq,
-          encodeStored(input.stateAfter, this.seedKey, input.matchId),
-        );
-      }
-      await client.query('COMMIT');
-      if (due) this.snapshotAt.set(input.matchId, lastSeq);
-      return stored;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    const started = Date.now();
+    const lastSeq = input.expectedSeq + input.events.length;
+    const stored = input.events.map((event, i) => ({
+      seq: input.expectedSeq + i + 1,
+      event,
+      occurredAt: input.at,
+    }));
+    const encode = (value: object): string => encodeStored(value, this.seedKey, input.matchId);
+    const due = snapshotDue(input.events, lastSeq, this.snapshotAt.get(input.matchId) ?? 0);
+    const roundTrips = await appendBatch(this.pool, {
+      ...input,
+      stored,
+      payloads: stored.map((s) => encode(s.event)),
+      snapshot: due ? encode(input.stateAfter) : null,
+    });
+    if (due) this.snapshotAt.set(input.matchId, lastSeq);
+    this.onAppend({ roundTrips, ms: Date.now() - started, taps: input.mark?.source === 'manual' });
+    return stored;
   }
 
   async setStatus(
@@ -259,22 +237,4 @@ export class PgMatchStore implements MatchStore {
       ],
     );
   }
-}
-
-// `state` is the match state in its stored encoding (./codec encodeStored).
-async function snapshot(
-  client: { query: (q: string, v: unknown[]) => Promise<unknown> },
-  matchId: string,
-  seq: number,
-  state: string,
-): Promise<void> {
-  await client.query(
-    'INSERT INTO sbr.match_snapshots (match_id, seq, state) VALUES ($1, $2, $3::jsonb)',
-    [matchId, seq, state],
-  );
-  await client.query(
-    `DELETE FROM sbr.match_snapshots WHERE match_id = $1 AND seq NOT IN
-       (SELECT seq FROM sbr.match_snapshots WHERE match_id = $1 ORDER BY seq DESC LIMIT 3)`,
-    [matchId],
-  );
 }

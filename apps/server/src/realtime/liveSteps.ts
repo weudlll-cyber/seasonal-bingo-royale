@@ -7,7 +7,8 @@
  *                 window close and a batch of taps that come together are one step; then, one
  *                 match at a time, the shared replay (../view/liveViews) is extended once with
  *                 those events (no read of the log), the room frame is built once and broadcast
- *                 to the match room, and every socket in the room gets its own frame
+ *                 to the match room (the summary and standings order left out when the room
+ *                 already has them), and every socket in the room gets its own frame
  *                 (../view/stepFrames): the watched cards without a followed player are built
  *                 once for all watchers. Screens apply both without a state fetch. This runs on
  *                 a timer, never in the match's command queue: a tap is answered when its batch
@@ -24,7 +25,7 @@ import type { Namespace, Socket } from 'socket.io';
 
 import type { LiveMetrics } from '../http/routes/metrics.js';
 import type { LiveViews } from '../view/liveViews.js';
-import { ownFrame, roomFrame } from '../view/stepFrames.js';
+import { leaveOutUnchanged, ownFrame, roomFrame, type RoomSent } from '../view/stepFrames.js';
 import { buildWatchView, NO_WATCH_QUERY } from '../view/watchView.js';
 import type { SocketData } from './gateway.js';
 
@@ -45,9 +46,11 @@ interface LiveStepsDeps {
 }
 
 export class LiveSteps {
-  // Per match: the events waiting for their step, the seq the room has, the step queue.
+  // Per match: the events waiting for their step, the seq the room has, the summary and
+  // standings order it has, the step queue.
   private readonly waiting = new Map<string, StoredEvent[]>();
   private readonly sent = new Map<string, number>();
+  private readonly roomSent = new Map<string, RoomSent>();
   private readonly queues = new Map<string, Promise<void>>();
 
   constructor(private readonly deps: LiveStepsDeps) {}
@@ -79,8 +82,10 @@ export class LiveSteps {
     const step = { match: m, entry, since, recap, clock: this.deps.engine.clockFacts(m) };
     const room = roomFrame(step);
     this.sent.set(matchId, room.s);
+    const lean = leaveOutUnchanged(room, this.roomSent.get(matchId));
+    this.roomSent.set(matchId, lean.sent);
     const name = `match:${matchId}`;
-    this.deps.play.to(name).emit('events', room);
+    this.deps.play.to(name).emit('events', lean.frame);
     let watchedTop: WatchView | undefined | null = null;
     const top = (): WatchView | undefined =>
       watchedTop === null
@@ -103,7 +108,7 @@ export class LiveSteps {
       bytes += JSON.stringify(own.frame).length;
     }
     const recipients = this.deps.play.adapter.rooms.get(name)?.size ?? 0;
-    bytes += JSON.stringify(room).length * recipients;
+    bytes += JSON.stringify(lean.frame).length * recipients;
     this.deps.live?.built('frame', Date.now() - started, bytes);
   }
 
