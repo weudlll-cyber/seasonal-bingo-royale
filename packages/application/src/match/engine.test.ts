@@ -273,6 +273,10 @@ describe('taps waiting in the match queue', () => {
     expect(appends).toBe(1);
     // The second tap of the same cell is already marked: refused, the others accepted.
     expect(answers).toEqual([true, true, false]);
+    // The batch tells the metrics its size and each tap's wait (12 §5).
+    expect(ctx.tapBatches).toEqual([
+      expect.objectContaining({ size: 3, waitsMs: [0, 0, 0], decideMs: 0, appendMs: 0 }),
+    ]);
   });
 
   it('pass on when each tap arrived, for the first-player bonus on one draw (D45)', async () => {

@@ -7,7 +7,8 @@
  *                 the domain's evolve and checks the expected seq; the scheduler keeps due
  *                 actions and `runDue` executes them in due order while advancing the clock,
  *                 as PgScheduler does; `fakeEngine` wires an engine to them, with a
- *                 maintenance switch (`maintenance.on`, D22). Test support only.
+ *                 maintenance switch (`maintenance.on`, D22) and what each batch of taps told the
+ *                 metrics (`tapBatches`, 12 §5). Test support only.
  * Depends on:     @sbr/domain, ./ports, ./engine
  * Used by:        the engine tests (test helper)
  * Spec:           docs/spec/12-testing-strategy.md §2
@@ -15,6 +16,7 @@
 import { createInitialMatchState, evolve, type DomainEvent } from '@sbr/domain';
 
 import { MatchEngine } from './engine.js';
+import type { TapBatchTiming } from './taps.js';
 import type {
   ActionKind,
   AppendInput,
@@ -147,6 +149,8 @@ export function fakeEngine() {
   const scheduler = new MemoryScheduler();
   const clock = new ManualClock();
   const published: { at: number; event: StoredEvent['event'] }[] = [];
+  // What each batch of taps told the metrics (12 §5).
+  const tapBatches: TapBatchTiming[] = [];
   let n = 0;
   const engine = new MatchEngine({
     store,
@@ -161,6 +165,7 @@ export function fakeEngine() {
     maintenance: () => (maintenance.on ? { reason: maintenance.reason } : null),
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
+    onTapBatch: (batch) => tapBatches.push(batch),
   });
-  return { store, scheduler, clock, engine, published, maintenance };
+  return { store, scheduler, clock, engine, published, maintenance, tapBatches };
 }
