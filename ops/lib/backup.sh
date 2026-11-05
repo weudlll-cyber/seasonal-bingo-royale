@@ -35,9 +35,10 @@ do_backup() {
   stamp=$(date -u +%Y%m%dT%H%M%SZ)
   out="$dir/sbr-$env-$stamp.tar.age"
   compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$work/db.dump"
-  # The maintenance flag is the live state, not data: a restore must not bring it back (audit M3).
+  # The maintenance flag and the website feed's status are live state, not data: a restore
+  # must not bring them back (audit M3).
   docker run --rm --entrypoint tar -v "sbr-${env}_uploads:/data:ro" "$image" \
-    -C /data --exclude=./maintenance -cf - . >"$work/uploads.tar"
+    -C /data --exclude=./maintenance --exclude=./website-feed -cf - . >"$work/uploads.tar"
   # Only the seed key of the env file travels with the backup (inside the encryption).
   printf '%s\n' "$seed" >"$work/seed.key"
   install -d -m 0750 -g "$BACKUP_GROUP" "$SBR_BACKUPS" "$dir"

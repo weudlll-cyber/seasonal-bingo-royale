@@ -4,8 +4,9 @@
  * @brief  Website mode: who may host and administer, deleting an account, the return path, the proxy secret.
  *
  * Responsibility: a server in website mode under /games/bingo/ (./websiteHelpers) and one in
- *                 local mode on the same database. The website roles organiser and admin may
- *                 host, a member may not (D40); a website admin is a game admin until the website
+ *                 local mode on the same database. A member the website allows to start games
+ *                 (X-Acting-User-Can-Host: true) and a website admin may host, nobody else, the
+ *                 website role does not decide it (2026-11-04); a website admin is a game admin until the website
  *                 drops the role (D41); no website role ever maps to super_admin or
  *                 security_admin. A website account is deleted by typing its display name (D42);
  *                 a local account still needs its password. GET <base>auth/website/login sends a
@@ -72,16 +73,40 @@ describe('signing in again through the website (03 §3)', () => {
     expect((await sessionOf(website(), first)).signedIn).toBe(false);
     expect((await sessionOf(website(), cookieOf(again))).signedIn).toBe(true);
   });
+
+  it('gives a player at most 7 days from the sign-in, an admin 8 hours (2026-11-04)', async () => {
+    const lifetime = async (cookie: string | null) => {
+      const id = (await sessionOf(website(), cookie)).account?.id;
+      const r = await harness.pool.query<{ days: number; idle: number }>(
+        `SELECT extract(epoch FROM expires_at - created_at) / 86400 AS days,
+                extract(epoch FROM idle_expires_at - created_at) / 86400 AS idle
+           FROM sbr.sessions WHERE account_id = $1 AND revoked_at IS NULL
+          ORDER BY created_at DESC LIMIT 1`,
+        [id],
+      );
+      return r.rows[0];
+    };
+    const player = await lifetime(cookieOf(await signInAs(website(), { id: 'l-1', name: 'Lena' })));
+    expect(Math.round(player?.days ?? 0)).toBe(7);
+    expect(Math.round(player?.idle ?? 0)).toBe(7);
+    const admin = await signInAs(website(), { id: 'l-2', name: 'Leon', roles: 'admin' });
+    expect(((await lifetime(cookieOf(admin)))?.days ?? 0) * 24).toBeCloseTo(8, 1);
+  });
 });
 
-describe('website roles (D40, D41)', () => {
-  it('lets organiser and admin host, but not a member', async () => {
-    const organiser = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member,organiser' });
+describe('who hosts in website mode (2026-11-04, replaces D40; D41)', () => {
+  it('lets a member the website allows to start games host, and an admin; nobody else', async () => {
+    const host = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'true' });
     const admin = await signedIn({ id: 'r-2', name: 'Adam', roles: 'admin' });
     const member = await signedIn({ id: 'r-3', name: 'Mona', roles: 'member' });
-    expect(organiser.session.permissions).toContain('match.create');
+    const organiser = await signedIn({ id: 'r-6', name: 'Oris', roles: 'member,organiser' });
+    expect(host.session.permissions).toContain('match.create');
     expect(admin.session.permissions).toContain('match.create');
     expect(member.session.permissions).not.toContain('match.create');
+    expect(organiser.session.permissions).not.toContain('match.create');
+    // Recomputed at every sign-in: the website takes the permission back.
+    const taken = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'false' });
+    expect(taken.session.permissions).not.toContain('match.create');
   });
 
   it('makes a website admin a game admin until the website drops the role', async () => {
@@ -95,7 +120,7 @@ describe('website roles (D40, D41)', () => {
 
   it('never maps any website role to super_admin or security_admin', async () => {
     const all = 'super_admin,superadmin,security_admin,game_admin,owner,admin,organiser,organizer';
-    const greedy = await signedIn({ id: 'r-5', name: 'Greedy', roles: all });
+    const greedy = await signedIn({ id: 'r-5', name: 'Greedy', roles: all, canHost: 'true' });
     expect(greedy.roles).toEqual(['game_admin', 'organizer', 'player']);
   });
 });
@@ -159,6 +184,26 @@ describe('the page wanted before the website login (D43)', () => {
     expect(named.headers.location).toBe(loginFor(`${BASE}#/players/J%C3%BCrgen`));
   });
 
+  it('sends a visitor the website answers as a guest to its login, keeping any game session', async () => {
+    const { cookie } = await signedIn({ id: 'g-1', name: 'Gina' });
+    const next = `${BASE}#/match/ABC123`;
+    const asGuest = (extra: Record<string, string>) =>
+      website().fastify.inject({
+        method: 'GET',
+        url: `${BASE}auth/website?next=${encodeURIComponent(next)}`,
+        headers: { 'x-sbr-proxy-secret': SECRET, ...extra },
+        remoteAddress: '127.0.0.1',
+      });
+    const login = `${BASE}auth/website/login?next=${encodeURIComponent(next)}`;
+    for (const extra of [{ 'x-acting-guest': 'true', cookie: cookie ?? '' }, {}]) {
+      const r = await asGuest(extra);
+      expect(r.statusCode).toBe(302);
+      expect(r.headers.location).toBe(login);
+      expect(cookieOf(r)).toBeNull();
+    }
+    expect((await sessionOf(website(), cookie)).account?.displayName).toBe('Gina');
+  });
+
   it.each([
     'https://evil.example/',
     '//evil.example/games/bingo/',
@@ -183,5 +228,57 @@ describe('the proxy secret', () => {
     expect([none.statusCode, wrong.statusCode]).toEqual([403, 403]);
     expect([cookieOf(none), cookieOf(wrong)]).toEqual([null, null]);
     expect((await signInAs(website(), who)).statusCode).toBe(302);
+  });
+});
+
+describe('guests in website mode (2026-11-04)', () => {
+  it('may watch, but neither join nor host, with or without a guest session', async () => {
+    const host = await signedIn({ id: 'gh-1', name: 'Hosta', canHost: 'true' });
+    const csrf = (await sessionOf(website(), host.cookie)).csrfToken ?? '';
+    const created = await website().fastify.inject({
+      method: 'POST',
+      url: `${BASE}api/v1/matches`,
+      headers: { cookie: host.cookie ?? '', 'x-csrf-token': csrf },
+      payload: {
+        title: 'Guests',
+        gameType: 'royale',
+        drawMode: 'host',
+        missedNumbers: { kind: 'noAutoMark' },
+        maxPlayers: 8,
+      },
+    });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    const guestStart = await website().fastify.inject({
+      method: 'POST',
+      url: `${BASE}api/v1/auth/guest`,
+      payload: {},
+    });
+    const guest = cookieOf(guestStart);
+    const guestCsrf = (await sessionOf(website(), guest)).csrfToken ?? '';
+    try {
+      for (const cookie of [null, guest]) {
+        const headers = cookie === null ? {} : { cookie, 'x-csrf-token': guestCsrf };
+        const call = (url: string, payload: object) =>
+          website().fastify.inject({
+            method: 'POST',
+            url: `${BASE}api/v1/${url}`,
+            headers,
+            payload,
+          });
+        // Refused: without a session by the CSRF check (403) or the route (401); a guest
+        // session has no right to (403).
+        for (const r of [await call(`matches/${code}/join`, {}), await call('matches', {})]) {
+          expect([401, 403]).toContain(r.statusCode);
+        }
+        const watch = await website().fastify.inject({
+          url: `${BASE}api/v1/matches/${code}/state`,
+          headers: cookie === null ? {} : { cookie },
+        });
+        expect(watch.statusCode).toBe(200);
+      }
+      expect((await website().match.engine.runner.current(id)).state.playerOrder).toEqual([]);
+    } finally {
+      await website().match.engine.abort(id, 'test cleanup', 'system');
+    }
   });
 });

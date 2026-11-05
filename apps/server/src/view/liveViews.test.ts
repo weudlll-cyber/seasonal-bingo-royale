@@ -52,6 +52,7 @@ function views(book: Record<string, string> = names, reads = { log: 0 }): LiveVi
       return Promise.resolve(stored.filter((e) => e.seq > afterSeq));
     },
     names: () => Promise.resolve({ ...book }),
+    steps: () => Promise.resolve({}),
     manualTaps: () => Promise.resolve([]),
   });
 }

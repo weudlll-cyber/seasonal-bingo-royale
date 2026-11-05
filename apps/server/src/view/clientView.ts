@@ -22,6 +22,7 @@ import {
   type PlayerSummary,
   type QuickTestResult as ClientView,
   type Ruleset,
+  type Step,
 } from '@sbr/contracts';
 import {
   countBits,
@@ -48,12 +49,19 @@ interface ClientViewInput {
   // Internal player id → the name the client shows; owners are the viewer's own players.
   readonly idMap: ReadonlyMap<string, string>;
   readonly owners: ReadonlyMap<string, string>;
+  // Internal player id → Discord steps (website mode; players without steps left out).
+  readonly steps?: ReadonlyMap<string, readonly Step[]>;
   // The live view passes its per-match replay (all players, already extended); otherwise
   // one is built from `events` for the owners.
   readonly replay?: LiveReplay;
   // Live views: only the owners' first-round cards (the Quick Test shows bots' cards too).
   readonly ownCardsOnly?: boolean;
 }
+
+const stepsOf = (steps: ClientViewInput['steps'], id: string) => {
+  const own = steps?.get(id);
+  return own === undefined || own.length === 0 ? {} : { steps: own };
+};
 
 export function buildClientView(input: ClientViewInput): ClientView {
   const { state, ruleset, idMap, owners } = input;
@@ -75,6 +83,7 @@ export function buildClientView(input: ClientViewInput): ClientView {
       points: p?.points ?? 0,
       seasonsActivated: p === undefined ? 0 : countBits(p.effects.seasonsActivated),
       shieldCharges: p?.effects.shieldCharges ?? 0,
+      ...stepsOf(input.steps, accountId),
     };
   });
   return {

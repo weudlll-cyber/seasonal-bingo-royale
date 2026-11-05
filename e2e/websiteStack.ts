@@ -9,7 +9,7 @@
  *                 website: GET /login is its login page (a known stub user goes on to `next`);
  *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", as the
  *                 website's authorize endpoint would) and passes the four X-Acting-User* headers
- *                 with the proxy secret, or sends a visitor without one to the app's
+ *                 (and Can-Host) with the proxy secret, or sends a visitor without one to the app's
  *                 /games/bingo/auth/website/login with the same query (D43); every request
  *                 (WebSocket upgrades too) reaches the app with client-sent X-Acting-User* and
  *                 X-Sbr-Proxy-Secret headers removed. The server (development features on, for
@@ -38,7 +38,7 @@ const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
 const DB_NAME = 'sbr_e2e_website';
 const SIGN_IN = '/games/bingo/auth/website';
-const IDENTITY = /^(x-acting-user|x-sbr-proxy-secret)/i;
+const IDENTITY = /^(x-acting-user|x-acting-guest|x-sbr-proxy-secret)/i;
 const SECRET = randomBytes(32).toString('hex');
 
 export interface StubUser {
@@ -46,6 +46,8 @@ export interface StubUser {
   readonly name: string;
   readonly roles: string;
   readonly verified: boolean;
+  // The website lets this member start games (X-Acting-User-Can-Host, 2026-11-04).
+  readonly canHost: boolean;
 }
 
 export interface WebsiteStack {
@@ -112,6 +114,7 @@ function identity(user: StubUser): Record<string, string> {
     'x-acting-user': user.name,
     'x-acting-user-roles': user.roles,
     'x-acting-user-email-verified': String(user.verified),
+    'x-acting-user-can-host': String(user.canHost),
     'x-sbr-proxy-secret': SECRET,
   };
 }

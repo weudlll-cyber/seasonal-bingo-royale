@@ -162,7 +162,8 @@ async function login(
 export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'>,
+  // playerDays: a player session's absolute lifetime (7 days after a website sign-in, else 30).
+  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & { readonly playerDays?: number },
   accountId: string,
 ): Promise<void> {
   if (request.session !== null) {
@@ -173,6 +174,7 @@ export async function openSession(
     deps.pool,
     accountId,
     request.headers['user-agent'] ?? null,
+    deps.playerDays,
   );
   setSessionCookie(reply, deps.cookie, token);
 }

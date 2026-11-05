@@ -9,7 +9,7 @@
  *                 loads the account's display name and permissions (via role
  *                 assignments; a guest session gets the guest role's permissions) and
  *                 refuses revoked, expired and idle-expired sessions. Idle 7 days, absolute
- *                 30 days for players and guests; idle 30 minutes, absolute 8 hours for
+ *                 30 days for players and guests (7 days after a website sign-in); idle 30 minutes, absolute 8 hours for
  *                 accounts with an admin role. Dead sessions are purged by the retention job.
  * Depends on:     ../db/pool
  * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway,
@@ -39,24 +39,27 @@ function tokenHash(token: string): Buffer {
   return createHash('sha256').update(token).digest();
 }
 
+// A player or guest session's absolute lifetime: 30 days, in website mode 7 days from the
+// website sign-in (2026-11-04); admin sessions keep 8 hours either way.
 export async function createSession(
   pool: DbPool,
   accountId: string | null,
   userAgent: string | null,
+  playerDays = 30,
 ): Promise<{ readonly token: string; readonly csrfToken: string }> {
   const token = randomBytes(32).toString('base64url');
   const csrfToken = randomBytes(32).toString('base64url');
   await pool.query(
     `INSERT INTO sbr.sessions (account_id, token_hash, csrf_token, kind, expires_at, idle_expires_at, user_agent)
      SELECT $1, $2, $3, k.kind,
-       now() + CASE k.kind WHEN 'admin' THEN interval '8 hours' ELSE interval '30 days' END,
+       now() + CASE k.kind WHEN 'admin' THEN interval '8 hours' ELSE make_interval(days => $6) END,
        now() + CASE k.kind WHEN 'admin' THEN interval '30 minutes' ELSE interval '7 days' END, $4
      FROM (SELECT CASE
        WHEN $1::uuid IS NULL THEN 'guest'
        WHEN EXISTS (SELECT 1 FROM sbr.role_assignments ra
                      WHERE ra.account_id = $1::uuid AND ra.role_id = ANY($5)) THEN 'admin'
        ELSE 'player' END AS kind) k`,
-    [accountId, tokenHash(token), csrfToken, userAgent, ADMIN_ROLES],
+    [accountId, tokenHash(token), csrfToken, userAgent, ADMIN_ROLES, playerDays],
   );
   return { token, csrfToken };
 }

@@ -14,7 +14,7 @@
  * Spec:           docs/spec/05-api-design.md §2.4; docs/spec/01-game-design.md §10
  */
 import { boardRanks } from '@sbr/application';
-import type { LeaderboardPeriod, LeaderboardRow } from '@sbr/contracts';
+import type { LeaderboardPeriod, LeaderboardRow, Step } from '@sbr/contracts';
 
 import type { DbPool } from '../db/pool.js';
 
@@ -30,6 +30,7 @@ interface PeriodRow {
 
 interface EntryRow {
   readonly display_name: string;
+  readonly steps: Step[];
   readonly points: number;
   readonly wins: number;
   readonly season_completes: number;
@@ -42,7 +43,7 @@ const PERIOD_COLUMNS = `id, kind, name, starts_at, ends_at, status,
 
 // Every row of a period in board order; $1 the period, $2 the caller's account (or null).
 const ORDERED = `
-  SELECT a.display_name, le.points, le.wins, le.season_completes,
+  SELECT a.display_name, a.steps, le.points, le.wins, le.season_completes,
          le.account_id IS NOT DISTINCT FROM $2::uuid AS is_you
     FROM sbr.league_entries le JOIN sbr.accounts a ON a.id = le.account_id
    WHERE le.period_id = $1
@@ -98,6 +99,7 @@ async function rankedBoard(
     wins: e.wins,
     seasonCompletes: e.season_completes,
     isYou: e.is_you,
+    ...(e.steps.length === 0 ? {} : { steps: e.steps }),
   }));
   const ranks = boardRanks(rows);
   return rows.map((row, i) => ({ rank: ranks[i] ?? i + 1, ...row }));

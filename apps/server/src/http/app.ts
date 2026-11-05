@@ -5,14 +5,15 @@
  *
  * Responsibility: wire logging, security headers, problem-details, health, metrics, the
  *                 built client (image) or the placeholder page (development), sessions and
- *                 sign-in (local accounts, or in website mode the website's proxy headers, D37),
+ *                 sign-in (local accounts, or in website mode the website's proxy headers, D37,
+ *                 and its account-changes feed, ../website/accountFeed, polled from main),
  *                 the live match engine and its routes (in development on the time-travel
  *                 clock, with its route), the leaderboards and profiles (in development also the
  *                 demo league) onto a fresh Fastify instance, under the base path and behind the
  *                 trusted proxies; first of all, refuse a seed key that does not open the stored
  *                 match secrets. The caller owns the lifecycle (listen, scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
- *                 ../auth/sessionEnds, ../auth/sessionPlugin, ../config/env, ../config/features,
+ *                 ../auth/sessionEnds, ../auth/sessionPlugin, ../website/accountFeed, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ../dev/demoLeague,
  *                 ./plugins/problem, ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
  *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
@@ -27,6 +28,7 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
+import { AccountFeed } from '../website/accountFeed.js';
 import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
@@ -70,6 +72,8 @@ export interface App {
   readonly metrics: MetricsHandle;
   // The live match engine; main starts its scheduler (tests start it when they need it).
   readonly match: MatchRuntime;
+  // Website mode with the sync token: the account-changes feed; main starts its polls.
+  readonly feed: AccountFeed | null;
 }
 
 // Fastify with the logger, the trusted proxies (Caddy, 09 §1) and the base path: behind
@@ -173,7 +177,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const accountDeleted = (id: string): void => {
     views.accountGone(id);
   };
-  registerSignIn(fastify, { env: deps.env, pool: deps.pool, cookie, sessionEnds, accountDeleted });
+  const feed = registerSignIn(fastify, { ...deps, cookie, sessionEnds, accountDeleted });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, {
     pool: deps.pool,
@@ -197,7 +201,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     live: metrics.live,
     views,
   });
-  return { fastify, metrics, match };
+  return { fastify, metrics, match, feed };
 }
 
 // The WebSocket gateway on the same server, closed with it.
@@ -210,6 +214,7 @@ function registerGateway(fastify: FastifyInstance, deps: GatewayDeps): void {
 
 // How players sign in: the game's own accounts, or in website mode only through the
 // website (D37); in development (local mode) also the quick sign-in, never in production.
+// Website mode with the sync token: the account-changes feed (07 §2.4), returned for main.
 function registerSignIn(
   fastify: FastifyInstance,
   deps: {
@@ -219,7 +224,7 @@ function registerSignIn(
     sessionEnds: SessionEnds;
     accountDeleted: (accountId: string) => void;
   },
-): void {
+): AccountFeed | null {
   const { env } = deps;
   registerAuthRoutes(fastify, {
     ...deps,
@@ -229,6 +234,17 @@ function registerSignIn(
   });
   registerWebsiteSignIn(fastify, deps);
   if (env.SBR_DEV && env.SBR_AUTH_MODE === 'local') registerDevSignIn(fastify, deps);
+  if (env.SBR_AUTH_MODE !== 'website' || env.SBR_WEBSITE_SYNC_TOKEN === undefined) return null;
+  return new AccountFeed({
+    ...deps,
+    issuer: new URL(env.SBR_PUBLIC_URL ?? '').origin,
+    url: env.SBR_WEBSITE_FEED_URL,
+    token: env.SBR_WEBSITE_SYNC_TOKEN,
+    dataDir: env.SBR_DATA_DIR,
+    warn: (message) => {
+      fastify.log.warn(message);
+    },
+  });
 }
 
 // The built client in the image; the placeholder page in development (Vite serves it).

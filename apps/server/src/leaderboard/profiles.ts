@@ -13,7 +13,13 @@
  * Used by:        ../http/routes/profiles
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
-import type { LeagueOutcome, PlayerProfile, ProfileBadge, ProfileMatch } from '@sbr/contracts';
+import type {
+  LeagueOutcome,
+  PlayerProfile,
+  ProfileBadge,
+  ProfileMatch,
+  Step,
+} from '@sbr/contracts';
 
 import type { DbPool } from '../db/pool.js';
 
@@ -35,8 +41,8 @@ export async function playerProfile(
   pool: DbPool,
   displayName: string,
 ): Promise<PlayerProfile | null> {
-  const found = await pool.query<{ id: string; display_name: string }>(
-    'SELECT id, display_name FROM sbr.accounts WHERE display_name_key = $1',
+  const found = await pool.query<{ id: string; display_name: string; steps: Step[] }>(
+    'SELECT id, display_name, steps FROM sbr.accounts WHERE display_name_key = $1',
     [displayName],
   );
   const account = found.rows[0];
@@ -52,6 +58,7 @@ export async function playerProfile(
   const t = totals.rows[0];
   return {
     displayName: account.display_name,
+    ...(account.steps.length === 0 ? {} : { steps: account.steps }),
     matchesPlayed: t?.played ?? 0,
     wins: t?.wins ?? 0,
     bestPlacement: t?.best ?? null,

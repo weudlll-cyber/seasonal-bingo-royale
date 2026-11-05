@@ -158,6 +158,7 @@ export function viewerView(m: LoadedMatch, entry: LiveEntry, owner: string | nul
     state: m.state,
     idMap,
     owners,
+    steps: entry.steps,
     replay,
     ownCardsOnly: true,
   });

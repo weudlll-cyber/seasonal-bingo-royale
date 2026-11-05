@@ -21,12 +21,14 @@ import { api, ApiError } from '../shell/http.js';
 import { hrefOf } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { AccountField, FormError } from './formParts.js';
+import { useSignInToPlay } from './WebsiteSignIn.js';
 import './account.css';
 
 const EXPORT_FILE = 'seasonal-bingo-royale-data.json';
 
 export function AccountPage(): ReactElement {
   const { session } = useSession();
+  const websiteSignIn = useSignInToPlay();
   const [deleted, setDeleted] = useState(false);
   const name = session?.account?.displayName ?? null;
   if (deleted) {
@@ -45,7 +47,7 @@ export function AccountPage(): ReactElement {
       <section className="sbr-panel sbr-stack account-page" data-testid="account-page">
         <h1>Your account</h1>
         <p>Sign in to see your account.</p>
-        <a className="sbr-btn sbr-btn--primary" href={hrefOf({ name: 'signIn' })}>
+        <a className="sbr-btn sbr-btn--primary" href={websiteSignIn ?? hrefOf({ name: 'signIn' })}>
           Sign in
         </a>
       </section>

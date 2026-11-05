@@ -13,7 +13,7 @@
  *                 POST /matches/:code/join and opens the match. A signed-in player's own
  *                 matches that are not over come first, from the same answer (./MyMatches, D39). Without a session it
  *                 points to the sign-in buttons.
- * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ../shell/session,
+ * Depends on:     react, @sbr/contracts (types), ../account/WebsiteSignIn, ../shell/http, ../shell/router, ../shell/session,
  *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13 (D39)
@@ -21,6 +21,7 @@
 import type { MyMatch } from '@sbr/contracts';
 import { useEffect, useState, type ReactElement } from 'react';
 
+import { useSignInToPlay } from '../account/WebsiteSignIn.js';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
@@ -67,6 +68,8 @@ export function useMatchList(): {
 
 export function Lobby(): ReactElement {
   const { can } = useSession();
+  // Website mode without an account: "Sign in to join" goes to the website login (D43).
+  const signIn = useSignInToPlay();
   // Finished matches show their result, cancelled ones their end page (D17).
   const { matches, mine, error } = useMatchList();
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -94,7 +97,13 @@ export function Lobby(): ReactElement {
       ) : null}
       <ul className="lobby-list" data-testid="lobby-list">
         {matches?.map((m) => (
-          <LobbyItem key={m.code} match={m} canJoin={can('match.join')} onJoin={join} />
+          <LobbyItem
+            key={m.code}
+            match={m}
+            canJoin={can('match.join')}
+            onJoin={join}
+            signIn={signIn}
+          />
         ))}
       </ul>
     </div>
@@ -119,6 +128,7 @@ interface LobbyItemProps {
   readonly match: MatchSummary;
   readonly canJoin: boolean;
   readonly onJoin: (code: string) => void;
+  readonly signIn: string | null;
 }
 
 // The signed-in account hosts this match and it can still be run (server says so).
@@ -126,7 +136,7 @@ export function manageable(m: MatchSummary): boolean {
   return m.youHost === true && (m.status === 'lobby' || m.status === 'running');
 }
 
-function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement {
+function LobbyItem({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): ReactElement {
   const done = m.status === 'finished' || m.status === 'aborted';
   return (
     <li className="sbr-panel lobby-item" data-testid={`lobby-match-${m.code}`}>
@@ -153,30 +163,48 @@ function LobbyItem({ match: m, canJoin, onJoin }: LobbyItemProps): ReactElement 
         </p>
       ) : null}
       <div className="sbr-row">
-        {manageable(m) ? (
-          <a
-            className="sbr-btn sbr-btn--primary"
-            href={hrefOf({ name: 'host', code: m.code })}
-            data-testid={`manage-${m.code}`}
-          >
-            Manage
-          </a>
-        ) : m.status === 'lobby' && !m.full && canJoin ? (
-          <button
-            type="button"
-            className="sbr-btn sbr-btn--primary"
-            data-testid={`join-${m.code}`}
-            onClick={() => {
-              onJoin(m.code);
-            }}
-          >
-            Join
-          </button>
-        ) : null}
+        <LobbyAction match={m} canJoin={canJoin} onJoin={onJoin} signIn={signIn} />
         <a className="sbr-btn" href={`#/match/${m.code}`}>
           {done ? 'View' : 'Watch'}
         </a>
       </div>
     </li>
+  );
+}
+
+// Manage for the host, Join for a player who may, "Sign in to join" in website mode without an
+// account (D43), else nothing.
+function LobbyAction({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): ReactElement | null {
+  return (
+    <>
+      {manageable(m) ? (
+        <a
+          className="sbr-btn sbr-btn--primary"
+          href={hrefOf({ name: 'host', code: m.code })}
+          data-testid={`manage-${m.code}`}
+        >
+          Manage
+        </a>
+      ) : m.status === 'lobby' && !m.full && canJoin ? (
+        <button
+          type="button"
+          className="sbr-btn sbr-btn--primary"
+          data-testid={`join-${m.code}`}
+          onClick={() => {
+            onJoin(m.code);
+          }}
+        >
+          Join
+        </button>
+      ) : m.status === 'lobby' && !m.full && signIn !== null ? (
+        <a
+          className="sbr-btn sbr-btn--primary"
+          href={signIn}
+          data-testid={`sign-in-to-join-${m.code}`}
+        >
+          Sign in to join
+        </a>
+      ) : null}
+    </>
   );
 }

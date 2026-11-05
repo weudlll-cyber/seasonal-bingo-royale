@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
 # @file   ops/lib/website.sh
 # @module ops
-# @brief  Website installs: find the running Seasonal Entertainment website and its mode, write the game's route file.
+# @brief  Website installs: find the running Seasonal Entertainment website, its mode, network, port and sync token.
 #
 # Responsibility: detect the website's mode as its own installer does: own Caddy (the Caddy
 #                 container of compose project "seasonal-site", per its docs/DEPLOYMENT.md) or
 #                 nginx (host nginx holds 80/443); stop plainly when neither (a dry run without
-#                 Docker only shows the step). Caddy mode: the website's Docker network
-#                 (seasonal-site_default, else its only one, else asked), every subnet of it as
-#                 trusted proxy ranges, SITE_DOMAIN. nginx mode: the app publishes one loopback
-#                 port and its own network has a fixed subnet, which is trusted. Write the game's
-#                 own route file for that mode (never a website file; 0600, it holds the proxy
-#                 secret): /games/bingo/ (HTTP and WebSocket) to the app, client-sent
-#                 X-Acting-User* and X-Sbr-Proxy-Secret headers cleared, the sign-in route
-#                 /games/bingo/auth/website asking the website's authorize endpoint (auth_request
-#                 / forward_auth), passing its four identity headers and the proxy secret (never
-#                 to the website), a refusal sent to the app's /games/bingo/auth/website/login
-#                 with the same query (the app sends on to the website's login with the wanted
-#                 page, D43), /games/bingo/metrics 404 (D37); print the one line the website
-#                 must have. For sbr status: whether the authorize endpoint answers, and the proxy
-#                 the app trusts (check_proxy).
-# Used by:        ops/install.sh, ops/sbr (status)
+#                 Docker only shows the step). Both modes: the app joins the website's Docker
+#                 network (the one of its Caddy, or in nginx mode of its "site" container:
+#                 seasonal-site_default, else its only one, else asked) to reach the website's
+#                 account-changes feed at site:3800 (07 §2.4). Caddy mode: every subnet of that
+#                 network is trusted (Caddy reaches the app from it), SITE_DOMAIN. nginx mode:
+#                 the app publishes one loopback port, its own network has a fixed subnet, which
+#                 alone is trusted (never the website network); the authorize upstream is
+#                 127.0.0.1:<the port in /etc/seasonal/site-local-port>, 3800 with a warning
+#                 without it. The feed's token comes from /etc/seasonal/games-sync-token (root
+#                 only, never printed); without it the feed stays idle, with a warning. The route
+#                 file itself: ./websiteRoute.sh. For sbr status: whether the authorize endpoint
+#                 answers, the proxy the app trusts (check_proxy), the feed's state.
+# Used by:        ops/install.sh, ops/sbr (status, update)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
 
 WEBSITE_PROJECT=seasonal-site
+# The website installer's files on this server (routes, site-local-port, games-sync-token).
+SEASONAL_ETC=${SEASONAL_ETC:-/etc/seasonal}
 # The game's sign-in route (D37); the header with the proxy secret (07 §2.3).
 SIGN_IN_ROUTE=/games/bingo/auth/website
 SECRET_HEADER=X-Sbr-Proxy-Secret
@@ -32,6 +32,12 @@ website_caddy() {
   command -v docker >/dev/null || return 0
   docker ps --filter "label=com.docker.compose.project=$WEBSITE_PROJECT" \
     --filter label=com.docker.compose.service=caddy --format '{{.Names}}' | head -1
+}
+
+# The website's own app container ("site" of compose project seasonal-site), in either mode.
+website_site() {
+  command -v docker >/dev/null || return 0
+  docker ps --filter "label=com.docker.compose.project=$WEBSITE_PROJECT"     --filter label=com.docker.compose.service=site --format '{{.Names}}' | head -1
 }
 
 # The website runs behind host nginx: an nginx process listens on 80 or 443.
@@ -46,19 +52,20 @@ network_subnets() {
   docker network inspect -f '{{range .IPAM.Config}}{{.Subnet}} {{end}}' "$1" | xargs | tr ' ' ','
 }
 
-# choose_network <caddy>: the compose default network of the website when Caddy is on it,
-# else its only network; with several, ask (or --website-network in unattended runs).
+# choose_network <container>: the compose default network of the website when the website's
+# container (its Caddy, or in nginx mode its site) is on it, else its only network; with
+# several, ask (or --website-network in unattended runs).
 choose_network() {
-  local caddy=$1 networks
-  networks=$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$caddy")
+  local container=$1 networks
+  networks=$(docker inspect -f '{{range $name, $_ := .NetworkSettings.Networks}}{{$name}} {{end}}' "$container")
   if [[ -n ${SBR_WEBSITE_NETWORK:-} ]]; then
-    [[ " $networks " == *" $SBR_WEBSITE_NETWORK "* ]] || die "the website's Caddy is not on the network $SBR_WEBSITE_NETWORK (it is on: $networks)"
+    [[ " $networks " == *" $SBR_WEBSITE_NETWORK "* ]] || die "the website's container $container is not on the network $SBR_WEBSITE_NETWORK (it is on: $networks)"
   elif [[ " $networks " == *" ${WEBSITE_PROJECT}_default "* ]]; then
     SBR_WEBSITE_NETWORK=${WEBSITE_PROJECT}_default
   elif [[ $(wc -w <<<"$networks") -eq 1 ]]; then
     SBR_WEBSITE_NETWORK=${networks// /}
   else
-    ask SBR_WEBSITE_NETWORK "The website's Caddy is on several networks ($networks): which one should bingo join?"
+    ask SBR_WEBSITE_NETWORK "The website's container $container is on several networks ($networks): which one should bingo join?"
   fi
 }
 
@@ -71,9 +78,45 @@ website_defaults() {
   SBR_EDGE_SUBNET=${SBR_EDGE_SUBNET:-172.30.249.0/24}
   if [[ $SBR_WEBSITE_MODE == caddy ]]; then
     SBR_WEBSITE_UPSTREAM=${SBR_WEBSITE_UPSTREAM:-site:3800}
-  else
-    SBR_WEBSITE_UPSTREAM=${SBR_WEBSITE_UPSTREAM:-127.0.0.1:3800}
+  elif [[ ${SBR_UPSTREAM_GIVEN:-0} != 1 ]]; then
+    SBR_WEBSITE_UPSTREAM=127.0.0.1:$(site_local_port)
   fi
+}
+
+# nginx mode: the host port nginx reaches the website on, as the website's installer records it.
+site_local_port() {
+  local port
+  port=$(tr -d '[:space:]' <"$SEASONAL_ETC/site-local-port" 2>/dev/null || true)
+  if [[ $port =~ ^[0-9]{1,5}$ ]]; then printf '%s' "$port"; return 0; fi
+  warn "$SEASONAL_ETC/site-local-port is missing or not a port: the authorize endpoint is asked on 127.0.0.1:3800" >&2
+  printf 3800
+}
+
+# sync_token: the website's account-changes token (64 hex characters, root only), or nothing
+# with a warning: the feed then stays idle. Never printed.
+sync_token() {
+  local token
+  token=$(tr -d '[:space:]' <"$SEASONAL_ETC/games-sync-token" 2>/dev/null || true)
+  if [[ $token =~ ^[0-9a-f]{64}$ ]]; then printf '%s' "$token"; return 0; fi
+  warn "no valid $SEASONAL_ETC/games-sync-token: the website's account changes are not followed until it exists (run the installer or sbr update again)" >&2
+}
+
+# refresh_website <env>: on sbr update, what the website may have changed meanwhile: the
+# sync token, the nginx mode's site port, the route file (new header lines).
+refresh_website() {
+  local env=$1 file="$SBR_ETC/$1.env"
+  [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]] || return 0
+  set_env_value "$file" SBR_WEBSITE_SYNC_TOKEN "$(sync_token)"
+  SBR_WEBSITE_MODE=$(env_value "$file" SBR_WEBSITE_MODE)
+  SBR_WEBSITE_UPSTREAM=$(env_value "$file" SBR_WEBSITE_UPSTREAM)
+  SBR_WEBSITE_AUTHORIZE_PATH=$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH)
+  SBR_WEBSITE_ROUTES_DIR=$(env_value "$file" SBR_WEBSITE_ROUTES_DIR)
+  SBR_APP_PORT=$(env_value "$file" SBR_APP_PORT)
+  if [[ $SBR_WEBSITE_MODE == nginx ]]; then
+    SBR_WEBSITE_UPSTREAM=127.0.0.1:$(site_local_port)
+    set_env_value "$file" SBR_WEBSITE_UPSTREAM "$SBR_WEBSITE_UPSTREAM"
+  fi
+  write_route_file "$env"
 }
 
 detect_caddy_mode() {
@@ -91,7 +134,7 @@ detect_caddy_mode() {
 # detect_website: sets SBR_WEBSITE_MODE (caddy or nginx), SBR_TRUSTED_PROXIES, the route
 # settings and (unless given) SBR_WEBSITE_DOMAIN, or stops.
 detect_website() {
-  local caddy
+  local caddy site
   # A dry run on a server without Docker yet cannot look; it shows the step instead.
   if [[ $SBR_DRY_RUN == 1 ]] && ! command -v docker >/dev/null; then
     info "  would detect the website's mode (its Caddy of compose project $WEBSITE_PROJECT, or host nginx on 80/443) once Docker is installed"
@@ -106,7 +149,15 @@ detect_website() {
   if [[ -n $caddy ]]; then
     detect_caddy_mode "$caddy"
   elif website_nginx; then
-    SBR_WEBSITE_MODE=nginx SBR_WEBSITE_NETWORK=''
+    SBR_WEBSITE_MODE=nginx
+    # The feed at site:3800 over the website's network; the network is never trusted here.
+    site=$(website_site)
+    if [[ -n $site ]]; then
+      choose_network "$site"
+    else
+      warn "no container \"site\" of the website's compose project $WEBSITE_PROJECT: the account-changes feed stays idle"
+      SBR_WEBSITE_NETWORK=''
+    fi
   else
     die "the Seasonal Entertainment website is not running on this server (no Caddy container of the compose project \"$WEBSITE_PROJECT\" and no nginx on ports 80/443). Install the website first (its docs/DEPLOYMENT.md), then run this installer again with --type website."
   fi
@@ -115,120 +166,6 @@ detect_website() {
   [[ $SBR_WEBSITE_MODE == caddy ]] || SBR_TRUSTED_PROXIES=$SBR_EDGE_SUBNET
   ask SBR_WEBSITE_DOMAIN "The website's domain (e.g. example.org)"
   info "  website: $SBR_WEBSITE_MODE mode, domain $SBR_WEBSITE_DOMAIN, the app trusts $SBR_TRUSTED_PROXIES"
-}
-
-# The identity header names: the env file's (an operator may rename them), else the defaults
-# the app uses (07 §2.3), and the proxy secret. Sets H_ID, H_NAME, H_ROLES, H_VERIFIED, SECRET.
-header_names() {
-  local file="$SBR_ETC/$1.env"
-  # A dry run has written no env file: the route file it would write is not shown anyway.
-  SECRET=$(env_value "$file" SBR_WEBSITE_PROXY_SECRET)
-  SECRET=${SECRET:-unset-in-a-dry-run}
-  H_ID=$(env_value "$file" SBR_WEBSITE_HEADER_ID)
-  H_NAME=$(env_value "$file" SBR_WEBSITE_HEADER_NAME)
-  H_ROLES=$(env_value "$file" SBR_WEBSITE_HEADER_ROLES)
-  H_VERIFIED=$(env_value "$file" SBR_WEBSITE_HEADER_EMAIL_VERIFIED)
-  H_ID=${H_ID:-X-Acting-User-Id} H_NAME=${H_NAME:-X-Acting-User}
-  H_ROLES=${H_ROLES:-X-Acting-User-Roles} H_VERIFIED=${H_VERIFIED:-X-Acting-User-Email-Verified}
-}
-
-# The header name as nginx names a response header in a variable: lower case, "-" → "_".
-nginx_var() { printf '%s' "$1" | tr 'A-Z-' 'a-z_'; }
-
-# write_route_file <env>: the game's route for the website's proxy (route_steps says how).
-write_route_file() {
-  header_names "$1"
-  if [[ $SBR_WEBSITE_MODE == nginx ]]; then
-    write_nginx_route "$1" | put_file "$SBR_WEBSITE_ROUTES_DIR/bingo.conf" 0600
-  else
-    write_caddy_route "$1" | put_file "$SBR_ROOT/routes/bingo.caddy" 0600
-  fi
-}
-
-write_nginx_route() {
-  local h clear="    proxy_set_header $SECRET_HEADER \"\";"$'\n' set=''
-  for h in "$H_ID" "$H_NAME" "$H_ROLES" "$H_VERIFIED"; do
-    clear+="    proxy_set_header $h \"\";"$'\n'
-    set+="    auth_request_set \$sbr_$(nginx_var "$h") \$upstream_http_$(nginx_var "$h");"$'\n'
-    set+="    proxy_set_header $h \$sbr_$(nginx_var "$h");"$'\n'
-  done
-  cat <<EOF
-# Seasonal Bingo Royale under /games/bingo (written by ops/install.sh, environment $1).
-# Included inside the website's server block:  include $SBR_WEBSITE_ROUTES_DIR/*.conf;
-# Only $SIGN_IN_ROUTE asks the website who the visitor is (D37) and sends the app the
-# proxy secret (keep this file 0600); every other route clears client-sent identity headers.
-location = /games/bingo { return 308 /games/bingo/; }
-location ^~ /games/bingo/metrics { return 404; }
-location ^~ /games/bingo/ {
-${clear}    proxy_set_header Host \$host;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    # HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection \$http_connection;
-    proxy_pass http://127.0.0.1:$SBR_APP_PORT;
-}
-location = $SIGN_IN_ROUTE {
-    auth_request /_sbr_bingo_authorize;
-${set}    proxy_set_header $SECRET_HEADER "$SECRET";
-    error_page 401 403 = @sbr_bingo_login;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_pass http://127.0.0.1:$SBR_APP_PORT;
-}
-location = /_sbr_bingo_authorize {
-    internal;
-    proxy_pass http://$SBR_WEBSITE_UPSTREAM$SBR_WEBSITE_AUTHORIZE_PATH;
-    proxy_pass_request_body off;
-    proxy_set_header Content-Length "";
-    proxy_set_header Host \$host;
-    proxy_set_header X-Original-Method \$request_method;
-    proxy_set_header X-Original-URI \$request_uri;
-}
-# A visitor the website refused: the app sends on to the website's login with the page (D43).
-location @sbr_bingo_login { return 302 $SIGN_IN_ROUTE/login\$is_args\$args; }
-EOF
-}
-
-write_caddy_route() {
-  cat <<EOF
-# Seasonal Bingo Royale under /games/bingo (written by ops/install.sh, environment $1).
-# Imported inside the website's {\$SITE_DOMAIN} block (import /etc/caddy/routes/*.caddy);
-# "handle /games/bingo/*" (a path matcher) runs before the site's catch-all. Only
-# $SIGN_IN_ROUTE asks the website who the visitor is (D37) and sends the app the proxy
-# secret (keep this file 0600 and out of version control).
-redir /games/bingo /games/bingo/ 308
-handle /games/bingo/* {
-	# In this order (Caddy's own order would run forward_auth before request_header).
-	route {
-		# Metrics stay inside the server (the app refuses proxied requests to them as well).
-		@sbr_metrics path /games/bingo/metrics /games/bingo/metrics/*
-		respond @sbr_metrics 404
-		# Client-sent identity headers and proxy secrets never reach the app.
-		request_header -$H_ID
-		request_header -$H_NAME
-		request_header -$H_ROLES
-		request_header -$H_VERIFIED
-		request_header -$SECRET_HEADER
-		@sbr_signin path $SIGN_IN_ROUTE
-		forward_auth @sbr_signin $SBR_WEBSITE_UPSTREAM {
-			uri $SBR_WEBSITE_AUTHORIZE_PATH
-			copy_headers $H_ID $H_NAME $H_ROLES $H_VERIFIED
-			# A visitor the website refused: the app sends on to its login with the page (D43).
-			@sbr_refused status 401 403
-			handle_response @sbr_refused {
-				redir * $SIGN_IN_ROUTE/login?{query} 302
-			}
-		}
-		# After forward_auth, so the website never sees it.
-		request_header @sbr_signin $SECRET_HEADER $SECRET
-		# HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
-		reverse_proxy sbr-bingo-$1:3000
-	}
-}
-EOF
 }
 
 # route_steps: how the website takes the route file (printed at the end).
@@ -294,5 +231,17 @@ check_proxy() {
     info "proxy:       the website's network $network ($now)"
   else
     warn "the website's network is now $now, the app trusts $trusted: run the installer again to update it"
+  fi
+}
+
+# feed_state <env>: sbr status's line on the website's account-changes feed.
+feed_state() {
+  local env=$1 failed
+  if [[ -z $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_SYNC_TOKEN) ]]; then
+    warn "website feed: idle (no $SEASONAL_ETC/games-sync-token; sbr update reads it again)"
+  elif failed=$(compose "$env" exec -T app cat /data/website-feed 2>/dev/null) && [[ -n $failed ]]; then
+    warn "website feed: $failed (retried every 2 minutes; play goes on)"
+  else
+    info "website feed: following the website's account changes"
   fi
 }

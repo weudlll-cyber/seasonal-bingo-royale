@@ -4,12 +4,12 @@
  * @brief  Website mode: the game account of a website user, by (issuer, subject) (D37, 07 §2.1).
  *
  * Responsibility: in one transaction: the website's identity provider (created at its first
- *                 sign-in; a disabled one refuses), the external identity and its account —
+ *                 sign-in; a disabled one refuses; a website id the website deleted refuses), the external identity and its account —
  *                 created without password or e-mail on the first sign-in, with the `player`
  *                 role —, the display name following the website's (a numeric suffix when
  *                 another account has it), the mapped roles recomputed (`idp_mapping`; game_admin
- *                 at most, never super_admin or security_admin), the e-mail verification mirrored for league points, the last
- *                 sign-in. A suspended game account is refused. Never links by e-mail.
+ *                 at most, never super_admin or security_admin), the e-mail verification mirrored for league points, the Discord
+ *                 steps as last seen, the last sign-in. A suspended game account is refused. Never links by e-mail.
  * Depends on:     pg (types), ../db/pool, ./websiteIdentity
  * Used by:        ../http/routes/websiteSignIn
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/04-database-design.md §3.1
@@ -34,6 +34,15 @@ async function providerId(client: PoolClient, issuer: string): Promise<string | 
   );
   const row = r.rows[0];
   return row?.enabled === true ? row.id : null;
+}
+
+// The website deleted this account (its feed, ../website/accountChanges): never back.
+async function deletedOnWebsite(client: PoolClient, issuer: string, subject: string) {
+  const r = await client.query(
+    'SELECT 1 FROM sbr.website_deleted WHERE issuer = $1 AND subject = $2',
+    [issuer, subject],
+  );
+  return (r.rowCount ?? 0) > 0;
 }
 
 // The wanted name, else with 2, 3, … at its end (cut to stay within 24 characters).
@@ -86,7 +95,7 @@ async function follow(client: PoolClient, id: string, who: WebsiteIdentity, befo
     `DELETE FROM sbr.role_assignments WHERE account_id = $1 AND source = 'idp_mapping'`,
     [id],
   );
-  for (const role of mappedRoles(who.roles)) {
+  for (const role of mappedRoles(who)) {
     await client.query(
       `INSERT INTO sbr.role_assignments (account_id, role_id, source) VALUES ($1, $2, 'idp_mapping')
        ON CONFLICT DO NOTHING`,
@@ -94,19 +103,19 @@ async function follow(client: PoolClient, id: string, who: WebsiteIdentity, befo
     );
   }
   await client.query(
-    `UPDATE sbr.accounts SET last_login_at = now(), updated_at = now(),
+    `UPDATE sbr.accounts SET last_login_at = now(), updated_at = now(), steps = $3::jsonb,
        email_verified_at = CASE WHEN $2 THEN COALESCE(email_verified_at, now()) END
      WHERE id = $1`,
-    [id, who.emailVerified],
+    [id, who.emailVerified, JSON.stringify(who.steps)],
   );
   await client.query(
     `UPDATE sbr.external_identities SET last_claims = $2::jsonb WHERE account_id = $1`,
-    [id, JSON.stringify({ name: who.websiteName, roles: who.roles })],
+    [id, JSON.stringify({ name: who.websiteName, roles: who.roles, canHost: who.canHost })],
   );
 }
 
-// The account the website user signs in to, or null when refused (the provider is disabled
-// or the game account is suspended).
+// The account the website user signs in to, or null when refused (the provider is disabled,
+// the website deleted the account, or the game account is suspended).
 export async function websiteAccount(
   pool: DbPool,
   issuer: string,
@@ -116,7 +125,7 @@ export async function websiteAccount(
   try {
     await client.query('BEGIN');
     const provider = await providerId(client, issuer);
-    if (provider === null) {
+    if (provider === null || (await deletedOnWebsite(client, issuer, who.subject))) {
       await client.query('ROLLBACK');
       return null;
     }

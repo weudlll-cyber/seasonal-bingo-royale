@@ -35,6 +35,8 @@ source "$OPS/lib/common.sh"
 source "$OPS/lib/host.sh"
 # shellcheck source=lib/website.sh
 source "$OPS/lib/website.sh"
+# shellcheck source=lib/websiteRoute.sh
+source "$OPS/lib/websiteRoute.sh"
 # shellcheck source=lib/config.sh
 source "$OPS/lib/config.sh"
 # shellcheck source=lib/backup.sh
@@ -58,7 +60,7 @@ parse_flags() {
       --website-authorize-path) SBR_WEBSITE_AUTHORIZE_PATH=$2; shift ;;
       --website-login-path) SBR_WEBSITE_LOGIN_PATH=$2; shift ;;
       --website-routes-dir) SBR_WEBSITE_ROUTES_DIR=$2; shift ;;
-      --website-upstream) SBR_WEBSITE_UPSTREAM=$2; shift ;;
+      --website-upstream) SBR_WEBSITE_UPSTREAM=$2 SBR_UPSTREAM_GIVEN=1; shift ;;
       --app-port) SBR_APP_PORT=$2; shift ;;
       --edge-subnet) SBR_EDGE_SUBNET=$2; shift ;;
       --trusted-proxies) SBR_EXTRA_PROXIES=$2; shift ;;

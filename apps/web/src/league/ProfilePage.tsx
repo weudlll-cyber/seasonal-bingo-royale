@@ -9,13 +9,14 @@
  *                 how many, whether they gave league points and if not why, a link to the
  *                 match) exactly as sent — no e-mail, no real name (01 §10). An unknown name
  *                 says so.
- * Depends on:     react, @sbr/contracts (types), ../shell/router, ./useApiGet, ./league.css
+ * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/router, ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
 import type { LeagueOutcome, PlayerProfile, ProfileMatch } from '@sbr/contracts';
 import type { ReactElement } from 'react';
 
+import { StepBadges } from '../components/StepBadges.js';
 import { hrefOf } from '../shell/router.js';
 import { useApiGet } from './useApiGet.js';
 import './league.css';
@@ -50,7 +51,10 @@ export function ProfilePage({ displayName }: { readonly displayName: string }): 
 function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
   return (
     <>
-      <h1 data-testid="profile-name">{p.displayName}</h1>
+      <h1 data-testid="profile-name">
+        {p.displayName}
+        <StepBadges steps={p.steps} />
+      </h1>
       <dl className="league-stats">
         <Stat label="Matches played" value={String(p.matchesPlayed)} testId="profile-matches" />
         <Stat label="Wins" value={String(p.wins)} testId="profile-wins" />

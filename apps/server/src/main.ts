@@ -7,6 +7,7 @@
  *                 Dockerfile `server` command. The integration test imports buildApp
  *                 directly and does not touch this file.
  * Depends on:     ./config/env, ./db/pool, ./db/migrator, ./http/app, ./match/retention
+ *                 (and the website feed through ./http/app)
  * Used by:        apps/server/package.json "dev" script
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/08-devops-architecture.md §4
  */
@@ -28,7 +29,13 @@ async function main(): Promise<void> {
   const notRecovered = await app.match.startScheduler();
   if (notRecovered.length > 0) app.fastify.log.warn({ notRecovered }, 'matches not continued');
   const stopRetention = startRetention(pool);
+  // Website mode: the account-changes feed every 2 minutes; idle without the sync token.
+  const stopFeed = app.feed?.start(env.SBR_WEBSITE_FEED_INTERVAL_MS) ?? (() => undefined);
+  if (env.SBR_AUTH_MODE === 'website' && app.feed === null) {
+    app.fastify.log.warn('no SBR_WEBSITE_SYNC_TOKEN: the website account-changes feed stays idle');
+  }
   const shutdown = async (): Promise<void> => {
+    stopFeed();
     stopRetention();
     await app.match.scheduler.stop();
     await app.fastify.close();

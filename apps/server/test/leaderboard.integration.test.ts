@@ -245,6 +245,30 @@ describe('what the players see (05 §2.2, §2.4)', () => {
   });
 });
 
+describe('Discord steps on the board and the profile (2026-11-04)', () => {
+  it('shows the steps an account has next to its name, and none for the others', async () => {
+    const golden = [{ ladder: 'holder', name: 'Golden', icon: '/media/g.webp' }];
+    await harness.pool.query('UPDATE sbr.accounts SET steps = $2::jsonb WHERE id = $1', [
+      players[1],
+      JSON.stringify(golden),
+    ]);
+    const me = await clientOf(players[0] ?? '');
+    const season = (await me.get('/api/v1/leaderboards')).json<{ items: { id: string }[] }>()
+      .items[0]?.id;
+    const board = (await me.get(`/api/v1/leaderboards/${season ?? ''}`)).json<{
+      items: { displayName: string; steps?: unknown }[];
+    }>();
+    expect(board.items.filter((r) => r.steps !== undefined)).toEqual([
+      expect.objectContaining({ displayName: 'league2', steps: golden }),
+    ]);
+    const profile = (await me.get('/api/v1/players/league2')).json<{ steps?: unknown }>();
+    expect(profile.steps).toEqual(golden);
+    expect((await me.get('/api/v1/players/league1')).json<{ steps?: unknown }>().steps).toBe(
+      undefined,
+    );
+  });
+});
+
 describe('badges and account deletion (01 §8.3, 05 §2.2)', () => {
   it('gives a Season Complete badge once per player and match, counted or not', async () => {
     const who = players[1] ?? '';

@@ -29,6 +29,8 @@ source "$HERE/lib/common.sh"
 source "$HERE/lib/config.sh"
 # shellcheck source=lib/website.sh
 source "$HERE/lib/website.sh"
+# shellcheck source=lib/websiteRoute.sh
+source "$HERE/lib/websiteRoute.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
 # shellcheck source=lib/uninstall.sh
@@ -94,8 +96,9 @@ cmd_status() {
   fi
   if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then
     check_proxy "$env"
-    # 401 is the expected answer without a browser session (D37).
+    # Without a browser session: 204 with X-Acting-Guest (an older website: 401, D37).
     info "website:     authorize endpoint $(env_value "$file" SBR_WEBSITE_UPSTREAM)$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH): $(authorize_status "$env")"
+    feed_state "$env"
   fi
 }
 
@@ -147,6 +150,8 @@ cmd_update() {
     info "Database roles: the app now connects as sbr_app, the migrations run as sbr_owner."
   fi
   apply_db_roles "$env"
+  # Website installs: the sync token, nginx's site port and the route file read again.
+  refresh_website "$env"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
   set_env_value "$conf" SBR_REF "$ref"
   compose "$env" up -d

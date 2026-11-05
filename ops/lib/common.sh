@@ -140,6 +140,9 @@ compose() {
   type=$(env_value "$SBR_ETC/$env.env" SBR_INSTALL_TYPE)
   if [[ $type == website && $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_MODE) == nginx ]]; then
     files+=(-f "$SBR_ROOT/compose.website-nginx.yml")
+    # The website's network too (its account-changes feed at site:3800), never trusted here.
+    [[ -z $(env_value "$SBR_ETC/$env.env" SBR_WEBSITE_NETWORK) ]] ||
+      files+=(-f "$SBR_ROOT/compose.website.yml")
   elif [[ $type == website ]]; then
     files+=(-f "$SBR_ROOT/compose.website.yml")
   else
