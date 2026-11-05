@@ -176,18 +176,14 @@ async function tapOpenCell(engine: MatchEngine, id: string, accountId: string): 
   return cell >= 0 && (await engine.mark(id, accountId, 0, cell));
 }
 
-// The room frames left out the summary and the standings order in some steps and carried each
-// in others, so the comparisons after every step covered both (06 §8).
-function expectLeftOutAndCarried(frames: readonly unknown[]): void {
-  const rooms = frames.filter((f): f is LiveStepFrame => 'events' in (f as object));
-  const without = (has: (f: LiveStepFrame) => boolean) => rooms.filter((f) => !has(f)).length;
-  for (const has of [
-    (f: LiveStepFrame) => 'match' in f,
-    (f: LiveStepFrame) => 'rankedIn' in f.view,
-  ]) {
-    expect(without(has)).toBeGreaterThan(0);
-    expect(without(has)).toBeLessThan(rooms.length);
-  }
+// The room frames the spectators got over both matches; the last test checks that they left
+// out the summary and the standings order in some steps and carried each in others, so the
+// comparisons after every step covered both (06 §8). Over both: whether one royale has a tap
+// step with an unchanged summary depends on when the player goes out.
+const roomFrames: LiveStepFrame[] = [];
+
+function keepRoomFrames(frames: readonly unknown[]): void {
+  roomFrames.push(...frames.filter((f): f is LiveStepFrame => 'events' in (f as object)));
 }
 
 // Plays the match to its end with three screens, comparing them after every step.
@@ -213,7 +209,7 @@ async function playWatched(code: string): Promise<Screen[]> {
   }
   expect((await engine.runner.current(id)).record.status).toBe('finished');
   for (const s of screens) s.socket.disconnect();
-  expectLeftOutAndCarried(screens[1]?.frames ?? []);
+  keepRoomFrames(screens[1]?.frames ?? []);
   return screens;
 }
 
@@ -259,6 +255,18 @@ describe('live frames equal full fetches (06 §8)', () => {
   it('over a whole classic match', async () => {
     await playWatched(await kit.createMatch('host'));
   }, 300_000);
+
+  it('left out the summary and the standings order in some steps and carried them in others', () => {
+    const without = (has: (f: LiveStepFrame) => boolean) =>
+      roomFrames.filter((f) => !has(f)).length;
+    for (const has of [
+      (f: LiveStepFrame) => 'match' in f,
+      (f: LiveStepFrame) => 'rankedIn' in f.view,
+    ]) {
+      expect(without(has)).toBeGreaterThan(0);
+      expect(without(has)).toBeLessThan(roomFrames.length);
+    }
+  });
 
   it('never give a player still in another card, the draw order or a seed (D24)', () => {
     const [player, watcher] = royale;
