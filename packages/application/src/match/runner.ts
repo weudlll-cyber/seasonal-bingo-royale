@@ -4,7 +4,9 @@
  * @brief  Runs commands against one match: serialized, persisted, published (02 §5.2, §5.4).
  *
  * Responsibility: one command batch per match at a time (an in-process queue per match);
- *                 the match is loaded from the store once and kept in memory; commands are
+ *                 the match is loaded from the store once and kept in memory (callers that miss
+ *                 the cache meanwhile share that load; a load that ends late never replaces a
+ *                 newer match); commands are
  *                 decided one after another on the evolving state, the produced events
  *                 appended in one transaction (the store's version check is the safety
  *                 net: on a conflict the cache is dropped and the error rises) and then
@@ -41,6 +43,8 @@ interface ApplyOptions {
 export class MatchRunner {
   private readonly cache = new Map<string, LoadedMatch>();
   private readonly queues = new Map<string, Promise<unknown>>();
+  // A load under way per match, shared by the callers that miss the cache meanwhile.
+  private readonly loading = new Map<string, Promise<LoadedMatch | null>>();
 
   constructor(
     private readonly store: MatchStore,
@@ -59,11 +63,21 @@ export class MatchRunner {
     return next;
   }
 
+  // The cached match, else one load shared by every caller meanwhile. A load that ends after a
+  // command was stored never replaces that newer match (a lobby poll during `create` did, and
+  // the next join met a version conflict).
   async current(matchId: string): Promise<LoadedMatch> {
     const cached = this.cache.get(matchId);
     if (cached !== undefined) return cached;
-    const loaded = await this.store.load(matchId);
+    let pending = this.loading.get(matchId);
+    if (pending === undefined) {
+      pending = this.store.load(matchId).finally(() => this.loading.delete(matchId));
+      this.loading.set(matchId, pending);
+    }
+    const loaded = await pending;
     if (loaded === null) throw new MatchNotFound(matchId);
+    const newer = this.cache.get(matchId);
+    if (newer !== undefined && newer.seq >= loaded.seq) return newer;
     this.cache.set(matchId, loaded);
     return loaded;
   }
