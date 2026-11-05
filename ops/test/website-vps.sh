@@ -9,8 +9,10 @@
 #                 "site" container of compose project "seasonal-site", behind host nginx on the
 #                 port in /etc/seasonal/site-local-port, or behind that project's Caddy), with
 #                 the website's games-sync-token, runs
-#                 `ops/install.sh --type website` from /src for the given git ref, activates the
-#                 game's route file the way the printed steps say, and checks through the
+#                 `ops/install.sh --type website` from /src for the given git ref with the website's
+#                 record (/etc/seasonal/install.conf as the website's installer writes it: BINGO=no
+#                 first, which must stop before any change, then yes; no website question asked;
+#                 the installer applies its route file itself), and checks through the
 #                 website's proxy: health, the sign-in route sending a visitor the website
 #                 answers as a guest through the game's login hop to the website's login with the
 #                 wanted page (D43), a website user signed in with name, may-host and Discord
@@ -23,7 +25,10 @@
 #                 /games/bingo/metrics 404, the account-changes feed reached over the website's
 #                 network with the token (a "rights" change signs a member out), the token in no
 #                 log, and `sbr status` naming the sign-in mode, the authorize endpoint's guest
-#                 answer (204) and the followed feed.
+#                 answer (204) and the followed feed. Then: a route file the proxy refuses (an
+#                 operator's header name with a stray "}") is rolled back and the website keeps
+#                 answering; a clean re-run applies it again; `sbr uninstall` removes only the
+#                 game's route file and leaves nginx -t / caddy validate green.
 #                 --broken-header makes the stand-in send a wrong id header name: the test must
 #                 fail. Everything it made is removed at the end (--keep leaves it for a look).
 #                 Test only: never part of an install.
@@ -98,7 +103,7 @@ vps "install -d -m 0755 /etc/seasonal/routes /etc/sbr && umask 077 && printf '%s
 vps 'curl -fsSL https://get.docker.com | sh >/dev/null 2>&1'
 PUBLISH="ports: ['127.0.0.1:3801:3800']"
 [[ $MODE == caddy ]] && PUBLISH=''
-vps "mkdir -p /srv/site/routes && cat >/srv/site/docker-compose.yml <<CONF
+vps "mkdir -p /srv/site/deploy/site/routes && cat >/srv/site/deploy/site/docker-compose.yml <<CONF
 name: seasonal-site
 services:
   site:
@@ -120,7 +125,7 @@ server {
 CONF
 nginx -t -q && systemctl restart nginx"
 else
-  vps "cat >/srv/site/Caddyfile <<'CONF'
+  vps "cat >/srv/site/deploy/site/Caddyfile <<'CONF'
 {
 	auto_https off
 }
@@ -129,30 +134,38 @@ http://{\$SITE_DOMAIN} {
 	reverse_proxy site:3800
 }
 CONF
-cat >>/srv/site/docker-compose.yml <<CONF
+cat >>/srv/site/deploy/site/docker-compose.yml <<CONF
   caddy:
     image: caddy:2.10-alpine
     environment: { SITE_DOMAIN: example.org }
     ports: ['80:80']
     volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro', './routes:/etc/caddy/routes:ro']
 CONF
-touch /srv/site/routes/empty.caddy"
+touch /srv/site/deploy/site/routes/empty.caddy"
 fi
-vps 'cd /srv/site && docker compose up -d --quiet-pull 2>/dev/null'
+vps 'cd /srv/site/deploy/site && docker compose up -d --quiet-pull 2>/dev/null'
 # What the stand-in website saw (its /stub/feed answer), from inside its own network.
 seen() { vps "docker exec seasonal-site-site-1 wget -qO- http://127.0.0.1:3800/stub/$1"; }
 
-# The install, as an operator would run it (unattended).
-vps "bash /src/ops/install.sh --yes --type website --env prod --website-domain example.org \
+# What the website's installer records (no secrets): first a website not prepared for the game.
+record() { vps "printf 'MODE=$MODE\\nSITE_DOMAIN=example.org\\nINSTALL_DIR=/srv/site\\nBINGO=$1\\n' >/etc/seasonal/install.conf && chmod 600 /etc/seasonal/install.conf"; }
+INSTALL="bash /src/ops/install.sh --yes --type website --env prod \
   --email admin@example.org --age-key age1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs3290gq \
-  --repo /src --ref $REF >/root/install.log 2>&1; tail -12 /root/install.log"
+  --repo /src --ref $REF"
 if [[ $MODE == nginx ]]; then
   ROUTE_FILE=/etc/seasonal/routes/bingo.conf
-  vps 'nginx -t -q && systemctl reload nginx'
+  VALID='nginx -t -q && echo valid'
 else
-  ROUTE_FILE=/opt/sbr/routes/bingo.caddy
-  vps 'cp /opt/sbr/routes/bingo.caddy /srv/site/routes/ && docker exec seasonal-site-caddy-1 caddy reload --config /etc/caddy/Caddyfile 2>/dev/null'
+  ROUTE_FILE=/srv/site/deploy/site/routes/bingo.caddy
+  VALID='docker exec seasonal-site-caddy-1 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 && echo valid'
 fi
+record no
+check "BINGO=no stops the installer" "$(vps "$INSTALL 2>&1 | tail -3")" 'run the website'"'"'s installer again with --bingo'
+check "... before any change" "$(vps "test -e /opt/sbr || test -e $ROUTE_FILE || echo untouched")" 'untouched'
+# The install, as an operator would run it (unattended), the domain from the website's record.
+record yes
+vps "$INSTALL >/root/install.log 2>&1; tail -14 /root/install.log"
+check "the installer asked no website question and applied the route itself" "$(vps 'cat /root/install.log')" 'checked through the website'"'"'s proxy'
 
 # Through the website's proxy, as a browser would.
 URL=http://127.0.0.1/games/bingo
@@ -216,6 +229,23 @@ check "sbr status names the sign-in mode" "$status" 'sign-in:     website'
 check "sbr status: the authorize endpoint answers" "$status" 'authorize endpoint'
 check "sbr status: a guest answer (204) without a browser session" "$status" ': 204'
 check "sbr status: the feed is followed" "$status" "website feed: following the website's account changes"
+
+# A broken route file (an operator's header name with a stray "}") is rolled back; the website and
+# the game keep answering with the file before it.
+before=$(vps "sha256sum $ROUTE_FILE")
+vps "printf 'SBR_WEBSITE_HEADER_ID=X-Acting}Bad\\n' >>/etc/sbr/prod.env"
+check "a route file the proxy refuses stops the re-run" "$(vps "$INSTALL 2>&1 | tail -3")" 'rolled back'
+check "... the previous route file is back" "$(vps "sha256sum $ROUTE_FILE")" "$before"
+check "... the website's proxy is still valid" "$(vps "$VALID")" 'valid'
+check "... and the game still answers through it" "$(vps "curl -s $H $URL/healthz")" 'ok'
+# A clean re-run rewrites and reloads the same way.
+vps "sed -i '/^SBR_WEBSITE_HEADER_ID=/d' /etc/sbr/prod.env"
+check "a re-run applies the route again" "$(vps "$INSTALL 2>&1 | tail -14")" 'checked through the website'"'"'s proxy'
+# Uninstall: only the game's route file goes; the website's proxy stays valid and answers.
+vps 'SBR_YES=1 sbr uninstall >/root/uninstall.log 2>&1 || true'
+check "uninstall removes the game's route file" "$(vps "test -e $ROUTE_FILE || echo gone")" 'gone'
+check "... and leaves the website's proxy valid" "$(vps "$VALID")" 'valid'
+check "... and answering" "$(vps "curl -s -o /dev/null -w '%{http_code}' $H http://127.0.0.1/login")" '200'
 
 if [[ $FAILED == 1 ]]; then echo "website install ($MODE): FAILED"; exit 1; fi
 echo "website install ($MODE): all checks passed"

@@ -31,6 +31,8 @@ source "$HERE/lib/config.sh"
 source "$HERE/lib/website.sh"
 # shellcheck source=lib/websiteRoute.sh
 source "$HERE/lib/websiteRoute.sh"
+# shellcheck source=lib/websiteApply.sh
+source "$HERE/lib/websiteApply.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
 # shellcheck source=lib/uninstall.sh

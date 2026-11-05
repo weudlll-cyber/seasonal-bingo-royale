@@ -14,7 +14,7 @@
 #                 older website goes to the app's /games/bingo/auth/website/login with the same
 #                 query (D43); /games/bingo/metrics 404. Header names: the env file's (an operator
 #                 may rename them), else the app's defaults (07 §2.3).
-# Used by:        ops/install.sh, ops/sbr (update)
+# Used by:        ./websiteApply.sh (install, update)
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
 
 # The identity header names and the proxy secret: sets HEADERS (all identity headers, in
@@ -35,16 +35,6 @@ header_names() {
 
 # The header name as nginx names a response header in a variable: lower case, "-" → "_".
 nginx_var() { printf '%s' "$1" | tr 'A-Z-' 'a-z_'; }
-
-# write_route_file <env>: the game's route for the website's proxy.
-write_route_file() {
-  header_names "$1"
-  if [[ $SBR_WEBSITE_MODE == nginx ]]; then
-    write_nginx_route "$1" | put_file "$SBR_WEBSITE_ROUTES_DIR/bingo.conf" 0600
-  else
-    write_caddy_route "$1" | put_file "$SBR_ROOT/routes/bingo.caddy" 0600
-  fi
-}
 
 write_nginx_route() {
   local h clear="    proxy_set_header $SECRET_HEADER \"\";"$'\n' set=''

@@ -37,6 +37,8 @@ source "$OPS/lib/host.sh"
 source "$OPS/lib/website.sh"
 # shellcheck source=lib/websiteRoute.sh
 source "$OPS/lib/websiteRoute.sh"
+# shellcheck source=lib/websiteApply.sh
+source "$OPS/lib/websiteApply.sh"
 # shellcheck source=lib/config.sh
 source "$OPS/lib/config.sh"
 # shellcheck source=lib/backup.sh
@@ -55,7 +57,7 @@ parse_flags() {
       --smtp-user) SBR_SMTP_USER=$2; shift ;;
       --smtp-password-file) SBR_SMTP_PASSWORD=$(cat -- "$2"); shift ;;
       --smtp-from) SBR_SMTP_FROM=$2; shift ;;
-      --website-domain) SBR_WEBSITE_DOMAIN=$2; shift ;;
+      --website-domain) SBR_WEBSITE_DOMAIN=$2 SBR_DOMAIN_GIVEN=1; shift ;;
       --website-network) SBR_WEBSITE_NETWORK=$2; shift ;;
       --website-authorize-path) SBR_WEBSITE_AUTHORIZE_PATH=$2; shift ;;
       --website-login-path) SBR_WEBSITE_LOGIN_PATH=$2; shift ;;
@@ -143,7 +145,8 @@ next_steps() {
     info "  3. Firewall: allow 22, 80 and 443 only (docs/operator-guide.md)."
   else
     info "  2. $(route_steps)"
-    info "  3. Players sign in only with their website account (D37); the website provides the authorize endpoint."
+    info "  3. Players sign in only with their website account (D37)."
+    [[ $SBR_DRY_RUN == 1 ]] || final_checks "$SBR_ENV" || warn "the install is done, but the checks above failed: see docs/operator-guide.md, \"Website by hand\""
   fi
   info "  Backups run every night at 03:30 into $SBR_BACKUPS/$SBR_ENV/; pull them to your PC with ops/pull-backups.ps1."
   info "  Status: sudo sbr status"
@@ -170,8 +173,10 @@ main() {
   info "Checking the server"
   check_os
   check_resources
-  install_prereqs
   choose_type
+  # What the website recorded: a website not prepared for the game stops before any change.
+  [[ $SBR_TYPE == standalone ]] || website_record
+  install_prereqs
   ask_common
   install_docker
   if [[ $SBR_TYPE == standalone ]]; then check_ports "$SBR_ENV"; else detect_website; fi
@@ -181,7 +186,7 @@ main() {
   write_env "$SBR_ENV"
   write_record
   install_files "$OPS"
-  [[ $SBR_TYPE == website ]] && write_route_file "$SBR_ENV"
+  [[ $SBR_TYPE == website ]] && apply_route_file "$SBR_ENV"
   info "Starting the stack"
   # The owner and app roles first: the migrate service connects as the owner (audit-3 S1).
   apply_db_roles "$SBR_ENV"
