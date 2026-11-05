@@ -12,13 +12,16 @@ What the night chain (PERF-TAPS, then WEBSITE-INTEGRATION-2, then INSTALL-AUTO) 
 
 - WEBSITE-INTEGRATION-2 piece B — merged `938a059` (PR #34): the host's "Show on the Seasonal Entertainment website" and GET <base>api/public/open-rounds (docs/OPEN-ROUNDS.md). Master CI green after one re-run (a webkit-mobile timing failure in playerFit, unrelated, green on the re-run); CodeQL green. Play-through on master: account, real game and website login specs in Chromium, 7 of 7 passed.
 
+- INSTALL-AUTO — merged `95cd902` (PR #35): one command installs the game embedded in the website (the website's record, the route file applied with a rollback, final checks through the proxy; the manual steps only a fallback). Throw-away Ubuntu test: nginx mode 38 checks, own Caddy 37 checks, all passed (BINGO=no stops before any change, a broken route file rolled back, re-run, uninstall). Master CI and CodeQL green.
+- Only `master` is left on origin. The dev server runs on master (3900 / 5390) with the demo league.
+
 ## Running
 
-- INSTALL-AUTO (branch feat/install-auto): code and docs done; the throw-away Ubuntu test (nginx and own Caddy, with the website's record and layout) runs; then the pull request and merge, the dev server on master and the final report.
+- Nothing.
 
 ## Open
 
-- Nothing else in this chain.
+- Nothing in this chain.
 
 ## Needs the owner's word
 
