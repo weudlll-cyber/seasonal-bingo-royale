@@ -113,7 +113,7 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       const token = request.cookies[deps.cookie.name];
       request.session = token === undefined ? null : await findSession(deps.pool, token);
       // In website mode a game session lives at most 7 days (2026-11-04).
-      await openSession(request, reply, deps, accountId, WEBSITE_SESSION_DAYS);
+      await openSession(request, reply, { ...deps, playerDays: WEBSITE_SESSION_DAYS }, accountId);
       return reply.redirect(safeNext(request.query.next, base), 302);
     },
   );

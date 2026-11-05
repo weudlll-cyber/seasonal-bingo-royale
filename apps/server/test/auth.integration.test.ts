@@ -60,7 +60,7 @@ async function session(cookie: string) {
     kind: string | null;
     permissions: string[];
     csrfToken: string | null;
-    account: { displayName: string } | null;
+    account: { id: string; displayName: string } | null;
   }>();
 }
 
@@ -92,7 +92,7 @@ describe('local accounts and sessions', () => {
     expect(s.permissions).not.toContain('match.create');
     expect(s.csrfToken).toMatch(/^[\w-]{40,}$/);
     // Standalone keeps 30 days absolute, 7 days idle (the website's 7-day limit is not here).
-    const lifetime = await harness.pool.query<{ days: number; idle: number }>(
+    const lifetime = await harness.pool.query<{ days: string; idle: string }>(
       `SELECT round(extract(epoch FROM expires_at - created_at) / 86400) AS days,
               round(extract(epoch FROM idle_expires_at - created_at) / 86400) AS idle
          FROM sbr.sessions WHERE account_id = $1`,
