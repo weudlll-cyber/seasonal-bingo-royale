@@ -29,6 +29,7 @@ import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastif
 
 import { SessionEnds } from '../auth/sessionEnds.js';
 import { AccountFeed } from '../website/accountFeed.js';
+import { registerOpenRounds } from './routes/openRounds.js';
 import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { featuresFrom } from '../config/features.js';
@@ -109,6 +110,7 @@ async function registerRouteLimits(fastify: FastifyInstance): Promise<void> {
 }
 
 interface GameRouteDeps {
+  readonly env: Env;
   readonly pool: DbPool;
   readonly isDev: boolean;
   readonly maintenance: MaintenanceCheck;
@@ -131,6 +133,13 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
     maintenance: deps.maintenance,
     live: deps.live,
     views: deps.views,
+    website: deps.env.SBR_AUTH_MODE === 'website',
+  });
+  // The open sign-ups the hosts marked for the website (D50; empty in standalone installs).
+  registerOpenRounds(fastify, {
+    pool,
+    publicUrl: deps.env.SBR_PUBLIC_URL ?? null,
+    basePath: deps.env.SBR_BASE_PATH,
   });
   // "Verify this match": the seed, sealed with this key, opens once a match is over.
   registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
@@ -180,6 +189,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const feed = registerSignIn(fastify, { ...deps, cookie, sessionEnds, accountDeleted });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, {
+    env: deps.env,
     pool: deps.pool,
     isDev,
     maintenance,

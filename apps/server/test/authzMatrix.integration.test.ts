@@ -62,6 +62,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/metrics', allow: ROLES },
   { method: 'GET', path: '/api/v1/session', allow: ROLES },
   { method: 'GET', path: '/api/v1/maintenance', allow: ROLES },
+  // The open sign-ups for the website: public (D50).
+  { method: 'GET', path: '/api/public/open-rounds', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code', allow: ROLES },
   { method: 'GET', path: '/api/v1/matches/:code/state', allow: ROLES },
@@ -107,6 +109,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/matches/:code/next-round', body: {}, allow: HOST },
   { method: 'POST', path: '/api/v1/matches/:code/draw-mode', body: { mode: 'host' }, allow: HOST },
   { method: 'POST', path: '/api/v1/matches/:code/auto-start', body: { auto: false }, allow: HOST },
+  // Website mode only (404 here, past the host check): "Show on the website" (D50).
+  { method: 'POST', path: '/api/v1/matches/:code/website', body: { show: false }, allow: HOST },
   { method: 'POST', path: '/api/v1/matches/:code/abort', body: { reason: '' }, allow: HOST },
   { method: 'POST', path: '/api/v1/matches/:code/bots', body: { upTo: 1 }, allow: HOST },
   {

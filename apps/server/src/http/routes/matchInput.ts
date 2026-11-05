@@ -43,6 +43,8 @@ export const createBody = z.object({
     z.object({ kind: z.literal('noAutoMark') }),
   ]),
   countsForLeaderboard: z.boolean().optional(),
+  // Website mode only (the route ignores it otherwise, D50).
+  showOnWebsite: z.boolean().optional(),
   maxPlayers: z.number().int().min(2).max(200),
   // The pause between royale rounds (D14); the engine keeps a wait at its minimum.
   roundPause: z

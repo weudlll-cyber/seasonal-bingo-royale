@@ -52,6 +52,8 @@ export interface CreateMatchInput {
   readonly drawIntervalMs?: number | undefined;
   readonly missedNumbers: MissedNumbers;
   readonly countsForLeaderboard?: boolean | undefined;
+  // Website mode: list the open sign-up on the website (D50); off when left out.
+  readonly showOnWebsite?: boolean | undefined;
   readonly maxPlayers: number;
   readonly roundPause?: RoundPause | undefined;
   // How the match starts (01 §7.6); the host starts it by default.
@@ -146,6 +148,7 @@ export function toNewMatch(
     maxPlayers: input.maxPlayers,
     prizes,
     countsForLeaderboard: input.countsForLeaderboard ?? ruleset.countsForLeaderboard,
+    showOnWebsite: input.showOnWebsite ?? false,
     settings: {
       ...draws,
       drawMode: input.drawMode,

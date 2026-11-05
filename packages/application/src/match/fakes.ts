@@ -101,6 +101,12 @@ class MemoryStore implements MatchStore {
     return Promise.resolve();
   }
 
+  setShowOnWebsite(matchId: string, showOnWebsite: boolean): Promise<void> {
+    const r = this.records.get(matchId);
+    if (r !== undefined) this.records.set(matchId, { ...r, showOnWebsite });
+    return Promise.resolve();
+  }
+
   types(matchId: string): readonly DomainEvent['type'][] {
     return (this.events.get(matchId) ?? []).map((e) => e.event.type);
   }

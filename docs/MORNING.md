@@ -8,13 +8,14 @@ What the night chain (PERF-TAPS, then WEBSITE-INTEGRATION-2, then INSTALL-AUTO) 
 - Master fix 1 — merged `9dc4aaf` (PR #31): the equivalence test counts a gap once while it is caught up.
 - Master fix 2 — merged `4f0ac17` (PR #32): a late load never puts an older match into the runner's cache (a join after `create` could meet a version conflict; e2e asyncMatch journey 2). Master CI and CodeQL green.
 
+- WEBSITE-INTEGRATION-2 piece A — merged `95b8a99` (PR #33): website guests, Can-Host, Discord steps, account-changes feed, 7-day sessions; the throw-away Ubuntu test passed in nginx mode (27 checks) and own-Caddy mode (26). Master CI and CodeQL green.
+
 ## Running
 
-- WEBSITE-INTEGRATION-2 piece A (branch feat/website-users): code, tests and docs done; the throw-away Ubuntu test (nginx and own-Caddy mode) runs; then the pull request and merge.
+- WEBSITE-INTEGRATION-2 piece B (branch feat/open-rounds): "Show on the Seasonal Entertainment website" and GET <base>api/public/open-rounds; pull request and merge next, then the play-through in both modes.
 
 ## Open
 
-- WEBSITE-INTEGRATION-2 piece B (feat/open-rounds), then the play-through in both modes.
 - INSTALL-AUTO (feat/install-auto).
 
 ## Needs the owner's word

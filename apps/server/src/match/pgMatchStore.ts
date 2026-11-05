@@ -96,9 +96,9 @@ export class PgMatchStore implements MatchStore {
          seed_commitment, seed_enc, prizes, counts_for_leaderboard, marking_mode, draw_mode,
          missed_numbers, auto_mark_delay_ms, draw_interval_ms, created_by, round_pause_ms,
          start_rule, start_at, start_auto, seed_enc_version, mode, timezone, quiet_start_hour,
-         quiet_end_hour, lobby_closes_at)
+         quiet_end_hour, lobby_closes_at, show_on_website)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-         $23,$24,$25,$26,$27)`,
+         $23,$24,$25,$26,$27,$28)`,
       [
         r.id,
         r.code,
@@ -129,8 +129,16 @@ export class PgMatchStore implements MatchStore {
         s.quietHours?.startHour ?? null,
         s.quietHours?.endHour ?? null,
         r.lobbyClosesAt === null ? null : new Date(r.lobbyClosesAt),
+        r.showOnWebsite,
       ],
     );
+  }
+
+  async setShowOnWebsite(matchId: string, show: boolean): Promise<void> {
+    await this.pool.query('UPDATE sbr.matches SET show_on_website = $2 WHERE id = $1', [
+      matchId,
+      show,
+    ]);
   }
 
   async load(matchId: string): Promise<LoadedMatch | null> {

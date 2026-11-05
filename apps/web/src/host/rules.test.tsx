@@ -121,6 +121,7 @@ describe('D14: the pause between royale rounds', () => {
       draw: { mode: 'host', intervalSec: null, skipped: false },
       missed: { mode: 'manual', missed: 'noAutoMark', delaySec: 3 },
       leaderboard: null,
+      website: false,
       maxPlayers: 20,
       pause: { kind: 'host' },
       start: { kind: 'host' },

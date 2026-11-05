@@ -47,6 +47,8 @@ export interface MatchRouteDeps {
   readonly live?: LiveMetrics;
   // The server's one replay per live match (../../view/liveViews).
   readonly views: LiveViews;
+  // Website mode: matches may be shown on the website (D50); standalone never.
+  readonly website: boolean;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -148,6 +150,10 @@ function watchQuery(q: WatchParams): WatchQuery {
   };
 }
 
+// "Show on the Seasonal Entertainment website": website mode only, off unless ticked.
+const website = (deps: MatchRouteDeps, body: { showOnWebsite?: boolean | undefined }) =>
+  deps.website && body.showOnWebsite === true;
+
 export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
   registerMatchList(app, deps);
   app.post('/api/v1/matches', async (request, reply) => {
@@ -164,7 +170,8 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     }
     try {
-      const record = await deps.engine.create(toCreateInput(parsed.data), accountId);
+      const input = { ...toCreateInput(parsed.data), showOnWebsite: website(deps, parsed.data) };
+      const record = await deps.engine.create(input, accountId);
       return await reply.status(201).send({ code: record.code, id: record.id });
     } catch (error) {
       return sendEngineError(reply, error);
