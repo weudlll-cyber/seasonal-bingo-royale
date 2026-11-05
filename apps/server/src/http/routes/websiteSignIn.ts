@@ -7,8 +7,9 @@
  *                 proxy protects exactly this path with auth_request / forward_auth and passes
  *                 the visitor as headers. Accepted only from a peer in SBR_TRUSTED_PROXIES that
  *                 sends the proxy secret (X-Sbr-Proxy-Secret, compared in constant time; else
- *                 403, nobody signed in) and only with a valid id and name (else 403);
- *                 then the account by (site origin, user id) (../../auth/websiteAccounts; a
+ *                 403, nobody signed in); a guest answer (X-Acting-Guest: true) or no valid id
+ *                 and name goes on to the login route below, the browser's game session
+ *                 untouched; then the account by (site origin, user id) (../../auth/websiteAccounts; a
  *                 suspended one 403), a fresh game session (./auth openSession) and a redirect
  *                 to `next` when it is a path under the base path, else to the base path (D43).
  *                 Rate-limited per address. GET <base>auth/website/login: where the proxy
@@ -65,6 +66,10 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
   const issuer = new URL(deps.env.SBR_PUBLIC_URL ?? '').origin;
   const base = deps.env.SBR_BASE_PATH;
   const config = { rateLimit: { max: 30, timeWindow: 60_000 } };
+  // An invalid steps header is logged once per process (sign-in goes on without steps).
+  let warnedSteps = false;
+  const loginHop = (next: string | undefined) =>
+    `${base}auth/website/login?next=${encodeURIComponent(safeNext(next, base))}`;
   // D43: the proxy sends a visitor the website does not know here; on to the website's login
   // with the sign-in route and the wanted page as its return path (encoded twice: the page is
   // a parameter of the sign-in route, which is the login's parameter).
@@ -90,8 +95,14 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       ) {
         return reply.status(403).send({ code: 'UNTRUSTED_PROXY' });
       }
+      // The website answers a visitor it does not sign in with 204 + X-Acting-Guest (so the
+      // proxy's error_page never fires): on to its login; the browser's game session stays.
       const who = identityFrom(request.headers, deps.env);
-      if (who === null) return reply.status(403).send({ code: 'NO_WEBSITE_USER' });
+      if (who === null) return reply.redirect(loginHop(request.query.next), 302);
+      if (who.badSteps && !warnedSteps) {
+        warnedSteps = true;
+        request.log.warn('the website sent a steps header that is no valid steps list; ignored');
+      }
       const accountId = await websiteAccount(deps.pool, issuer, who);
       if (accountId === null) return reply.status(403).send({ code: 'ACCOUNT_SUSPENDED' });
       // This route is outside /api, where the session hook does not look: find the browser's

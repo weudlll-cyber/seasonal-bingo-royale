@@ -6,7 +6,7 @@
  * Responsibility: a server in website mode under /games/bingo/ (production settings, the test
  *                 runner's address as the trusted proxy): GET /games/bingo/auth/website with the
  *                 four headers from the trusted peer creates the account (no password, no
- *                 e-mail), maps "organiser" to hosting, mirrors the e-mail verification, starts a
+ *                 e-mail), maps "may start games" to hosting, mirrors the e-mail verification, starts a
  *                 game session and redirects to `next` (a foreign `next` goes to the base path);
  *                 a later sign-in follows a new name and recomputes the roles; another user
  *                 with the same name gets a suffix; a suspended account is refused. Forged
@@ -59,7 +59,7 @@ const verifiedAt = async (accountId: string) =>
 describe('signing in through the website (D37)', () => {
   it('creates the account, maps the roles and redirects to the page', async () => {
     const r = await signInAs(
-      { id: 'u-1', name: 'Walter', roles: 'member,organiser', verified: 'true' },
+      { id: 'u-1', name: 'Walter', roles: 'member', verified: 'true', canHost: 'true' },
       '127.0.0.1',
       `${BASE}#/match/ABC123`,
     );
@@ -139,5 +139,32 @@ describe('what website mode switches off (D37)', () => {
     const login = await post('auth/login', { email: 'a@b.cd', password: 'x' });
     const dev = await post('dev/sign-in', { as: 'host' });
     expect([register.statusCode, login.statusCode, dev.statusCode]).toEqual([404, 404, 404]);
+  });
+});
+
+describe('Discord steps from the website (2026-11-04)', () => {
+  const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const stepsOf = async (cookie: string | null) => {
+    const id = (await session(cookie)).account?.id;
+    const r = await harness.pool.query<{ steps: unknown }>(
+      'SELECT steps FROM sbr.accounts WHERE id = $1',
+      [id],
+    );
+    return r.rows[0]?.steps;
+  };
+  const golden = { ladder: 'holder', name: 'Golden', icon: '/media/step-icons/a.webp' };
+
+  it('keeps the steps of the last sign-in, and none for an empty list', async () => {
+    const first = await signInAs({ id: 'st-1', name: 'Stepper', steps: encode([golden]) });
+    expect(await stepsOf(cookieOf(first))).toEqual([golden]);
+    const none = await signInAs({ id: 'st-1', name: 'Stepper', steps: encode([]) });
+    expect(await stepsOf(cookieOf(none))).toEqual([]);
+  });
+
+  it('signs in without steps when the header is not a valid steps list', async () => {
+    const bad = encode([{ ladder: 'holder', name: 'X', icon: 'https://evil.example/x.png' }]);
+    const r = await signInAs({ id: 'st-2', name: 'Shady', steps: bad });
+    expect(r.statusCode).toBe(302);
+    expect(await stepsOf(cookieOf(r))).toEqual([]);
   });
 });

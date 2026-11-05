@@ -4,8 +4,9 @@
  * @brief  Website mode: who may host and administer, deleting an account, the return path, the proxy secret.
  *
  * Responsibility: a server in website mode under /games/bingo/ (./websiteHelpers) and one in
- *                 local mode on the same database. The website roles organiser and admin may
- *                 host, a member may not (D40); a website admin is a game admin until the website
+ *                 local mode on the same database. A member the website allows to start games
+ *                 (X-Acting-User-Can-Host: true) and a website admin may host, nobody else, the
+ *                 website role does not decide it (2026-11-04); a website admin is a game admin until the website
  *                 drops the role (D41); no website role ever maps to super_admin or
  *                 security_admin. A website account is deleted by typing its display name (D42);
  *                 a local account still needs its password. GET <base>auth/website/login sends a
@@ -74,14 +75,19 @@ describe('signing in again through the website (03 §3)', () => {
   });
 });
 
-describe('website roles (D40, D41)', () => {
-  it('lets organiser and admin host, but not a member', async () => {
-    const organiser = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member,organiser' });
+describe('who hosts in website mode (2026-11-04, replaces D40; D41)', () => {
+  it('lets a member the website allows to start games host, and an admin; nobody else', async () => {
+    const host = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'true' });
     const admin = await signedIn({ id: 'r-2', name: 'Adam', roles: 'admin' });
     const member = await signedIn({ id: 'r-3', name: 'Mona', roles: 'member' });
-    expect(organiser.session.permissions).toContain('match.create');
+    const organiser = await signedIn({ id: 'r-6', name: 'Oris', roles: 'member,organiser' });
+    expect(host.session.permissions).toContain('match.create');
     expect(admin.session.permissions).toContain('match.create');
     expect(member.session.permissions).not.toContain('match.create');
+    expect(organiser.session.permissions).not.toContain('match.create');
+    // Recomputed at every sign-in: the website takes the permission back.
+    const taken = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'false' });
+    expect(taken.session.permissions).not.toContain('match.create');
   });
 
   it('makes a website admin a game admin until the website drops the role', async () => {
@@ -95,7 +101,7 @@ describe('website roles (D40, D41)', () => {
 
   it('never maps any website role to super_admin or security_admin', async () => {
     const all = 'super_admin,superadmin,security_admin,game_admin,owner,admin,organiser,organizer';
-    const greedy = await signedIn({ id: 'r-5', name: 'Greedy', roles: all });
+    const greedy = await signedIn({ id: 'r-5', name: 'Greedy', roles: all, canHost: 'true' });
     expect(greedy.roles).toEqual(['game_admin', 'organizer', 'player']);
   });
 });
@@ -157,6 +163,26 @@ describe('the page wanted before the website login (D43)', () => {
     expect(r.headers.location).toBe(loginFor(`${BASE}#/match/ABC123`));
     const named = await loginHop(`${BASE}#/players/J%C3%BCrgen`);
     expect(named.headers.location).toBe(loginFor(`${BASE}#/players/J%C3%BCrgen`));
+  });
+
+  it('sends a visitor the website answers as a guest to its login, keeping any game session', async () => {
+    const { cookie } = await signedIn({ id: 'g-1', name: 'Gina' });
+    const next = `${BASE}#/match/ABC123`;
+    const asGuest = (extra: Record<string, string>) =>
+      website().fastify.inject({
+        method: 'GET',
+        url: `${BASE}auth/website?next=${encodeURIComponent(next)}`,
+        headers: { 'x-sbr-proxy-secret': SECRET, ...extra },
+        remoteAddress: '127.0.0.1',
+      });
+    const login = `${BASE}auth/website/login?next=${encodeURIComponent(next)}`;
+    for (const extra of [{ 'x-acting-guest': 'true', cookie: cookie ?? '' }, {}]) {
+      const r = await asGuest(extra);
+      expect(r.statusCode).toBe(302);
+      expect(r.headers.location).toBe(login);
+      expect(cookieOf(r)).toBeNull();
+    }
+    expect((await sessionOf(website(), cookie)).account?.displayName).toBe('Gina');
   });
 
   it.each([

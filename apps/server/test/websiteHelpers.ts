@@ -4,7 +4,8 @@
  * @brief  Website mode test helpers: the settings, the proxy's sign-in request, the session.
  *
  * Responsibility: the website-mode settings under /games/bingo/ (the test runner's address as
- *                 the trusted proxy, a proxy secret), the four identity headers of a visitor,
+ *                 the trusted proxy, a proxy secret), the identity headers of a visitor (with
+ *                 may-host and steps),
  *                 the proxy's request for GET <base>auth/website (peer, `next` and the proxy
  *                 secret adjustable), the session cookie of a response and GET /session.
  * Depends on:     fastify (types), ../src/index (types)
@@ -31,6 +32,9 @@ export interface Visitor {
   readonly name: string;
   readonly roles?: string;
   readonly verified?: 'true' | 'false';
+  // X-Acting-User-Can-Host and X-Acting-User-Steps as the website sends them.
+  readonly canHost?: 'true' | 'false';
+  readonly steps?: string;
 }
 
 export const headersOf = (v: Visitor) => ({
@@ -38,6 +42,8 @@ export const headersOf = (v: Visitor) => ({
   'x-acting-user': v.name,
   'x-acting-user-roles': v.roles ?? 'member',
   'x-acting-user-email-verified': v.verified ?? 'false',
+  'x-acting-user-can-host': v.canHost ?? 'false',
+  ...(v.steps === undefined ? {} : { 'x-acting-user-steps': v.steps }),
 });
 
 interface Via {

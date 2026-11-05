@@ -92,6 +92,11 @@ const envSchema = z.object({
   SBR_WEBSITE_HEADER_NAME: headerName('X-Acting-User'),
   SBR_WEBSITE_HEADER_ROLES: headerName('X-Acting-User-Roles'),
   SBR_WEBSITE_HEADER_EMAIL_VERIFIED: headerName('X-Acting-User-Email-Verified'),
+  // May host matches (true|false, 2026-11-04), the Discord steps (base64url JSON), and the
+  // website's answer for a visitor it does not sign in (X-Acting-Guest: true).
+  SBR_WEBSITE_HEADER_CAN_HOST: headerName('X-Acting-User-Can-Host'),
+  SBR_WEBSITE_HEADER_STEPS: headerName('X-Acting-User-Steps'),
+  SBR_WEBSITE_HEADER_GUEST: headerName('X-Acting-Guest'),
   // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
   // (website mode needs it; the installer generates it). No other process knows it.
   SBR_WEBSITE_PROXY_SECRET: z.string().min(32).max(256).optional(),
