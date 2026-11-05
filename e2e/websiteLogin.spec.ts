@@ -35,14 +35,15 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  // w-01 organises; w-09 has no verified e-mail address.
+  // w-01 may start games; w-09 has no verified e-mail address.
   for (let n = 1; n <= 9; n += 1) {
     const id = `w-${String(n).padStart(2, '0')}`;
     const user: StubUser = {
       id,
       name: `Web Player ${String(n).padStart(2, '0')}`,
-      roles: n === 1 ? 'member,organiser' : 'member',
+      roles: 'member',
       verified: n !== 9,
+      canHost: n === 1,
     };
     stack.users.set(id, user);
   }

@@ -3,7 +3,8 @@
  * @module web/shell
  * @brief  The signed-in session for the whole client: who, permissions, CSRF token.
  *
- * Responsibility: load GET /session on start, keep its CSRF token for ./http, and offer
+ * Responsibility: load GET /session on start (in website mode a visitor without a session
+ *                 gets a watch-only guest session first), keep its CSRF token for ./http, and offer
  *                 sign-in, registration and sign-out (the development quick sign-in lives
  *                 in ./DevTools, outside the production bundle, and calls `refresh`).
  *                 Only the newest refresh sets the session (an older answer arriving late
@@ -31,6 +32,9 @@ import { api, setCsrfToken } from './http.js';
 
 interface SessionInfo {
   readonly signedIn: boolean;
+  // null without any session; 'guest' for a watch-only one.
+  readonly kind?: 'player' | 'admin' | 'guest' | null;
+  readonly features?: { readonly guests: boolean };
   readonly account: { readonly id: string; readonly displayName: string } | null;
   readonly permissions: readonly string[];
   readonly csrfToken: string | null;
@@ -57,6 +61,17 @@ interface NewAccount {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+// A guest session (watch only), then the session again; without one, the answer as it was.
+async function asGuest(before: SessionInfo): Promise<SessionInfo> {
+  try {
+    await api('/auth/guest', { method: 'POST', body: {} });
+    resetSocket();
+    return await api<SessionInfo>('/session');
+  } catch {
+    return before;
+  }
+}
+
 export function SessionProvider({ children }: { children: ReactNode }): ReactElement {
   const [session, setSession] = useState<SessionInfo | null>(null);
   // Only the latest refresh counts: the answer to an older one (e.g. the first load, still
@@ -65,7 +80,12 @@ export function SessionProvider({ children }: { children: ReactNode }): ReactEle
   const refresh = useCallback(async () => {
     latest.current += 1;
     const mine = latest.current;
-    const next = await api<SessionInfo>('/session');
+    let next = await api<SessionInfo>('/session');
+    // Website mode: a visitor without a game session watches as a guest (live updates need a
+    // session); playing still needs the website sign-in.
+    if (next.authMode === 'website' && next.kind === null && next.features?.guests === true) {
+      next = await asGuest(next);
+    }
     if (mine !== latest.current) return;
     setCsrfToken(next.csrfToken);
     setSession(next);

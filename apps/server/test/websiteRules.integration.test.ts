@@ -230,3 +230,55 @@ describe('the proxy secret', () => {
     expect((await signInAs(website(), who)).statusCode).toBe(302);
   });
 });
+
+describe('guests in website mode (2026-11-04)', () => {
+  it('may watch, but neither join nor host, with or without a guest session', async () => {
+    const host = await signedIn({ id: 'gh-1', name: 'Hosta', canHost: 'true' });
+    const csrf = (await sessionOf(website(), host.cookie)).csrfToken ?? '';
+    const created = await website().fastify.inject({
+      method: 'POST',
+      url: `${BASE}api/v1/matches`,
+      headers: { cookie: host.cookie ?? '', 'x-csrf-token': csrf },
+      payload: {
+        title: 'Guests',
+        gameType: 'royale',
+        drawMode: 'host',
+        missedNumbers: { kind: 'noAutoMark' },
+        maxPlayers: 8,
+      },
+    });
+    const { code, id } = created.json<{ code: string; id: string }>();
+    const guestStart = await website().fastify.inject({
+      method: 'POST',
+      url: `${BASE}api/v1/auth/guest`,
+      payload: {},
+    });
+    const guest = cookieOf(guestStart);
+    const guestCsrf = (await sessionOf(website(), guest)).csrfToken ?? '';
+    try {
+      for (const cookie of [null, guest]) {
+        const headers = cookie === null ? {} : { cookie, 'x-csrf-token': guestCsrf };
+        const call = (url: string, payload: object) =>
+          website().fastify.inject({
+            method: 'POST',
+            url: `${BASE}api/v1/${url}`,
+            headers,
+            payload,
+          });
+        // Refused: without a session by the CSRF check (403) or the route (401); a guest
+        // session has no right to (403).
+        for (const r of [await call(`matches/${code}/join`, {}), await call('matches', {})]) {
+          expect([401, 403]).toContain(r.statusCode);
+        }
+        const watch = await website().fastify.inject({
+          url: `${BASE}api/v1/matches/${code}/state`,
+          headers: cookie === null ? {} : { cookie },
+        });
+        expect(watch.statusCode).toBe(200);
+      }
+      expect((await website().match.engine.runner.current(id)).state.playerOrder).toEqual([]);
+    } finally {
+      await website().match.engine.abort(id, 'test cleanup', 'system');
+    }
+  });
+});

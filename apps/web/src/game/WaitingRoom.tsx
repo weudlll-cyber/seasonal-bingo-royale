@@ -9,13 +9,14 @@
  *                 left, or "Full"), and the 10-second countdown to the first round once it runs. A signed-in
  *                 player who has not joined yet gets a Join button while a place is left. No host link here: the host's console has its own tab
  *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
- * Depends on:     react, ../components/StepBadges, ../shell/http, ../shell/session, ../useSecondsUntil,
+ * Depends on:     react, ../account/WebsiteSignIn, ../components/StepBadges, ../shell/http, ../shell/session, ../useSecondsUntil,
  *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';
 
+import { useSignInToPlay } from '../account/WebsiteSignIn.js';
 import { NameSteps, StepsByName } from '../components/StepBadges.js';
 import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
@@ -32,7 +33,6 @@ export function WaitingRoom({
   readonly live: LiveState;
   readonly view: PlaybackView;
 }): ReactElement {
-  const { can } = useSession();
   const joined = live.me !== null;
   return (
     <div className="sbr-stack waiting" data-testid="waiting-room">
@@ -68,21 +68,41 @@ export function WaitingRoom({
           </StepsByName>
         </ul>
       </section>
-      {!joined && !live.match.full && can('match.join') ? (
-        <button
-          type="button"
-          className="sbr-btn sbr-btn--primary sbr-btn--big"
-          data-testid="join-match"
-          onClick={() => void api(`/matches/${live.match.code}/join`, { method: 'POST', body: {} })}
-        >
-          Join this match
-        </button>
-      ) : null}
+      {joined || live.match.full ? null : <JoinAction code={live.match.code} />}
       <p className="sbr-muted" data-testid="start-rule">
         {joined ? 'You are in. ' : ''}
         <RegistrationStatus match={live.match} testId="registration" />
       </p>
     </div>
+  );
+}
+
+// Join for a player who may; in website mode without an account "Sign in to join", which
+// goes to the website login and back (D43).
+function JoinAction({ code }: { readonly code: string }): ReactElement | null {
+  const { can } = useSession();
+  const signIn = useSignInToPlay();
+  if (can('match.join')) {
+    return (
+      <button
+        type="button"
+        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        data-testid="join-match"
+        onClick={() => void api(`/matches/${code}/join`, { method: 'POST', body: {} })}
+      >
+        Join this match
+      </button>
+    );
+  }
+  if (signIn === null) return null;
+  return (
+    <a
+      className="sbr-btn sbr-btn--primary sbr-btn--big"
+      href={signIn}
+      data-testid="sign-in-to-join"
+    >
+      Sign in to join
+    </a>
   );
 }
 
