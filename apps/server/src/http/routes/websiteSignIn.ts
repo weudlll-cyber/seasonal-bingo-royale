@@ -10,7 +10,8 @@
  *                 403, nobody signed in); a guest answer (X-Acting-Guest: true) or no valid id
  *                 and name goes on to the login route below, the browser's game session
  *                 untouched; then the account by (site origin, user id) (../../auth/websiteAccounts; a
- *                 suspended one 403), a fresh game session (./auth openSession) and a redirect
+ *                 suspended one 403), a fresh game session of at most 7 days (./auth
+ *                 openSession) and a redirect
  *                 to `next` when it is a path under the base path, else to the base path (D43).
  *                 Rate-limited per address. GET <base>auth/website/login: where the proxy
  *                 sends a visitor the website refused; a redirect to SBR_WEBSITE_LOGIN_PATH
@@ -57,6 +58,8 @@ function proxySecret(expected: string): (sent: string | string[] | undefined) =>
   const want = digest(expected);
   return (sent) => typeof sent === 'string' && timingSafeEqual(digest(sent), want);
 }
+
+const WEBSITE_SESSION_DAYS = 7;
 
 export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInDeps): void {
   if (deps.env.SBR_AUTH_MODE !== 'website') return;
@@ -109,7 +112,8 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       // session here, so the new one replaces it (03 §3; audit-3 S2).
       const token = request.cookies[deps.cookie.name];
       request.session = token === undefined ? null : await findSession(deps.pool, token);
-      await openSession(request, reply, deps, accountId);
+      // In website mode a game session lives at most 7 days (2026-11-04).
+      await openSession(request, reply, deps, accountId, WEBSITE_SESSION_DAYS);
       return reply.redirect(safeNext(request.query.next, base), 302);
     },
   );

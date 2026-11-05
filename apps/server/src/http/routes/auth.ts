@@ -164,6 +164,8 @@ export async function openSession(
   reply: FastifyReply,
   deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'>,
   accountId: string,
+  // A player session's absolute lifetime (7 days after a website sign-in, else 30).
+  playerDays?: number,
 ): Promise<void> {
   if (request.session !== null) {
     await revokeSession(deps.pool, request.session.id);
@@ -173,6 +175,7 @@ export async function openSession(
     deps.pool,
     accountId,
     request.headers['user-agent'] ?? null,
+    playerDays,
   );
   setSessionCookie(reply, deps.cookie, token);
 }

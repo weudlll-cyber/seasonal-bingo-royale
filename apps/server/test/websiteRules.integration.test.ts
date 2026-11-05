@@ -73,6 +73,25 @@ describe('signing in again through the website (03 §3)', () => {
     expect((await sessionOf(website(), first)).signedIn).toBe(false);
     expect((await sessionOf(website(), cookieOf(again))).signedIn).toBe(true);
   });
+
+  it('gives a player at most 7 days from the sign-in, an admin 8 hours (2026-11-04)', async () => {
+    const lifetime = async (cookie: string | null) => {
+      const id = (await sessionOf(website(), cookie)).account?.id;
+      const r = await harness.pool.query<{ days: number; idle: number }>(
+        `SELECT extract(epoch FROM expires_at - created_at) / 86400 AS days,
+                extract(epoch FROM idle_expires_at - created_at) / 86400 AS idle
+           FROM sbr.sessions WHERE account_id = $1 AND revoked_at IS NULL
+          ORDER BY created_at DESC LIMIT 1`,
+        [id],
+      );
+      return r.rows[0];
+    };
+    const player = await lifetime(cookieOf(await signInAs(website(), { id: 'l-1', name: 'Lena' })));
+    expect(Math.round(player?.days ?? 0)).toBe(7);
+    expect(Math.round(player?.idle ?? 0)).toBe(7);
+    const admin = await signInAs(website(), { id: 'l-2', name: 'Leon', roles: 'admin' });
+    expect(((await lifetime(cookieOf(admin)))?.days ?? 0) * 24).toBeCloseTo(8, 1);
+  });
 });
 
 describe('who hosts in website mode (2026-11-04, replaces D40; D41)', () => {
