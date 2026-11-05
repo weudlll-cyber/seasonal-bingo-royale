@@ -26,7 +26,7 @@
 #                 network with the token (a "rights" change signs a member out), the token in no
 #                 log, and `sbr status` naming the sign-in mode, the authorize endpoint's guest
 #                 answer (204) and the followed feed. Then: a route file the proxy refuses (an
-#                 operator's header name with a stray "}") is rolled back and the website keeps
+#                 operator's header name with a stray "{") is rolled back and the website keeps
 #                 answering; a clean re-run applies it again; `sbr uninstall` removes only the
 #                 game's route file and leaves nginx -t / caddy validate green.
 #                 --broken-header makes the stand-in send a wrong id header name: the test must
@@ -160,7 +160,7 @@ else
   VALID='docker exec seasonal-site-caddy-1 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1 && echo valid'
 fi
 record no
-check "BINGO=no stops the installer" "$(vps "$INSTALL 2>&1 | tail -3")" 'run the website'"'"'s installer again with --bingo'
+check "BINGO=no stops the installer" "$(vps "$INSTALL 2>&1 | tail -3")" 'installer again with --bingo'
 check "... before any change" "$(vps "test -e /opt/sbr || test -e $ROUTE_FILE || echo untouched")" 'untouched'
 # The install, as an operator would run it (unattended), the domain from the website's record.
 record yes
@@ -230,10 +230,10 @@ check "sbr status: the authorize endpoint answers" "$status" 'authorize endpoint
 check "sbr status: a guest answer (204) without a browser session" "$status" ': 204'
 check "sbr status: the feed is followed" "$status" "website feed: following the website's account changes"
 
-# A broken route file (an operator's header name with a stray "}") is rolled back; the website and
+# A broken route file (an operator's header name with a stray "{") is rolled back; the website and
 # the game keep answering with the file before it.
 before=$(vps "sha256sum $ROUTE_FILE")
-vps "printf 'SBR_WEBSITE_HEADER_ID=X-Acting}Bad\\n' >>/etc/sbr/prod.env"
+vps "printf 'SBR_WEBSITE_HEADER_ID=X-Bad {\\n' >>/etc/sbr/prod.env"
 check "a route file the proxy refuses stops the re-run" "$(vps "$INSTALL 2>&1 | tail -3")" 'rolled back'
 check "... the previous route file is back" "$(vps "sha256sum $ROUTE_FILE")" "$before"
 check "... the website's proxy is still valid" "$(vps "$VALID")" 'valid'
