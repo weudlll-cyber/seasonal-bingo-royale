@@ -15,8 +15,10 @@
 #                 alone is trusted (never the website network); the authorize upstream is
 #                 127.0.0.1:<the port in /etc/seasonal/site-local-port>, 3800 with a warning
 #                 without it. The feed's token comes from /etc/seasonal/games-sync-token (root
-#                 only, never printed); without it the feed stays idle, with a warning. The route
-#                 file itself: ./websiteRoute.sh. For sbr status: whether the authorize endpoint
+#                 only, never printed); without it the feed stays idle, with a warning. What the
+#                 website's installer recorded (/etc/seasonal/install.conf: MODE checked against the
+#                 detection, SITE_DOMAIN without a question, INSTALL_DIR, BINGO=yes required). The route
+#                 file itself: ./websiteRoute.sh, applied by ./websiteApply.sh. For sbr status: whether the authorize endpoint
 #                 answers, the proxy the app trusts (check_proxy), the feed's state.
 # Used by:        ops/install.sh, ops/sbr (status, update)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
@@ -116,7 +118,8 @@ refresh_website() {
     SBR_WEBSITE_UPSTREAM=127.0.0.1:$(site_local_port)
     set_env_value "$file" SBR_WEBSITE_UPSTREAM "$SBR_WEBSITE_UPSTREAM"
   fi
-  write_route_file "$env"
+  SBR_SITE_DIR=$(env_value "$file" SBR_SITE_DIR)
+  apply_route_file "$env"
 }
 
 detect_caddy_mode() {
@@ -133,6 +136,21 @@ detect_caddy_mode() {
 
 # detect_website: sets SBR_WEBSITE_MODE (caddy or nginx), SBR_TRUSTED_PROXIES, the route
 # settings and (unless given) SBR_WEBSITE_DOMAIN, or stops.
+# website_record: what the website's installer recorded (/etc/seasonal/install.conf, no
+# secrets): MODE, SITE_DOMAIN, INSTALL_DIR, BINGO. Flags win; no file → detection and questions.
+# BINGO other than yes stops before anything is changed.
+website_record() {
+  local file="$SEASONAL_ETC/install.conf"
+  SITE_MODE='' SITE_DOMAIN=''
+  [[ -f $file ]] || return 0
+  [[ $(env_value "$file" BINGO) == yes ]] ||
+    die "the website is not prepared for the game (BINGO is not yes in $file). Run the website's installer again with --bingo and answer yes, then this installer again."
+  SITE_MODE=$(env_value "$file" MODE)
+  SITE_DOMAIN=$(env_value "$file" SITE_DOMAIN)
+  [[ ${SBR_DOMAIN_GIVEN:-0} == 1 || -z $SITE_DOMAIN ]] || SBR_WEBSITE_DOMAIN=$SITE_DOMAIN
+  SBR_SITE_DIR=${SBR_SITE_DIR:-$(env_value "$file" INSTALL_DIR)}
+}
+
 detect_website() {
   local caddy site
   # A dry run on a server without Docker yet cannot look; it shows the step instead.
@@ -161,6 +179,10 @@ detect_website() {
   else
     die "the Seasonal Entertainment website is not running on this server (no Caddy container of the compose project \"$WEBSITE_PROJECT\" and no nginx on ports 80/443). Install the website first (its docs/DEPLOYMENT.md), then run this installer again with --type website."
   fi
+  # The website's own record names its mode: a disagreement means the detection is wrong.
+  [[ -z ${SITE_MODE:-} || $SITE_MODE == "$SBR_WEBSITE_MODE" ]] ||
+    die "the website's installer recorded $SITE_MODE mode ($SEASONAL_ETC/install.conf), but this server looks like $SBR_WEBSITE_MODE mode: check which proxy holds ports 80/443"
+  [[ $SBR_WEBSITE_MODE == caddy ]] || SBR_SITE_DIR=''
   website_defaults
   # nginx mode: the published port's connections come from the app network's gateway.
   [[ $SBR_WEBSITE_MODE == caddy ]] || SBR_TRUSTED_PROXIES=$SBR_EDGE_SUBNET
@@ -168,32 +190,11 @@ detect_website() {
   info "  website: $SBR_WEBSITE_MODE mode, domain $SBR_WEBSITE_DOMAIN, the app trusts $SBR_TRUSTED_PROXIES"
 }
 
-# route_steps: how the website takes the route file (printed at the end).
+# route_steps: the short summary printed at the end (the manual steps are only a fallback in
+# docs/operator-guide.md, "Website by hand").
 route_steps() {
-  if [[ $SBR_WEBSITE_MODE == nginx ]]; then
-    cat <<EOF
-The website (nginx mode) needs one line, once, inside its server block for $SBR_WEBSITE_DOMAIN:
-          include $SBR_WEBSITE_ROUTES_DIR/*.conf;
-     then: nginx -t && systemctl reload nginx
-     The website must answer $SBR_WEBSITE_AUTHORIZE_PATH on $SBR_WEBSITE_UPSTREAM (docs/operator-guide.md, "Website login").
-     Then open https://$SBR_WEBSITE_DOMAIN/games/bingo/
-EOF
-    return 0
-  fi
-  cat <<EOF
-Add bingo to the website's Caddy (once, on this server):
-     a. In the website checkout, create deploy/site/routes/ and copy the route file into it, kept
-        private (it holds the proxy secret; keep routes/ out of version control):
-          install -m 0600 $SBR_ROOT/routes/bingo.caddy <website checkout>/deploy/site/routes/
-     b. In deploy/site/Caddyfile, inside the {\$SITE_DOMAIN} { … } block, add the line:
-          import /etc/caddy/routes/*.caddy
-     c. In deploy/site/docker-compose.yml, give the caddy service the volume:
-          - ./routes:/etc/caddy/routes:ro
-     d. Apply it:  cd <website checkout>/deploy/site && docker compose up -d caddy
-        (a later change to bingo.caddy only needs:  docker exec $(website_caddy) caddy reload --config /etc/caddy/Caddyfile)
-     The website must answer $SBR_WEBSITE_AUTHORIZE_PATH on $SBR_WEBSITE_UPSTREAM (docs/operator-guide.md, "Website login").
-     Then open https://$SBR_WEBSITE_DOMAIN/games/bingo/
-EOF
+  printf 'The route is live at https://%s/games/bingo/ (%s mode, route file %s).' "$SBR_WEBSITE_DOMAIN" \
+    "$SBR_WEBSITE_MODE" "$([[ $SBR_WEBSITE_MODE == nginx ]] && echo "$SBR_WEBSITE_ROUTES_DIR/bingo.conf" || caddy_route_target)"
 }
 
 # authorize_status <env>: the HTTP status the website's authorize endpoint gives a request

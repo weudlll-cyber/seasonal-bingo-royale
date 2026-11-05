@@ -10,13 +10,15 @@ What the night chain (PERF-TAPS, then WEBSITE-INTEGRATION-2, then INSTALL-AUTO) 
 
 - WEBSITE-INTEGRATION-2 piece A — merged `95b8a99` (PR #33): website guests, Can-Host, Discord steps, account-changes feed, 7-day sessions; the throw-away Ubuntu test passed in nginx mode (27 checks) and own-Caddy mode (26). Master CI and CodeQL green.
 
+- WEBSITE-INTEGRATION-2 piece B — merged `938a059` (PR #34): the host's "Show on the Seasonal Entertainment website" and GET <base>api/public/open-rounds (docs/OPEN-ROUNDS.md). Master CI green after one re-run (a webkit-mobile timing failure in playerFit, unrelated, green on the re-run); CodeQL green. Play-through on master: account, real game and website login specs in Chromium, 7 of 7 passed.
+
 ## Running
 
-- WEBSITE-INTEGRATION-2 piece B (branch feat/open-rounds): "Show on the Seasonal Entertainment website" and GET <base>api/public/open-rounds; pull request and merge next, then the play-through in both modes.
+- INSTALL-AUTO (branch feat/install-auto): code and docs done; the throw-away Ubuntu test (nginx and own Caddy, with the website's record and layout) runs; then the pull request and merge, the dev server on master and the final report.
 
 ## Open
 
-- INSTALL-AUTO (feat/install-auto).
+- Nothing else in this chain.
 
 ## Needs the owner's word
 
@@ -25,3 +27,5 @@ What the night chain (PERF-TAPS, then WEBSITE-INTEGRATION-2, then INSTALL-AUTO) 
 - Piece A: a deleted website account shows as "deleted player xxxx" (the existing deletion naming with a short tag that keeps several apart), not exactly "Deleted player".
 - Piece A: website visitors without a session get a watch-only guest session automatically (live watching needs a session on the socket); standalone keeps its behaviour (signed-out visitors load the match once, no live updates). Say if standalone should do the same.
 - Piece A: the first `sbr update` after this version still runs the old CLI, which does not read the sync token yet; the token is read at install and from the second update on (or re-run the installer).
+- INSTALL-AUTO: the test machines use the website's record and file layout as its installer writes them (install.conf, the include folder, the checkout's deploy/site/routes mounted into Caddy), not the website installer itself: running it needs its full stack and certificates. Say if a run with the real website installer is wanted before the move.
+- Website side: the games page link and the open-rounds widget are still to do there.

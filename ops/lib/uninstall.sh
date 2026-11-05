@@ -5,32 +5,21 @@
 #
 # Responsibility: after the operator types the environment's name (or --yes): stop and remove
 #                 the Compose project sbr-<env> with its volumes, its backup timer, the game's own
-#                 route file (nginx mode: <routes dir>/bingo.conf, then nginx -t and a reload;
-#                 own-Caddy mode: /opt/sbr/routes/bingo.caddy and a note for the website's copy),
+#                 route file (nginx mode: <routes dir>/bingo.conf; own-Caddy mode: the copy in the
+#                 website's checkout; then nginx -t / caddy validate and a reload, ./websiteApply.sh),
 #                 its env file and state; with the last environment also the sbr-app images, the
 #                 unit files, /opt/sbr and the sbr command. Backups stay unless --purge-backups.
 #                 Never touches another Compose project, the website or its files.
-# Depends on:     ./common.sh (compose, env_value, confirm, info, warn), docker, systemctl
+# Depends on:     ./common.sh (compose, env_value, confirm, info, warn), ./websiteApply.sh, docker, systemctl
 # Used by:        ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §4
 
-# remove_route <env>: the game's route file for the website, never the website's own files.
+# remove_route <env>: the game's route file for the website (./websiteApply.sh), never the
+# website's own files; nginx -t / caddy validate stay green.
 remove_route() {
-  local file="$SBR_ETC/$1.env" dir
-  [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]] || return 0
-  if [[ $(env_value "$file" SBR_WEBSITE_MODE) == nginx ]]; then
-    dir=$(env_value "$file" SBR_WEBSITE_ROUTES_DIR)
-    rm -f "$dir/bingo.conf"
-    info "  removed $dir/bingo.conf"
-    if command -v nginx >/dev/null && nginx -t 2>/dev/null; then
-      systemctl reload nginx && info "  nginx reloaded (the include line may stay: it matches no file now)"
-    else
-      warn "nginx -t failed or nginx is missing: check the website's nginx yourself"
-    fi
-  else
-    rm -f "$SBR_ROOT/routes/bingo.caddy"
-    warn "remove bingo.caddy from the website checkout's deploy/site/routes/ and reload its Caddy yourself"
-  fi
+  [[ $(env_value "$SBR_ETC/$1.env" SBR_INSTALL_TYPE) == website ]] || return 0
+  remove_route_file "$1"
+  info "  removed the game's route file and reloaded the website's proxy"
 }
 
 cmd_uninstall() {

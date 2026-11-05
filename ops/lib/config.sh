@@ -48,7 +48,7 @@ ENV_KEYS=(SBR_INSTALL_TYPE SBR_ENV SBR_ENV_FILE SBR_IMAGE POSTGRES_PASSWORD DATA
   SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL SBR_AUTH_MODE
   SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH SBR_WEBSITE_LOGIN_PATH
   SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_EDGE_SUBNET SBR_WEBSITE_PROXY_SECRET
-  SBR_WEBSITE_SYNC_TOKEN)
+  SBR_WEBSITE_SYNC_TOKEN SBR_SITE_DIR)
 
 # operator_lines <env file>: its KEY= lines whose key write_env does not write.
 operator_lines() {
@@ -120,6 +120,8 @@ write_env() {
       quoted "$key" "$([[ $SBR_TYPE == website ]] && printf '%s' "${!key:-}")"
     done
     quoted SBR_WEBSITE_PROXY_SECRET "$([[ $SBR_TYPE == website ]] && printf '%s' "$proxy")"
+    # Own-Caddy mode: the website's checkout, where the route file lives (its install.conf).
+    quoted SBR_SITE_DIR "$([[ $SBR_TYPE == website ]] && printf '%s' "${SBR_SITE_DIR:-}")"
     # The website's account-changes token (07 §2.4), read from its file at every run.
     quoted SBR_WEBSITE_SYNC_TOKEN "$([[ $SBR_TYPE == website ]] && sync_token)"
     operator_lines "$file"
