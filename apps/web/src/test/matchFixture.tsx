@@ -35,6 +35,7 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
     full: false,
     prizes: [],
     countsForLeaderboard: true,
+    showOnWebsite: false,
     settings: {
       markingMode: 'manual',
       missedNumbers: { kind: 'noAutoMark' },

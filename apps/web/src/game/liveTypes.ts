@@ -27,6 +27,8 @@ export interface MatchSummary {
   readonly full: boolean;
   readonly prizes: readonly string[];
   readonly countsForLeaderboard: boolean;
+  // Listed on the Seasonal Entertainment website while the sign-up is open (D50).
+  readonly showOnWebsite: boolean;
   readonly settings: {
     readonly markingMode: 'auto' | 'manual';
     readonly missedNumbers: QuickTestResult['missedNumbers'];

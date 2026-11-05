@@ -26,6 +26,7 @@ export interface MatchRow {
   max_players: number;
   prizes: string[];
   counts_for_leaderboard: boolean;
+  show_on_website: boolean;
   marking_mode: MarkingMode;
   draw_mode: DrawMode;
   missed_numbers: 'autoMarkAfter' | 'noAutoMark';
@@ -60,6 +61,7 @@ export function recordFrom(row: MatchRow): MatchRecord {
     maxPlayers: row.max_players,
     prizes: row.prizes,
     countsForLeaderboard: row.counts_for_leaderboard,
+    showOnWebsite: row.show_on_website,
     settings: {
       markingMode: row.marking_mode,
       missedNumbers:

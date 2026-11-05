@@ -28,6 +28,7 @@ import '../game/game.css';
 import './host.css';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
+import { useSession } from '../shell/session.js';
 import { AsyncFields, PaceField } from './AsyncFields.js';
 import { createBody, INITIAL, intervalMessage, paceOf, type FormValues } from './createForm.js';
 import { RoundPauseField, StartRuleField, startTimeProblem } from './TimingFields.js';
@@ -237,8 +238,10 @@ function DrawFields({ values, set }: FieldsProps): ReactElement {
   );
 }
 
-// Draws, the royale pause (D14), the leaderboard.
+// Draws, the royale pause (D14), the leaderboard, the website listing (website mode).
 function RulesFields({ values, set }: FieldsProps): ReactElement {
+  // The open sign-up can be listed on the website only in website mode (D50).
+  const website = useSession().session?.authMode === 'website';
   return (
     <>
       <DrawFields values={values} set={set} />
@@ -261,6 +264,19 @@ function RulesFields({ values, set }: FieldsProps): ReactElement {
         />
         Counts for the leaderboard
       </label>
+      {website ? (
+        <label className="sbr-row">
+          <input
+            type="checkbox"
+            data-testid="create-website"
+            checked={values.website}
+            onChange={(e) => {
+              set('website', e.target.checked);
+            }}
+          />
+          Show on the Seasonal Entertainment website
+        </label>
+      ) : null}
       {import.meta.env.DEV ? (
         <label className="sbr-row">
           <input

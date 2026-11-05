@@ -56,6 +56,8 @@ export function matchSummary(m: LoadedMatch, viewer: string | null, clock: Clock
     full: m.state.playerOrder.length >= r.maxPlayers,
     prizes: r.prizes,
     countsForLeaderboard: r.countsForLeaderboard,
+    // Listed on the website while the sign-up is open (D50; always false standalone).
+    showOnWebsite: r.showOnWebsite,
     settings: r.settings,
     startsAt: r.startsAt,
     // From the event log (snapshots older than the field have none).

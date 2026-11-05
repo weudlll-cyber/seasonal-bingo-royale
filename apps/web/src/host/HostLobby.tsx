@@ -22,6 +22,7 @@ import { RegistrationStatus } from '../game/Registration.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
+import { useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
 import { AbortMatch } from './AbortMatch.js';
 import { AutoStartBox } from './TimingFields.js';
@@ -68,6 +69,28 @@ export function HostLobby({
   );
 }
 
+// Website mode: the open sign-up listed on the website, switchable until the countdown (D50).
+function WebsiteBox(props: {
+  readonly match: LiveState['match'];
+  readonly counting: boolean;
+  readonly call: (path: string, body: unknown) => void;
+}): ReactElement {
+  return (
+    <label className="sbr-row">
+      <input
+        type="checkbox"
+        data-testid="host-website"
+        checked={props.match.showOnWebsite}
+        disabled={props.counting}
+        onChange={(e) => {
+          props.call('website', { show: e.target.checked });
+        }}
+      />
+      Show on the Seasonal Entertainment website
+    </label>
+  );
+}
+
 // The switch for a set start time, the notice when it found too few players, and Start
 // match (disabled during maintenance) or the running countdown.
 function StartControls({
@@ -82,6 +105,7 @@ function StartControls({
   // D22: while maintenance is on the server refuses Start; say so before the click.
   const maintenance = useMaintenanceState();
   const held = maintenance?.on === true;
+  const website = useSession().session?.authMode === 'website';
   return (
     <>
       {rule.kind === 'at' ? (
@@ -94,6 +118,7 @@ function StartControls({
           }}
         />
       ) : null}
+      {website ? <WebsiteBox match={match} counting={counting} call={call} /> : null}
       {match.tooFewAtStart ? (
         <p className="lobby-error" role="status" data-testid="host-too-few">
           Not enough players at the start time — start it yourself or abort.

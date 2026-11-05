@@ -4,7 +4,7 @@
  * @brief  The create form's values, their defaults, the D12 check and the POST /matches body.
  *
  * Responsibility: what the host fills in (title, game type, pace, prizes, draws, missed
- *                 numbers, leaderboard, max players, royale pause, start rule; in development
+ *                 numbers, leaderboard, shown on the website (website mode), max players, royale pause, start rule; in development
  *                 builds only the fast test profile), the starting values, the message for
  *                 seconds below the shortest interval (D12) or minutes out of the async range,
  *                 and the request body (05 §2.3; the server clamps intervals and delays into
@@ -48,6 +48,8 @@ export interface FormValues {
   readonly missed: MarkingChoice;
   // null until the host touches it: then the game type's default applies.
   readonly leaderboard: boolean | null;
+  // Website mode: "Show on the Seasonal Entertainment website" (D50), off by default.
+  readonly website: boolean;
   readonly maxPlayers: number;
   // Royale: wait N seconds between rounds, or the host starts each one (D14).
   readonly pause: RoundPauseChoice;
@@ -66,6 +68,7 @@ export const INITIAL: FormValues = {
   draw: INITIAL_CONTROL,
   missed: INITIAL_MARKING,
   leaderboard: null,
+  website: false,
   maxPlayers: 20,
   pause: INITIAL_PAUSE,
   start: { kind: 'host' },
@@ -99,6 +102,7 @@ export function createBody(v: FormValues) {
     ...(pace.kind === 'async' ? asyncBody(pace) : realtimeInterval(v.draw)),
     missedNumbers: toMissedNumbers(v.missed),
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
+    ...(v.website ? { showOnWebsite: true } : {}),
     maxPlayers: Math.min(MAX_PLAYERS, Math.max(2, v.maxPlayers)),
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
     // Vite makes DEV false in a production build, which then drops this line.

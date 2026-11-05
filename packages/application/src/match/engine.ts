@@ -142,6 +142,21 @@ export class MatchEngine {
     });
   }
 
+  // The host's "Show on the Seasonal Entertainment website" while the sign-up is open (D50).
+  setShowOnWebsite(matchId: string, show: boolean): Promise<MatchRecord> {
+    return this.runner.serial(matchId, async () => {
+      const m = await this.runner.current(matchId);
+      // The sign-up closes with the start countdown.
+      if (m.record.status !== 'lobby' || m.record.startsAt !== null) {
+        throw new MatchError('MATCH_NOT_IN_LOBBY');
+      }
+      await this.deps.store.setShowOnWebsite(matchId, show);
+      const record = { ...m.record, showOnWebsite: show };
+      this.runner.update(matchId, (x) => ({ ...x, record }));
+      return record;
+    });
+  }
+
   join(matchId: string, playerId: string, human: boolean): Promise<void> {
     return this.runner.serial(matchId, async () => {
       const m = await this.runner.current(matchId);

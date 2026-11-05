@@ -55,6 +55,8 @@ export interface MatchRecord {
   readonly maxPlayers: number;
   readonly prizes: readonly string[];
   readonly countsForLeaderboard: boolean;
+  // Listed on the Seasonal Entertainment website while the sign-up is open (D50).
+  readonly showOnWebsite: boolean;
   readonly settings: MatchSettings;
   readonly createdBy: string | null;
   readonly startsAt: number | null;
@@ -116,6 +118,8 @@ export interface MatchStore {
   setDrawControl(matchId: string, drawMode: DrawMode, drawIntervalMs: number): Promise<void>;
   // The host switches the automatic start on or off (D16).
   setStartRule(matchId: string, rule: StartRule): Promise<void>;
+  // The host shows the open sign-up on the website or not (D50).
+  setShowOnWebsite(matchId: string, show: boolean): Promise<void>;
 }
 
 export type ActionKind =

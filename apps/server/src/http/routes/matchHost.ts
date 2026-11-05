@@ -18,6 +18,7 @@
  *                 docs/spec/11-admin-panel.md §3.2
  */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { MatchNotFound } from '@sbr/application';
 import { ASYNC_DRAW_INTERVAL_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
@@ -38,6 +39,7 @@ const drawModeBody = z.object({
 });
 const abortBody = z.object({ reason: z.string().trim().min(3).max(200) });
 const autoStartBody = z.object({ auto: z.boolean() });
+const websiteBody = z.object({ show: z.boolean() });
 const botsBody = z.object({ upTo: z.number().int().min(2).max(200) });
 const markBody = z.object({
   cardIndex: z.number().int().min(0).max(3),
@@ -93,6 +95,12 @@ export function registerHostRoutes(app: FastifyInstance, deps: MatchRouteDeps): 
   host('/api/v1/matches/:code/auto-start', async (id, request) => {
     const record = await deps.engine.setAutoStart(id, autoStartBody.parse(request.body).auto);
     return { settings: record.settings };
+  });
+  // "Show on the Seasonal Entertainment website" while the sign-up is open (D50, website mode).
+  host('/api/v1/matches/:code/website', async (id, request) => {
+    if (!deps.website) throw new MatchNotFound(id);
+    const record = await deps.engine.setShowOnWebsite(id, websiteBody.parse(request.body).show);
+    return { showOnWebsite: record.showOnWebsite };
   });
   host('/api/v1/matches/:code/abort', (id, request) =>
     deps.engine.abort(id, abortBody.parse(request.body).reason, 'host'),
