@@ -101,10 +101,13 @@ const envSchema = z.object({
   // and the token the installer copies from /etc/seasonal/games-sync-token; without the token
   // the feed job stays idle. Polled every 2 minutes.
   SBR_WEBSITE_FEED_URL: z.url().default('http://site:3800/api/games/bingo/account-changes'),
-  SBR_WEBSITE_SYNC_TOKEN: z
-    .string()
-    .regex(/^[0-9a-f]{64}$/)
-    .optional(),
+  SBR_WEBSITE_SYNC_TOKEN: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z
+      .string()
+      .regex(/^[0-9a-f]{64}$/)
+      .optional(),
+  ),
   SBR_WEBSITE_FEED_INTERVAL_MS: z.coerce.number().int().min(1_000).default(120_000),
   // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
   // (website mode needs it; the installer generates it). No other process knows it.
