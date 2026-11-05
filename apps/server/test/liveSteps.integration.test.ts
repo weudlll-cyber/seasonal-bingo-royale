@@ -12,7 +12,8 @@
  *                 full fetch for that viewer; the only exception is the player list's live points,
  *                 seasons and shield, which a step sends only with the list (a join, the first
  *                 round, the finish) and the screens never read in between. A gap (a step that
- *                 does not fit) is fetched as the client does; only the one a screen may meet
+ *                 does not fit) is fetched as the client does, and steps that come while that
+ *                 fetch runs are the same gap, caught up after it; only the one a screen may meet
  *                 while its first load runs is allowed. The room frames left out the summary and
  *                 the standings order in some steps (unchanged) and carried each in others, so a
  *                 part dropped while it changed fails the comparison. Every frame a player still in received
@@ -101,11 +102,25 @@ async function screen(
       s.held = next;
       return;
     }
-    // A gap: the events after the held seq, as the client fetches them.
+    // A gap: the events after the held seq, as the client fetches them. Steps that come while
+    // that fetch runs do not fit either; they are one gap, caught up after it.
+    gap.misses += 1;
+    if (gap.running) return;
     s.gaps += 1;
-    const held = s.held;
-    void fetched(s, code, held.seq, held).then((next) => (s.held = next));
+    gap.running = true;
+    void catchUp();
   });
+  // The steps that did not fit, and whether the catch-up fetch runs.
+  const gap = { misses: 0, running: false };
+  const catchUp = async (): Promise<void> => {
+    let seen: number;
+    do {
+      seen = gap.misses;
+      const held = s.held as LiveState;
+      s.held = await fetched(s, code, held.seq, held);
+    } while (gap.misses !== seen);
+    gap.running = false;
+  };
   expect((await kit.send(socket, 'match.watch', { code })).ok).toBe(true);
   s.held = await fetched(s, code, 0, null);
   return s;
