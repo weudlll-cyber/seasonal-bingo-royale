@@ -53,7 +53,8 @@ async function console(mode: 'local' | 'website'): Promise<string[]> {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
-      sent.push(`${init?.method ?? 'GET'} ${url} ${String(init?.body ?? '')}`);
+      const body = typeof init?.body === 'string' ? init.body : '';
+      sent.push(`${init?.method ?? 'GET'} ${url} ${body}`);
       const r = await answers(url, init);
       if (!url.endsWith('/session')) return r;
       const session = (await r.json()) as object;
