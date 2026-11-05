@@ -124,6 +124,8 @@ describe('forged identity headers (D37)', () => {
     });
     expect([r.statusCode, there.statusCode]).toEqual([404, 404]);
     expect(cookieOf(there)).toBeNull();
+    // Standalone has no account-changes feed; website mode without a sync token neither.
+    expect([local.feed, harness.built.feed]).toEqual([null, null]);
   });
 });
 
