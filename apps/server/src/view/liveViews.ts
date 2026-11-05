@@ -22,19 +22,20 @@
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/02-software-architecture.md §5
  */
 import type { LoadedMatch, StoredEvent } from '@sbr/application';
-import type { RoundRecap } from '@sbr/contracts';
+import type { RoundRecap, Step } from '@sbr/contracts';
 
 import type { DbPool } from '../db/pool.js';
 import { publicEvent } from '../match/codec.js';
 import { LiveReplay } from './clientEvents.js';
-import { playerNames } from './playerNames.js';
+import { playerNames, playerSteps } from './playerNames.js';
 import { buildRoundRecap, type TimedEvent } from './roundRecap.js';
 
 interface LiveViewSources {
   // Logged events with a seq above `afterSeq`.
   readonly events: (matchId: string, afterSeq: number) => Promise<readonly StoredEvent[]>;
-  // Player id → display name.
+  // Player id → display name, and → Discord steps (only players with steps).
   readonly names: (matchId: string) => Promise<Readonly<Record<string, string>>>;
+  readonly steps: (matchId: string) => Promise<Readonly<Record<string, readonly Step[]>>>;
   // The marks of a round stored as the player's own taps, as `${playerId}:${card}:${cell}`.
   readonly manualTaps: (matchId: string, roundIndex: number) => Promise<readonly string[]>;
 }
@@ -42,6 +43,8 @@ interface LiveViewSources {
 export interface LiveEntry {
   readonly replay: LiveReplay;
   readonly idMap: ReadonlyMap<string, string>;
+  // Player id → Discord steps, read with the names (shown in the player list).
+  readonly steps: ReadonlyMap<string, readonly Step[]>;
   readonly players: number;
   // When the names were read: older than NAMES_TTL_MS, they are read again (audit S10).
   namesAt: number;
@@ -86,10 +89,12 @@ export class LiveViews {
     if (entry === undefined || entry.players !== players || entry.replay.length > m.seq) {
       const names = await this.sources.names(id);
       const idMap = new Map(m.state.playerOrder.map((p) => [p, names[p] ?? p]));
+      const steps = new Map(Object.entries(await this.sources.steps(id)));
       const namesAt = Date.now();
       entry = {
         replay: new LiveReplay(idMap, 'all'),
         idMap,
+        steps,
         players,
         namesAt,
         timed: [],
@@ -153,6 +158,7 @@ export function liveViewsOn(pool: DbPool, store: { events: LiveViewSources['even
   return new LiveViews({
     events: (id, afterSeq) => store.events(id, afterSeq),
     names: (id) => playerNames(pool, id),
+    steps: (id) => playerSteps(pool, id),
     manualTaps: (id, round) => manualTaps(pool, id, round),
   });
 }

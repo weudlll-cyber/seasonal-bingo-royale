@@ -63,6 +63,10 @@ const record = {
   lobbyClosesAt: null,
 };
 
+// The Discord steps the database holds per player id (website mode).
+const GOLDEN = [{ ladder: 'holder' as const, name: 'Golden', icon: '/media/g.webp' }];
+const stepsBook = { [me]: GOLDEN };
+
 // The view of `viewer` (a player, or the host who plays not) with the events after
 // `since`, the match at `seq`.
 async function viewSince(
@@ -75,6 +79,7 @@ async function viewSince(
   const views = new LiveViews({
     events: (_id, after) => Promise.resolve(stored.filter((e) => e.seq > after)),
     names: () => Promise.resolve({}),
+    steps: () => Promise.resolve(stepsBook),
     manualTaps: () => Promise.resolve([]),
   });
   const entry = await views.entryFor(match);
@@ -111,6 +116,15 @@ describe('the live view delta', () => {
     expect(view.events.length).toBeGreaterThan(0);
     expect('players' in view).toBe(false);
     expect(JSON.stringify(view).length).toBeLessThan(20_000);
+  });
+});
+
+describe('Discord steps in the player list (2026-11-04)', () => {
+  it('lists the steps of a player who has them, and none for the others', async () => {
+    const view = await viewSince(0);
+    const players = 'players' in view ? view.players : [];
+    expect(players.find((p) => p.accountId === me)?.steps).toEqual(GOLDEN);
+    expect(players.filter((p) => p.steps !== undefined)).toHaveLength(1);
   });
 });
 

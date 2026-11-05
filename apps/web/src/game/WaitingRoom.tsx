@@ -9,13 +9,14 @@
  *                 left, or "Full"), and the 10-second countdown to the first round once it runs. A signed-in
  *                 player who has not joined yet gets a Join button while a place is left. No host link here: the host's console has its own tab
  *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
- * Depends on:     react, ../shell/http, ../shell/session, ../useSecondsUntil,
+ * Depends on:     react, ../components/StepBadges, ../shell/http, ../shell/session, ../useSecondsUntil,
  *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';
 
+import { NameSteps, StepsByName } from '../components/StepBadges.js';
 import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
 import { useSession } from '../shell/session.js';
@@ -56,12 +57,15 @@ export function WaitingRoom({
           Players {live.match.players} / {live.match.maxPlayers}
         </h2>
         <ul className="waiting-players" data-testid="waiting-players">
-          {view.standings.map((p) => (
-            <li key={p.accountId} className={p.isOwner ? 'is-me' : undefined}>
-              {p.accountId}
-              {p.isOwner ? ' (you)' : ''}
-            </li>
-          ))}
+          <StepsByName players={live.view.players}>
+            {view.standings.map((p) => (
+              <li key={p.accountId} className={p.isOwner ? 'is-me' : undefined}>
+                {p.accountId}
+                <NameSteps name={p.accountId} />
+                {p.isOwner ? ' (you)' : ''}
+              </li>
+            ))}
+          </StepsByName>
         </ul>
       </section>
       {!joined && !live.match.full && can('match.join') ? (

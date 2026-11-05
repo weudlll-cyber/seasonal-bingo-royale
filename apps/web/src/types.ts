@@ -29,9 +29,11 @@ export {
   type MarkingMode,
   type MissedNumbers,
   type OwnerStatus,
+  type PlayerSummary,
   type QuickTestResult,
   type RoundEndRule,
   type Season,
+  type Step,
   type WatchView,
 } from '@sbr/contracts';
 

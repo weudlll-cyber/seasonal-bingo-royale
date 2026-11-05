@@ -15,6 +15,7 @@
  */
 import type { GameType } from '../config/gameType.js';
 import type { Effect } from '../config/ruleset.js';
+import type { Step } from '../http/steps.js';
 import type { RoundRecap } from './roundRecap.js';
 
 export type MarkingMode = 'auto' | 'manual';
@@ -51,6 +52,8 @@ export interface PlayerSummary {
   readonly points: number;
   readonly seasonsActivated: number;
   readonly shieldCharges: number;
+  // The player's Discord steps from the website (website mode; left out when none).
+  readonly steps?: readonly Step[];
 }
 
 // The owner's effect status, sent by the server whenever it changes.

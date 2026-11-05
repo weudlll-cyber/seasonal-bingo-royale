@@ -8,13 +8,14 @@
  *                 its neighbours, a player's public profile (no e-mail, no real name, no
  *                 account id) and the caller's own data export. Ranks, points and counts
  *                 are the server's; the client only shows them.
- * Depends on:     nothing
+ * Depends on:     ./steps (types)
  * Used by:        ../index, apps/server/src/http/routes/leaderboards,
  *                 apps/server/src/http/routes/profiles, apps/server/src/leaderboard/boards,
  *                 apps/server/src/leaderboard/profiles, apps/server/src/leaderboard/accountExport,
  *                 apps/web/src/league/LeaderboardPage, apps/web/src/league/ProfilePage
  * Spec:           docs/spec/05-api-design.md §2.2, §2.4; docs/spec/01-game-design.md §10
  */
+import type { Step } from './steps.js';
 
 export interface LeaderboardPeriod {
   readonly id: string;
@@ -42,6 +43,8 @@ export interface LeaderboardRow {
   readonly seasonCompletes: number;
   // The signed-in caller's own row.
   readonly isYou: boolean;
+  // The player's Discord steps from the website (website mode; left out when none).
+  readonly steps?: readonly Step[];
 }
 
 export interface LeaderboardPage {
@@ -80,6 +83,7 @@ export type LeagueOutcome = 'counted' | 'switchOff' | 'bots' | 'notVerified' | '
 
 export interface PlayerProfile {
   readonly displayName: string;
+  readonly steps?: readonly Step[];
   readonly matchesPlayed: number;
   readonly wins: number;
   readonly bestPlacement: number | null;

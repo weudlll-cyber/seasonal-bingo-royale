@@ -10,7 +10,7 @@
  *                 nothing, 01 §10, D28), the signed-in player's row highlighted, and their place
  *                 with neighbours when it is further down. States the counting rule (03 §11)
  *                 with the period's player minimum.
- * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ../shell/session,
+ * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/http, ../shell/router, ../shell/session,
  *                 ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.4;
@@ -25,6 +25,7 @@ import type {
 } from '@sbr/contracts';
 import { useState, type ReactElement } from 'react';
 
+import { StepBadges } from '../components/StepBadges.js';
 import { api } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
@@ -166,6 +167,7 @@ function BoardTable(props: {
             <td>{r.rank}</td>
             <th scope="row">
               <a href={hrefOf({ name: 'player', displayName: r.displayName })}>{r.displayName}</a>
+              <StepBadges steps={r.steps} />
               {r.isYou ? <span className="sbr-visually-hidden"> (you)</span> : null}
             </th>
             <td>{r.points}</td>
