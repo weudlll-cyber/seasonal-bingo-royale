@@ -97,6 +97,15 @@ const envSchema = z.object({
   SBR_WEBSITE_HEADER_CAN_HOST: headerName('X-Acting-User-Can-Host'),
   SBR_WEBSITE_HEADER_STEPS: headerName('X-Acting-User-Steps'),
   SBR_WEBSITE_HEADER_GUEST: headerName('X-Acting-Guest'),
+  // The website's account-changes feed (07 §2.4), reached over the website's Docker network,
+  // and the token the installer copies from /etc/seasonal/games-sync-token; without the token
+  // the feed job stays idle. Polled every 2 minutes.
+  SBR_WEBSITE_FEED_URL: z.url().default('http://site:3800/api/games/bingo/account-changes'),
+  SBR_WEBSITE_SYNC_TOKEN: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/)
+    .optional(),
+  SBR_WEBSITE_FEED_INTERVAL_MS: z.coerce.number().int().min(1_000).default(120_000),
   // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
   // (website mode needs it; the installer generates it). No other process knows it.
   SBR_WEBSITE_PROXY_SECRET: z.string().min(32).max(256).optional(),
