@@ -17,17 +17,13 @@
  * Spec:           docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1;
  *                 docs/spec/11-admin-panel.md §3.2
  */
+import { matchIdByCode } from '../../match/records.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MatchNotFound } from '@sbr/application';
 import { ASYNC_DRAW_INTERVAL_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
-import {
-  maintenanceExempt,
-  matchIdByCode,
-  requirePermission,
-  type MatchRouteDeps,
-} from './matches.js';
+import { maintenanceExempt, requirePermission, type MatchRouteDeps } from './matches.js';
 import { sendEngineError } from './matchInput.js';
 
 type CodeRequest = FastifyRequest<{ Params: { code: string } }>;

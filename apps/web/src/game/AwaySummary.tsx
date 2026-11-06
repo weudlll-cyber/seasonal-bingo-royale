@@ -18,10 +18,10 @@ import type { AwaySummary as Summary } from '@sbr/contracts';
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { api } from '../shell/http.js';
+import { seasonName } from './seasonText.js';
 
 const plural = (n: number, one: string, many: string): string =>
   `${String(n)} ${n === 1 ? one : many}`;
-const capital = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 // The rank line: "Rank 5 → 2 (4 still in)", or the rank now when there was none before.
 function rankLine(s: Summary): string | null {
@@ -51,7 +51,7 @@ export function awayLines(s: Summary): readonly string[] {
   const lines = [
     `${plural(s.draws, 'number', 'numbers')} drawn, ${String(s.marks)} marked on your card`,
     s.patterns > 0 ? `${plural(s.patterns, 'pattern', 'patterns')} completed` : null,
-    s.seasons.length > 0 ? `Seasons activated: ${s.seasons.map(capital).join(', ')}` : null,
+    s.seasons.length > 0 ? `Seasons activated: ${s.seasons.map(seasonName).join(', ')}` : null,
     s.seasonComplete ? 'Season Complete — all four seasons!' : null,
     `Points ${String(s.pointsBefore)} → ${String(s.pointsNow)}`,
     rankLine(s),

@@ -14,6 +14,7 @@
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §4
  */
 import type { DbPool } from '../db/pool.js';
+import { matchIdByCode } from '../match/records.js';
 
 export class MatchCodes {
   private readonly ids = new Map<string, string>();
@@ -31,11 +32,8 @@ export class MatchCodes {
   async idOf(code: string): Promise<string | null> {
     const known = this.ids.get(code);
     if (known !== undefined) return known;
-    const r = await this.pool.query<{ id: string }>('SELECT id FROM sbr.matches WHERE code = $1', [
-      code,
-    ]);
-    const id = r.rows[0]?.id;
-    if (id === undefined) return null;
+    const id = await matchIdByCode(this.pool, code);
+    if (id === null) return null;
     if (this.ids.size >= this.max) {
       const oldest = this.ids.keys().next().value;
       if (oldest !== undefined) this.ids.delete(oldest);
