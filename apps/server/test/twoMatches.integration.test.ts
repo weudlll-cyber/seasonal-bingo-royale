@@ -129,7 +129,8 @@ describe('one player in an asynchronous and a realtime match at once (D39)', () 
     const slowTab = await tab(slow.code);
     expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
     const before = await realtimeFacts(live.id);
-    // Every step of the live match so far has reached its tab (a step follows within 40 ms).
+    // Every step of the live match so far has gone out (the server says so) and reached its tab.
+    await kit.harness.built.live.settled(live.id);
     await expect.poll(() => Math.max(0, ...liveTab.seqs)).toBe(before.seq);
     const heardLive = liveTab.seqs.length;
     // A day of the asynchronous match while the realtime one waits for its host.
@@ -150,15 +151,14 @@ describe('one player in an asynchronous and a realtime match at once (D39)', () 
     // The realtime match did not move: log, standings row, the player's state there.
     expect(await realtimeFacts(live.id)).toEqual(before);
     // Each tab heard only its own match.
+    await kit.harness.built.live.settled(slow.id);
     await expect.poll(() => slowTab.seqs.length).toBeGreaterThan(50);
     expect(Math.max(...slowTab.seqs)).toBeLessThanOrEqual(slowLog.length);
     expect(liveTab.seqs.length).toBe(heardLive);
     expect(Math.max(...liveTab.seqs)).toBeLessThanOrEqual(before.seq);
-    // The day the tab watched counts as seen (D54, written at the latest 10 s later).
-    const watchedTo = slowLog.at(-1)?.seq ?? 0;
-    await expect
-      .poll(() => lastSeen(slow.id), { timeout: 20_000, interval: 500 })
-      .toBeGreaterThanOrEqual(watchedTo);
+    // The day the tab watched counts as seen (D54): written now instead of after the 10 s.
+    await kit.harness.built.live.seenNow();
+    expect(await lastSeen(slow.id)).toBeGreaterThanOrEqual(slowLog.at(-1)?.seq ?? 0);
     // A second day with the tab closed: the away summary counts exactly its draws.
     slowTab.socket.disconnect();
     expect(

@@ -8,7 +8,8 @@
  *                 (not echoed on a terminal, else read from standard input), checks the password
  *                 rules and creates an account with roles super_admin and organizer (every host
  *                 permission); until the admin app's bootstrap page exists (WP-19) this makes the
- *                 first admin (`sbr admin create-super`). The password is never printed or
+ *                 first admin (`sbr admin create-super`); standalone only, a website install
+ *                 refuses it (website admins are game admins, D41). The password is never printed or
  *                 logged. `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
  *                 with SBR_SEED_KEY (exit 1 when it fails); the backup drill runs it on the
  *                 restored copy (`sbr restore --drill`). `migrate` applies the migrations to
@@ -69,6 +70,13 @@ async function readSecret(prompt: string): Promise<string> {
 }
 
 async function createSuper(args: readonly string[]): Promise<number> {
+  // Website admins are game admins (D41) and nobody signs in with a password there (D37).
+  if (loadEnv().SBR_AUTH_MODE === 'website') {
+    console.error(
+      'Not needed in website mode: website admins are game admins (D41), and there is no password sign-in here (D37).',
+    );
+    return 1;
+  }
   const email = flag(args, '--email');
   const displayName = flag(args, '--name');
   if (email === null || displayName === null) {

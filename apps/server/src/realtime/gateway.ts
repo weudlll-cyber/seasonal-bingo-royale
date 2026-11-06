@@ -75,7 +75,11 @@ export interface SocketData {
   perAddressExempt: boolean;
 }
 
-export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
+// The Socket.IO server, and the live steps (tests wait until a match's events went out).
+export function attachGateway(
+  server: HttpServer,
+  deps: GatewayDeps,
+): { readonly io: Server; readonly steps: LiveSteps } {
   // A match's code never changes: each is looked up once for all sockets (12 §5).
   const codes = new MatchCodes(deps.pool);
   const trust = proxyaddr.compile([...deps.trustedProxies]);
@@ -130,7 +134,7 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
       play.to(`match:${record.id}`).emit('match', matchSummary(m, null, deps.engine.clockFacts(m)));
     });
   });
-  return io;
+  return { io, steps };
 }
 
 // A socket joins its session's room and takes intents one at a time, in arrival order

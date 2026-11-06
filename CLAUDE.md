@@ -33,6 +33,17 @@ Everything in this repository is English: code, comments, commit messages, docs,
 - Your own play-throughs (acceptance, screenshots) use the fast test rules / "Short royale rounds", except one realtime royale at full length per task that changes the game screens or rules.
 - Never re-run a check on an unchanged tree.
 
+## Working cheaply
+
+Owner decision of 2026-11-06: spend fewer tokens without testing or checking less.
+
+- Test runs print failures only: `pnpm test:quiet`, `pnpm verify:quiet`, `pnpm e2e:quiet` (dot reporters, failures in full); never read a passing run's full output.
+- Long logs (install/Ubuntu tests, the real-site rehearsal, loadcheck, CI job logs) go to a file under `reports/logs/` (git-ignored); read only the failing part (grep/tail), never the whole log.
+- Screenshots are taken for the owner, not for checking: check with assertions; open an image yourself only when an assertion cannot decide it.
+- Wait for CI with one blocking command (`gh run watch <id> --exit-status`, output to a file), not by polling.
+- Read large files by searching first and reading only the lines needed.
+- A flaky test is fixed at its cause the first time it flakes, not re-run.
+
 ## Git
 
 - Work on the branch the task names. Push after every finished piece of work.

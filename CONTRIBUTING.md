@@ -9,7 +9,10 @@ Node 22 or newer (see `.nvmrc`) and pnpm (`corepack enable`, or `npm install -g 
 ```sh
 pnpm install   # also installs the git hooks (lefthook)
 pnpm verify    # format check, lint, typecheck, tests
+pnpm verify:quiet   # the same; the tests print only their failures (dot reporter)
 ```
+
+Quiet runs (CLAUDE.md, "Working cheaply"): `pnpm test:quiet [files]` and `pnpm e2e:quiet [spec]` print failures in full and a dot per passing test; long logs go to `reports/logs/` (git-ignored).
 
 ## Run the game locally
 
@@ -35,7 +38,7 @@ A filled leaderboard without playing: with `pnpm dev` running, `pnpm demo-league
 
 The pre-commit hook formats staged files with Prettier. Lint, typecheck and tests run in `pnpm verify` and CI.
 
-Testing (CLAUDE.md, Testing): before a push run lint, typecheck, `pnpm verify` when the change can affect it, and the e2e and unit specs that read what you changed, in Chromium (`SBR_E2E_BROWSER=chromium pnpm e2e <spec>`). The full e2e suite in all three browsers runs in CI on the pull request (Chromium on three runners); run a single spec locally only to reproduce a CI failure.
+Testing (CLAUDE.md, Testing): before a push run lint, typecheck, `pnpm verify` when the change can affect it, and the e2e and unit specs that read what you changed, in Chromium (`SBR_E2E_BROWSER=chromium pnpm e2e:quiet <spec>`). The full e2e suite in all three browsers runs in CI on the pull request (Chromium on three runners); run a single spec locally only to reproduce a CI failure.
 
 ## Pull requests and review
 

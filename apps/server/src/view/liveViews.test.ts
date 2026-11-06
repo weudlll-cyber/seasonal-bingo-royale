@@ -9,7 +9,8 @@
  *                 replay; two fetches at the same time add every event once; the events the
  *                 caller holds are used instead of reading the log; a name that changed (a
  *                 deleted account, audit S10) is read again after 30 s, or at once after a
- *                 deletion here, and rebuilds the replay; unchanged names keep it.
+ *                 deletion here (also one that came while the names were read), and rebuilds
+ *                 the replay; unchanged names keep it.
  * Depends on:     @sbr/application, @sbr/domain, ./liveViews, ./clientEvents, ../match/codec
  * Spec:           docs/spec/06-realtime-architecture.md §8
  */
@@ -57,6 +58,35 @@ function views(book: Record<string, string> = names, reads = { log: 0 }): LiveVi
   });
 }
 
+// Views whose first name read takes the names at once and returns them only on `release`
+// (`reading` resolves when it started): a deletion can come in between.
+function heldFirstRead(book: Record<string, string>) {
+  let release = (): void => undefined;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let readStarted = (): void => undefined;
+  const reading = new Promise<void>((resolve) => {
+    readStarted = resolve;
+  });
+  let first = true;
+  const live = new LiveViews({
+    events: (_id, afterSeq) => Promise.resolve(stored.filter((e) => e.seq > afterSeq)),
+    names: async () => {
+      const read = { ...book };
+      if (first) {
+        first = false;
+        readStarted();
+        await held;
+      }
+      return read;
+    },
+    steps: () => Promise.resolve({}),
+    manualTaps: () => Promise.resolve([]),
+  });
+  return { live, reading, release };
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -92,7 +122,9 @@ describe('shared live replay', () => {
     await live.entryFor(match(stored.length), stored.slice(10));
     expect(reads.log).toBe(1);
   });
+});
 
+describe('names in the shared live replay (audit S10)', () => {
   it('names a deleted account as such after 30 s, or at once after a deletion here', async () => {
     vi.useFakeTimers();
     const book = { ...names };
@@ -107,6 +139,19 @@ describe('shared live replay', () => {
     book[gone] = 'deleted player 3c4d';
     live.accountGone(gone);
     expect((await live.entryFor(match(stored.length))).idMap.get(gone)).toBe('deleted player 3c4d');
+  });
+
+  it('names a deletion that came while the replay was being built', async () => {
+    const book = { ...names };
+    const { live, reading, release } = heldFirstRead(book);
+    const building = live.entryFor(match(stored.length));
+    await reading;
+    const gone = sim.state.playerOrder[0] ?? '';
+    book[gone] = 'deleted player 5e6f';
+    live.accountGone(gone);
+    release();
+    await building;
+    expect((await live.entryFor(match(stored.length))).idMap.get(gone)).toBe('deleted player 5e6f');
   });
 
   it('keeps the replay when the names read again are the same', async () => {

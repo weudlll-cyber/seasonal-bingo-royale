@@ -161,6 +161,9 @@ The tap acknowledgement meets its target in both runs; run 2's p95 (144 ms) is c
 
 ## 7. Test data and determinism
 
+- Quiet runs (2026-11-06): `pnpm test:quiet`, `pnpm verify:quiet` and `pnpm e2e:quiet` use dot reporters, so a run prints its failures in full and nothing else of note; the plain scripts keep the full report.
+- Tests wait on the server's work, never on time: `App.live.settled(matchId)` resolves once every event of a match went out as a live step, `App.live.seenNow()` writes the seen seqs at once (`apps/server/src/http/app.ts`); the live-steps equivalence test opens its screens on a settled match and allows no gap (2026-11-06).
+
 - Fixed seeds for all domain tests; the seed of any failing property test is printed and turned into a regular regression test.
 - Builders (`aRuleset().withStages(…)`, `aMatch().withPlayers(50)`) in `packages/domain/test/builders` — shared, not duplicated.
 - Test accounts created by a test are removed by the test; matches it created are aborted and stay in the database, since the event log is append-only (04 §3.3) (Testcontainers DB per test file; E2E uses a dedicated DB reset endpoint enabled only in test builds).

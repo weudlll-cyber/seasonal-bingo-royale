@@ -13,10 +13,9 @@
  *                 seasons and shield, which a step sends only with the list (a join, the first
  *                 round, the finish) and the screens never read in between. A gap (a step that
  *                 does not fit) is fetched as the client does, and steps that come while that
- *                 fetch runs are the same gap, caught up after it, and so is a step that starts
- *                 before the held seq (a fetch ran into events the server was still gathering
- *                 into that step); only the one a screen may meet while its first load runs is
- *                 allowed. The room frames left out the summary and
+ *                 fetch runs are the same gap, caught up after it; none is allowed. Nothing
+ *                 depends on timing: the screens open on a settled match and every comparison
+ *                 first waits until the server has sent all events as steps (App.live.settled). The room frames left out the summary and
  *                 the standings order in some steps (unchanged) and carried each in others, so a
  *                 part dropped while it changed fails the comparison. Every frame a player still in received
  *                 holds no other player's card, no draw order and no seed (a lobby event's seed
@@ -108,10 +107,7 @@ async function screen(
     // that fetch runs do not fit either; they are one gap, caught up after it.
     gap.misses += 1;
     if (gap.running) return;
-    // A step that starts before the held seq is not a miss: the screen's last fetch ran into
-    // events the server was still gathering into this step (its short window); the delta after
-    // it belongs to that fetch. Only a step past the held seq is a new gap.
-    if (step === null || step.since >= s.held.seq) s.gaps += 1;
+    s.gaps += 1;
     gap.running = true;
     void catchUp();
   });
@@ -142,16 +138,18 @@ function comparable(state: LiveState): unknown {
   return { ...state, view: { ...state.view, players } };
 }
 
-// Waits until every screen holds the match's seq, then compares each with a full fetch.
+// The match's events all sent as steps (the server says so: no waiting on time), then every
+// screen holds the match's seq (its frames are on their way), then each equals a full fetch.
 async function sameAsFetch(screens: readonly Screen[], engine: MatchEngine, id: string) {
+  await kit.harness.built.live.settled(id);
   const { seq } = await engine.runner.current(id);
   const code = (await engine.runner.current(id)).record.code;
   await expect
-    .poll(() => screens.every((s) => (s.held?.seq ?? 0) >= seq), { timeout: 5_000, interval: 10 })
+    .poll(() => screens.every((s) => (s.held?.seq ?? 0) >= seq), { timeout: 20_000, interval: 10 })
     .toBe(true);
   for (const s of screens) {
-    // At most the one gap of a step that came while the first load ran.
-    expect(s.gaps).toBeLessThanOrEqual(1);
+    // Every step followed the one before: the screens opened on a settled match.
+    expect(s.gaps).toBe(0);
     expect(comparable(s.held as LiveState)).toEqual(comparable(await fetched(s, code, 0, null)));
   }
 }
@@ -196,6 +194,8 @@ async function playWatched(code: string): Promise<Screen[]> {
   const engine = kit.harness.built.match.engine;
   const id = (await kit.host.get(`/api/v1/matches/${code}`)).json<{ id: string }>().id;
   expect((await kit.player.post(`/api/v1/matches/${code}/join`, {})).statusCode).toBe(204);
+  // The screens load a settled match: no step is being gathered while they load.
+  await kit.harness.built.live.settled(id);
   const screens = [
     await screen(kit.player, 'player-1', code),
     await screen(spectator, 'player-2', code),
