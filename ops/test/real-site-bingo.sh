@@ -95,7 +95,7 @@ EOF
 # browser PHASE: one phase of ./realSite.spec.ts on the test network (DNS: the test's names).
 browser() {
   say "--- browser: phase $1"
-  docker run --rm --label "$LABEL" --network "$NET" --dns 10.77.0.53 --ipc host \
+  docker run --rm --label "$LABEL" --network "$NET" --dns 10.77.0.53 --ipc host -e PHASE="$1" \
     -v "$(host_path "$STATE"):/state" \
     -v "$(host_path "$SBR/ops/test/realSite.spec.ts"):/work/realSite.spec.ts:ro" \
     -v "$(host_path "$SBR/ops/test/playwright.real-site.config.ts"):/work/playwright.config.ts:ro" \
@@ -107,17 +107,20 @@ browser() {
 # The matches the phases use, made by the website's admin (a game admin, D41) with two members
 # registered through the website's own registration: one running to watch, one lobby to join.
 prepare_matches() {
-  local classic watch play run name
-  run=$(openssl rand -hex 2)
+  local classic watch play name
   admin admin-login
-  WATCHERS=("watch1x$run" "watch2x$run")
-  for name in "${WATCHERS[@]}"; do admin register "$name" "pass-$name-123"; admin signin "$name" "pass-$name-123"; done
+  # Registered once (the website limits registrations per address; a resumed run signs in).
+  WATCHERS=(watcher1 watcher2)
+  for name in "${WATCHERS[@]}"; do
+    admin signin "$name" "pass-$name-123" 2>/dev/null || { admin register "$name" "pass-$name-123" && admin signin "$name" "pass-$name-123"; }
+  done
   classic='"gameType":"classic","prizes":["rows-1"],"missedNumbers":{"kind":"autoMarkAfter","delayMs":1000},"maxPlayers":8'
   watch=$(admin create admin "{\"title\":\"Watch me\",\"drawMode\":\"auto\",\"drawIntervalMs\":60000,$classic}")
-  for name in "${WATCHERS[@]}"; do admin join "$name" "$watch" >/dev/null; done
+  for name in "${WATCHERS[@]}"; do admin join "$name" "$watch" >/dev/null || say "join $name failed"; done
   admin start admin "$watch" >/dev/null
   play=$(admin create admin "{\"title\":\"Play with me\",\"drawMode\":\"host\",$classic}")
   printf '{"watch":"%s","play":"%s","member":"%s","password":"%s"}\n' "$watch" "$play" \
     "realm$(openssl rand -hex 3)" "member-$(openssl rand -hex 6)" >"$STATE/state.json"
   ok "the matches for the browser exist" test -n "$watch" -a -n "$play"
+  ok "the match to watch runs (two members in it)" test "$(admin status admin "$watch")" = running
 }

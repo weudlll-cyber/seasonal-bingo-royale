@@ -47,7 +47,8 @@ sed '$d' "$WEB/deploy/test/run.sh" >"$WEB/deploy/test/run-lib.sh"
 source "$WEB/deploy/test/run-lib.sh"
 # shellcheck source=ops/test/real-site-bingo.sh
 source "$SBR/ops/test/real-site-bingo.sh"
-trap 'cleanup; rm -rf "$WEB" "$STATE"' EXIT
+# KEEP=1 keeps the browser state (screenshots of a failed phase) beside the containers.
+trap 'cleanup; rm -rf "$WEB"; [[ ${KEEP:-} == 1 ]] && say "browser state: $STATE" || rm -rf "$STATE"' EXIT
 FAILED=0
 # The harness's ok, but a FAIL is recorded and the rehearsal goes on, so every check reports.
 ok() {

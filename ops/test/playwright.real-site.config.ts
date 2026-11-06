@@ -26,5 +26,6 @@ export default defineConfig({
     viewport: { width: 1280, height: 800 },
     screenshot: 'only-on-failure',
   },
-  outputDir: '/state/results',
+  // One folder per phase: a later phase must not clear an earlier one's screenshots.
+  outputDir: `/state/results-${process.env['PHASE'] ?? 'any'}`,
 });
