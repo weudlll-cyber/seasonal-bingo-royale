@@ -198,18 +198,20 @@ route_steps() {
 }
 
 # authorize_status <env>: the HTTP status the website's authorize endpoint gives a request
-# without a browser session (401 expected), or "no answer".
+# without a browser session (204 with X-Acting-Guest; an older website 401), or "no answer".
 authorize_status() {
   local file="$SBR_ETC/$1.env" mode upstream path url code caddy
   mode=$(env_value "$file" SBR_WEBSITE_MODE)
   upstream=$(env_value "$file" SBR_WEBSITE_UPSTREAM)
   path=$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH)
   url="http://$upstream$path"
+  # The method header the route file sends: the website refuses a check without it (fail
+  # closed, its games/embeddedRoutes.js); found by the real-site rehearsal.
   if [[ $mode == nginx ]]; then
-    code=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$url" || true)
+    code=$(curl -s -o /dev/null -m 5 -w '%{http_code}' -H 'X-Original-Method: GET' "$url" || true)
   else
     caddy=$(website_caddy)
-    [[ -n $caddy ]] && code=$(docker exec "$caddy" wget -S -q -O /dev/null -T 5 "$url" 2>&1 | awk '/HTTP\//{print $2; exit}' || true)
+    [[ -n $caddy ]] && code=$(docker exec "$caddy" wget -S -q -O /dev/null -T 5 --header 'X-Original-Method: GET' "$url" 2>&1 | awk '/HTTP\//{print $2; exit}' || true)
   fi
   [[ -n ${code:-} && $code != 000 ]] && printf '%s' "$code" || printf 'no answer'
 }

@@ -73,6 +73,10 @@ Only when the installer could not do it (an older website without `/etc/seasonal
 - **Own-Caddy mode:** without the website's checkout the file is `/opt/sbr/routes/bingo.caddy`. Once, in the website's checkout on the same server: copy it into `deploy/site/routes/` kept private (`install -m 0600 /opt/sbr/routes/bingo.caddy <website checkout>/deploy/site/routes/`); in `deploy/site/Caddyfile`, inside the `{$SITE_DOMAIN} { … }` block, add `import /etc/caddy/routes/*.caddy`; in `deploy/site/docker-compose.yml` give the `caddy` service the volume `- ./routes:/etc/caddy/routes:ro`; then `cd <website checkout>/deploy/site && docker compose up -d caddy`.
 - The website must answer `/api/games/bingo/authorize` on its app (204 for every visitor; the identity headers for a member, `X-Acting-Guest: true` for anyone else) and offer `/api/games/bingo/account-changes` with the token in `/etc/seasonal/games-sync-token`.
 
+### Rehearsal against the real website (for developers, not CI)
+
+Before a move, `bash ops/test/real-site.sh nginx master` and `bash ops/test/real-site.sh caddy master` rehearse the website install end to end on a PC with Docker (privileged containers; about an hour per mode). The script clones the real website at the given ref (it must contain SE-EMBEDDED-GAMES, website merge 82e9e30) and uses the website's own installer tests (`deploy/test/run.sh`: a throw-away Ubuntu 24.04 server, Pebble as Let's Encrypt, a test DNS) to install the real website with Bingo embedded; the website's own checks must pass first. Then, inside that server, it runs this section's one command with only the three answers, checks `sbr status`, plays the guest, website-login, chat, "may start games", lock, unlock and delete steps in a real browser, and checks after the install, a re-run, `sbr update` and `sbr uninstall` that the website's own checks still pass and nothing of the website changed except the game's route file. Every check prints PASS or FAIL; everything is removed at the end (`KEEP=1` keeps it for a look).
+
 ## 4. Create the first admin
 
 ```

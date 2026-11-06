@@ -1,0 +1,18 @@
+/**
+ * @file   ops/test/tsconfig.json
+ * @module ops/test
+ * @brief  TypeScript settings for the real-site rehearsal's browser spec and its config.
+ *
+ * Responsibility: strict base plus Node types for ./realSite.spec.ts and
+ *                 ./playwright.real-site.config.ts (they run in a container, not in CI);
+ *                 typechecked and linted by the root scripts like the other specs.
+ * Spec:           docs/spec/12-testing-strategy.md §4
+ */
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["*.ts"]
+}

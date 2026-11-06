@@ -6,7 +6,8 @@
  * Responsibility: without NODE_ENV and SBR_DEV the settings say production and no
  *                 development features; SBR_DEV=1 is refused for a public address and
  *                 accepted for localhost; the seed key is required unless SBR_DEV=1 or tests;
- *                 the sign-in mode is local unless set, website mode needs its settings (D37).
+ *                 the sign-in mode is local unless set, website mode needs its settings (D37);
+ *                 empty mail settings (the installer's lines without mail) count as unset (D60).
  * Depends on:     ./env, ./seedKey
  * Spec:           docs/spec/03-security-architecture.md §3; docs/spec/09-deployment-architecture.md §1
  */
@@ -57,5 +58,23 @@ describe('the sign-in mode (D37)', () => {
     expect(login('/signin?return=')().SBR_WEBSITE_LOGIN_PATH).toBe('/signin?return=');
     for (const bad of ['https://evil.example/login?next=', '//evil.example/', '/\\evil', 'login'])
       expect(login(bad)).toThrow(/SBR_WEBSITE_LOGIN_PATH/);
+  });
+});
+
+describe('the mail settings (D60)', () => {
+  it('take empty lines as unset, as the installer writes them without mail', () => {
+    const env = loadEnv({
+      ...DB,
+      SBR_SMTP_HOST: '',
+      SBR_SMTP_PORT: '',
+      SBR_SMTP_USER: '',
+      SBR_SMTP_PASSWORD: '',
+      SBR_SMTP_FROM: '',
+    });
+    expect(env.SBR_SMTP_HOST).toBeUndefined();
+    expect(env.SBR_SMTP_PORT).toBe(587);
+    expect(env.SBR_SMTP_USER).toBeUndefined();
+    expect(env.SBR_SMTP_PASSWORD).toBeUndefined();
+    expect(env.SBR_SMTP_FROM).toBe('Seasonal Bingo Royale <bingo@localhost>');
   });
 });

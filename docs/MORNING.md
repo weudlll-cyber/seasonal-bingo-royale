@@ -4,15 +4,16 @@ What the chain after the night of 2026-11-06 (CHAT-EMBED, then FINAL-BEFORE-MOVE
 
 ## Done
 
-- CHAT-EMBED — merged `3dba414` (PR #43): the website's chat room `bingo` beside the lobby, the match screens and the host console in website mode — "Chat" in the top bar, a side panel on wide screens, a one-tap drawer on phones, remembered per browser, the frame made on first opening and following the theme; `SBR_CHAT_PATH` / `SBR_CHAT_ROOM`; `frame-src 'self'`; nothing standalone. Screenshots `reports/screens/latest/chat-1440-*.jpg`, `chat-390-*.jpg`.
+- CHAT-EMBED — merged `3dba414` (PR #43): the website's chat room `bingo` beside the lobby, the match screens and the host console in website mode; nothing standalone. Master CI and CodeQL green.
+- A — follow-ups — merged `fde292b` (PR #44): nodemailer 10.3.1 (MIT-0 allowed in CI; the game's own SMTP client removed); steps watched live count as seen, so "new" does not come back; `lobby.lateJoin` false. Master CI and CodeQL green.
 
 ## Running
 
-- A — follow-ups (branch fix/follow-ups-1106): mail through nodemailer 10.3.1 (MIT-0, now on the CI licence allow list; the game's own SMTP client removed); steps an asynchronous match's players watched live count as seen (the server writes them, at most once per 10 s per match), so "new" does not come back; `lobby.lateJoin` defaults to false. Pull request next.
+- B — the move rehearsed against the real website installer (branch test/real-site): both modes passed every check (nginx 58, own Caddy 48; website d71b111 and dbcf0ed). Three bingo faults found and fixed: SMTP questions in a website install, an install without mail that did not start, the authorize check without the method header. Pull request next.
 
 ## Open
 
-- B — the move rehearsed against the real website installer (test/real-site), nginx and own Caddy.
+- The final report; the dev server on master with the demo league.
 
 ## Needs the owner's word
 

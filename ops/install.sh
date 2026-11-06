@@ -5,8 +5,8 @@
 #
 # Responsibility: ask (or take from flags) the install type — standalone with its own domain and
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
-#                 /games/bingo —, environment, address, admin e-mail, optional SMTP and age public
-#                 key; install Docker if missing, build the image from a git ref, write
+#                 /games/bingo —, environment, address, admin e-mail, optional SMTP (standalone
+#                 only) and age public key; install Docker if missing, build the image from a git ref, write
 #                 /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only through
 #                 the website, D37, and the game's route file for the website's nginx or Caddy),
 #                 start the stack, wait for /readyz, install the backup timer. Re-runs keep earlier answers and operator-added keys,
@@ -105,7 +105,8 @@ ask_common() {
   ask SBR_ADMIN_EMAIL "Admin e-mail (certificates and notices)"
   ask SBR_AGE_RECIPIENT "Your age public key for backups (age1…)"
   [[ $SBR_AGE_RECIPIENT == age1* ]] || die "an age public key starts with age1 (age-keygen prints it)"
-  [[ ${SBR_YES:-0} == 1 || -n ${SMTP_FLAG:-} ]] || ask_smtp
+  # Mail exists only standalone (password reset, D60): a website install asks nothing about it.
+  [[ ${SBR_YES:-0} == 1 || -n ${SMTP_FLAG:-} || $SBR_TYPE == website ]] || ask_smtp
 }
 
 # SMTP asked with the saved values as defaults; an empty answer keeps what is saved.
