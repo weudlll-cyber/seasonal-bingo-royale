@@ -13,8 +13,10 @@
  *                 seasons and shield, which a step sends only with the list (a join, the first
  *                 round, the finish) and the screens never read in between. A gap (a step that
  *                 does not fit) is fetched as the client does, and steps that come while that
- *                 fetch runs are the same gap, caught up after it; only the one a screen may meet
- *                 while its first load runs is allowed. The room frames left out the summary and
+ *                 fetch runs are the same gap, caught up after it, and so is a step that starts
+ *                 before the held seq (a fetch ran into events the server was still gathering
+ *                 into that step); only the one a screen may meet while its first load runs is
+ *                 allowed. The room frames left out the summary and
  *                 the standings order in some steps (unchanged) and carried each in others, so a
  *                 part dropped while it changed fails the comparison. Every frame a player still in received
  *                 holds no other player's card, no draw order and no seed (a lobby event's seed
@@ -106,7 +108,10 @@ async function screen(
     // that fetch runs do not fit either; they are one gap, caught up after it.
     gap.misses += 1;
     if (gap.running) return;
-    s.gaps += 1;
+    // A step that starts before the held seq is not a miss: the screen's last fetch ran into
+    // events the server was still gathering into this step (its short window); the delta after
+    // it belongs to that fetch. Only a step past the held seq is a new gap.
+    if (step === null || step.since >= s.held.seq) s.gaps += 1;
     gap.running = true;
     void catchUp();
   });
