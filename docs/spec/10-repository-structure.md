@@ -87,7 +87,7 @@ seasonal-bingo-royale/
 ├─ ops/
 │  ├─ install.sh  sbr  lib/  compose.yml  compose.website.yml  compose.website-nginx.yml  compose.dev.yml  Caddyfile
 │  ├─ pull-backups.sh  pull-backups.ps1  (the restore drill is `sbr restore --drill`)
-│  ├─ test/ (website-vps.sh: the website install in a throw-away Ubuntu 24.04 machine; stub-website.py)
+│  ├─ test/ (website-vps.sh: the website install in a throw-away Ubuntu 24.04 machine; stub-website.py; real-site.sh: the same against the real website installer, with real-site-bingo.sh, real-site-admin.sh, real-site.exp and the browser phases realSite.spec.ts)
 │  ├─ examples/ (nginx, an existing Caddy)  notify.ps1 (development machine only)
 │  └─ grafana/  prometheus/  k8s/  (planned)
 └─ docs/

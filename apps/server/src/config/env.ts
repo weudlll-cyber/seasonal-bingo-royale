@@ -26,6 +26,10 @@ const headerName = (fallback: string) =>
     .default(fallback)
     .transform((v) => v.toLowerCase());
 
+// An empty line in the env file counts as unset (the installer writes every key, `KEY=''`).
+const unsetIfEmpty = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema);
+
 // The port range stays open so test runs can bind to an ephemeral port (0 → kernel picks).
 // Local dev uses the fixed project port 3900 (08 §1.1).
 const envSchema = z.object({
@@ -85,11 +89,11 @@ const envSchema = z.object({
   SBR_DATA_DIR: z.string().default('./data'),
   // Outgoing e-mail (password reset in standalone installs, D60); without a host no mail is
   // sent and the reset is off. The installer asks for these; locally Mailpit (port 1090).
-  SBR_SMTP_HOST: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
-  SBR_SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
-  SBR_SMTP_USER: z.string().optional(),
-  SBR_SMTP_PASSWORD: z.string().optional(),
-  SBR_SMTP_FROM: z.string().default('Seasonal Bingo Royale <bingo@localhost>'),
+  SBR_SMTP_HOST: unsetIfEmpty(z.string().optional()),
+  SBR_SMTP_PORT: unsetIfEmpty(z.coerce.number().int().min(1).max(65535).default(587)),
+  SBR_SMTP_USER: unsetIfEmpty(z.string().optional()),
+  SBR_SMTP_PASSWORD: unsetIfEmpty(z.string().optional()),
+  SBR_SMTP_FROM: unsetIfEmpty(z.string().default('Seasonal Bingo Royale <bingo@localhost>')),
   // Open game sockets per client address and per session (audit-3 S4): generous on purpose,
   // many players can share one address at an event.
   SBR_SOCKETS_PER_ADDRESS: z.coerce.number().int().min(1).default(50),
@@ -121,8 +125,7 @@ const envSchema = z.object({
   // and the token the installer copies from /etc/seasonal/games-sync-token; without the token
   // the feed job stays idle. Polled every 2 minutes.
   SBR_WEBSITE_FEED_URL: z.url().default('http://site:3800/api/games/bingo/account-changes'),
-  SBR_WEBSITE_SYNC_TOKEN: z.preprocess(
-    (value) => (value === '' ? undefined : value),
+  SBR_WEBSITE_SYNC_TOKEN: unsetIfEmpty(
     z
       .string()
       .regex(/^[0-9a-f]{64}$/)
