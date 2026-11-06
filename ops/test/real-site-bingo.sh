@@ -122,5 +122,5 @@ prepare_matches() {
   printf '{"watch":"%s","play":"%s","member":"%s","password":"%s"}\n' "$watch" "$play" \
     "realm$(openssl rand -hex 3)" "member-$(openssl rand -hex 6)" >"$STATE/state.json"
   ok "the matches for the browser exist" test -n "$watch" -a -n "$play"
-  ok "the match to watch runs (two members in it)" test "$(admin status admin "$watch")" = running
+  ok "the match to watch runs (two members in it)" test "$(admin wait-running admin "$watch")" = running
 }

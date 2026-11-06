@@ -124,9 +124,21 @@ game_signin() {
     "$GAME/auth/website?next=%2Fgames%2Fbingo%2F"
 }
 
+# wait_running NAME CODE: through the start's 10-second countdown; prints the status then.
+wait_running() {
+  local status
+  for _ in $(seq 1 30); do
+    status=$(game "$1" GET "/matches/$2" | json status)
+    [[ $status == lobby ]] || break
+    sleep 1
+  done
+  echo "$status"
+}
+
 # draw NAME CODE: host draws until the match is over (a draw is refused while its window runs).
 draw_to_end() {
   local status
+  wait_running "$1" "$2" >/dev/null
   for _ in $(seq 1 600); do
     status=$(game "$1" GET "/matches/$2" | json status)
     [[ $status == running ]] || { echo "$status"; return 0; }
@@ -149,6 +161,7 @@ case $command in
   join | start) game "$1" POST "/matches/$2/$command" '{}' ;;
   abort) game "$1" POST "/matches/$2/abort" '{"reason":"test cleanup"}' ;;
   status) game "$1" GET "/matches/$2" | json status ;;
+  wait-running) wait_running "$1" "$2" ;;
   draw-to-end) draw_to_end "$1" "$2" ;;
   session) game "$1" GET /session ;;
   *) echo "unknown command $command" >&2; exit 2 ;;
