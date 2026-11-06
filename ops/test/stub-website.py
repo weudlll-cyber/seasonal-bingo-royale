@@ -7,8 +7,8 @@
 #                 roles, e-mail verified, may host, steps as base64url JSON); anyone else 204 with
 #                 only X-Acting-Guest: true (STUB_REFUSE=1: 401, as an older website did); a
 #                 request carrying the game's proxy secret header gets 500 (the secret must
-#                 never reach the website); it records the Cookie, Origin and X-Original-Method it
-#                 got. GET /api/games/bingo/account-changes?since=<n> needs X-Games-Sync-Token
+#                 never reach the website); without X-Original-Method 403, as the real website
+#                 (2026-11-06); it records the Cookie, Origin and X-Original-Method it got. GET /api/games/bingo/account-changes?since=<n> needs X-Games-Sync-Token
 #                 equal to STUB_SYNC_TOKEN (else 401) and, once GET /stub/arm was called, answers
 #                 one "rights" change for user 1 after cursor 0, else nothing; every feed request is counted (GET /stub/feed).
 #                 GET /login answers 200 (the website's login page). The id header's name comes
@@ -63,6 +63,10 @@ class Handler(BaseHTTPRequestHandler):
         SEEN["method"] = self.headers.get("X-Original-Method", "")
         SEEN["origin"] = self.headers.get("Origin", "")
         SEEN["cookie"] = self.headers.get("Cookie", "")
+        # As the real website: a request without nginx's or Caddy's method is refused (fail closed).
+        if SEEN["method"].upper() not in ("GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"):
+            self.answer(403)
+            return
         uid = stub_user(self.headers.get("Cookie", "")) or ""
         user = USERS.get(uid)
         if user is None:

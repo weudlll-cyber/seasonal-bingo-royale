@@ -95,7 +95,7 @@ phases() {
   for code in "$(state_value watch)" "$(state_value hosted)"; do [[ -z $code ]] || admin abort admin "$code" >/dev/null || true; done
 }
 
-state_value() { jq -r ".$1 // empty" "$STATE/state.json"; }
+state_value() { jq -r ".$1 // empty" "$(host_path "$STATE")/state.json"; }
 
 main_rehearsal() {
   # RESUME=1 (with KEEP=1 the run before): the kept server and its website, the bingo again.

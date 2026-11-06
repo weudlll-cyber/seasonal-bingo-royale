@@ -99,7 +99,7 @@ browser() {
     -v "$(host_path "$STATE"):/state" \
     -v "$(host_path "$SBR/ops/test/realSite.spec.ts"):/work/realSite.spec.ts:ro" \
     -v "$(host_path "$SBR/ops/test/playwright.real-site.config.ts"):/work/playwright.config.ts:ro" \
-    "$BROWSER_IMAGE" npx playwright test --grep "^$1 " 2>&1 | tr -d '\r' | sed 's/^/    /' | tee -a "$RESULTS"
+    "$BROWSER_IMAGE" npx playwright test --grep "$1 " 2>&1 | tr -d '\r' | sed 's/^/    /' | tee -a "$RESULTS"
   local code=${PIPESTATUS[0]}
   ok "browser phase $1" test "$code" -eq 0
 }
