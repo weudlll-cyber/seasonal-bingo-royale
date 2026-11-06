@@ -5,7 +5,8 @@
  *
  * Responsibility: hard-set the headers of 03 §7 for every response: CSP (self scripts,
  *                 styles and fonts, no <base>; inline styles only for the development
- *                 placeholder page), frame and referrer rules, nosniff and a Permissions-Policy
+ *                 placeholder page; frames only from the same site, the website's chat, 07 §6),
+ *                 frame and referrer rules, nosniff and a Permissions-Policy
  *                 that denies camera, microphone, geolocation and payment. HSTS comes from
  *                 the TLS proxy (ops/Caddyfile; the website's proxy for website installs).
  * Depends on:     @fastify/helmet
@@ -29,6 +30,8 @@ export async function registerSecurityHeaders(
         'default-src': ["'self'"],
         'base-uri': ["'none'"],
         'frame-ancestors': ["'self'"],
+        // The website's chat frame (07 §6) is on the same site; nothing else may be framed.
+        'frame-src': ["'self'"],
         'form-action': ["'self'"],
         'object-src': ["'none'"],
         'img-src': ["'self'", 'data:', 'blob:'],

@@ -6,7 +6,8 @@
  * Responsibility: a database of its own (`sbr_e2e_website` beside the e2e database, made once
  *                 and kept, so no other server's scheduler runs its matches); the player client
  *                 built for production; a stand-in proxy on an ephemeral port that plays the
- *                 website: GET /login is its login page (a known stub user goes on to `next`);
+ *                 website: GET /login is its login page (a known stub user goes on to `next`),
+ *                 GET /embed/chat its chat embed page (naming the room and theme asked for);
  *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", as the
  *                 website's authorize endpoint would) and passes the four X-Acting-User* headers
  *                 (and Can-Host) with the proxy secret, or sends a visitor without one to the app's
@@ -19,7 +20,7 @@
  *                 matches are never deleted.
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
- * Used by:        ./websiteLogin.spec
+ * Used by:        ./websiteLogin.spec, ./chatEmbed.spec
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
@@ -127,11 +128,31 @@ function login(req: IncomingMessage, res: http.ServerResponse, users: Map<string
   res.end();
 }
 
+// The website's chat embed page (/embed/chat?room=&theme=, its docs/EMBED.md): it names the
+// room and theme it was asked for, in that theme's colours.
+function embedChat(req: IncomingMessage, res: http.ServerResponse) {
+  const query = new URL(req.url ?? '/', 'http://stub').searchParams;
+  const word = (v: string | null) => (v ?? '').replace(/[^\w-]/g, '');
+  const [room, theme] = [word(query.get('room')), word(query.get('theme'))];
+  const colours =
+    theme === 'dark' ? 'background:#16181d;color:#f2f2f2' : 'background:#fff;color:#111';
+  res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+  res.end(
+    `<!doctype html><body style="font-family:sans-serif;${colours}">` +
+      `<p data-testid="embed-room">Website chat · room ${room}</p>` +
+      `<p data-testid="embed-theme">${theme}</p></body>`,
+  );
+}
+
 function startProxy(users: Map<string, StubUser>, app: { port: number }): http.Server {
   const server = http.createServer((req, res) => {
     const [pathname = '/', query] = (req.url ?? '/').split('?');
     if (pathname === '/login') {
       login(req, res, users);
+      return;
+    }
+    if (pathname === '/embed/chat') {
+      embedChat(req, res);
       return;
     }
     let extra: Record<string, string> = {};

@@ -4,9 +4,9 @@
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
  * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the
- *                 sign-in mode), POST /auth/register and /auth/login (local mode only; in website
- *                 mode players sign in through the website, D37), /auth/logout, /auth/guest,
- *                 DELETE /me
+ *                 sign-in mode; in website mode the website's chat room, 07 §6), POST
+ *                 /auth/register and /auth/login (local mode only; in website mode players
+ *                 sign in through the website, D37), /auth/logout, /auth/guest, DELETE /me
  *                 (the account, after its password is checked; in website mode after its
  *                 display name is typed, D42). Login answers
  *                 uniformly and verifies a dummy hash for unknown e-mails, so timing and
@@ -53,6 +53,8 @@ interface AuthDeps {
   // `${basePath}auth/website`); registration and password sign-in are not there.
   readonly mode: 'local' | 'website';
   readonly basePath: string;
+  // Website mode: the website's chat room and its embed page on the same site (07 §6).
+  readonly chat?: { readonly path: string; readonly room: string } | undefined;
 }
 
 const registerBody = z.object({
@@ -132,9 +134,18 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
     features: deps.features,
-    // D37: where the sign-in button goes in website mode.
     authMode: deps.mode,
-    ...(deps.mode === 'website' ? { signInPath: `${deps.basePath}auth/website` } : {}),
+    ...websiteParts(deps),
+  };
+}
+
+// Website mode only: where the sign-in button goes (D37) and the website's chat room, which
+// the client frames only when the server names it (07 §6).
+function websiteParts(deps: AuthDeps) {
+  if (deps.mode !== 'website') return {};
+  return {
+    signInPath: `${deps.basePath}auth/website`,
+    ...(deps.chat === undefined ? {} : { chat: deps.chat }),
   };
 }
 

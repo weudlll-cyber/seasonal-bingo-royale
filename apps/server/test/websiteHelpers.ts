@@ -76,6 +76,7 @@ export interface SessionView {
   readonly csrfToken: string | null;
   readonly authMode: string;
   readonly signInPath?: string;
+  readonly chat?: { readonly path: string; readonly room: string };
 }
 
 export async function sessionOf(
