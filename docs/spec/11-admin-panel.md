@@ -88,7 +88,7 @@ The complete, typed catalogue of every key lives in `packages/contracts/src/conf
 |---|---|
 | `ruleset` (versioned per ruleset) | `general`, `draws`, `marking`, `stages[]`, `scoring`, `patterns`, `seasons.{spring,summer,autumn,winter}`, `seasonComplete`, `jackpot`, `lobby` |
 | `leaderboard` | `periodLength`, `placementPoints`, `minPlayersForPoints`, `public` |
-| `matchmaking` | `defaults.minPlayers`, `defaults.maxPlayers`, `lateJoin`, `maxConcurrentMatches`, `maxParallelPerPlayer` |
+| `matchmaking` | `defaults.minPlayers`, `defaults.maxPlayers`, `maxConcurrentMatches`, `maxParallelPerPlayer` |
 | `chat` | `maxLength`, `allowLinks`, `slowModeDefault`, `rateLimit`, `newAccountSlowModeHours`, `retentionDays`, `typingIndicator` |
 | `security` | `sessions.*`, `adminRequire2fa`, `password.*`, `guests`, `abuse.*`, `ipRetentionDays` |
 | `rate_limits` | `login`, `register`, `passwordReset`, `api`, `ws.*` |
@@ -96,4 +96,4 @@ The complete, typed catalogue of every key lives in `packages/contracts/src/conf
 | `theme` | `colors.*`, `font`, `radius`, `density` |
 | `notifications` | `email.*`, `webPush.*`, `webhooks[]` |
 | `features` | flag map |
-| `integrations` | `localAccounts`, `providers` (refs), `embedOrigins` (refs), `chatProvider` (`builtin` / `hostEmbed`), `hostChatUrl` |
+| `integrations` | `localAccounts`, `providers` (refs), `embedOrigins` (refs) |

@@ -176,6 +176,8 @@ const LobbySchema = z.object({
   openMsRealtime: z.number().int().min(60_000).max(86_400_000),
   openMsAsync: z.number().int().min(60_000).max(604_800_000),
   startRule: z.enum(['scheduled', 'whenFull', 'either']),
+  // Never read: no late join into running matches (decision 2026-11-06). Kept so stored
+  // rulesets keep parsing.
   lateJoin: z.boolean(),
 });
 

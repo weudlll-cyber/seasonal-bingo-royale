@@ -17,7 +17,7 @@ Alignment target: **OWASP ASVS 5.0 Level 2** for the whole application, Level 3 
 
 ### 2.1 Standalone (local accounts)
 
-- Registration: e-mail + display name + password. E-mail verification required before playing ranked matches (configurable).
+- Registration: e-mail + display name + password. E-mail verification for league points only with `SBR_FEATURE_EMAIL_VERIFICATION` on (configurable; off by default since D59, 2026-11-06; the other protections of §11 stay).
 - Passwords: **argon2id** (m=64 MiB, t=3, p=1; parameters stored per hash for upgrades). Minimum length 12, maximum 128, checked against a bundled top-100k breached-password list (offline, no external call). No composition rules.
 - Login responses are uniform (“invalid e-mail or password”) and constant-time to prevent account enumeration; registration and password-reset flows also never reveal whether an e-mail exists.
 - Known trade-off until e-mail verification is built: registration answers 409 `REGISTRATION_FAILED` when the e-mail **or** the display name is taken. It does not say which, but with a free display name the answer reveals that the e-mail exists. The registration limit (5 an hour per IP, §13) slows probing. With verification, registration will always answer “check your e-mail” and send the notice to the address itself.
