@@ -20,6 +20,7 @@
  * Used by:        ../app, ./matchHost, ./awaySummary, ./timeTravel
  * Spec:           docs/spec/05-api-design.md §2.3, §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5, §6
  */
+import { matchIdByCode } from '../../match/records.js';
 import type { MaintenanceCheck } from '../../config/maintenance.js';
 import type { LiveMetrics } from './metrics.js';
 import type { MatchEngine } from '@sbr/application';
@@ -72,11 +73,6 @@ export function requirePermission(
     return null;
   }
   return s.accountId;
-}
-
-export async function matchIdByCode(pool: DbPool, code: string): Promise<string | null> {
-  const r = await pool.query<{ id: string }>('SELECT id FROM sbr.matches WHERE code = $1', [code]);
-  return r.rows[0]?.id ?? null;
 }
 
 // Open and running matches, and those finished in the last day, newest first.

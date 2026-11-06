@@ -98,6 +98,7 @@ describe('a crash after a round end (audit H2)', () => {
       maintenance: () => null,
       randomSeed: () => new Uint8Array(32).fill(7),
       randomCode: () => 'CODE2',
+      randomId: () => 'match-recovered',
     });
     await restarted.recover(f.id);
     await f.scheduler.runUntil(restarted, f.clock, Number.POSITIVE_INFINITY);

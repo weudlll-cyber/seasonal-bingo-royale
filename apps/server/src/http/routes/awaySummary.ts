@@ -15,12 +15,13 @@
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/06-realtime-architecture.md §6;
  *                 docs/spec/01-game-design.md §11
  */
+import { matchIdByCode } from '../../match/records.js';
 import { summaryBetween } from '@sbr/application';
 import type { FastifyInstance } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
 import { EventLogCache } from '../../view/eventLog.js';
-import { matchIdByCode, type MatchRouteDeps } from './matches.js';
+import { type MatchRouteDeps } from './matches.js';
 
 // The player's last seen seq; null when the account is not a player of the match.
 async function lastSeen(pool: DbPool, matchId: string, accountId: string): Promise<number | null> {

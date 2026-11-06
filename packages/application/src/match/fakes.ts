@@ -158,6 +158,7 @@ export function fakeEngine() {
   // What each batch of taps told the metrics (12 §5).
   const tapBatches: TapBatchTiming[] = [];
   let n = 0;
+  let ids = 0;
   const engine = new MatchEngine({
     store,
     scheduler,
@@ -171,6 +172,7 @@ export function fakeEngine() {
     maintenance: () => (maintenance.on ? { reason: maintenance.reason } : null),
     randomSeed: () => new Uint8Array(32).fill(7),
     randomCode: () => `CODE${String((n += 1))}`,
+    randomId: () => `match-${String((ids += 1))}`,
     onTapBatch: (batch) => tapBatches.push(batch),
   });
   return { store, scheduler, clock, engine, published, maintenance, tapBatches };

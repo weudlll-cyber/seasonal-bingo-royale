@@ -15,6 +15,7 @@
  * Used by:        ../quicktest/Simulation
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §5, §6
  */
+import { GameTypeField } from './GameTypeField.js';
 import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
@@ -27,7 +28,7 @@ import {
   toMissedNumbers,
   type MarkingChoice,
 } from './StartMarkingField.js';
-import { GAME_TYPES, gameTypeName, prizeName } from '../game/labels.js';
+import { prizeName } from '../game/labels.js';
 import '../host/host.css';
 import type { GameType } from '../types.js';
 
@@ -75,7 +76,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
   };
   return (
     <form className="create-form" onSubmit={submit}>
-      <GameTypeField value={state.gameType} onChange={bind('gameType')} />
+      <GameTypeField testId="game-type" value={state.gameType} onChange={bind('gameType')} />
       <SeedField value={state.seedText} onChange={bind('seedText')} />
       <BotCountField value={state.playerCount} onChange={bind('playerCount')} />
       <OwnerCardsField value={state.ownerCards} onChange={bind('ownerCards')} />
@@ -91,34 +92,6 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
         {busy ? 'Running…' : 'Run simulation'}
       </button>
     </form>
-  );
-}
-
-function GameTypeField({
-  value,
-  onChange,
-}: {
-  value: GameType;
-  onChange: (next: GameType) => void;
-}): ReactElement {
-  return (
-    <label className="sbr-field">
-      <span>Game type</span>
-      <select
-        className="sbr-select"
-        data-testid="game-type"
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value as GameType);
-        }}
-      >
-        {GAME_TYPES.map((g) => (
-          <option key={g} value={g}>
-            {gameTypeName(g)}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

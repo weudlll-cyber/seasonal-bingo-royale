@@ -28,14 +28,13 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
-import { mailerFrom, type Mailer } from '../auth/mailer.js';
-import { AccountFeed } from '../website/accountFeed.js';
-import { registerPasswordReset } from './routes/passwordReset.js';
-import { registerTwoFactor } from './routes/twoFactor.js';
+import { SocketLimits } from '../realtime/socketLimits.js';
 import { registerOpenRounds } from './routes/openRounds.js';
-import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
+import { registerSignIn } from './signIn.js';
+import type { AccountFeed } from '../website/accountFeed.js';
+import type { Mailer } from '../auth/mailer.js';
+import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
-import { featuresFrom } from '../config/features.js';
 import { maintenanceFlag, type MaintenanceCheck } from '../config/maintenance.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
@@ -46,8 +45,6 @@ import { attachGateway, type GatewayDeps } from '../realtime/gateway.js';
 import { liveViewsOn, type LiveViews } from '../view/liveViews.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
-import { registerAuthRoutes } from './routes/auth.js';
-import { registerDevSignIn } from './routes/devSignIn.js';
 import { registerHealth } from './routes/health.js';
 import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
@@ -64,7 +61,6 @@ import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
 import { registerTimeTravel } from './routes/timeTravel.js';
 import { registerWebClient } from './routes/webClient.js';
-import { registerWebsiteSignIn } from './routes/websiteSignIn.js';
 
 interface AppDeps {
   readonly env: Env;
@@ -210,73 +206,41 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     live: metrics.live,
     views,
   });
-  registerGateway(fastify, {
+  registerGateway(fastify, deps.env, metrics, {
     pool: deps.pool,
     engine: match.engine,
     bus: match.bus,
     cookieName: cookie.name,
-    allowedOrigins: allowedOrigins(deps.env),
-    path: `${deps.env.SBR_BASE_PATH}ws`,
     sessionEnds,
-    taps: metrics.taps,
-    live: metrics.live,
     views,
   });
   return { fastify, metrics, match, feed };
 }
 
 // The WebSocket gateway on the same server, closed with it.
-function registerGateway(fastify: FastifyInstance, deps: GatewayDeps): void {
-  const io = attachGateway(fastify.server, deps);
+// The settings' part: origins, path, the meters, the socket caps and the trusted proxies.
+function registerGateway(
+  fastify: FastifyInstance,
+  env: Env,
+  metrics: MetricsHandle,
+  deps: Pick<GatewayDeps, 'pool' | 'engine' | 'bus' | 'cookieName' | 'sessionEnds' | 'views'>,
+): void {
+  const caps = { perAddress: env.SBR_SOCKETS_PER_ADDRESS, perSession: env.SBR_SOCKETS_PER_SESSION };
+  const limits = new SocketLimits(caps, (reason, address, log) => {
+    metrics.socketsRefused.inc({ reason });
+    if (log) fastify.log.warn({ reason, address }, 'game socket refused');
+  });
+  const io = attachGateway(fastify.server, {
+    ...deps,
+    allowedOrigins: allowedOrigins(env),
+    path: `${env.SBR_BASE_PATH}ws`,
+    taps: metrics.taps,
+    live: metrics.live,
+    limits,
+    trustedProxies: env.SBR_TRUSTED_PROXIES,
+  });
   fastify.addHook('onClose', async () => {
     await io.close();
-  });
-}
-
-// How players sign in: the game's own accounts, or in website mode only through the
-// website (D37); in development (local mode) also the quick sign-in, never in production.
-// Website mode with the sync token: the account-changes feed (07 §2.4), returned for main.
-function registerSignIn(
-  fastify: FastifyInstance,
-  deps: {
-    env: Env;
-    pool: DbPool;
-    cookie: CookieConfig;
-    sessionEnds: SessionEnds;
-    accountDeleted: (accountId: string) => void;
-    mailer?: Mailer | null | undefined;
-  },
-): AccountFeed | null {
-  const { env } = deps;
-  // Password reset: standalone installs with mail only (D60).
-  const mailer = env.SBR_AUTH_MODE === 'local' ? (deps.mailer ?? mailerFrom(env)) : null;
-  registerPasswordReset(fastify, {
-    ...deps,
-    mailer,
-    publicUrl: env.SBR_PUBLIC_URL ?? null,
-    basePath: env.SBR_BASE_PATH,
-  });
-  // Local admins' second sign-in step (TOTP, D60); the website does its own.
-  if (env.SBR_AUTH_MODE === 'local')
-    registerTwoFactor(fastify, { ...deps, seedKey: seedKeyFrom(env) });
-  registerAuthRoutes(fastify, {
-    ...deps,
-    features: { ...featuresFrom(env), passwordReset: mailer !== null },
-    mode: env.SBR_AUTH_MODE,
-    basePath: env.SBR_BASE_PATH,
-  });
-  registerWebsiteSignIn(fastify, deps);
-  if (env.SBR_DEV && env.SBR_AUTH_MODE === 'local') registerDevSignIn(fastify, deps);
-  if (env.SBR_AUTH_MODE !== 'website' || env.SBR_WEBSITE_SYNC_TOKEN === undefined) return null;
-  return new AccountFeed({
-    ...deps,
-    issuer: new URL(env.SBR_PUBLIC_URL ?? '').origin,
-    url: env.SBR_WEBSITE_FEED_URL,
-    token: env.SBR_WEBSITE_SYNC_TOKEN,
-    dataDir: env.SBR_DATA_DIR,
-    warn: (message) => {
-      fastify.log.warn(message);
-    },
   });
 }
 

@@ -15,16 +15,16 @@
  * Used by:        ../App
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22), §13; docs/spec/05-api-design.md §2.3
  */
+import { GameTypeField } from '../components/GameTypeField.js';
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
-import { GAME_TYPES, gameTypeName, problemText } from '../game/labels.js';
+import { problemText } from '../game/labels.js';
 import { INITIAL, intervalMessage } from '../host/createForm.js';
 import '../host/host.css';
 import { useDevSignIn } from '../shell/DevTools.js';
 import { useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
-import type { GameType } from '../types.js';
 import {
   botLimits,
   DEFAULT_BOTS,
@@ -116,6 +116,7 @@ function TestMatchForm(props: FormProps): ReactElement {
   return (
     <form className="create-form" onSubmit={submit} data-testid="test-match-form">
       <GameTypeField
+        testId="test-match-game-type"
         value={values.gameType}
         onChange={(g) => {
           // The bots follow the game type's default until the owner changes them.
@@ -148,34 +149,6 @@ function TestMatchForm(props: FormProps): ReactElement {
       </button>
       <NextSteps values={values} code={null} />
     </form>
-  );
-}
-
-function GameTypeField({
-  value,
-  onChange,
-}: {
-  readonly value: GameType;
-  readonly onChange: (next: GameType) => void;
-}): ReactElement {
-  return (
-    <label className="sbr-field">
-      <span>Game type</span>
-      <select
-        className="sbr-select"
-        data-testid="test-match-game-type"
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value as GameType);
-        }}
-      >
-        {GAME_TYPES.map((g) => (
-          <option key={g} value={g}>
-            {gameTypeName(g)}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 
