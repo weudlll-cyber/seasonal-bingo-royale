@@ -39,9 +39,8 @@ afterAll(async () => {
 describe('handshake (06 §2)', () => {
   it('refuses a socket without a session and one from a foreign origin', async () => {
     expect(await kit.connected(kit.open(null))).toBe('UNAUTHORIZED');
-    expect(await kit.connected(kit.open(kit.player.cookie, 'https://evil.example'))).toBe(
-      'ORIGIN_NOT_ALLOWED',
-    );
+    // Refused already at the Engine.IO handshake (audit-3 S4), before the namespace.
+    expect(await kit.connected(kit.open(kit.player.cookie, 'https://evil.example'))).not.toBe('ok');
     expect(await kit.connected(kit.open(kit.player.cookie))).toBe('ok');
   });
 });

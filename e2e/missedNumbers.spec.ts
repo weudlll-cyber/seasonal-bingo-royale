@@ -15,13 +15,15 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { startRun } from './quickTest.js';
 
-// Host mode: press Draw next until one of the owner's numbers is drawn; returns its cell.
-async function drawOwnerNumber(page: Page): Promise<Locator> {
+// The owner's cell of the first draw that gives the owner a number, and when Draw next was
+// pressed for it (before the click, so a slow screen never makes the draw look later; T2).
+async function drawOwnerNumber(page: Page): Promise<{ cell: Locator; pressedAt: number }> {
   for (let press = 0; press < 40; press += 1) {
+    const pressedAt = Date.now();
     await page.getByTestId('draw-next').click();
     const item = await page.getByTestId('draw-newest').getAttribute('data-item');
     const cell = page.locator(`[data-testid^="owner-cell-"][data-value="${item ?? ''}"]`);
-    if ((await cell.count()) > 0) return cell;
+    if ((await cell.count()) > 0) return { cell, pressedAt };
   }
   throw new Error('no owner number in 40 draws');
 }
@@ -37,7 +39,7 @@ test('leave open: a missed number stays open and a later tap marks it without bo
     missed: 'noAutoMark',
     drawMode: 'host',
   });
-  const cell = await drawOwnerNumber(page);
+  const { cell } = await drawOwnerNumber(page);
   await page.waitForTimeout(6_000); // past the 3 s window and the default delay
   await expect(cell).toHaveAttribute('data-marked', 'false');
   await cell.click();
@@ -60,8 +62,7 @@ test('mark for me after 5 seconds: a missed number is marked after 5 s, not 3 s'
     missedDelaySec: 5,
     drawMode: 'host',
   });
-  const cell = await drawOwnerNumber(page);
-  const drawnAt = Date.now();
+  const { cell, pressedAt: drawnAt } = await drawOwnerNumber(page);
   await page.waitForTimeout(4_000);
   await expect(cell).toHaveAttribute('data-marked', 'false');
   await expect(cell).toHaveAttribute('data-marked', 'true', { timeout: 3_000 });

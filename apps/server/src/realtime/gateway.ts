@@ -3,8 +3,10 @@
  * @module server/realtime
  * @brief  Socket.IO gateway: authenticated sockets, match rooms, events out, intents in (06).
  *
- * Responsibility: `/ws` (base path), namespace `/play`, WebSocket only (06 §1). The handshake
- *                 checks Origin, needs a live cookie session (06 §2), also on recovery. Sockets
+ * Responsibility: `/ws` (base path), namespace `/play`, WebSocket only (06 §1). The Engine.IO
+ *                 handshake checks Origin (audit-3 S4); the namespace needs a live cookie session
+ *                 (06 §2), also on recovery, and admits the socket within the caps per client
+ *                 address and per session (./socketLimits). Sockets
  *                 join `session:<id>` and close when it ends (../auth/sessionEnds). Committed
  *                 events go out per step (./liveSteps): one room frame to `match:<id>` as `events`
  *                 (public: no seed, round starts without cards or draw order) and one `own`
@@ -18,7 +20,9 @@
  * Used by:        ../http/app, ./intents
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
  */
-import type { Server as HttpServer } from 'node:http';
+import type { IncomingMessage, Server as HttpServer } from 'node:http';
+
+import proxyaddr from '@fastify/proxy-addr';
 
 import type { MatchEngine } from '@sbr/application';
 import { Server, type Socket } from 'socket.io';
@@ -33,6 +37,7 @@ import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
 import { LiveSteps, type SocketLive } from './liveSteps.js';
 import { MatchCodes } from './matchCodes.js';
+import type { SocketLimits } from './socketLimits.js';
 import { handleIntent, SESSION_ENDED, type Answer, type IntentContext } from './intents.js';
 
 export interface GatewayDeps {
@@ -50,6 +55,10 @@ export interface GatewayDeps {
   readonly live?: LiveMetrics;
   // The server's one replay per live match, shared with the state fetches.
   readonly views: LiveViews;
+  // The socket caps (./socketLimits) and the proxies whose X-Forwarded-For names the client
+  // (the same list Fastify trusts, SBR_TRUSTED_PROXIES).
+  readonly limits: SocketLimits;
+  readonly trustedProxies: readonly string[];
 }
 
 export interface SocketData {
@@ -58,13 +67,25 @@ export interface SocketData {
   rooms: Set<string>;
   // Per watched match: what this socket got of the live frames (./liveSteps).
   live: Map<string, SocketLive>;
+  // The client address it counts against, and whether it is counted per address (S4).
+  address: string;
+  perAddressExempt: boolean;
 }
 
 export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
   // A match's code never changes: each is looked up once for all sockets (12 §5).
   const codes = new MatchCodes(deps.pool);
+  const trust = proxyaddr.compile([...deps.trustedProxies]);
+  const addressOf = (request: IncomingMessage): string => proxyaddr(request, trust);
   const io = new Server(server, {
     path: deps.path,
+    // The Origin already at the Engine.IO handshake, before any upgrade (audit-3 S4).
+    allowRequest: (request, answer) => {
+      const origin = request.headers.origin;
+      const ok = origin !== undefined && deps.allowedOrigins.includes(origin);
+      if (!ok) deps.limits.refuse('origin', addressOf(request));
+      answer(null, ok);
+    },
     transports: ['websocket'],
     maxHttpBufferSize: 16 * 1024,
     pingInterval: 20_000,
@@ -78,14 +99,14 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
     for (const id of ids) play.in(`session:${id}`).disconnectSockets(true);
   });
   play.use((socket, next) => {
-    authenticate(socket, deps)
-      .then((session) => {
-        (socket.data as SocketData) = { session, lastSeq: 0, rooms: new Set(), live: new Map() };
+    admit(socket, deps, addressOf(socket.request)).then(
+      () => {
         next();
-      })
-      .catch((error: unknown) => {
+      },
+      (error: unknown) => {
         next(error instanceof Error ? error : new Error('UNAUTHORIZED'));
-      });
+      },
+    );
   });
   play.on('connection', (socket) => {
     onConnection(socket, deps, codes);
@@ -121,6 +142,21 @@ function onConnection(socket: Socket, deps: GatewayDeps, codes: MatchCodes): voi
   socket.on('intent', (envelope: unknown, ack?: (answer: unknown) => void) => {
     void handle(envelope, ack);
   });
+}
+
+// A socket of a live session within the caps (./socketLimits); its count goes when it closes.
+async function admit(socket: Socket, deps: GatewayDeps, address: string): Promise<void> {
+  const session = await authenticate(socket, deps);
+  // The load check's own accounts are not counted per address (./socketLimits).
+  const perAddressExempt = session.permissions.includes('match.loadcheck');
+  if (deps.limits.admit(address, session.id, perAddressExempt) !== null) {
+    throw new Error('TOO_MANY_SOCKETS');
+  }
+  socket.once('disconnect', () => {
+    deps.limits.release(address, session.id, perAddressExempt);
+  });
+  const data = { session, lastSeq: 0, rooms: new Set<string>(), live: new Map() };
+  (socket.data as SocketData) = { ...data, address, perAddressExempt };
 }
 
 async function authenticate(socket: Socket, deps: GatewayDeps): Promise<Session> {

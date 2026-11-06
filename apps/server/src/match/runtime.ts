@@ -76,6 +76,8 @@ export function createMatchRuntime(
     maintenance,
     ...(onTapBatch === undefined ? {} : { onTapBatch }),
     randomSeed: () => new Uint8Array(randomBytes(SEED_BYTES)),
+    // The global one (tests pin it with a spy, test/roundRecap.integration.test).
+    randomId: () => crypto.randomUUID(),
     randomCode: () =>
       Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''),
   });

@@ -13,12 +13,13 @@
  * Used by:        ../app
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/spec/15-implementation-plan.md WP-14
  */
+import { matchIdByCode } from '../../match/records.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import { travel, type DevClock } from '../../dev/devClock.js';
 import type { PgScheduler } from '../../match/pgScheduler.js';
-import { matchIdByCode, type MatchRouteDeps } from './matches.js';
+import { type MatchRouteDeps } from './matches.js';
 
 const body = z.object({
   code: z.string().min(1).max(16),

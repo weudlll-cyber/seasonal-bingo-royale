@@ -37,8 +37,9 @@ export interface SocketKit {
   close(): Promise<void>;
 }
 
-export async function startSocketKit(): Promise<SocketKit> {
-  const harness = await startHarness();
+// `overrides`: settings for the server (e.g. lower socket caps).
+export async function startSocketKit(overrides: Record<string, string> = {}): Promise<SocketKit> {
+  const harness = await startHarness(overrides);
   await harness.built.fastify.listen({ host: '127.0.0.1', port: 0 });
   const address = harness.built.fastify.server.address();
   const port = typeof address === 'object' && address !== null ? address.port : 0;

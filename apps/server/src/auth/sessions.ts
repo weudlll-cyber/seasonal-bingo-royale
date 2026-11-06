@@ -77,8 +77,13 @@ interface SessionRow {
   two_factor_pending: boolean;
 }
 
-// Loads a live session and slides its idle expiry. Unknown or dead tokens give null.
+// A session token as createSession makes it: 32 random bytes in base64url (43 characters).
+const TOKEN_FORMAT = /^[A-Za-z0-9_-]{43}$/;
+
+// Loads a live session and slides its idle expiry. Unknown or dead tokens give null; a cookie
+// that cannot be a token gives null before any database work (audit-3 S5).
 export async function findSession(pool: DbPool, token: string): Promise<Session | null> {
+  if (!TOKEN_FORMAT.test(token)) return null;
   return liveSession(pool, 's.token_hash', tokenHash(token));
 }
 

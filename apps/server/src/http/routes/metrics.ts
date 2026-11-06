@@ -39,6 +39,8 @@ export interface MetricsHandle {
   readonly matchesRunning: Gauge;
   readonly taps: TapMetrics;
   readonly live: LiveMetrics;
+  // Game sockets refused at the handshake (audit-3 S4).
+  readonly socketsRefused: Counter;
 }
 
 function liveMetrics(registry: Registry): LiveMetrics {
@@ -114,7 +116,19 @@ export function createMetrics(): MetricsHandle {
     help: 'Number of matches currently in state=running.',
     registers: [registry],
   });
-  return { registry, matchesRunning, taps: tapMetrics(registry), live: liveMetrics(registry) };
+  const socketsRefused = new Counter({
+    name: 'sbr_ws_refused_total',
+    help: 'Game sockets refused: a foreign origin, or past the caps per address or session.',
+    labelNames: ['reason'],
+    registers: [registry],
+  });
+  return {
+    registry,
+    matchesRunning,
+    taps: tapMetrics(registry),
+    live: liveMetrics(registry),
+    socketsRefused,
+  };
 }
 
 export function registerMetrics(app: FastifyInstance, metrics: MetricsHandle): void {

@@ -8,12 +8,14 @@
  *                 mode and interval, pause between rounds, start rule, quiet hours and time
  *                 zone) and the status. The seed never leaves the database here.
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types)
- * Used by:        ./pgMatchStore
+ * Used by:        ./pgMatchStore; matchIdByCode also ../http/routes/*, ../realtime/matchCodes
  * Spec:           docs/spec/04-database-design.md §3.3
  */
 import type { DrawMode, MatchRecord, MatchStatus } from '@sbr/application';
 import type { Ruleset } from '@sbr/contracts';
 import type { GameType, MarkingMode } from '@sbr/domain';
+
+import type { DbPool } from '../db/pool.js';
 
 export interface MatchRow {
   id: string;
@@ -90,4 +92,10 @@ function startRuleOf(row: MatchRow): MatchRecord['settings']['startRule'] {
     return { kind: 'at', at: row.start_at.getTime(), auto: row.start_auto };
   }
   return row.start_rule === 'whenFull' ? { kind: 'whenFull' } : { kind: 'host' };
+}
+
+// The id of the match with this code, or null (the routes and the socket's code cache).
+export async function matchIdByCode(pool: DbPool, code: string): Promise<string | null> {
+  const r = await pool.query<{ id: string }>('SELECT id FROM sbr.matches WHERE code = $1', [code]);
+  return r.rows[0]?.id ?? null;
 }
