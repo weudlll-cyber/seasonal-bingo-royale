@@ -201,10 +201,13 @@ test('P5 deleted on the website: a deleted player in past results, gone from the
 }) => {
   const s = state();
   const page = await (await contextOf(browser, 'guest')).newPage();
+  await page.goto(`${GAME}#/match/${s.play}`);
   await expect
     .poll(
       async () => {
-        await page.goto(`${GAME}#/match/${s.play}`);
+        // A reload: a goto to the same address with a #fragment would not load the page again.
+        await page.reload();
+        await page.getByText('Final placement').waitFor();
         return page.getByText(/deleted player/).count();
       },
       { timeout: POLL_MS, intervals: [10_000] },
