@@ -17,7 +17,7 @@ import { AccountField, FormError, useAccountSubmit } from './formParts.js';
 import './account.css';
 
 export function SignIn(): ReactElement {
-  const { signIn } = useSession();
+  const { signIn, session } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { error, busy, submit } = useAccountSubmit(() => signIn(email.trim(), password));
@@ -49,6 +49,13 @@ export function SignIn(): ReactElement {
       >
         Sign in
       </button>
+      {session?.features?.passwordReset === true ? (
+        <p className="sbr-muted">
+          <a href={hrefOf({ name: 'forgotPassword' })} data-testid="forgot-link">
+            Forgot your password?
+          </a>
+        </p>
+      ) : null}
       <p className="sbr-muted">
         No account yet? <a href={hrefOf({ name: 'register' })}>Register</a>
       </p>

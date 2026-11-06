@@ -17,6 +17,8 @@ export interface Features {
   readonly emailVerification: boolean;
   readonly twoFactor: boolean;
   readonly guests: boolean;
+  // Standalone installs with SMTP settings: "Forgot password?" (D60).
+  readonly passwordReset: boolean;
 }
 
 export function featuresFrom(env: Env): Features {
@@ -24,5 +26,6 @@ export function featuresFrom(env: Env): Features {
     emailVerification: env.SBR_FEATURE_EMAIL_VERIFICATION,
     twoFactor: env.SBR_FEATURE_TWO_FACTOR,
     guests: env.SBR_FEATURE_GUESTS,
+    passwordReset: env.SBR_AUTH_MODE === 'local' && env.SBR_SMTP_HOST !== undefined,
   };
 }

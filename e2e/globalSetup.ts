@@ -1,7 +1,7 @@
 /**
  * @file   e2e/globalSetup.ts
  * @module e2e
- * @brief  Starts PostgreSQL through the dev compose file before the server boots.
+ * @brief  Starts PostgreSQL and Mailpit through the dev compose file before the server boots.
  *
  * Responsibility: run `docker compose --env-file ops/.env.dev.example -f
  *                 ops/compose.dev.yml up -d --wait`, so the server's migrations find
@@ -19,7 +19,18 @@ export default function globalSetup(): void {
   if (externalDatabase() !== undefined) return;
   execFileSync(
     'docker',
-    ['compose', '--env-file', ENV_FILE, '-f', COMPOSE_FILE, 'up', '-d', '--wait', 'postgres'],
+    [
+      'compose',
+      '--env-file',
+      ENV_FILE,
+      '-f',
+      COMPOSE_FILE,
+      'up',
+      '-d',
+      '--wait',
+      'postgres',
+      'mailpit',
+    ],
     { cwd: REPO_ROOT, stdio: 'inherit' },
   );
 }

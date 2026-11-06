@@ -22,6 +22,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
+import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { SignInLinks, SignInPage } from '../account/WebsiteSignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
@@ -190,7 +191,16 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
 
 type AccountRoute = Extract<
   Route,
-  { readonly name: 'signIn' | 'register' | 'account' | 'leaderboard' | 'player' }
+  {
+    readonly name:
+      | 'signIn'
+      | 'register'
+      | 'forgotPassword'
+      | 'resetPassword'
+      | 'account'
+      | 'leaderboard'
+      | 'player';
+  }
 >;
 
 // The screens around the player: sign-in, register, account, leaderboard and profiles.
@@ -200,6 +210,10 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
       return <SignInPage register={false} />;
     case 'register':
       return <SignInPage register />;
+    case 'forgotPassword':
+      return <ForgotPassword />;
+    case 'resetPassword':
+      return <ResetPassword />;
     case 'account':
       return <AccountPage />;
     case 'leaderboard':

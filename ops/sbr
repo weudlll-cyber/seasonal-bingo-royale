@@ -91,6 +91,14 @@ cmd_status() {
     info "maintenance: off"
   fi
   info "sign-in:     $(env_value "$file" SBR_AUTH_MODE)"
+  # Standalone: password reset needs the SMTP settings (D60).
+  if [[ $(env_value "$file" SBR_AUTH_MODE) == local ]]; then
+    if [[ -n $(env_value "$file" SBR_SMTP_HOST) ]]; then
+      info "mail:        through $(env_value "$file" SBR_SMTP_HOST) (password reset on)"
+    else
+      warn "no SMTP settings in $file: password reset is off (run the installer again with --smtp-host …)"
+    fi
+  fi
   if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
     info "database:    the app as sbr_app, migrations as sbr_owner"
   else

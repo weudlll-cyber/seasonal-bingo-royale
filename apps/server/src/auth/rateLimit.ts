@@ -77,6 +77,10 @@ export const RATE_RULES = {
   // and new guest sessions (audit S3).
   anonymous: { limit: 600, windowMs: 60_000 },
   guest: { limit: 10, windowMs: 60 * 60_000 },
+  // Password reset requests per address and per e-mail; 2FA codes per pending session (D60).
+  resetIp: { limit: 10, windowMs: 60 * 60_000 },
+  resetAccount: { limit: 3, windowMs: 60 * 60_000 },
+  twoFactor: { limit: 5, windowMs: 15 * 60_000 },
 } as const satisfies Record<string, RateRule>;
 
 // The routes outside /api (health, the client's files, the website login hop) get the

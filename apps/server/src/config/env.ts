@@ -84,6 +84,13 @@ const envSchema = z.object({
   SBR_WEB_DIR: z.string().optional(),
   // A writable directory (the uploads volume in production) for the maintenance flag.
   SBR_DATA_DIR: z.string().default('./data'),
+  // Outgoing e-mail (password reset in standalone installs, D60); without a host no mail is
+  // sent and the reset is off. The installer asks for these; locally Mailpit (port 1090).
+  SBR_SMTP_HOST: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  SBR_SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SBR_SMTP_USER: z.string().optional(),
+  SBR_SMTP_PASSWORD: z.string().optional(),
+  SBR_SMTP_FROM: z.string().default('Seasonal Bingo Royale <bingo@localhost>'),
   // How players sign in (D37): the game's own accounts (standalone), or only through the
   // website login, whose proxy passes the visitor as headers to GET <base>auth/website.
   SBR_AUTH_MODE: z.enum(['local', 'website']).default('local'),

@@ -53,6 +53,7 @@ export function accountError(error: unknown): string {
     RATE_LIMITED: 'Too many tries. Please wait a minute and try again.',
     EMAIL_NOT_VERIFIED: 'Please confirm your e-mail address first (see the mail we sent you).',
     VALIDATION_FAILED: 'Please check the form.',
+    RESET_INVALID: 'This link was used already or has expired. Ask for a new one.',
   };
   if (error.code === 'PASSWORD_WEAK')
     return passwordText(error.reason) ?? 'Please choose a stronger password.';

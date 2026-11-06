@@ -28,7 +28,9 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
+import { mailerFrom, type Mailer } from '../auth/mailer.js';
 import { AccountFeed } from '../website/accountFeed.js';
+import { registerPasswordReset } from './routes/passwordReset.js';
 import { registerOpenRounds } from './routes/openRounds.js';
 import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
@@ -66,6 +68,8 @@ import { registerWebsiteSignIn } from './routes/websiteSignIn.js';
 interface AppDeps {
   readonly env: Env;
   readonly pool: DbPool;
+  // Outgoing mail; tests pass their own, else ../auth/mailer from the SMTP settings.
+  readonly mailer?: Mailer | null;
 }
 
 export interface App {
@@ -239,12 +243,21 @@ function registerSignIn(
     cookie: CookieConfig;
     sessionEnds: SessionEnds;
     accountDeleted: (accountId: string) => void;
+    mailer?: Mailer | null | undefined;
   },
 ): AccountFeed | null {
   const { env } = deps;
+  // Password reset: standalone installs with mail only (D60).
+  const mailer = env.SBR_AUTH_MODE === 'local' ? (deps.mailer ?? mailerFrom(env)) : null;
+  registerPasswordReset(fastify, {
+    ...deps,
+    mailer,
+    publicUrl: env.SBR_PUBLIC_URL ?? null,
+    basePath: env.SBR_BASE_PATH,
+  });
   registerAuthRoutes(fastify, {
     ...deps,
-    features: featuresFrom(env),
+    features: { ...featuresFrom(env), passwordReset: mailer !== null },
     mode: env.SBR_AUTH_MODE,
     basePath: env.SBR_BASE_PATH,
   });
