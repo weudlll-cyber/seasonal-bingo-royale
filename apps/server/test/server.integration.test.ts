@@ -60,6 +60,8 @@ describe('server integration', () => {
   it('ships baseline security headers', async () => {
     const response = await app().inject({ method: 'GET', url: '/' });
     expect(response.headers['content-security-policy']).toContain("default-src 'self'");
+    // The website's chat frame (07 §6) is on the same site; nothing else may be framed.
+    expect(response.headers['content-security-policy']).toContain("frame-src 'self'");
     expect(response.headers['x-content-type-options']).toBe('nosniff');
     expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
     expect(response.headers['referrer-policy']).toBe('no-referrer');

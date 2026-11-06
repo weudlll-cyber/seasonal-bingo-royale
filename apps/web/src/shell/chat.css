@@ -1,0 +1,101 @@
+/**
+ * @file   apps/web/src/shell/chat.css
+ * @module web/shell
+ * @brief  The website's chat beside the game (./ChatDock, 07 §6).
+ *
+ * Responsibility: "Chat" as a pill in the top bar's navigation; the panel as a column on the
+ *                 right below the sticky bar from 960 px, the main column making room for it;
+ *                 below 960 px a drawer from the bottom over a dimmed page that one tap closes.
+ *                 Closed, nothing of it is on the page but the pill, so it never covers the
+ *                 card or the draw. Colours come from @sbr/ui.
+ * Spec:           docs/spec/07-integration-architecture.md §6
+ */
+
+.chat-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--hit-target);
+  padding: 0 0.95rem;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: var(--font-weight-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chat-toggle:hover,
+.chat-toggle[aria-expanded='true'] {
+  background: var(--color-active-bg);
+}
+
+.chat-panel {
+  position: fixed;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-raised);
+}
+
+.chat-panel[hidden],
+.chat-backdrop[hidden] {
+  display: none;
+}
+
+.chat-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: 0.5rem var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.chat-panel__frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+}
+
+/* Phones and narrow windows: a drawer over the lower part of the screen */
+.chat-panel {
+  inset: auto 0 0;
+  height: 85dvh;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.chat-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 29;
+  border: 0;
+  background: color-mix(in srgb, var(--color-text) 35%, transparent);
+  cursor: pointer;
+}
+
+/* Wide screens: a column on the right below the bar; the page makes room for it */
+@media (min-width: 960px) {
+  .chat-panel {
+    inset: var(--shell-bar-height, 4.5rem) 0 0 auto;
+    width: var(--chat-width);
+    height: auto;
+    border-radius: 0;
+  }
+
+  .chat-backdrop {
+    display: none;
+  }
+
+  :root:has(.chat-panel:not([hidden])) {
+    --chat-width: 24rem;
+  }
+
+  :root:has(.chat-panel:not([hidden])) .shell-main {
+    margin-right: var(--chat-width);
+  }
+}
