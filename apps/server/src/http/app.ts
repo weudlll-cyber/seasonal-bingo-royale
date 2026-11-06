@@ -42,6 +42,7 @@ import { DevClock } from '../dev/devClock.js';
 import { registerDemoLeague } from '../dev/demoLeague.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
 import { attachGateway, type GatewayDeps } from '../realtime/gateway.js';
+import { SeenLive } from '../realtime/seenLive.js';
 import { liveViewsOn, type LiveViews } from '../view/liveViews.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
@@ -238,6 +239,9 @@ function registerGateway(
     live: metrics.live,
     limits,
     trustedProxies: env.SBR_TRUSTED_PROXIES,
+    seen: new SeenLive(deps.pool, (message) => {
+      fastify.log.warn(message);
+    }),
   });
   fastify.addHook('onClose', async () => {
     await io.close();

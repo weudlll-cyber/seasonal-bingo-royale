@@ -13,9 +13,10 @@
  *                 once for all watchers. Screens apply both without a state fetch. This runs on
  *                 a timer, never in the match's command queue: a tap is answered when its batch
  *                 is stored, not after the screens are updated. Per socket it keeps how much of
- *                 the viewer's effect timeline was sent and whom a watcher follows.
+ *                 the viewer's effect timeline was sent and whom a watcher follows. In an
+ *                 asynchronous match the accounts sent a step have seen it (./seenLive, D54).
  * Depends on:     socket.io (types), @sbr/application, ../view/liveViews, ../view/stepFrames,
- *                 ../view/watchView, ../http/routes/metrics (types), ./gateway (types)
+ *                 ../view/watchView, ../http/routes/metrics (types), ./gateway (types), ./seenLive
  * Used by:        ./gateway, ./intents (follow)
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/12-testing-strategy.md §5
  */
@@ -25,6 +26,7 @@ import type { Namespace, Socket } from 'socket.io';
 
 import type { LiveMetrics } from '../http/routes/metrics.js';
 import type { LiveViews } from '../view/liveViews.js';
+import type { SeenLive } from './seenLive.js';
 import { leaveOutUnchanged, ownFrame, roomFrame, type RoomSent } from '../view/stepFrames.js';
 import { buildWatchView, NO_WATCH_QUERY } from '../view/watchView.js';
 import type { SocketData } from './gateway.js';
@@ -43,6 +45,8 @@ interface LiveStepsDeps {
   readonly engine: MatchEngine;
   readonly views: LiveViews;
   readonly live?: LiveMetrics | undefined;
+  // Asynchronous matches: the players sent a step have seen it (D54).
+  readonly seen?: SeenLive | undefined;
 }
 
 export class LiveSteps {
@@ -92,8 +96,10 @@ export class LiveSteps {
         ? (watchedTop = buildWatchView(m.state, entry.idMap, NO_WATCH_QUERY))
         : watchedTop;
     let bytes = 0;
+    const watchers: string[] = [];
     for (const socket of this.socketsIn(name)) {
       const data = socket.data as SocketData;
+      if (data.session.accountId !== null) watchers.push(data.session.accountId);
       const live = liveOf(data, matchId);
       const own = ownFrame({
         step,
@@ -107,6 +113,7 @@ export class LiveSteps {
       socket.emit('own', own.frame);
       bytes += JSON.stringify(own.frame).length;
     }
+    if (m.record.ruleset.mode === 'async') this.deps.seen?.record(matchId, watchers, room.s);
     const recipients = this.deps.play.adapter.rooms.get(name)?.size ?? 0;
     bytes += JSON.stringify(lean.frame).length * recipients;
     this.deps.live?.built('frame', Date.now() - started, bytes);

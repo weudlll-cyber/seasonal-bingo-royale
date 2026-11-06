@@ -92,9 +92,10 @@ jobs:
       - name: gitleaks (full history)
         run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" git /repo --redact --no-banner --exit-code 1
       # Licenses compatible with AGPL-3.0-or-later only (spec 03 §18); a new one fails until reviewed.
+      # MIT-0 (nodemailer, 2026-11-06) is MIT without the attribution clause.
       - name: License check (production dependencies)
         run: |
-          allowed='["MIT","ISC","0BSD","BSD-2-Clause","BSD-3-Clause","Apache-2.0","BlueOak-1.0.0","CC0-1.0","Unlicense","MPL-2.0","LGPL-3.0-or-later","GPL-3.0-or-later","AGPL-3.0-or-later"]'
+          allowed='["MIT","MIT-0","ISC","0BSD","BSD-2-Clause","BSD-3-Clause","Apache-2.0","BlueOak-1.0.0","CC0-1.0","Unlicense","MPL-2.0","LGPL-3.0-or-later","GPL-3.0-or-later","AGPL-3.0-or-later"]'
           denied=$(pnpm -r licenses list --prod --json | jq -r --argjson ok "$allowed" \
             'to_entries[] | select(.key as $k | $ok | index($k) | not) | "\(.key): \([.value[].name] | join(", "))"')
           if [ -n "$denied" ]; then

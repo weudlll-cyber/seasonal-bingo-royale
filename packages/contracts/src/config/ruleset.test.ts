@@ -40,6 +40,10 @@ describe('RulesetSchema — defaults', () => {
     ]);
   });
 
+  it('no default lets anyone join a running match (D53)', () => {
+    for (const ruleset of everyDefault) expect(ruleset.lobby.lateJoin).toBe(false);
+  });
+
   it('every default round-trips through parse', () => {
     for (const ruleset of everyDefault) {
       expect(RulesetSchema.parse(ruleset)).toEqual(ruleset);
