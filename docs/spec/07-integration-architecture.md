@@ -77,7 +77,7 @@ The website lists account changes at `GET http://site:3800/api/games/bingo/accou
 
 - **Reaching it:** the app joins the website's Docker network in both modes (own Caddy: the network of its Caddy; nginx: of its `site` container) and calls `http://site:3800`. In nginx mode that network is not trusted for the sign-in route (only the edge subnet is).
 - **Polling** (`apps/server/src/website/accountFeed.ts`): every 2 minutes, following `next` until a page brings no changes (at most 20 pages a poll); the cursor is kept as a string in `sbr.website_feed`. Unknown kinds are logged once and treated like `rights`; ids not linked to a game account are skipped. A failing feed (network, 401, 404) is retried at the next poll and shown in `sbr status`; play goes on. Without the token file the feed stays idle, with a warning.
-- **Each change** (`apps/server/src/website/accountChanges.ts`): every kind revokes all the account's sessions at once and closes its sockets (the existing revoke and the gateway's per-session disconnect); a player in a running match keeps card and results and returns after signing in again; a locked account gets the guest answer and stays a guest. `deleted` also deletes the game account through the existing path (03 §19): it becomes "deleted player xxxx" in past rounds and match histories, its points stay there, it leaves the leaderboard, its name and steps are gone, the event log is never rewritten; its website id is kept in `sbr.website_deleted`, so a later sign-in with it is refused. What the game keeps per player: [docs/PRIVACY-DATA.md](../PRIVACY-DATA.md).
+- **Each change** (`apps/server/src/website/accountChanges.ts`): every kind revokes all the account's sessions at once and closes its sockets (the existing revoke and the gateway's per-session disconnect); a player in a running match keeps card and results and returns after signing in again; a locked account gets the guest answer and stays a guest. `deleted` also deletes the game account through the existing path (03 §19): it becomes "deleted player" plus its fixed four-character tag (D51) in past rounds and match histories, its points stay there, it leaves the leaderboard, its name and steps are gone, the event log is never rewritten; its website id is kept in `sbr.website_deleted`, so a later sign-in with it is refused. What the game keeps per player: [docs/PRIVACY-DATA.md](../PRIVACY-DATA.md).
 - **Standalone installs** keep `local` mode unchanged: the route answers 404, registration and password sign-in work as before.
 
 ## 3. Embedding
@@ -141,12 +141,10 @@ Optional outbound **webhooks** (feature flag `integrations.webhooks`, default of
 
 ## 6. Chat in integrated mode
 
-The game ships its own chat (required to work in both modes). On the Seasonal Entertainment website, the game shows **one dedicated room of the website chat** instead (decision D5, [README](README.md) §4):
+The game has no chat of its own (D55, 2026-11-06). On the Seasonal Entertainment website the website's chat room is the only chat (decision D5, [README](README.md) §4); a standalone install has no chat.
 
-- Room slug `bingo` in the website chat, embedded through the website’s `/embed/chat?room=bingo&theme=dark` (same site, so the website login applies; see the website’s `docs/EMBED.md`).
-- Selected by the setting `integrations.chatProvider`: `builtin` (default, standalone) or `hostEmbed` with `integrations.hostChatUrl`. The chat UI sits behind a `ChatPanel` component boundary, so both are a client-side choice.
-- With `hostEmbed`, game announcements (Season Complete, cuts, winner) are shown in the game’s own announcement strip, not posted into the website chat.
-- The `bingo` room itself is created by a website admin; nothing in the game creates it.
+- Room slug `bingo` in the website chat, embedded through the website's `/embed/chat?room=bingo&theme=<light|dark|auto>` in a frame on pages under `/games/bingo/` (same site, so the website login applies; see the website's `docs/EMBED.md`). Not built yet: the website creates the room when Bingo is switched on (website task SE-EMBEDDED-GAMES); its report gives the final slug and URL.
+- Game announcements (Season Complete, cuts, winner) stay in the game's own announcement strip, not posted into the website chat.
 
 ## 6a. Live call
 

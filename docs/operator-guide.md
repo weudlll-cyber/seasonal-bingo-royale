@@ -167,6 +167,12 @@ sudo sbr uninstall
 
 It asks you to type the environment's name (`prod`), then removes the game's containers, its database and uploads, its backup timer, its settings and its route file for the website (in nginx mode it reloads nginx; in own-Caddy mode it tells you to remove `bingo.caddy` from the website's `deploy/site/routes/` yourself). The backups in `/var/backups/sbr/prod/` stay (add `--purge-backups` to delete them too); so do Docker, the `backup-pull` user and the `sbr-backup` group. The website's include line may stay: it then matches no file.
 
+## 8a. For hosts
+
+- **Pausing a match:** there is no separate pause (D57). In the host console switch the draws to **Host draws ("Draw next")**: no number is drawn until you press Draw next again; switch back to timed draws to go on automatically.
+- **No late join:** players join only while the match is in its lobby (D53).
+- **Chat:** the game has no chat of its own; inside the website the website's chat is used (D55).
+
 ## 9. Good to know
 
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.

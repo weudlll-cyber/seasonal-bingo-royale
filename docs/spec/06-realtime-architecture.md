@@ -117,17 +117,13 @@ Round end (01 §5): the scheduler issues `CloseSpeedWindow` when the speed windo
 - Same engine; draws are scheduled minutes or hours apart, marking is automatic.
 - No socket needed: when a player opens the match, the client fetches `state` and `away-summary`.
 - **Away summary** = events since `match_entries.last_seen_event_seq`, condensed: number of draws, marks, patterns, seasons activated, rank before → now, cuts survived/eliminated, Season Complete, jackpot changes.
-- Notifications (opt-in): e-mail digest (daily or per cut), Web Push for “you were eliminated / you survived the cut / final starts / you won”. Never one notification per draw.
+- Notifications: only inside the game, a marker in My matches for a match with news since the player last looked (D54, 2026-11-06); no e-mail digest and no Web Push for now. Never one notification per draw.
 - Catch-up after downtime: missed draws are executed in order with `catchUpInterval` (default 2 s) up to `maxCatchUpDraws` (default 75), then normal cadence resumes; affected players get one summary.
 - **As built (WP-14, first draft):** the defaults are `ASYNC_CATCH_UP` in `packages/contracts` (a server setting, not part of a ruleset). Each timed draw carries its planned time through its window close (`plannedAt` in the scheduled action's payload); when the next planned time has already passed, the next draw comes at the catch-up pace — in practice every 3 s, since a draw never comes before the previous draw's speed window has closed (D10) — and draws planned more than 75 intervals ago are dropped. No catch-up draw falls inside quiet hours (01 §5). There is no `presence.ping` yet: the away summary is acknowledged by its own fetch (`GET /matches/:code/away-summary`, 05 §2.3a), which the player screen makes on opening, when the page is hidden (what was on screen counts as seen) and when it is shown again. The summary leaves out jackpot changes.
 
 ## 7. Chat
 
-- Rooms: global lobby room, one per match; match room readable by watchers, writable by participants (incl. eliminated ones) and staff.
-- Pipeline for `chat.send`: schema → sanctions check (cached, invalidated on change) → rate/spam check → length → normalization → profanity filter (block → reject `CHAT_FILTERED`; mask → replace with `***`; flag → deliver + queue for review) → persist → broadcast.
-- Moderators get inline actions in the client (delete, temp-mute presets, ban) when they hold `chat.moderate`; actions emit `chat.deleted` / `chat.sanction`.
-- History: last 50 on join, paged via HTTP.
-- In integrated mode the same chat is used (see [07-integration-architecture.md](07-integration-architecture.md) §6 for the option to use the Seasonal Entertainment chat instead).
+None in the game (D55, 2026-11-06): on the website its chat room is the only chat ([07-integration-architecture.md](07-integration-architecture.md) §6); a standalone install has no chat. The chat pipeline once planned here (rooms, filters, moderation, history) is not built and not planned.
 
 ## 8. Backpressure and limits
 
