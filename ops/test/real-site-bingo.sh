@@ -107,12 +107,14 @@ browser() {
 # The matches the phases use, made by the website's admin (a game admin, D41) with two members
 # registered through the website's own registration: one running to watch, one lobby to join.
 prepare_matches() {
-  local classic watch play
+  local classic watch play run name
+  run=$(openssl rand -hex 2)
   admin admin-login
-  for name in watcher1 watcher2; do admin register "$name" "pass-$name-123"; admin signin "$name" "pass-$name-123"; done
+  WATCHERS=("watch1x$run" "watch2x$run")
+  for name in "${WATCHERS[@]}"; do admin register "$name" "pass-$name-123"; admin signin "$name" "pass-$name-123"; done
   classic='"gameType":"classic","prizes":["rows-1"],"missedNumbers":{"kind":"autoMarkAfter","delayMs":1000},"maxPlayers":8'
   watch=$(admin create admin "{\"title\":\"Watch me\",\"drawMode\":\"auto\",\"drawIntervalMs\":60000,$classic}")
-  for name in watcher1 watcher2; do admin join "$name" "$watch" >/dev/null; done
+  for name in "${WATCHERS[@]}"; do admin join "$name" "$watch" >/dev/null; done
   admin start admin "$watch" >/dev/null
   play=$(admin create admin "{\"title\":\"Play with me\",\"drawMode\":\"host\",$classic}")
   printf '{"watch":"%s","play":"%s","member":"%s","password":"%s"}\n' "$watch" "$play" \

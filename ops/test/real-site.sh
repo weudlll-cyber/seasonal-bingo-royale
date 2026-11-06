@@ -17,10 +17,12 @@
 #                 `sbr uninstall`. Prints PASS/FAIL per check and the website SHA. Everything it
 #                 made carries the harness's label and is removed at the end (KEEP=1 keeps it).
 #                 Not part of CI (Docker with privileged containers, about an hour per mode).
+#                 KEEP=1 leaves the server; RESUME=1 then reuses it and its website for a faster
+#                 try of the bingo part (a fresh run is the real rehearsal).
 # Depends on:     docker, git, ./real-site-bingo.sh (and what it uses)
 # Spec:           docs/operator-guide.md (rehearsal); docs/spec/09-deployment-architecture.md §3
 #
-# Usage: bash ops/test/real-site.sh nginx|caddy <website-ref>
+# Usage: [KEEP=1] [RESUME=1] bash ops/test/real-site.sh nginx|caddy <website-ref>
 set -euo pipefail
 
 MODE=${1:?nginx or caddy}
@@ -79,7 +81,7 @@ phases() {
   prepare_matches
   browser_image
   probe browser P1
-  admin join watcher1 "$(state_value play)" >/dev/null
+  admin join "${WATCHERS[0]}" "$(state_value play)" >/dev/null
   admin start admin "$(state_value play)" >/dev/null
   probe ok "the member's match was played to its end" test "$(admin draw-to-end admin "$(state_value play)")" = finished
   admin grant "$(state_value member)" true
@@ -96,7 +98,8 @@ phases() {
 state_value() { jq -r ".$1 // empty" "$STATE/state.json"; }
 
 main_rehearsal() {
-  website_install
+  # RESUME=1 (with KEEP=1 the run before): the kept server and its website, the bingo again.
+  if [[ ${RESUME:-0} == 1 ]]; then say "=== resuming on the kept server (website $WEB_SHA)"; else website_install; fi
   WEBSITE_PRINT=$(website_print)
   copy_bingo
   probe bingo_install
