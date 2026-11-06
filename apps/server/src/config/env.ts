@@ -90,6 +90,10 @@ const envSchema = z.object({
   SBR_SMTP_USER: z.string().optional(),
   SBR_SMTP_PASSWORD: z.string().optional(),
   SBR_SMTP_FROM: z.string().default('Seasonal Bingo Royale <bingo@localhost>'),
+  // Open game sockets per client address and per session (audit-3 S4): generous on purpose,
+  // many players can share one address at an event.
+  SBR_SOCKETS_PER_ADDRESS: z.coerce.number().int().min(1).default(50),
+  SBR_SOCKETS_PER_SESSION: z.coerce.number().int().min(1).default(5),
   // How players sign in (D37): the game's own accounts (standalone), or only through the
   // website login, whose proxy passes the visitor as headers to GET <base>auth/website.
   SBR_AUTH_MODE: z.enum(['local', 'website']).default('local'),
