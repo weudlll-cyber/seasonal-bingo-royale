@@ -22,7 +22,6 @@
 #
 # Usage: bash ops/test/real-site.sh nginx|caddy <website-ref>
 set -euo pipefail
-export MSYS_NO_PATHCONV=1
 
 MODE=${1:?nginx or caddy}
 WEB_REF=${2:?the website ref, e.g. master}
@@ -37,6 +36,9 @@ if ! git -C "$WEB" merge-base --is-ancestor 82e9e30 HEAD; then
   echo "STOP: website $WEB_SHA does not contain SE-EMBEDDED-GAMES (merge 82e9e30)" >&2
   exit 1
 fi
+# Git Bash on Windows: container paths stay as written from here on (the website's harness
+# sets it too); not before, so git above got the temporary folder converted.
+export MSYS_NO_PATHCONV=1
 # The website's harness as a library: everything but its last line, `main "$@"`.
 sed '$d' "$WEB/deploy/test/run.sh" >"$WEB/deploy/test/run-lib.sh"
 # shellcheck source=/dev/null
