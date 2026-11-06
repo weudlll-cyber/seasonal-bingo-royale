@@ -109,10 +109,11 @@ admin_action() {
   [[ $(json ok <<<"$answer") == True ]] || { echo "admin $2 $3 on $1 failed: $answer" >&2; exit 1; }
 }
 
-# game NAME METHOD PATH [JSON]: the game's API with NAME's game session and CSRF token.
+# game NAME METHOD PATH [JSON]: the game's API with NAME's game session and CSRF token ($CSRF
+# when set: a loop asks for it once, as the game allows 120 requests a minute per session).
 game() {
-  local jar=$DIR/$1.jar csrf data=()
-  csrf=$(curl -sS --cacert "$ROOT_CA" -b "$jar" -c "$jar" "$GAME/api/v1/session" | json csrfToken)
+  local jar=$DIR/$1.jar csrf=${CSRF:-} data=()
+  [[ -n $csrf ]] || csrf=$(curl -sS --cacert "$ROOT_CA" -b "$jar" -c "$jar" "$GAME/api/v1/session" | json csrfToken)
   [[ -z ${4:-} ]] || data=(--data "$4")
   curl -sS --max-time 30 --cacert "$ROOT_CA" -b "$jar" -c "$jar" -X "$2" -H 'Content-Type: application/json' \
     -H "Origin: $SITE" -H "x-csrf-token: $csrf" "${data[@]}" "$GAME/api/v1$3"
@@ -127,23 +128,25 @@ game_signin() {
 # wait_running NAME CODE: through the start's 10-second countdown; prints the status then.
 wait_running() {
   local status
-  for _ in $(seq 1 30); do
-    status=$(game "$1" GET "/matches/$2" | json status)
+  for _ in $(seq 1 15); do
+    status=$(game "$1" GET "/matches/$2" | json status) || status=lobby
     [[ $status == lobby ]] || break
-    sleep 1
+    sleep 2
   done
   echo "$status"
 }
 
-# draw NAME CODE: host draws until the match is over (a draw is refused while its window runs).
+# draw NAME CODE: host draws until the match is over (a draw is refused while its window runs),
+# two requests every 2 seconds.
 draw_to_end() {
   local status
   wait_running "$1" "$2" >/dev/null
+  CSRF=$(curl -sS --cacert "$ROOT_CA" -b "$DIR/$1.jar" -c "$DIR/$1.jar" "$GAME/api/v1/session" | json csrfToken)
   for _ in $(seq 1 600); do
-    status=$(game "$1" GET "/matches/$2" | json status)
+    status=$(game "$1" GET "/matches/$2" | json status) || status=running
     [[ $status == running ]] || { echo "$status"; return 0; }
-    game "$1" POST "/matches/$2/draw-next" '{}' >/dev/null
-    sleep 1
+    game "$1" POST "/matches/$2/draw-next" '{}' >/dev/null || true
+    sleep 2
   done
   echo "still running"
 }
