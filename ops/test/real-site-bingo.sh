@@ -68,8 +68,9 @@ bingo_install() {
   ok "the install finished" output_has "$from" "checked through the website's proxy"
   ok "the domain came from the website's record" output_has "$from" 'example.org'
   ok "the route file was applied" on_server test -s "$(route_file)"
-  ok "the game answers through the website (HTTPS, Pebble)" on_server curl -fsS --cacert /etc/seasonal-test/pebble-root.pem \
-    https://example.org/games/bingo/healthz
+  # Its own answer (the website's pages answer 200 for any path too).
+  ok "the game answers through the website (HTTPS, Pebble)" test "$(on_server curl -fsS \
+    --cacert /etc/seasonal-test/pebble-root.pem https://example.org/games/bingo/healthz)" = '{"status":"ok"}'
   bingo_status
 }
 
