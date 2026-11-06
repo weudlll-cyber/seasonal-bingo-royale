@@ -9,7 +9,8 @@
  *                 10 s per match: the first step of a quiet match at once, later ones at the end
  *                 of the 10 s, so the last steps watched are never left out; a match quiet for
  *                 10 s is forgotten. A seq never moves backwards (GREATEST); rows exist only for
- *                 players, so spectators and guests change nothing. The away summary keeps naming what was missed while away.
+ *                 players, so spectators and guests change nothing. `flushAll` writes what is
+ *                 pending at once (tests). The away summary keeps naming what was missed while away.
  * Depends on:     ../db/pool (types)
  * Used by:        ./gateway, ./liveSteps
  * Spec:           docs/spec/06-realtime-architecture.md §6; docs/spec/01-game-design.md §13
@@ -46,22 +47,37 @@ export class SeenLive {
     const m = this.matches.get(matchId) ?? { pending: new Map<string, number>(), timer: null };
     this.matches.set(matchId, m);
     for (const id of accountIds) m.pending.set(id, Math.max(m.pending.get(id) ?? 0, seq));
-    if (m.timer === null) this.flush(matchId, m);
+    // The write catches its own failure (logged), so nobody waits for it here.
+    if (m.timer === null) void this.flush(matchId, m);
   }
 
-  private flush(matchId: string, m: MatchSeen): void {
+  // Writes what is pending now, without the 10 s wait (tests: the seen seqs at a known moment).
+  async flushAll(): Promise<void> {
+    const writes = [...this.matches].flatMap(([matchId, m]) => {
+      if (m.pending.size === 0) return [];
+      if (m.timer !== null) clearTimeout(m.timer);
+      return [this.flush(matchId, m)];
+    });
+    await Promise.all(writes);
+  }
+
+  private flush(matchId: string, m: MatchSeen): Promise<void> {
     const ids = [...m.pending.keys()];
     const seqs = ids.map((id) => m.pending.get(id) ?? 0);
     m.pending.clear();
-    this.pool.query(RECORD_SEEN, [matchId, ids, seqs]).catch((error: unknown) => {
-      this.warn(`recording live steps as seen failed: ${String(error)}`);
-    });
+    const written = this.pool
+      .query(RECORD_SEEN, [matchId, ids, seqs])
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        this.warn(`recording live steps as seen failed: ${String(error)}`);
+      });
     m.timer = setTimeout(() => {
       m.timer = null;
-      if (m.pending.size > 0) this.flush(matchId, m);
+      if (m.pending.size > 0) void this.flush(matchId, m);
       else this.matches.delete(matchId);
     }, SEEN_EVERY_MS);
     // A shutdown does not wait for it (a late write only logs its failure).
     m.timer.unref();
+    return written;
   }
 }

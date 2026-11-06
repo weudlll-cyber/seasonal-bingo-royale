@@ -13,7 +13,8 @@
  *                 once for all watchers. Screens apply both without a state fetch. This runs on
  *                 a timer, never in the match's command queue: a tap is answered when its batch
  *                 is stored, not after the screens are updated. Per socket it keeps how much of
- *                 the viewer's effect timeline was sent and whom a watcher follows. In an
+ *                 the viewer's effect timeline was sent and whom a watcher follows; `settled`
+ *                 tells when a match's published events have all gone out. In an
  *                 asynchronous match the accounts sent a step have seen it (./seenLive, D54).
  * Depends on:     socket.io (types), @sbr/application, ../view/liveViews, ../view/stepFrames,
  *                 ../view/watchView, ../http/routes/metrics (types), ./gateway (types), ./seenLive
@@ -72,6 +73,20 @@ export class LiveSteps {
       const next = previous.then(() => this.step(matchId)).catch(() => undefined);
       this.queues.set(matchId, next);
     }, STEP_WINDOW_MS);
+  }
+
+  // Resolves once every event published for the match so far has gone out as a step: tests
+  // wait on the work, not on time (the step window, the step queue).
+  async settled(matchId: string): Promise<void> {
+    for (;;) {
+      if (this.waiting.has(matchId)) {
+        await new Promise((resolve) => setTimeout(resolve, STEP_WINDOW_MS));
+        continue;
+      }
+      const queue = this.queues.get(matchId);
+      await queue;
+      if (!this.waiting.has(matchId) && this.queues.get(matchId) === queue) return;
+    }
   }
 
   private async step(matchId: string): Promise<void> {

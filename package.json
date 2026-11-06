@@ -15,11 +15,14 @@
     "format:check": "prettier . --check",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json && tsc --noEmit -p ops/test/tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
+    "test:quiet": "vitest run --reporter=dot",
     "test:coverage": "vitest run packages/domain packages/application --coverage",
     "test:integration:coverage": "vitest run --config vitest.integration.config.ts --coverage",
     "e2e": "playwright test -c e2e/playwright.config.ts",
+    "e2e:quiet": "playwright test -c e2e/playwright.config.ts --reporter=dot",
     "demo-league": "pnpm --filter @sbr/server demo-league",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
+    "verify:quiet": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:quiet"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -77,6 +77,12 @@ export interface App {
   readonly match: MatchRuntime;
   // Website mode with the sync token: the account-changes feed; main starts its polls.
   readonly feed: AccountFeed | null;
+  // Tests wait on the work, not on time: a match's events all sent as live steps, and the
+  // steps players watched written as seen (../realtime/liveSteps, ../realtime/seenLive).
+  readonly live: {
+    readonly settled: (matchId: string) => Promise<void>;
+    readonly seenNow: () => Promise<void>;
+  };
 }
 
 // Fastify with the logger, the trusted proxies (Caddy, 09 §1) and the base path: behind
@@ -207,7 +213,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     live: metrics.live,
     views,
   });
-  registerGateway(fastify, deps.env, metrics, {
+  const live = registerGateway(fastify, deps.env, metrics, {
     pool: deps.pool,
     engine: match.engine,
     bus: match.bus,
@@ -215,7 +221,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     sessionEnds,
     views,
   });
-  return { fastify, metrics, match, feed };
+  return { fastify, metrics, match, feed, live };
 }
 
 // The WebSocket gateway on the same server, closed with it.
@@ -225,13 +231,16 @@ function registerGateway(
   env: Env,
   metrics: MetricsHandle,
   deps: Pick<GatewayDeps, 'pool' | 'engine' | 'bus' | 'cookieName' | 'sessionEnds' | 'views'>,
-): void {
+): App['live'] {
   const caps = { perAddress: env.SBR_SOCKETS_PER_ADDRESS, perSession: env.SBR_SOCKETS_PER_SESSION };
   const limits = new SocketLimits(caps, (reason, address, log) => {
     metrics.socketsRefused.inc({ reason });
     if (log) fastify.log.warn({ reason, address }, 'game socket refused');
   });
-  const io = attachGateway(fastify.server, {
+  const seen = new SeenLive(deps.pool, (message) => {
+    fastify.log.warn(message);
+  });
+  const { io, steps } = attachGateway(fastify.server, {
     ...deps,
     allowedOrigins: allowedOrigins(env),
     path: `${env.SBR_BASE_PATH}ws`,
@@ -239,13 +248,12 @@ function registerGateway(
     live: metrics.live,
     limits,
     trustedProxies: env.SBR_TRUSTED_PROXIES,
-    seen: new SeenLive(deps.pool, (message) => {
-      fastify.log.warn(message);
-    }),
+    seen,
   });
   fastify.addHook('onClose', async () => {
     await io.close();
   });
+  return { settled: (matchId) => steps.settled(matchId), seenNow: () => seen.flushAll() };
 }
 
 // The built client in the image; the placeholder page in development (Vite serves it).

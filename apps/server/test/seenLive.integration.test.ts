@@ -59,8 +59,10 @@ describe('steps watched live count as seen (D54)', () => {
     expect(await kit.connected(socket)).toBe('ok');
     expect((await kit.send(socket, 'match.watch', { code })).ok).toBe(true);
     await travel(code);
-    // The last steps are written at the latest 10 s after the first of a burst.
-    await expect.poll(() => newsOf(code), { timeout: 20_000, interval: 500 }).toBe(false);
+    // Every step sent (the server says so), and the seen seqs written now instead of after 10 s.
+    await kit.harness.built.live.settled(id);
+    await kit.harness.built.live.seenNow();
+    expect(await newsOf(code)).toBe(false);
     socket.disconnect();
     await travel(code);
     expect(await newsOf(code)).toBe(true);

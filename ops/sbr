@@ -12,7 +12,7 @@
 #                 rollback data); rollback (backup, then the pre-update dump if the schema migrated —
 #                 later data is lost — previous image, stack files, env file and ref); backup;
 #                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
-#                 create-super (password asked in the app); maintenance on ["reason"]|off (flag
+#                 create-super (standalone only; password asked in the app); maintenance on ["reason"]|off (flag
 #                 file: no new matches, running ones finish); loadcheck (./lib/loadcheck.sh);
 #                 uninstall (./lib/uninstall.sh); status's proxy line in ./lib/website.sh. --yes
 #                 skips the confirmations.
@@ -54,7 +54,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
           [--force-env]          --force-env: another environment's backup or seed key)
   restore --drill <file> [...]   restore into a throw-away database and check it, seed key too
   logs [service]                 follow the logs (app, postgres, caddy)
-  admin create-super             create the first admin account
+  admin create-super             create the first admin account (standalone only)
   admin reset-2fa <name>         an admin who lost the authenticator enrols again at the next sign-in
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
   loadcheck [--players 200] [--spectators 50] [--minutes 10] [--cpuset CPUS]
@@ -251,6 +251,10 @@ cmd_admin() {
     return
   fi
   [[ ${2:-} == create-super ]] || die "usage: sbr admin create-super | sbr admin reset-2fa <display name>"
+  # Before its questions: the app refuses it in website mode as well (website admins are game
+  # admins, D41; no password sign-in there, D37).
+  [[ $(env_value "$SBR_ETC/$env.env" SBR_AUTH_MODE) != website ]] ||
+    die "not needed in website mode: website admins are game admins (D41), and there is no password sign-in here (D37)"
   email=${SBR_ADMIN_EMAIL_FLAG:-}
   name=${SBR_ADMIN_NAME_FLAG:-}
   ask email "Admin e-mail" "$(env_value "$SBR_ETC/$env.env" SBR_ADMIN_EMAIL)"
