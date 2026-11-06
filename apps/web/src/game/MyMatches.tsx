@@ -6,7 +6,9 @@
  * Responsibility: the `mine` part of the lobby's GET /matches answer (./Lobby, one refresh
  *                 for both, so they always agree) as one row per match with its title, pace ("Realtime" / "Asynchronous"), where it stands
  *                 ("Waiting for the host", "Starts at 22:25", "Starts or closes at …", with
- *                 every place taken "Full · " before it, "Round 2 · you're through", "Out in cut 1 · watching") and "Open", which opens
+ *                 every place taken "Full · " before it, "Round 2 · you're through", "Out in cut 1 · watching"),
+ *                 a dot and "new" when an asynchronous match has events the player has not
+ *                 seen (the server's `news`, D54) and "Open", which opens
  *                 it in this tab. Hidden while the list is empty (a guest's is). The server
  *                 decides every fact; this only puts them into words.
  * Depends on:     react, @sbr/contracts (types), ../shell/router, ./Registration (whenText),
@@ -61,6 +63,11 @@ export function MyMatches({
                 · {m.mode === 'async' ? 'Asynchronous' : 'Realtime'} ·{' '}
                 <span data-testid={`my-match-state-${m.code}`}>{myMatchState(m, now)}</span>
               </span>
+              {m.news && (
+                <span className="own-match__new" data-testid={`my-match-new-${m.code}`}>
+                  new
+                </span>
+              )}
             </span>
             <a
               className="sbr-btn sbr-btn--primary"

@@ -10,6 +10,7 @@
  *                 "Starts or closes at …", "Starting…", "Round 1", "Round 2 · you're through",
  *                 "Out in cut 1 · watching". The lobby list and My matches come in one answer
  *                 (one request per refresh), so a starting match says "Starting…" in both.
+ *                 An asynchronous match with unseen events carries a dot and "new" (D54).
  * Depends on:     @testing-library/react, @sbr/contracts (types), ./Lobby, ./MyMatches,
  *                 ../test/matchFixture
  * Spec:           docs/spec/01-game-design.md §13 (D39); docs/spec/05-api-design.md §2.2
@@ -44,6 +45,7 @@ function mine(over: Partial<MyMatch> = {}): MyMatch {
     roundIndex: null,
     cutsSurvived: 0,
     outInCut: null,
+    news: false,
     ...over,
   };
 }
@@ -100,5 +102,15 @@ describe('my matches in the lobby (D39)', () => {
     expect(myMatchState({ ...running, roundIndex: 2, cutsSurvived: 1, outInCut: 2 }, NOW)).toBe(
       'Out in cut 2 · watching',
     );
+  });
+});
+
+describe('the "new" marker in my matches (D54)', () => {
+  it('marks a match with unseen events with a dot and "new" (D54)', async () => {
+    const slow = mine({ code: 'SLOW01', mode: 'async', status: 'running', news: true });
+    serveMatch(matchSummary(), undefined, null, [slow, mine()]);
+    await show(<Lobby />);
+    expect(screen.getByTestId('my-match-new-SLOW01').textContent).toBe('new');
+    expect(screen.queryByTestId('my-match-new-MINE01')).toBeNull();
   });
 });

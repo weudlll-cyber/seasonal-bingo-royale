@@ -49,6 +49,7 @@ const mine: MyMatch = {
   roundIndex: null,
   cutsSurvived: 0,
   outInCut: null,
+  news: false,
 };
 
 describe('a full lobby', () => {

@@ -6,8 +6,10 @@
  * Responsibility: one query over the account's match entries: every match in its lobby or
  *                 running (asynchronous and realtime), newest first, with the start facts, the
  *                 newest round from the event log, the cuts the player came through and the cut
- *                 that put the player out, whether every place is taken; status, countdown and
- *                 "full" taken from the lobby list of the same answer. Only the session's own account.
+ *                 that put the player out, whether every place is taken, and for an asynchronous
+ *                 match whether it has events the player has not seen ("new", D54); status,
+ *                 countdown and "full" taken from the lobby list of the same answer. Only the
+ *                 session's own account.
  * Depends on:     @sbr/contracts (types), ../../db/pool
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
@@ -29,16 +31,20 @@ interface MyMatchRow {
   round_index: number | null;
   cuts_survived: number;
   out_in_cut: number | null;
+  news: boolean;
 }
 
 // The player's open matches first, then the cut events of those matches only (stored as the
 // domain's events: survivors and eliminated hold the player ids; a player's id is the account
 // id). The cut that put the player out is the number of cuts up to the one naming them among
-// the eliminated. The round and cuts come from the match's events by (match_id, seq).
+// the eliminated. The round and cuts come from the match's events by (match_id, seq). The
+// match's version is its last event's seq; the away summary's fetch moves the player's
+// last_seen_event_seq up to it, so "new" is cleared when the player opens the match (D54).
 const MY_MATCHES = `
   WITH mine AS (
     SELECT m.id, m.code, m.title, m.mode, m.status, m.starts_at, m.start_rule, m.start_at,
-           m.lobby_closes_at, m.max_players, m.created_at, e.player_id
+           m.lobby_closes_at, m.max_players, m.created_at, e.player_id,
+           m.mode = 'async' AND m.version > e.last_seen_event_seq AS news
       FROM sbr.match_entries e JOIN sbr.matches m ON m.id = e.match_id
      WHERE e.account_id = $1 AND m.status IN ('lobby', 'running')
   ), cuts AS (
@@ -47,7 +53,7 @@ const MY_MATCHES = `
      WHERE v.match_id IN (SELECT id FROM mine) AND v.type = 'cutApplied'
   )
   SELECT x.code, x.title, x.mode, x.status, x.starts_at, x.start_rule, x.start_at,
-         x.lobby_closes_at,
+         x.lobby_closes_at, x.news,
          (SELECT count(*) FROM sbr.match_entries f WHERE f.match_id = x.id) >= x.max_players AS full,
          (SELECT max((v.payload->>'roundIndex')::int) FROM sbr.match_events v
            WHERE v.match_id = x.id AND v.type = 'roundStarted') AS round_index,
@@ -74,6 +80,7 @@ function myMatch(r: MyMatchRow): MyMatch {
     roundIndex: r.round_index,
     cutsSurvived: r.cuts_survived,
     outInCut: r.out_in_cut,
+    news: r.news,
   };
 }
 
