@@ -13,7 +13,7 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json && pnpm -r typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p e2e/tsconfig.json && tsc --noEmit -p ops/test/tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run packages/domain packages/application --coverage",
     "test:integration:coverage": "vitest run --config vitest.integration.config.ts --coverage",

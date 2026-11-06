@@ -1,0 +1,30 @@
+#!/usr/bin/expect -f
+# @file   ops/test/real-site.exp
+# @module ops/test
+# @brief  The bingo install in the rehearsal's server, as the operator types it (website mode).
+#
+# Responsibility: runs the documented one command (`bash sbr/ops/install.sh --type website` from
+#                 /root, as root, so without sudo) on a terminal and answers only the three
+#                 questions the operator guide names: the environment (prod), the admin e-mail
+#                 and the age public key (AGE_KEY in the environment). Any other question (a
+#                 line waiting for an answer, ending in "? " or ": ") stops it with exit code 3
+#                 and the question on the output; otherwise it ends with the installer's code.
+# Depends on:     expect, ../install.sh
+# Used by:        ./real-site.sh (copied into the server as /etc/seasonal-test/sbr-install.exp)
+# Spec:           docs/operator-guide.md (website install); docs/spec/09-deployment-architecture.md §3
+set timeout 2400
+log_user 1
+spawn bash -c "cd /root && bash sbr/ops/install.sh --type website"
+expect {
+  -re {Environment \[prod/staging\][^\n]*: $} { send "prod\r"; exp_continue }
+  -re {Admin e-mail[^\n]*: $} { send "admin@example.org\r"; exp_continue }
+  -re {age public key[^\n]*: $} { send "$env(AGE_KEY)\r"; exp_continue }
+  -re {\n([^\n]*(\?|:) )$} {
+    puts "\nUNEXPECTED QUESTION: $expect_out(1,string)"
+    exit 3
+  }
+  timeout { puts "\nTIMEOUT waiting for the installer"; exit 4 }
+  eof
+}
+lassign [wait] pid spawn_id os_error code
+exit $code
