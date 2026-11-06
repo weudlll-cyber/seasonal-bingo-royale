@@ -65,6 +65,24 @@
   border-top: 1px solid var(--color-border);
 }
 
+/* "new" after an asynchronous match with unseen events, behind a dot (D54) */
+.own-match__new {
+  margin-left: var(--space-1);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.own-match__new::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.3rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  vertical-align: middle;
+}
+
 .waiting-players {
   display: flex;
   flex-wrap: wrap;

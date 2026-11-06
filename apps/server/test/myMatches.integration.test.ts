@@ -9,7 +9,9 @@
  *                 the start facts, the round and the cuts as the event log has them, read in one
  *                 query; player-2 sees only their own match; a match counting down is in the same state
  *                 on its card and in `mine` (one answer), and so is a full lobby (`full`);
- *                 a guest gets none. Open matches are
+ *                 a guest gets none. An asynchronous match carries "new" after a draw the
+ *                 player has not seen and loses it when the away summary is fetched (D54);
+ *                 a realtime match never has it. Open matches are
  *                 aborted at the end (./harness stopHarness).
  * Depends on:     vitest, ./harness, ./session
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
@@ -63,6 +65,7 @@ interface Listed {
   readonly roundIndex: number | null;
   readonly cutsSurvived: number;
   readonly outInCut: number | null;
+  readonly news: boolean;
 }
 
 interface Card {
@@ -169,4 +172,26 @@ describe('my matches in the lobby answer (D39)', () => {
     const guest = await harness.built.fastify.inject({ method: 'GET', url: '/api/v1/matches' });
     expect(guest.json<{ mine: unknown[] }>().mine).toEqual([]);
   });
+});
+
+describe('the "new" marker in my matches (D54)', () => {
+  const newsOf = async (code: string) => (await listOf(player)).find((m) => m.code === code)?.news;
+
+  it('shows a new draw in an asynchronous match and clears when the player opens it', async () => {
+    const slow = await joined(player, { title: 'Marked', mode: 'async', quietHours: null });
+    const live = await joined(player, { title: 'Live' });
+    const engine = harness.built.match.engine;
+    await engine.fillWithBots(slow.id, 10);
+    await engine.start(slow.id, 0);
+    // Opening the match fetches the away summary, which acknowledges what is there.
+    expect((await player.get(`/api/v1/matches/${slow.code}/away-summary`)).statusCode).toBe(200);
+    expect(await newsOf(slow.code)).toBe(false);
+    const travel = await host.post('/api/v1/dev/time-travel', { code: slow.code, ms: DAY });
+    expect(travel.statusCode).toBe(200);
+    expect(await newsOf(slow.code)).toBe(true);
+    expect((await player.get(`/api/v1/matches/${slow.code}/away-summary`)).statusCode).toBe(200);
+    expect(await newsOf(slow.code)).toBe(false);
+    // A realtime match never carries the marker.
+    expect(await newsOf(live.code)).toBe(false);
+  }, 180_000);
 });

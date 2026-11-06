@@ -7,7 +7,8 @@
  *                 answer (so both show the same state): every match the account joined
  *                 that is in its lobby, counting down or running, asynchronous and realtime,
  *                 with what the lobby needs to say where it stands (the start, the round,
- *                 cuts survived or the cut that put the player out). The server reads it in one
+ *                 cuts survived or the cut that put the player out, "new" for an unseen
+ *                 asynchronous match). The server reads it in one
  *                 query; the client only puts it into words.
  * Used by:        ../index, apps/server (http/routes/myMatches), apps/web (game/MyMatches)
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §11, §13 (D39)
@@ -33,4 +34,7 @@ export interface MyMatch {
   // Cuts the player came through, and the cut (1-based) that put the player out (null while in).
   readonly cutsSurvived: number;
   readonly outInCut: number | null;
+  // An asynchronous match has events the player has not seen yet: the lobby's "new" marker,
+  // the only notification (D54); cleared when the player opens the match. Always false for realtime.
+  readonly news: boolean;
 }
