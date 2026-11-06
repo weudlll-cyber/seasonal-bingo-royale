@@ -5,7 +5,8 @@
  *
  * Responsibility: on `matchFinished`: the Season Complete badge for every human who completed
  *                 all four seasons in a match without bots (D29); then, when the match counts
- *                 (@sbr/application leagueAwards: flag on, no bots, enough verified humans),
+ *                 (@sbr/application leagueAwards: flag on, no bots, enough humans — verified ones in website
+ *                 mode or with SBR_FEATURE_EMAIL_VERIFICATION on, D59),
  *                 one award per player in the season period of the finish time (created when
  *                 first needed, older seasons closed) and in the all-time period. Awards are
  *                 inserted with ON CONFLICT DO NOTHING and only the rows actually inserted add
@@ -34,7 +35,12 @@ interface EntryRow {
   readonly verified: boolean;
 }
 
-export async function awardFinishedMatch(client: PoolClient, m: FinishedMatch): Promise<void> {
+// needsVerifiedEmail: website mode, or standalone with SBR_FEATURE_EMAIL_VERIFICATION on (D59).
+export async function awardFinishedMatch(
+  client: PoolClient,
+  m: FinishedMatch,
+  needsVerifiedEmail: boolean,
+): Promise<void> {
   const entries = await leagueEntriesOf(client, m);
   await awardSeasonCompletes(client, m.matchId, entries);
   const flag = await client.query<{ counts_for_leaderboard: boolean }>(
@@ -43,7 +49,10 @@ export async function awardFinishedMatch(client: PoolClient, m: FinishedMatch): 
   );
   const awards = leagueAwards(
     { countsForLeaderboard: flag.rows[0]?.counts_for_leaderboard === true, entries },
-    LEADERBOARD_DEFAULTS,
+    {
+      ...LEADERBOARD_DEFAULTS,
+      requireVerifiedPlayers: LEADERBOARD_DEFAULTS.requireVerifiedPlayers && needsVerifiedEmail,
+    },
   );
   if (awards.length === 0) return;
   for (const periodId of await periodsFor(client, m.at)) {

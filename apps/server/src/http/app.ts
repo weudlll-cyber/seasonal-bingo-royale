@@ -153,6 +153,15 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
   }
 }
 
+// The match runtime's clock and meters; league points need confirmed e-mail addresses in
+// website mode, and in a standalone install only with SBR_FEATURE_EMAIL_VERIFICATION on (D59).
+const runtimeOptions = (env: Env, metrics: MetricsHandle, clock: DevClock | undefined) => ({
+  clock,
+  onTapBatch: metrics.taps.batch,
+  onAppend: metrics.taps.appended,
+  leagueNeedsVerifiedEmail: env.SBR_AUTH_MODE === 'website' || env.SBR_FEATURE_EMAIL_VERIFICATION,
+});
+
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
   const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
@@ -161,11 +170,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
-  const match = createMatchRuntime(deps.pool, seedKey, maintenance, {
-    clock,
-    onTapBatch: metrics.taps.batch,
-    onAppend: metrics.taps.appended,
-  });
+  const options = runtimeOptions(deps.env, metrics, clock);
+  const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();

@@ -54,11 +54,18 @@ export function createMatchRuntime(
     readonly onTapBatch?: (batch: TapBatchTiming) => void;
     // Each stored batch's round trips and time (the metrics, 12 §5).
     readonly onAppend?: (timing: AppendTiming) => void;
+    // League points need confirmed e-mail addresses (D59; default true).
+    readonly leagueNeedsVerifiedEmail?: boolean;
   } = {},
 ): MatchRuntime {
   const clock = options.clock ?? SYSTEM_CLOCK;
   const onTapBatch = options.onTapBatch;
-  const store = new PgMatchStore(pool, seedKey, options.onAppend);
+  const store = new PgMatchStore(
+    pool,
+    seedKey,
+    options.onAppend,
+    options.leagueNeedsVerifiedEmail ?? true,
+  );
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();
   const engine = new MatchEngine({

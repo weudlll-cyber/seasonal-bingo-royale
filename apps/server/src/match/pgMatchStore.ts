@@ -71,6 +71,9 @@ export class PgMatchStore implements MatchStore {
     private readonly pool: DbPool,
     private readonly seedKey: Buffer,
     private readonly onAppend: (timing: AppendTiming) => void = () => undefined,
+    // League points need confirmed e-mail addresses: website mode, or standalone with
+    // SBR_FEATURE_EMAIL_VERIFICATION on (D59).
+    private readonly needsVerifiedEmail = true,
   ) {}
 
   // At startup: the key must open what is stored (the newest sealed seed), so a wrong key
@@ -206,6 +209,7 @@ export class PgMatchStore implements MatchStore {
       stored,
       payloads: stored.map((s) => encode(s.event)),
       snapshot: due ? encode(input.stateAfter) : null,
+      needsVerifiedEmail: this.needsVerifiedEmail,
     });
     if (due) this.snapshotAt.set(input.matchId, lastSeq);
     this.onAppend({ roundTrips, ms: Date.now() - started, taps: input.mark?.source === 'manual' });
