@@ -29,6 +29,14 @@ const base = {
   maxPlayers: 20,
 };
 
+describe('ids (audit-3 G9)', () => {
+  it('takes a new match id from the id port, not from a global', async () => {
+    const { engine } = setUp();
+    const m = await engine.create({ ...base, gameType: 'royale' }, null);
+    expect(m.id).toBe('match-1');
+  });
+});
+
 describe('timed flow', () => {
   it.each(['classic', 'royale'] as const)(
     'plays a %s match with bots to the finish',

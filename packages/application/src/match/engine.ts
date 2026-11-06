@@ -81,6 +81,8 @@ interface EngineDeps {
   readonly maintenance: MaintenanceReader;
   readonly randomSeed: () => Uint8Array;
   readonly randomCode: () => string;
+  // A new match's id (audit-3 G9: no global randomness in the application layer).
+  readonly randomId: () => string;
   // Learns how each batch of taps went (the server's metrics, 12 §5).
   readonly onTapBatch?: (batch: TapBatchTiming) => void;
 }
@@ -110,7 +112,7 @@ export class MatchEngine {
       throw new MatchError('START_TIME_INVALID');
     }
     const created = toNewMatch(input, prizes, {
-      id: crypto.randomUUID(),
+      id: this.deps.randomId(),
       code: this.deps.randomCode(),
       seed: this.deps.randomSeed(),
       createdBy,

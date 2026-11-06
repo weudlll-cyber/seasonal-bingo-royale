@@ -14,7 +14,7 @@
  * Used by:        ../http/app
  * Spec:           docs/spec/02-software-architecture.md §5; docs/spec/01-game-design.md §9
  */
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes, randomInt, randomUUID } from 'node:crypto';
 
 import {
   MatchEngine,
@@ -76,6 +76,7 @@ export function createMatchRuntime(
     maintenance,
     ...(onTapBatch === undefined ? {} : { onTapBatch }),
     randomSeed: () => new Uint8Array(randomBytes(SEED_BYTES)),
+    randomId: () => randomUUID(),
     randomCode: () =>
       Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''),
   });
