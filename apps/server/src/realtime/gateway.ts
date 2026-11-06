@@ -14,7 +14,7 @@
  *                 `intent` goes to ./intents; a host intent on an ended session is answered, then
  *                 closed. Payloads max 16 KiB; frames recover for 2 min, then HTTP resync.
  * Depends on:     socket.io, ../auth/sessions, ../match/eventBus (types), ../view/liveViews
- *                 (types), ./intents, ./inOrder, ./liveSteps, @sbr/application,
+ *                 (types), ./intents, ./inOrder, ./liveSteps, ./seenLive (types), @sbr/application,
  *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews,
  *                 ../http/routes/metrics (types), ./matchCodes
  * Used by:        ../http/app, ./intents
@@ -36,6 +36,7 @@ import type { LiveViews } from '../view/liveViews.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import { inOrder } from './inOrder.js';
 import { LiveSteps, type SocketLive } from './liveSteps.js';
+import type { SeenLive } from './seenLive.js';
 import { MatchCodes } from './matchCodes.js';
 import type { SocketLimits } from './socketLimits.js';
 import { handleIntent, SESSION_ENDED, type Answer, type IntentContext } from './intents.js';
@@ -55,6 +56,8 @@ export interface GatewayDeps {
   readonly live?: LiveMetrics;
   // The server's one replay per live match, shared with the state fetches.
   readonly views: LiveViews;
+  // Live steps an asynchronous match's players were sent count as seen (./seenLive, D54).
+  readonly seen?: SeenLive;
   // The socket caps (./socketLimits) and the proxies whose X-Forwarded-For names the client
   // (the same list Fastify trusts, SBR_TRUSTED_PROXIES).
   readonly limits: SocketLimits;
@@ -112,7 +115,13 @@ export function attachGateway(server: HttpServer, deps: GatewayDeps): Server {
     onConnection(socket, deps, codes);
   });
   // One step per burst of events: the room's frame once, then each socket's own.
-  const steps = new LiveSteps({ play, engine: deps.engine, views: deps.views, live: deps.live });
+  const steps = new LiveSteps({
+    play,
+    engine: deps.engine,
+    views: deps.views,
+    live: deps.live,
+    seen: deps.seen,
+  });
   deps.bus.subscribe((matchId, events) => {
     steps.published(matchId, events);
   });

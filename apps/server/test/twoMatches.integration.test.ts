@@ -9,8 +9,9 @@
  *                 match runs (development time travel, that match's clock only): its automatic
  *                 marking keeps going; the realtime match, its log, its standings and the
  *                 player's state there (points, seasons, shield) do not move; each socket hears
- *                 only its own match; the away summary counts only the asynchronous match's
- *                 draws. Open matches are aborted at the end (./harness stopHarness).
+ *                 only its own match. The day the tab watched counts as seen (D54); with the tab
+ *                 closed a second day passes, and the away summary counts exactly its draws, none
+ *                 of the realtime match. Open matches are aborted at the end (./harness stopHarness).
  * Depends on:     @sbr/domain (types), socket.io-client (types), ./harness, ./socketKit
  * Spec:           docs/spec/01-game-design.md §5, §11 (D39); docs/spec/06-realtime-architecture.md §4
  */
@@ -47,6 +48,16 @@ async function joinedRoyale(body: object): Promise<{ code: string; id: string }>
   await engine.fillWithBots(match.id, 8);
   await engine.start(match.id, 0);
   return match;
+}
+
+// player-1's last seen seq in a match (match_entries).
+async function lastSeen(matchId: string): Promise<number> {
+  const r = await kit.harness.pool.query<{ seq: string }>(
+    `SELECT e.last_seen_event_seq AS seq FROM sbr.match_entries e
+      WHERE e.match_id = $1 AND e.account_id IS NOT NULL AND e.player_id NOT LIKE 'bot-%'`,
+    [matchId],
+  );
+  return Number(r.rows[0]?.seq ?? 0);
 }
 
 // A tab: a socket of player-1's session watching one match, with the frames it hears.
@@ -143,9 +154,22 @@ describe('one player in an asynchronous and a realtime match at once (D39)', () 
     expect(Math.max(...slowTab.seqs)).toBeLessThanOrEqual(slowLog.length);
     expect(liveTab.seqs.length).toBe(heardLive);
     expect(Math.max(...liveTab.seqs)).toBeLessThanOrEqual(before.seq);
-    // The away summary counts the asynchronous match's draws only.
+    // The day the tab watched counts as seen (D54, written at the latest 10 s later).
+    const watchedTo = slowLog.at(-1)?.seq ?? 0;
+    await expect
+      .poll(() => lastSeen(slow.id), { timeout: 20_000, interval: 500 })
+      .toBeGreaterThanOrEqual(watchedTo);
+    // A second day with the tab closed: the away summary counts exactly its draws.
+    slowTab.socket.disconnect();
+    expect(
+      (await kit.host.post('/api/v1/dev/time-travel', { code: slow.code, ms: DAY })).statusCode,
+    ).toBe(200);
+    const missed = (
+      await kit.harness.built.match.store.events(slow.id, await lastSeen(slow.id))
+    ).filter((e) => e.event.type === 'drawMade').length;
+    expect(missed).toBeGreaterThan(50);
     const away = await kit.player.get(`/api/v1/matches/${slow.code}/away-summary`);
-    expect(away.json<{ summary: { draws: number } | null }>().summary?.draws).toBe(slowDraws);
+    expect(away.json<{ summary: { draws: number } | null }>().summary?.draws).toBe(missed);
     // The realtime match goes on: another tap is accepted there.
     expect(await tapNextOwnNumber(liveTab.socket, live.code, live.id)).toBe(true);
   }, 180_000);

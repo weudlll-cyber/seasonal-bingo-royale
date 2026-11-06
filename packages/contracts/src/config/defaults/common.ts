@@ -48,6 +48,7 @@ export const DEFAULT_LOBBY_SHAPE = Object.freeze({
   minPlayers: 2,
   maxPlayers: 200,
   startRule: 'either' as const,
-  // Ignored: no late join by decision (2026-11-06); the field stays for stored rulesets.
-  lateJoin: true,
+  // No late join (D53, 2026-11-06): false, and never read; the field stays so stored
+  // rulesets parse.
+  lateJoin: false,
 });
