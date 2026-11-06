@@ -170,3 +170,10 @@ describe('Discord steps from the website (2026-11-04)', () => {
     expect(await stepsOf(cookieOf(r))).toEqual([]);
   });
 });
+
+describe("the website's chat room (07 §6)", () => {
+  it('names the room and the embed path in website mode, and nothing in local mode', async () => {
+    expect((await session(null)).chat).toEqual({ path: '/embed/chat', room: 'bingo' });
+    expect((await sessionOf(local, null, {}, '/')).chat).toBeUndefined();
+  });
+});

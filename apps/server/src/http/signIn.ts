@@ -61,6 +61,7 @@ export function registerSignIn(
     features: { ...featuresFrom(env), passwordReset: mailer !== null },
     mode: env.SBR_AUTH_MODE,
     basePath: env.SBR_BASE_PATH,
+    chat: { path: env.SBR_CHAT_PATH, room: env.SBR_CHAT_ROOM },
   });
   registerWebsiteSignIn(fastify, deps);
   if (env.SBR_DEV && env.SBR_AUTH_MODE === 'local') registerDevSignIn(fastify, deps);

@@ -9,9 +9,10 @@
  *                 "Register" (../account; in website mode one "Sign in" to the website, D37). Below the bar the current route's screen (boards and
  *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
  *                 the lobby and create form show the maintenance page, the host console a banner
- *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch). Dev-only Quick
+ *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch); in website
+ *                 mode the website's chat beside the lobby, match and console (./ChatDock). Dev-only Quick
  *                 Test and "Dev sign-in" (./DevTools) load on demand, out of production builds.
- * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance,
+ * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
  *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
@@ -32,6 +33,7 @@ import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
+import { ChatButton, ChatPanel, useChatDock, type ChatDock } from './ChatDock.js';
 import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { useSession } from './session.js';
@@ -54,6 +56,8 @@ const QuickTest = import.meta.env.DEV
 export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const route = useRoute();
   const maintenance = useMaintenance();
+  // Website mode: the website's chat beside the lobby, the match screens and the console.
+  const chat = useChatDock(route);
   return (
     <MaintenanceContext.Provider value={maintenance}>
       <header className="shell-bar">
@@ -66,17 +70,24 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         </a>
         {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
         <ThemeToggle />
-        <Nav route={route} dev={dev} />
+        <Nav route={route} dev={dev} chat={chat} />
         <Account dev={dev} />
       </header>
       <main className="shell-main">
         <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />
       </main>
+      <ChatPanel dock={chat} />
     </MaintenanceContext.Provider>
   );
 }
 
-function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): ReactElement {
+interface NavProps {
+  readonly route: Route;
+  readonly dev: boolean;
+  readonly chat: ChatDock | null;
+}
+
+function Nav({ route, dev, chat }: NavProps): ReactElement {
   const { can } = useSession();
   const link = (to: Route, label: string, active: boolean) => (
     <a href={hrefOf(to)} aria-current={active ? 'page' : undefined}>
@@ -107,6 +118,7 @@ function Nav({ route, dev }: { readonly route: Route; readonly dev: boolean }): 
           <QuickTestLink active={route.name === 'quicktest'} />
         </Suspense>
       ) : null}
+      <ChatButton dock={chat} />
     </nav>
   );
 }

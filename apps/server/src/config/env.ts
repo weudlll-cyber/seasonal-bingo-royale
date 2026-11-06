@@ -107,6 +107,16 @@ const envSchema = z.object({
   SBR_WEBSITE_HEADER_CAN_HOST: headerName('X-Acting-User-Can-Host'),
   SBR_WEBSITE_HEADER_STEPS: headerName('X-Acting-User-Steps'),
   SBR_WEBSITE_HEADER_GUEST: headerName('X-Acting-Guest'),
+  // The website's chat in website mode (07 §6): its embed page on the same site and the room
+  // the website made for the game (the website's docs/EMBED.md, "The embedded games' rooms").
+  SBR_CHAT_PATH: z
+    .string()
+    .regex(/^\/[\w/-]*$/, 'a path on the site, e.g. /embed/chat')
+    .default('/embed/chat'),
+  SBR_CHAT_ROOM: z
+    .string()
+    .regex(/^[a-z0-9-]{1,40}$/, 'a room slug, e.g. bingo')
+    .default('bingo'),
   // The website's account-changes feed (07 §2.4), reached over the website's Docker network,
   // and the token the installer copies from /etc/seasonal/games-sync-token; without the token
   // the feed job stays idle. Polled every 2 minutes.

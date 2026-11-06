@@ -28,7 +28,7 @@ const themeNow = (page: Page) =>
   page.evaluate(() => document.documentElement.getAttribute('data-theme'));
 
 // Presses the top bar's toggle until <html> carries the theme (the icon follows).
-async function setTheme(page: Page, theme: string): Promise<void> {
+export async function setTheme(page: Page, theme: string): Promise<void> {
   if ((await themeNow(page)) !== theme) await page.getByTestId('theme-toggle').click();
   await expect.poll(() => themeNow(page)).toBe(theme);
   // Buttons fade their background (160 ms): the picture waits until no fade is running.

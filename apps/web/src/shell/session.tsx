@@ -43,6 +43,8 @@ interface SessionInfo {
   // D37: `website` — players sign in only through the website, at `signInPath`.
   readonly authMode?: 'local' | 'website';
   readonly signInPath?: string;
+  // Website mode: the website's chat room and its embed page on the same site (07 §6).
+  readonly chat?: { readonly path: string; readonly room: string };
 }
 
 interface SessionContextValue {
