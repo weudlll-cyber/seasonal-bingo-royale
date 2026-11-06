@@ -47,5 +47,6 @@ describe('create-super (D41, D37)', () => {
     expect(run.stderr.trim()).toBe(
       'Not needed in website mode: website admins are game admins (D41), and there is no password sign-in here (D37).',
     );
-  });
+    // A new Node process compiling the CLI with tsx: seconds under a full test run.
+  }, 30_000);
 });

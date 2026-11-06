@@ -55,12 +55,15 @@ export interface LiveEntry {
 }
 
 // A deleted account shows as "deleted player …" (audit S10): names are read again after this
-// long, and at once for a deletion in this server (accountGone); a change rebuilds the replay.
+// long, and at once for a deletion in this server (accountGone, also one that came while the
+// names were being read); a change rebuilds the replay.
 const NAMES_TTL_MS = 30_000;
 
 export class LiveViews {
   private readonly entries = new Map<string, LiveEntry>();
   private readonly queues = new Map<string, Promise<unknown>>();
+  // Counts the deletions here: a replay whose names were read before one is read again.
+  private deletions = 0;
 
   constructor(private readonly sources: LiveViewSources) {}
 
@@ -87,10 +90,12 @@ export class LiveViews {
       else entry = undefined;
     }
     if (entry === undefined || entry.players !== players || entry.replay.length > m.seq) {
+      const deletionsBefore = this.deletions;
       const names = await this.sources.names(id);
       const idMap = new Map(m.state.playerOrder.map((p) => [p, names[p] ?? p]));
       const steps = new Map(Object.entries(await this.sources.steps(id)));
-      const namesAt = Date.now();
+      // A deletion while the names were read: they count as stale, the next look reads again.
+      const namesAt = this.deletions === deletionsBefore ? Date.now() : 0;
       entry = {
         replay: new LiveReplay(idMap, 'all'),
         idMap,
@@ -117,6 +122,7 @@ export class LiveViews {
 
   // An account deleted in this server: the replays naming it are built again with fresh names.
   accountGone(accountId: string): void {
+    this.deletions += 1;
     for (const [id, entry] of this.entries) if (entry.idMap.has(accountId)) this.entries.delete(id);
   }
 
