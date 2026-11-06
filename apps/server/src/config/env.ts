@@ -42,9 +42,8 @@ const envSchema = z.object({
   // migration is missing, which the owner role applies first (production, `cli migrate`).
   SBR_MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
   SBR_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
-  // Feature flags (./features): e-mail verification and 2FA off, guests on.
+  // Feature flags (./features): e-mail verification off, guests on (admin 2FA has no flag, D60).
   SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),
-  SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
   SBR_FEATURE_GUESTS: z.stringbool().default(true),
   // Browser origins allowed to open the WebSocket (06 §2), comma-separated; without it the
   // public URL's origin, else the local player and admin clients (allowedOrigins below).

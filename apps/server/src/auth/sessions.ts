@@ -8,7 +8,8 @@
  *                 Lookup (by cookie token, or by session id for a socket's host intents)
  *                 loads the account's display name and permissions (via role
  *                 assignments; a guest session gets the guest role's permissions) and
- *                 refuses revoked, expired and idle-expired sessions. Idle 7 days, absolute
+ *                 refuses revoked, expired and idle-expired sessions; a local admin account's
+ *                 session has no permissions until its second step (TOTP, D60). Idle 7 days, absolute
  *                 30 days for players and guests (7 days after a website sign-in); idle 30 minutes, absolute 8 hours for
  *                 accounts with an admin role. Dead sessions are purged by the retention job.
  * Depends on:     ../db/pool
@@ -33,6 +34,8 @@ export interface Session {
   readonly csrfToken: string;
   readonly displayName: string | null;
   readonly permissions: readonly string[];
+  // A local admin account's session before its second step (TOTP, D60): no permissions yet.
+  readonly twoFactorPending: boolean;
 }
 
 function tokenHash(token: string): Buffer {
@@ -71,6 +74,7 @@ interface SessionRow {
   csrf_token: string;
   display_name: string | null;
   permissions: string[] | null;
+  two_factor_pending: boolean;
 }
 
 // Loads a live session and slides its idle expiry. Unknown or dead tokens give null.
@@ -99,7 +103,11 @@ async function liveSession(
        (SELECT array_agg(DISTINCT rp.permission) FROM sbr.role_permissions rp
           WHERE rp.role_id = 'guest' AND s.account_id IS NULL
              OR rp.role_id IN (SELECT ra.role_id FROM sbr.role_assignments ra WHERE ra.account_id = s.account_id)
-       ) AS permissions`,
+       ) AS permissions,
+       -- An admin session of an account with a password (local, never a website account)
+       -- waits for its second step (D60).
+       (s.kind = 'admin' AND s.last_2fa_at IS NULL AND EXISTS (SELECT 1 FROM sbr.accounts p
+          WHERE p.id = s.account_id AND p.password_hash IS NOT NULL)) AS two_factor_pending`,
     [key],
   );
   const row = result.rows[0];
@@ -112,7 +120,8 @@ async function liveSession(
     kind: row.kind,
     csrfToken: row.csrf_token,
     displayName: row.display_name,
-    permissions: row.permissions ?? [],
+    permissions: row.two_factor_pending ? [] : (row.permissions ?? []),
+    twoFactorPending: row.two_factor_pending,
   };
 }
 

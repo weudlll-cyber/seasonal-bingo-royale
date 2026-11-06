@@ -23,6 +23,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
+import { TwoFactorPage } from '../account/TwoFactor.js';
 import { SignInLinks, SignInPage } from '../account/WebsiteSignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
@@ -170,7 +171,10 @@ function MaintainedScreen({ route, dev, maintenance }: ScreenProps): ReactElemen
 }
 
 function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }): ReactElement {
-  const who = useSession().session?.account?.id ?? 'guest';
+  const session = useSession().session;
+  const who = session?.account?.id ?? 'guest';
+  // A local admin's second sign-in step comes before every screen (D60).
+  if (session?.twoFactor) return <TwoFactorPage step={session.twoFactor} />;
   switch (route.name) {
     case 'lobby':
       return <Lobby />;

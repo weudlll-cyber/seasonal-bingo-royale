@@ -34,6 +34,8 @@ interface SessionInfo {
   readonly signedIn: boolean;
   // null without any session; 'guest' for a watch-only one.
   readonly kind?: 'player' | 'admin' | 'guest' | null;
+  // A local admin's second sign-in step still to do (D60).
+  readonly twoFactor?: 'enrol' | 'code' | null;
   readonly features?: { readonly guests: boolean; readonly passwordReset?: boolean };
   readonly account: { readonly id: string; readonly displayName: string } | null;
   readonly permissions: readonly string[];

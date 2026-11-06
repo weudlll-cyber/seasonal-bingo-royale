@@ -49,3 +49,16 @@
 .account-page .account-delete {
   margin: 0;
 }
+
+/* Two-factor sign-in (./TwoFactor): the QR code, the key, the recovery codes. */
+.tfa-qr {
+  width: 12rem;
+  height: 12rem;
+  background: #fff;
+}
+
+.tfa-secret,
+.tfa-codes {
+  font-family: ui-monospace, monospace;
+  word-break: break-all;
+}

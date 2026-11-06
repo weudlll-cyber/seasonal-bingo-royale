@@ -37,6 +37,7 @@ import {
 } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
 import { accountSessionIds, createSession, revokeSession } from '../../auth/sessions.js';
+import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
 import type { DbPool } from '../../db/pool.js';
 
@@ -114,9 +115,17 @@ function registerLocalSignIn(
   });
 }
 
-function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
+// A local admin's second sign-in step still to do (D60): 'enrol' or 'code', else null.
+async function pendingStep(request: FastifyRequest, deps: AuthDeps) {
+  const s = request.session;
+  if (s === null || s.accountId === null || !s.twoFactorPending) return null;
+  return twoFactorStep(deps.pool, s.accountId);
+}
+
+async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
   const s = request.session;
   return {
+    twoFactor: await pendingStep(request, deps),
     signedIn: s !== null && s.accountId !== null,
     kind: s?.kind ?? null,
     account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,

@@ -83,7 +83,7 @@ As built (WEBSITE-LOGIN, migration 0013): `identity_providers` with `id`, `kind`
 **role_permissions** — `role_id`, `permission text`; PK both.
 **role_assignments** — `account_id`, `role_id`, `granted_by`, `granted_at`, `source` (`manual`/`idp_mapping`); PK `(account_id, role_id)`.
 
-**totp_factors** — `account_id PK`, `secret_enc bytea`, `confirmed_at`, `last_used_step bigint` (prevents TOTP code reuse).
+**totp_factors** — `account_id PK`, `secret_enc bytea` (sealed with the seed key, bound to the account), `confirmed_at`, `last_used_step bigint` (prevents TOTP code reuse). Built in 0019 (D60) with **recovery_codes** and **password_reset_tokens** (which also has `created_at`); `sessions.last_2fa_at` marks a session whose second step is done.
 **recovery_codes** — `id`, `account_id`, `code_hash`, `used_at`.
 **password_reset_tokens** / **email_verification_tokens** — `token_hash PK`, `account_id`, `expires_at`, `used_at`.
 

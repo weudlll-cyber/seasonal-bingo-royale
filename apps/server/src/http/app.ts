@@ -31,6 +31,7 @@ import { SessionEnds } from '../auth/sessionEnds.js';
 import { mailerFrom, type Mailer } from '../auth/mailer.js';
 import { AccountFeed } from '../website/accountFeed.js';
 import { registerPasswordReset } from './routes/passwordReset.js';
+import { registerTwoFactor } from './routes/twoFactor.js';
 import { registerOpenRounds } from './routes/openRounds.js';
 import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
@@ -255,6 +256,9 @@ function registerSignIn(
     publicUrl: env.SBR_PUBLIC_URL ?? null,
     basePath: env.SBR_BASE_PATH,
   });
+  // Local admins' second sign-in step (TOTP, D60); the website does its own.
+  if (env.SBR_AUTH_MODE === 'local')
+    registerTwoFactor(fastify, { ...deps, seedKey: seedKeyFrom(env) });
   registerAuthRoutes(fastify, {
     ...deps,
     features: { ...featuresFrom(env), passwordReset: mailer !== null },

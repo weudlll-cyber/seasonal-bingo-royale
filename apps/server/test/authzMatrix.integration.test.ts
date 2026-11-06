@@ -95,6 +95,11 @@ const ROUTES: readonly RouteCase[] = [
   // Development only; the empty body is refused before any match moves.
   { method: 'POST', path: '/api/v1/dev/time-travel', body: {}, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/auth/logout', body: {}, allow: SESSION },
+  // A local admin's second sign-in step (D60): any session gets through to the route, which
+  // answers 409 NO_TWO_FACTOR_STEP unless its second step is open.
+  { method: 'POST', path: '/api/v1/auth/2fa/enrol', body: {}, allow: SESSION },
+  { method: 'POST', path: '/api/v1/auth/2fa/confirm', body: { code: '000000' }, allow: SESSION },
+  { method: 'POST', path: '/api/v1/auth/2fa/verify', body: { code: '000000' }, allow: SESSION },
   { method: 'DELETE', path: '/api/v1/me', body: { password: 'not the password' }, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/matches', body: {}, allow: HOSTS },
   { method: 'POST', path: '/api/v1/matches/:code/join', body: {}, allow: ACCOUNTS },

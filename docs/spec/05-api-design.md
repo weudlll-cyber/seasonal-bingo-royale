@@ -26,8 +26,10 @@ In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and
 | GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags, `authMode` (D37) | any |
 | POST | `/auth/register` | Create local account | none, rate-limited |
 | POST | `/auth/verify-email` | Confirm e-mail token | none |
-| POST | `/auth/login` | E-mail + password → session (or `2FA_REQUIRED` with a short-lived challenge ID) | none |
-| POST | `/auth/login/2fa` | Challenge ID + TOTP or recovery code | none |
+| POST | `/auth/login` | E-mail + password → session (a local admin's session has no rights until its second step, `/auth/2fa/*`) | none |
+| POST | `/auth/2fa/enrol` | As built (D60): the waiting session of a local admin gets a new secret with its QR code (SVG) and link, while no factor is confirmed | session (second step open) |
+| POST | `/auth/2fa/confirm` | `{ code }` → the factor goes live, `{ recoveryCodes }` (ten, shown once); 400 `TWO_FACTOR_FAILED`; 429 past five tries | session (second step open) |
+| POST | `/auth/2fa/verify` | `{ code }` or `{ recoveryCode }` → 204, the session gets its rights; 400 `TWO_FACTOR_FAILED`; 429 past five tries. `/session` says `twoFactor: 'enrol' \| 'code' \| null` | session (second step open) |
 | POST | `/auth/logout` | End current session | session |
 | POST | `/auth/password-reset` | Request the reset mail `{ email }` (always 202; 429 past the limits; standalone with SMTP only, else 404; D60) | none |
 | POST | `/auth/password-reset/complete` | `{ token, password }` → 204, every session of the account ended; 400 `RESET_INVALID` or `PASSWORD_WEAK` | none |
