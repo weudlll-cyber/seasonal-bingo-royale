@@ -1,20 +1,23 @@
 /**
- * @file   apps/server/src/auth/smtp.test.ts
+ * @file   apps/server/src/auth/mailer.test.ts
  * @module server/auth
- * @brief  The SMTP client speaks the dialogue and keeps headers and the body safe.
+ * @brief  The mailer speaks SMTP and keeps headers and the body safe (D60).
  *
- * Responsibility: against a fake SMTP server on a local port: the envelope addresses come
- *                 from the From and To values, a subject with a line break stays one header
- *                 line, a body line starting with "." is dot-stuffed, and a refused recipient
- *                 rejects the send.
- * Depends on:     vitest, node:net, ./smtp
+ * Responsibility: against a fake SMTP server on a local port, through mailerFrom with the
+ *                 SBR_SMTP_* settings: the envelope addresses come from SBR_SMTP_FROM and the
+ *                 recipient, a subject with a line break never becomes a header of its own,
+ *                 a body line starting with "." is dot-stuffed, the message carries a
+ *                 Message-ID, and a refused recipient rejects the send. No mailer in website
+ *                 mode or without a host.
+ * Depends on:     vitest, node:net, ./mailer, ../config/env (types)
  * Spec:           docs/spec/03-security-architecture.md §1
  */
 import net, { type AddressInfo } from 'node:net';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { sendSmtp } from './smtp.js';
+import type { Env } from '../config/env.js';
+import { mailerFrom, type Mailer } from './mailer.js';
 
 let server: net.Server | null = null;
 afterEach(() => {
@@ -59,28 +62,45 @@ function fakeServer(refuseRecipient = false): Promise<{ port: number; seen: stri
   });
 }
 
-const message = (port: number) => ({
-  host: '127.0.0.1',
-  port,
-  from: 'Bingo <bingo@example.org>',
-  to: 'ann@example.org',
-  subject: 'Hello\r\nBcc: evil@example.org',
-  text: 'Line one\n.starts with a dot',
-});
+// The mailer of a standalone install whose SMTP settings point at the fake server.
+function mailerAt(port: number): Mailer {
+  const env = {
+    SBR_AUTH_MODE: 'local',
+    SBR_SMTP_HOST: '127.0.0.1',
+    SBR_SMTP_PORT: port,
+    SBR_SMTP_FROM: 'Bingo <bingo@example.org>',
+  } as Env;
+  const mailer = mailerFrom(env);
+  if (mailer === null) throw new Error('no mailer');
+  return mailer;
+}
 
-describe('the SMTP client', () => {
-  it('sends the envelope, one subject line and a dot-stuffed body', async () => {
+const send = (port: number) =>
+  mailerAt(port).send(
+    'ann@example.org',
+    'Hello\r\nBcc: evil@example.org',
+    'Line one\n.starts with a dot',
+  );
+
+describe('the mailer (D60)', () => {
+  it('sends the envelope, one subject header, a dot-stuffed body and a Message-ID', async () => {
     const { port, seen } = await fakeServer();
-    await sendSmtp(message(port));
+    await send(port);
     expect(seen).toContain('MAIL FROM:<bingo@example.org>');
     expect(seen).toContain('RCPT TO:<ann@example.org>');
-    expect(seen).toContain('Subject: Hello Bcc: evil@example.org');
+    expect(seen.some((l) => l.startsWith('Subject: Hello'))).toBe(true);
     expect(seen.some((l) => l.startsWith('Bcc:'))).toBe(false);
     expect(seen).toContain('..starts with a dot');
+    expect(seen.some((l) => /^Message-ID: <.+@.+>$/i.test(l))).toBe(true);
   });
 
   it('rejects when the server refuses the recipient', async () => {
     const { port } = await fakeServer(true);
-    await expect(sendSmtp(message(port))).rejects.toThrow(/refused/);
+    await expect(send(port)).rejects.toThrow();
+  });
+
+  it('is none in website mode or without a host', () => {
+    expect(mailerFrom({ SBR_AUTH_MODE: 'website', SBR_SMTP_HOST: 'mail' } as Env)).toBeNull();
+    expect(mailerFrom({ SBR_AUTH_MODE: 'local' } as Env)).toBeNull();
   });
 });
