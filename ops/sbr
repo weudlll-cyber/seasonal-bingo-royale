@@ -55,6 +55,7 @@ usage: sbr [--env prod|staging] [--yes] <command>
   restore --drill <file> [...]   restore into a throw-away database and check it, seed key too
   logs [service]                 follow the logs (app, postgres, caddy)
   admin create-super             create the first admin account
+  admin reset-2fa <name>         an admin who lost the authenticator enrols again at the next sign-in
   maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
   loadcheck [--players 200] [--spectators 50] [--minutes 10] [--cpuset CPUS]
                                  one measured royale with temporary accounts (refused while
@@ -91,6 +92,14 @@ cmd_status() {
     info "maintenance: off"
   fi
   info "sign-in:     $(env_value "$file" SBR_AUTH_MODE)"
+  # Standalone: password reset needs the SMTP settings (D60).
+  if [[ $(env_value "$file" SBR_AUTH_MODE) == local ]]; then
+    if [[ -n $(env_value "$file" SBR_SMTP_HOST) ]]; then
+      info "mail:        through $(env_value "$file" SBR_SMTP_HOST) (password reset on)"
+    else
+      warn "no SMTP settings in $file: password reset is off (run the installer again with --smtp-host …)"
+    fi
+  fi
   if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
     info "database:    the app as sbr_app, migrations as sbr_owner"
   else
@@ -234,12 +243,18 @@ cmd_restore() {
 
 cmd_admin() {
   local env=$1 email name tty=()
-  [[ ${2:-} == create-super ]] || die "usage: sbr admin create-super"
+  [[ -t 0 ]] || tty=(-T)
+  # An admin who lost the authenticator and the recovery codes enrols again (D60).
+  if [[ ${2:-} == reset-2fa ]]; then
+    [[ -n ${3:-} ]] || die "usage: sbr admin reset-2fa <display name>"
+    compose "$env" exec "${tty[@]}" app node dist/cli.js reset-2fa --name "$3"
+    return
+  fi
+  [[ ${2:-} == create-super ]] || die "usage: sbr admin create-super | sbr admin reset-2fa <display name>"
   email=${SBR_ADMIN_EMAIL_FLAG:-}
   name=${SBR_ADMIN_NAME_FLAG:-}
   ask email "Admin e-mail" "$(env_value "$SBR_ETC/$env.env" SBR_ADMIN_EMAIL)"
   ask name "Admin display name (3–24 letters or digits)" admin
-  [[ -t 0 ]] || tty=(-T)
   compose "$env" exec "${tty[@]}" app node dist/cli.js create-super --email "$email" --name "$name"
 }
 

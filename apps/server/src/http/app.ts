@@ -28,7 +28,10 @@ import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { SessionEnds } from '../auth/sessionEnds.js';
+import { mailerFrom, type Mailer } from '../auth/mailer.js';
 import { AccountFeed } from '../website/accountFeed.js';
+import { registerPasswordReset } from './routes/passwordReset.js';
+import { registerTwoFactor } from './routes/twoFactor.js';
 import { registerOpenRounds } from './routes/openRounds.js';
 import { cookieConfig, registerSessions, type CookieConfig } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
@@ -66,6 +69,8 @@ import { registerWebsiteSignIn } from './routes/websiteSignIn.js';
 interface AppDeps {
   readonly env: Env;
   readonly pool: DbPool;
+  // Outgoing mail; tests pass their own, else ../auth/mailer from the SMTP settings.
+  readonly mailer?: Mailer | null;
 }
 
 export interface App {
@@ -153,6 +158,15 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
   }
 }
 
+// The match runtime's clock and meters; league points need confirmed e-mail addresses in
+// website mode, and in a standalone install only with SBR_FEATURE_EMAIL_VERIFICATION on (D59).
+const runtimeOptions = (env: Env, metrics: MetricsHandle, clock: DevClock | undefined) => ({
+  clock,
+  onTapBatch: metrics.taps.batch,
+  onAppend: metrics.taps.appended,
+  leagueNeedsVerifiedEmail: env.SBR_AUTH_MODE === 'website' || env.SBR_FEATURE_EMAIL_VERIFICATION,
+});
+
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
   const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
@@ -161,11 +175,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
-  const match = createMatchRuntime(deps.pool, seedKey, maintenance, {
-    clock,
-    onTapBatch: metrics.taps.batch,
-    onAppend: metrics.taps.appended,
-  });
+  const options = runtimeOptions(deps.env, metrics, clock);
+  const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
   await match.store.checkKey();
@@ -233,12 +244,24 @@ function registerSignIn(
     cookie: CookieConfig;
     sessionEnds: SessionEnds;
     accountDeleted: (accountId: string) => void;
+    mailer?: Mailer | null | undefined;
   },
 ): AccountFeed | null {
   const { env } = deps;
+  // Password reset: standalone installs with mail only (D60).
+  const mailer = env.SBR_AUTH_MODE === 'local' ? (deps.mailer ?? mailerFrom(env)) : null;
+  registerPasswordReset(fastify, {
+    ...deps,
+    mailer,
+    publicUrl: env.SBR_PUBLIC_URL ?? null,
+    basePath: env.SBR_BASE_PATH,
+  });
+  // Local admins' second sign-in step (TOTP, D60); the website does its own.
+  if (env.SBR_AUTH_MODE === 'local')
+    registerTwoFactor(fastify, { ...deps, seedKey: seedKeyFrom(env) });
   registerAuthRoutes(fastify, {
     ...deps,
-    features: featuresFrom(env),
+    features: { ...featuresFrom(env), passwordReset: mailer !== null },
     mode: env.SBR_AUTH_MODE,
     basePath: env.SBR_BASE_PATH,
   });

@@ -35,7 +35,7 @@ const COMMON = new Set([
   'administrator',
 ]);
 
-type PasswordProblem = 'tooShort' | 'tooLong' | 'tooCommon';
+export type PasswordProblem = 'tooShort' | 'tooLong' | 'tooCommon';
 
 export function passwordProblem(password: string): PasswordProblem | null {
   if (password.length < 12) return 'tooShort';

@@ -33,6 +33,25 @@ function readEnvFile(): Map<string, string> {
   return new Map(entries);
 }
 
+// Mailpit, where the e2e server sends its mail (password reset, D60): CI's service
+// (SBR_E2E_SMTP_HOST, SBR_E2E_SMTP_PORT, SBR_E2E_MAILPIT_URL), else the dev stack's.
+export function mailpit(): { smtpHost: string; smtpPort: string; apiUrl: string } {
+  const host = process.env['SBR_E2E_SMTP_HOST'];
+  if (host !== undefined) {
+    return {
+      smtpHost: host,
+      smtpPort: process.env['SBR_E2E_SMTP_PORT'] ?? '1025',
+      apiUrl: process.env['SBR_E2E_MAILPIT_URL'] ?? `http://${host}:8025`,
+    };
+  }
+  const env = readEnvFile();
+  return {
+    smtpHost: '127.0.0.1',
+    smtpPort: env.get('SBR_DEV_MAILPIT_SMTP_PORT') ?? '1090',
+    apiUrl: `http://127.0.0.1:${env.get('SBR_DEV_MAILPIT_UI_PORT') ?? '8490'}`,
+  };
+}
+
 // The database the e2e server uses: CI's service (SBR_E2E_DATABASE_URL), else the dev stack.
 export const externalDatabase = (): string | undefined => process.env['SBR_E2E_DATABASE_URL'];
 

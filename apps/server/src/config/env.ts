@@ -42,9 +42,8 @@ const envSchema = z.object({
   // migration is missing, which the owner role applies first (production, `cli migrate`).
   SBR_MIGRATIONS: z.enum(['apply', 'check']).default('apply'),
   SBR_LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
-  // Feature flags (./features): e-mail verification and 2FA off, guests on.
+  // Feature flags (./features): e-mail verification off, guests on (admin 2FA has no flag, D60).
   SBR_FEATURE_EMAIL_VERIFICATION: z.stringbool().default(false),
-  SBR_FEATURE_TWO_FACTOR: z.stringbool().default(false),
   SBR_FEATURE_GUESTS: z.stringbool().default(true),
   // Browser origins allowed to open the WebSocket (06 §2), comma-separated; without it the
   // public URL's origin, else the local player and admin clients (allowedOrigins below).
@@ -84,6 +83,13 @@ const envSchema = z.object({
   SBR_WEB_DIR: z.string().optional(),
   // A writable directory (the uploads volume in production) for the maintenance flag.
   SBR_DATA_DIR: z.string().default('./data'),
+  // Outgoing e-mail (password reset in standalone installs, D60); without a host no mail is
+  // sent and the reset is off. The installer asks for these; locally Mailpit (port 1090).
+  SBR_SMTP_HOST: z.preprocess((v) => (v === '' ? undefined : v), z.string().optional()),
+  SBR_SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SBR_SMTP_USER: z.string().optional(),
+  SBR_SMTP_PASSWORD: z.string().optional(),
+  SBR_SMTP_FROM: z.string().default('Seasonal Bingo Royale <bingo@localhost>'),
   // How players sign in (D37): the game's own accounts (standalone), or only through the
   // website login, whose proxy passes the visitor as headers to GET <base>auth/website.
   SBR_AUTH_MODE: z.enum(['local', 'website']).default('local'),

@@ -141,10 +141,14 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U sbr -d sbr" --health-interval 2s --health-timeout 3s
           --health-retries 30
+      # The e2e server's mail (password reset, D60), read back through Mailpit's API.
+      mailpit:
+        image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
     env:
       SBR_E2E_BROWSER: ${{ matrix.browser }}
       # The PostgreSQL service by its name (e2e/devStack.ts; no docker compose in the container).
       SBR_E2E_DATABASE_URL: postgres://sbr:ci-only@postgres:5432/sbr
+      SBR_E2E_SMTP_HOST: mailpit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
@@ -177,6 +181,7 @@ jobs:
     env:
       SBR_E2E_BROWSER: chromium
       SBR_E2E_DATABASE_URL: postgres://sbr:ci-only@postgres:5432/sbr
+      SBR_E2E_SMTP_HOST: mailpit
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup

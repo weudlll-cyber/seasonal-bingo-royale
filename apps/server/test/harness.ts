@@ -16,6 +16,7 @@
  */
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
+import type { Mailer } from '../src/auth/mailer.js';
 import { buildApp, createPool, loadEnv, migrate, type App, type DbPool } from '../src/index.js';
 
 // Starting Postgres can be slow on a cold cache, so give each suite a generous ceiling.
@@ -36,6 +37,7 @@ export async function buildOn(
   pool: DbPool,
   url: string,
   overrides: Record<string, string> = {},
+  mailer?: Mailer,
 ): Promise<App> {
   const env = loadEnv({
     NODE_ENV: 'test',
@@ -49,7 +51,7 @@ export async function buildOn(
     SBR_SEED_KEY: TEST_SEED_KEY,
     ...overrides,
   });
-  const built = await buildApp({ env, pool });
+  const built = await buildApp({ env, pool, ...(mailer === undefined ? {} : { mailer }) });
   await built.fastify.ready();
   return built;
 }

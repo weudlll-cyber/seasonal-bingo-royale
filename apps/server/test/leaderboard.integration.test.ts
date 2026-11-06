@@ -39,8 +39,11 @@ afterAll(async () => {
 }, SUITE_TIMEOUT_MS);
 
 // A new player account, its e-mail confirmed or not.
+// Numbers the accounts (the deletion test removes one from `made`).
+let registered = 0;
 async function account(verified: boolean): Promise<string> {
-  const n = made.length + 1;
+  registered += 1;
+  const n = registered;
   const r = await registerAccount(harness.pool, {
     email: `league-${String(n)}@example.com`,
     displayName: `league${String(n)}`,
@@ -64,7 +67,11 @@ const accounts = async (n: number, verified = true) => {
 
 // A classic match that counts for the leaderboard, joined by `players` (and `bots` bots),
 // played to its end; returns the match id.
-async function play(players: readonly string[], bots = 0): Promise<string> {
+async function play(
+  players: readonly string[],
+  bots = 0,
+  engine = harness.built.match.engine,
+): Promise<string> {
   const created = await host.post('/api/v1/matches', {
     title: 'League match',
     gameType: 'classic',
@@ -75,7 +82,6 @@ async function play(players: readonly string[], bots = 0): Promise<string> {
     countsForLeaderboard: true,
   });
   const { id } = created.json<{ id: string }>();
-  const engine = harness.built.match.engine;
   for (const p of players) await engine.join(id, p, true);
   if (bots > 0) await engine.fillWithBots(id, players.length + bots);
   await engine.start(id, 0);
@@ -103,7 +109,7 @@ async function projectFinishAgain(matchId: string, app = harness.built): Promise
   const client = await harness.pool.connect();
   try {
     await client.query('BEGIN');
-    await awardFinishedMatch(client, { matchId, at: Date.now(), state: loaded.state });
+    await awardFinishedMatch(client, { matchId, at: Date.now(), state: loaded.state }, true);
     await client.query('COMMIT');
   } finally {
     client.release();
@@ -122,7 +128,7 @@ async function projectSeasonComplete(matchId: string, who: string): Promise<void
   const client = await harness.pool.connect();
   try {
     await client.query('BEGIN');
-    await awardFinishedMatch(client, { matchId, at: Date.now(), state });
+    await awardFinishedMatch(client, { matchId, at: Date.now(), state }, true);
     await client.query('COMMIT');
   } finally {
     client.release();
@@ -177,11 +183,6 @@ describe('league points (03 §11, 01 §10)', () => {
     withBot = await play(players, 1);
     expect(await awardsOf(withBot)).toBe(0);
   });
-
-  it('one unverified player among 8 awards nothing', async () => {
-    const unverified = await account(false);
-    expect(await awardsOf(await play([...players.slice(0, 7), unverified]))).toBe(0);
-  });
 });
 
 describe('what the players see (05 §2.2, §2.4)', () => {
@@ -219,7 +220,7 @@ describe('what the players see (05 §2.2, §2.4)', () => {
     }>();
     expect(profile.displayName).toBe('league1');
     // The bot match does not count in the figures (D29) but is listed below.
-    expect(profile.matchesPlayed).toBe(3);
+    expect(profile.matchesPlayed).toBe(2);
     const places = await harness.pool.query<{ final_place: number }>(
       'SELECT final_place FROM sbr.match_entries WHERE account_id = $1 AND match_id <> $2',
       [players[0], withBot],
@@ -227,9 +228,8 @@ describe('what the players see (05 §2.2, §2.4)', () => {
     const own = places.rows.map((r) => r.final_place);
     expect(profile.wins).toBe(own.filter((place) => place === 1).length);
     expect(profile.bestPlacement).toBe(Math.min(...own));
-    // Newest first: one unverified among 8, a bot, 7 players, the match that counted.
+    // Newest first: a bot, 7 players, the match that counted (the unverified ones come later).
     expect(profile.recentMatches.map((m) => m.league)).toEqual([
-      'tooFewPlayers',
       'bots',
       'tooFewPlayers',
       'counted',
@@ -241,7 +241,7 @@ describe('what the players see (05 §2.2, §2.4)', () => {
       leagueAwards: unknown[];
     }>();
     expect(data.account.email).toBe('league-1@example.com');
-    expect([data.matches.length, data.leagueAwards.length]).toEqual([4, 2]);
+    expect([data.matches.length, data.leagueAwards.length]).toEqual([3, 2]);
   });
 });
 
@@ -301,5 +301,25 @@ describe('badges and account deletion (01 §8.3, 05 §2.2)', () => {
       expect(left.rowCount, table).toBe(0);
     }
     expect(await awardsOf(counted)).toBe(14);
+  });
+});
+
+describe('league points without confirmed e-mail addresses (D59)', () => {
+  it('one unverified player among 8 counts in a standalone install (D59)', async () => {
+    const unverified = await account(false);
+    expect(await awardsOf(await play([...(await accounts(7)), unverified]))).toBe(16);
+  });
+
+  it('with SBR_FEATURE_EMAIL_VERIFICATION on, one unverified among 8 awards nothing', async () => {
+    const strict = await buildOn(harness.pool, harness.container.getConnectionUri(), {
+      SBR_FEATURE_EMAIL_VERIFICATION: '1',
+    });
+    try {
+      const unverified = await account(false);
+      const id = await play([...(await accounts(7)), unverified], 0, strict.match.engine);
+      expect(await awardsOf(id)).toBe(0);
+    } finally {
+      await strict.fastify.close();
+    }
   });
 });

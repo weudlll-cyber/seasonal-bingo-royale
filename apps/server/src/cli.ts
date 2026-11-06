@@ -3,7 +3,8 @@
  * @module server
  * @brief  Operator commands run inside the app image: migrate, create the first admin, check the seed key.
  *
- * Responsibility: `create-super --email <e-mail> --name <display name>` asks for the password
+ * Responsibility: `reset-2fa --name <display name>` clears an admin's two-factor sign-in (D60).
+ *                 `create-super --email <e-mail> --name <display name>` asks for the password
  *                 (not echoed on a terminal, else read from standard input), checks the password
  *                 rules and creates an account with roles super_admin and organizer (every host
  *                 permission); until the admin app's bootstrap page exists (WP-19) this makes the
@@ -33,6 +34,7 @@ import { Writable } from 'node:stream';
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
 import { cookieConfig } from './auth/sessionPlugin.js';
+import { resetTwoFactor } from './auth/twoFactor.js';
 import { loadEnv } from './config/env.js';
 import { maintenanceFlag } from './config/maintenance.js';
 import { seedKeyFrom } from './config/seedKey.js';
@@ -172,10 +174,35 @@ async function loadCheck(args: readonly string[]): Promise<number> {
   }
 }
 
+// `reset-2fa --name <display name>`: an admin who lost the authenticator and the recovery
+// codes enrols again at the next sign-in (D60); the account's sessions end. No audit table
+// exists: the line printed here is the record (sbr's output, journal of the operator's shell).
+async function resetTwoFactorCommand(args: readonly string[]): Promise<number> {
+  const name = flag(args, '--name');
+  if (name === null) {
+    console.error('usage: reset-2fa --name <display name>');
+    return 2;
+  }
+  const pool = createPool(loadEnv().DATABASE_URL);
+  try {
+    if (!(await resetTwoFactor(pool, name))) {
+      console.error(`No account named ${name}.`);
+      return 1;
+    }
+    console.log(
+      `[sbr] ${new Date().toISOString()} two-factor sign-in reset for ${name}; it enrols again at the next sign-in.`,
+    );
+    return 0;
+  } finally {
+    await pool.end();
+  }
+}
+
 const COMMANDS = new Map<string, (args: readonly string[]) => Promise<number>>([
   ['migrate', migrateAsOwner],
   ['loadcheck', loadCheck],
   ['create-super', createSuper],
+  ['reset-2fa', resetTwoFactorCommand],
   ['check-seed-key', checkSeedKey],
 ]);
 
@@ -186,7 +213,7 @@ run.then(
   (code) => {
     if (code === -1) {
       console.error(
-        'commands: migrate | create-super --email <e-mail> --name <name> | check-seed-key | loadcheck …',
+        'commands: migrate | create-super --email <e-mail> --name <name> | reset-2fa --name <name> | check-seed-key | loadcheck …',
       );
     }
     process.exit(code === -1 ? 2 : code);

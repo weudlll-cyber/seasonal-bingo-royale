@@ -16,7 +16,7 @@
  */
 import { defineConfig, devices } from '@playwright/test';
 
-import { CLIENT_URL, REPO_ROOT, SERVER_URL, databaseUrl } from './devStack.js';
+import { CLIENT_URL, REPO_ROOT, SERVER_URL, databaseUrl, mailpit } from './devStack.js';
 
 const CI = process.env['CI'] !== undefined;
 
@@ -71,7 +71,15 @@ export default defineConfig({
       cwd: REPO_ROOT,
       url: `${SERVER_URL}/readyz`,
       // The specs use the development features (quick sign-in, bots, fast rules).
-      env: { DATABASE_URL: databaseUrl(), SBR_PORT: '3900', SBR_LOG_LEVEL: 'warn', SBR_DEV: '1' },
+      // Mail goes to Mailpit, so "Forgot password?" exists (D60).
+      env: {
+        DATABASE_URL: databaseUrl(),
+        SBR_PORT: '3900',
+        SBR_LOG_LEVEL: 'warn',
+        SBR_DEV: '1',
+        SBR_SMTP_HOST: mailpit().smtpHost,
+        SBR_SMTP_PORT: mailpit().smtpPort,
+      },
       reuseExistingServer: !CI,
       timeout: 120_000,
     },

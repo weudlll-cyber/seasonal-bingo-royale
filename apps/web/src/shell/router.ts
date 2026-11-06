@@ -31,6 +31,8 @@ export type Route =
   | { readonly name: 'quicktest'; readonly view?: QuickTestView }
   | { readonly name: 'signIn' }
   | { readonly name: 'register' }
+  | { readonly name: 'forgotPassword' }
+  | { readonly name: 'resetPassword' }
   | { readonly name: 'account' }
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
   | { readonly name: 'player'; readonly displayName: string };
@@ -40,6 +42,9 @@ const PLAIN: Readonly<Record<string, Route>> = {
   quicktest: { name: 'quicktest' },
   'sign-in': { name: 'signIn' },
   register: { name: 'register' },
+  'forgot-password': { name: 'forgotPassword' },
+  // The link in the reset e-mail carries its token as a query: #/reset-password?token=…
+  'reset-password': { name: 'resetPassword' },
   account: { name: 'account' },
   leaderboard: { name: 'leaderboard', periodId: null },
 };
@@ -49,7 +54,8 @@ export function parseRoute(hash: string): Route {
     .replace(/^#\/?/, '')
     .split('/')
     .filter((p) => p.length > 0);
-  const [first = '', second] = parts;
+  const [segment = '', second] = parts;
+  const first = segment.split('?')[0] ?? '';
   const plain = PLAIN[first] ?? { name: 'lobby' };
   return second === undefined ? plain : (withParameter(first, second) ?? plain);
 }
@@ -89,12 +95,17 @@ function playerRoute(encoded: string): Route | null {
 
 // The address of every route without a parameter.
 const PLAIN_HREFS: Readonly<
-  Record<'lobby' | 'hostNew' | 'signIn' | 'register' | 'account', string>
+  Record<
+    'lobby' | 'hostNew' | 'signIn' | 'register' | 'forgotPassword' | 'resetPassword' | 'account',
+    string
+  >
 > = {
   lobby: '#/',
   hostNew: '#/host/new',
   signIn: '#/sign-in',
   register: '#/register',
+  forgotPassword: '#/forgot-password',
+  resetPassword: '#/reset-password',
   account: '#/account',
 };
 

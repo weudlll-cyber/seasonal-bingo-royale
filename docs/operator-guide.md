@@ -81,6 +81,12 @@ sudo sbr admin create-super
 
 It asks for e-mail, display name (3–24 letters or digits) and a password of at least 12 characters (not shown while you type). This account can host matches. (A proper admin area with two-factor login comes with a later version.)
 
+### Admin two-factor sign-in and password reset (standalone)
+
+- Every admin account signs in with a second step: the first sign-in shows a QR code for an authenticator app (any TOTP app) and then ten recovery codes, shown once; keep them safe. Later sign-ins ask for the app's code or one recovery code. An admin who lost both: `sudo sbr admin reset-2fa <display name>` (they set it up again at the next sign-in).
+- "Forgot password?" on the sign-in page sends a link by e-mail, valid one hour, through the SMTP settings the installer asked for. Without them the link is hidden and `sudo sbr status` says so; run the installer again with `--smtp-host …` to add them.
+- League points no longer need a confirmed e-mail address (D59); `SBR_FEATURE_EMAIL_VERIFICATION=true` in `/etc/sbr/<env>.env` brings the requirement back.
+
 ## 5. Backups to your Windows PC
 
 The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files and the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).

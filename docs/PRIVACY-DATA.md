@@ -22,11 +22,14 @@ The game stores no real name, no address, no IP address and no payment data in e
 
 ## Standalone mode only
 
-| Table      | Field                                        | Purpose                               | How long                 | Deleted when    |
-| ---------- | -------------------------------------------- | ------------------------------------- | ------------------------ | --------------- |
-| `accounts` | e-mail address                               | sign-in and account messages          | while the account exists | account deleted |
-| `accounts` | password hash (Argon2id; never the password) | sign-in                               | while the account exists | account deleted |
-| `accounts` | e-mail verified time                         | league points need a verified address | while the account exists | account deleted |
+| Table                   | Field                                                                                                                  | Purpose                                                                  | How long                                                                   | Deleted when                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `accounts`              | e-mail address                                                                                                         | sign-in and account messages                                             | while the account exists                                                   | account deleted                                         |
+| `accounts`              | password hash (Argon2id; never the password)                                                                           | sign-in                                                                  | while the account exists                                                   | account deleted                                         |
+| `accounts`              | e-mail verified time                                                                                                   | league points with e-mail verification switched on (off by default, D59) | while the account exists                                                   | account deleted                                         |
+| `password_reset_tokens` | the SHA-256 of a reset link's token, when it was made, expires (1 hour) and was used                                   | "Forgot password?"                                                       | until the account is deleted (used or expired tokens cannot be used again) | account deleted                                         |
+| `totp_factors`          | an admin's two-factor secret (encrypted with the install's secret key), when it was confirmed, the last code step used | two-factor sign-in for admin accounts                                    | while two-factor sign-in is set up                                         | account deleted, or `sbr admin reset-2fa`               |
+| `recovery_codes`        | the SHA-256 of ten single-use recovery codes, when each was used                                                       | signing in when the authenticator is lost                                | while two-factor sign-in is set up                                         | account deleted, re-enrolment, or `sbr admin reset-2fa` |
 
 ## Website mode only
 

@@ -26,11 +26,13 @@ In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and
 | GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags, `authMode` (D37) | any |
 | POST | `/auth/register` | Create local account | none, rate-limited |
 | POST | `/auth/verify-email` | Confirm e-mail token | none |
-| POST | `/auth/login` | E-mail + password → session (or `2FA_REQUIRED` with a short-lived challenge ID) | none |
-| POST | `/auth/login/2fa` | Challenge ID + TOTP or recovery code | none |
+| POST | `/auth/login` | E-mail + password → session (a local admin's session has no rights until its second step, `/auth/2fa/*`) | none |
+| POST | `/auth/2fa/enrol` | As built (D60): the waiting session of a local admin gets a new secret with its QR code (SVG) and link, while no factor is confirmed | session (second step open) |
+| POST | `/auth/2fa/confirm` | `{ code }` → the factor goes live, `{ recoveryCodes }` (ten, shown once); 400 `TWO_FACTOR_FAILED`; 429 past five tries | session (second step open) |
+| POST | `/auth/2fa/verify` | `{ code }` or `{ recoveryCode }` → 204, the session gets its rights; 400 `TWO_FACTOR_FAILED`; 429 past five tries. `/session` says `twoFactor: 'enrol' \| 'code' \| null` | session (second step open) |
 | POST | `/auth/logout` | End current session | session |
-| POST | `/auth/password/forgot` | Request reset mail (always 202) | none |
-| POST | `/auth/password/reset` | Token + new password | none |
+| POST | `/auth/password-reset` | Request the reset mail `{ email }` (always 202; 429 past the limits; standalone with SMTP only, else 404; D60) | none |
+| POST | `/auth/password-reset/complete` | `{ token, password }` → 204, every session of the account ended; 400 `RESET_INVALID` or `PASSWORD_WEAK` | none |
 | POST | `/auth/guest` | Guest session (if enabled) | none |
 | POST | `/dev/sign-in` | Development builds only: `{ as }` with `host` or `player-1` … `player-3` signs in as `dev-host` (organizer) or `dev-player-N`, created on first use; absent in production | none |
 | DELETE | `/dev/load-accounts` | Development builds only: removes the load check's accounts (`dev-load-NNN`) with their sessions and roles; outside any session, so without a CSRF token; absent in production | none |
@@ -59,7 +61,7 @@ In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and
 |---|---|---|
 | GET | `/matches?status=&mode=&gameType=` | List open/running/finished public matches |
 | GET | `/matches/:code` | Match detail: title, game type, mode, status, ruleset summary (public part), stage plan (royale) or prize list (classic types), `countsForLeaderboard`, `hostCallRef`, player count, seed commitment, seed (after finish), `youHost` (the signed-in account created the match and may run it; the same field in every match summary, e.g. the lobby list), `nextRoundAt` (when the next round starts during the pause after a round and its cut, for the countdown on the cut screen; recorded in the event log, so it survives a server restart; null outside that pause), `nextDrawAt` (when Draw next unlocks, D13; null before a round's first draw), `waitingForHost` (the match waits for its host to start the next round, D14), `startsAt` (the end of the running 10-second countdown; null before it runs), `full` (every place is taken: the lobby card, the waiting room, the console and “My matches” say “Full” and offer no Join, Watch stays; the countdown still reads “Starting…”), `tooFewAtStart` (the automatic start of a set time found fewer than 2 players; the match waits for its host, D16), `startHeld` (maintenance holds a start that is due: an automatic start whose time has come or a full match under start when full, D22), `lobbyClosesAt` (when an asynchronous lobby starts or closes: its announced start time, else 24 h after creation, D31, D33, D34; null for realtime) |
-| POST | `/matches/:code/join` | Join lobby (or late join) |
+| POST | `/matches/:code/join` | Join the lobby (no late join, D53) |
 | POST | `/matches/:code/leave` | Leave (before start: removed; after start: forfeit, stays placed by elimination order) |
 | GET | `/matches/:code/state` | Full state snapshot for the caller (own cards, standings top 50 + own row, current round, last draws, active effects). Used on load and after reconnect. |
 | GET | `/matches/:code/away-summary` | “While you were away” since the caller’s `last_seen_event_seq`; acknowledges on fetch |
