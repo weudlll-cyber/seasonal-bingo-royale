@@ -30,7 +30,7 @@ import type { FastifyInstance } from 'fastify';
 import { openRouteLimit } from '../../auth/rateLimit.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
-import { findSession } from '../../auth/sessions.js';
+import { findSession, WEBSITE_SESSION_DAYS } from '../../auth/sessions.js';
 import { websiteAccount } from '../../auth/websiteAccounts.js';
 import { identityFrom, trustedPeers } from '../../auth/websiteIdentity.js';
 import type { Env } from '../../config/env.js';
@@ -58,8 +58,6 @@ function proxySecret(expected: string): (sent: string | string[] | undefined) =>
   const want = digest(expected);
   return (sent) => typeof sent === 'string' && timingSafeEqual(digest(sent), want);
 }
-
-const WEBSITE_SESSION_DAYS = 7;
 
 export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInDeps): void {
   if (deps.env.SBR_AUTH_MODE !== 'website') return;

@@ -10,8 +10,9 @@
  *                 assignments; a guest session gets the guest role's permissions) and
  *                 refuses revoked, expired and idle-expired sessions; a local admin account's
  *                 session has no permissions until its second step (TOTP, D60). Idle 7 days, absolute
- *                 30 days for players and guests (7 days after a website sign-in); idle 30 minutes, absolute 8 hours for
- *                 accounts with an admin role. Dead sessions are purged by the retention job.
+ *                 30 days for players and guests (in website mode 7 days for members and guests,
+ *                 the same in every game); idle 30 minutes, absolute 8 hours for accounts with an
+ *                 admin role. Dead sessions are purged by the retention job.
  * Depends on:     ../db/pool
  * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway,
  *                 ../realtime/intents, ../match/retention
@@ -22,8 +23,12 @@ import { createHash, randomBytes } from 'node:crypto';
 import type { DbPool } from '../db/pool.js';
 
 // Accounts with any of these roles get admin sessions: idle 30 minutes, absolute 8 hours
-// (03 §3); players and guests idle 7 days, absolute 30 days.
+// (03 §3); players and guests idle 7 days, absolute 30 days (website mode: 7, WEBSITE_SESSION_DAYS).
 const ADMIN_ROLES = ['super_admin', 'security_admin', 'game_admin', 'moderator'];
+
+// Website mode: a member's or guest's game session lasts at most this long (the same session
+// lengths in every game of the website, owner 2026-11-09).
+export const WEBSITE_SESSION_DAYS = 7;
 
 type SessionKind = 'player' | 'admin' | 'guest';
 
@@ -42,8 +47,9 @@ function tokenHash(token: string): Buffer {
   return createHash('sha256').update(token).digest();
 }
 
-// A player or guest session's absolute lifetime: 30 days, in website mode 7 days from the
-// website sign-in (2026-11-04); admin sessions keep 8 hours either way.
+// A player or guest session's absolute lifetime: 30 days; in website mode 7 days for members
+// (website sign-in, 2026-11-04) and guests (2026-11-09), as in every game; admin sessions keep
+// 8 hours either way.
 export async function createSession(
   pool: DbPool,
   accountId: string | null,

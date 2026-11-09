@@ -36,7 +36,12 @@ import {
   type CookieConfig,
 } from '../../auth/sessionPlugin.js';
 import type { SessionEnds } from '../../auth/sessionEnds.js';
-import { accountSessionIds, createSession, revokeSession } from '../../auth/sessions.js';
+import {
+  accountSessionIds,
+  createSession,
+  revokeSession,
+  WEBSITE_SESSION_DAYS,
+} from '../../auth/sessions.js';
 import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
 import type { DbPool } from '../../db/pool.js';
@@ -90,7 +95,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   app.post('/api/v1/auth/guest', async (request, reply) => {
     if (!deps.features.guests) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!limits.guest.take(request.ip).allowed) return tooMany(reply);
-    const { token } = await createSession(deps.pool, null, request.headers['user-agent'] ?? null);
+    // Website mode: as long as a member's session from the website sign-in (the same lengths in
+    // every game, 2026-11-09); standalone the player default.
+    const days = deps.mode === 'website' ? WEBSITE_SESSION_DAYS : undefined;
+    const { token } = await createSession(
+      deps.pool,
+      null,
+      request.headers['user-agent'] ?? null,
+      days,
+    );
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(201).send({ kind: 'guest' });
   });
@@ -182,7 +195,7 @@ async function login(
 export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  // playerDays: a player session's absolute lifetime (7 days after a website sign-in, else 30).
+  // playerDays: a member's or guest's absolute lifetime (7 days in website mode, else 30).
   deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & { readonly playerDays?: number },
   accountId: string,
 ): Promise<void> {
