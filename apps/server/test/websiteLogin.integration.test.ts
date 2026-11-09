@@ -177,3 +177,31 @@ describe("the website's chat room (07 §6)", () => {
     expect((await sessionOf(local, null, {}, '/')).chat).toBeUndefined();
   });
 });
+
+describe('guest sessions (same lengths in every game, 2026-11-09)', () => {
+  // The absolute lifetime of the guest session a POST /auth/guest opens, in days.
+  const guestDays = async (app: App, base: string): Promise<number> => {
+    const r = await app.fastify.inject({
+      method: 'POST',
+      url: `${base}api/v1/auth/guest`,
+      headers: { 'content-type': 'application/json' },
+      payload: '{}',
+    });
+    expect(r.statusCode).toBe(201);
+    const token = cookieOf(r)?.split('=')[1] ?? '';
+    const row = await harness.pool.query<{ days: number }>(
+      `SELECT extract(epoch FROM expires_at - created_at) / 86400 AS days
+         FROM sbr.sessions WHERE token_hash = sha256(convert_to($1, 'UTF8'))`,
+      [token],
+    );
+    return Math.round(Number(row.rows[0]?.days));
+  };
+
+  it('lasts 7 days in website mode, as a member session from the website sign-in', async () => {
+    expect(await guestDays(harness.built, BASE)).toBe(7);
+  });
+
+  it('lasts 30 days standalone', async () => {
+    expect(await guestDays(local, '/')).toBe(30);
+  });
+});
