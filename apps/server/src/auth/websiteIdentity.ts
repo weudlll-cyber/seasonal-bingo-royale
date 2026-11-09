@@ -113,10 +113,10 @@ export function identityFrom(headers: Headers, env: Env): WebsiteIdentity | null
   };
 }
 
-// What the website says → game roles, recomputed at every sign-in: may start games → organizer
-// (hosts; 2026-11-04, the website role no longer decides it), a website admin is a game admin
-// (D41; game_admin hosts too). super_admin and security_admin are never mapped: they stay with
-// `sbr admin create-super`.
+// What the website says → game roles, recomputed at every sign-in: may host this game (per game
+// on the website since 2026-11-09) → organizer (hosts; D46, the website role "organiser" alone
+// grants nothing), a website admin is a game admin (D41; game_admin hosts too). super_admin and
+// security_admin are never mapped (a website install needs neither; create-super is standalone).
 export function mappedRoles(who: Pick<WebsiteIdentity, 'roles' | 'canHost'>): readonly string[] {
   return [
     ...(who.canHost ? ['organizer'] : []),
