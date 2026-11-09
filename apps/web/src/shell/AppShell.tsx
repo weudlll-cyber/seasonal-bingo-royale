@@ -25,7 +25,7 @@ import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
-import { SignInLinks, SignInPage } from '../account/WebsiteSignIn.js';
+import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
@@ -58,6 +58,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const maintenance = useMaintenance();
   // Website mode: the website's chat beside the lobby, the match screens and the console.
   const chat = useChatDock(route);
+  // Website mode: an ended game session signs in again through the website (an idle admin).
+  useWebsiteResign();
   return (
     <MaintenanceContext.Provider value={maintenance}>
       <header className="shell-bar">

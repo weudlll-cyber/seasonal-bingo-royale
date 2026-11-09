@@ -10,7 +10,9 @@
 #                 /games/bingo/auth/website asks the website's authorize endpoint (auth_request /
 #                 forward_auth, passing Cookie, Origin, Host and X-Original-Method) and copies its
 #                 answer's identity headers (id, name, roles, e-mail verified, may host, steps,
-#                 guest) plus the proxy secret (never to the website) to the app; a 401/403 from an
+#                 guest) plus the proxy secret (never to the website) to the app; the website's
+#                 session cookie (__Host-se.sid / se.sid) goes only to the authorize request, never
+#                 to the app (HTTP and WebSocket; the game's own cookies pass); a 401/403 from an
 #                 older website goes to the app's /games/bingo/auth/website/login with the same
 #                 query (D43); /games/bingo/metrics 404. Header names: the env file's (an operator
 #                 may rename them), else the app's defaults (07 §2.3).
@@ -37,7 +39,18 @@ header_names() {
 nginx_var() { printf '%s' "$1" | tr 'A-Z-' 'a-z_'; }
 
 write_nginx_route() {
-  local h clear="    proxy_set_header $SECRET_HEADER \"\";"$'\n' set=''
+  local h clear="    proxy_set_header $SECRET_HEADER \"\";"$'\n' set='' cookie
+  # The website's session cookie (__Host-se.sid, or se.sid without Secure) stays with the
+  # website: the app gets the browser's other cookies (website planning, 2026-11-09). Twice,
+  # in case a browser holds both; the authorize request below keeps the whole Cookie.
+  cookie=$(
+    cat <<'NGINX'
+    set $sbr_cookie $http_cookie;
+    if ($sbr_cookie ~ "^(.*?)(?:^|; )(?:__Host-)?se[.]sid=[^;]*(.*)$") { set $sbr_cookie $1$2; }
+    if ($sbr_cookie ~ "^(.*?)(?:^|; )(?:__Host-)?se[.]sid=[^;]*(.*)$") { set $sbr_cookie $1$2; }
+    proxy_set_header Cookie $sbr_cookie;
+NGINX
+  )$'\n'
   for h in "${HEADERS[@]}"; do
     clear+="    proxy_set_header $h \"\";"$'\n'
     set+="    auth_request_set \$sbr_$(nginx_var "$h") \$upstream_http_$(nginx_var "$h");"$'\n'
@@ -51,7 +64,7 @@ write_nginx_route() {
 location = /games/bingo { return 308 /games/bingo/; }
 location ^~ /games/bingo/metrics { return 404; }
 location ^~ /games/bingo/ {
-${clear}    proxy_set_header Host \$host;
+${clear}${cookie}    proxy_set_header Host \$host;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
     # HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
@@ -63,7 +76,7 @@ ${clear}    proxy_set_header Host \$host;
 location = $SIGN_IN_ROUTE {
     auth_request /_sbr_bingo_authorize;
     # The website's answer only: a browser-sent identity header never reaches the app.
-${set}    proxy_set_header $SECRET_HEADER "$SECRET";
+${set}${cookie}    proxy_set_header $SECRET_HEADER "$SECRET";
     # An older website answers 401/403 for a visitor it does not know (a newer one 204 + guest).
     error_page 401 403 = @sbr_bingo_login;
     proxy_set_header Host \$host;
@@ -118,6 +131,9 @@ ${clear}		@sbr_signin path $SIGN_IN_ROUTE
 		}
 		# After forward_auth, so the website never sees it.
 		request_header @sbr_signin $SECRET_HEADER $SECRET
+		# The website's session cookie stays with the website (forward_auth above sent it there):
+		# the app gets the browser's other cookies, on every path and the WebSocket upgrade.
+		request_header Cookie "(^|; )(__Host-)?se[.]sid=[^;]*" ""
 		# HTTP and the WebSocket upgrade; the app keeps the /games/bingo prefix (SBR_BASE_PATH).
 		reverse_proxy sbr-bingo-$1:3000
 	}

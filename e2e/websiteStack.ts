@@ -15,12 +15,13 @@
  *                 (WebSocket upgrades too) reaches the app with client-sent X-Acting-User* and
  *                 X-Sbr-Proxy-Secret headers removed. The server (development features on, for
  *                 the fast test rules) runs in website mode under /games/bingo/ on an ephemeral
- *                 port and trusts only the proxy's address. `removeAccounts` deletes the website
+ *                 port and trusts only the proxy's address. `expireSessions` lets every game session
+ *                 idle out at once (the 30 minutes of an admin's, shortened). `removeAccounts` deletes the website
  *                 users' accounts at the end through DELETE /me with the display name (D42);
  *                 matches are never deleted.
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
- * Used by:        ./websiteLogin.spec, ./chatEmbed.spec
+ * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
@@ -58,6 +59,8 @@ export interface WebsiteStack {
   // The website's users by id (the stub authorize endpoint reads them).
   readonly users: Map<string, StubUser>;
   removeAccounts(): Promise<void>;
+  // Every open game session idles out now, as after 30 minutes (an admin's) without a request.
+  expireSessions(): void;
   close(): Promise<void>;
 }
 
@@ -269,6 +272,9 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
     appOrigin: `http://127.0.0.1:${String(server.port)}`,
     users,
     removeAccounts: () => removeAccounts(origin, [...users.keys()]),
+    expireSessions: () => {
+      sql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
+    },
     close: async () => {
       server.child.kill();
       await new Promise<void>((resolve) =>

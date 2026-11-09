@@ -8,7 +8,9 @@
  *                 that opens the server's website sign-in route with this page as `next`, no
  *                 "Register" and (even in a development build) no quick sign-in; the sign-in
  *                 and register pages show the website link instead of the forms. In local mode
- *                 both buttons and the forms stay.
+ *                 both buttons and the forms stay. A game session that ends under a signed-in
+ *                 page (a 401) goes through the website's sign-in route back to this page in
+ *                 website mode, and stays on the page in local mode.
  * Depends on:     @testing-library/react, ../shell/AppShell, ../shell/session, ./WebsiteSignIn
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2
  */
@@ -17,11 +19,13 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from '../shell/AppShell.js';
 import { SessionProvider } from '../shell/session.js';
-import { websiteSignInHref } from './WebsiteSignIn.js';
+import { api } from '../shell/http.js';
+import { leavePage, websiteSignInHref } from './WebsiteSignIn.js';
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   window.location.hash = '';
 });
 
@@ -119,5 +123,59 @@ describe('signing in in website mode (D37)', () => {
     expect(websiteSignInHref(SIGN_IN, '#/match/ABC123')).toBe(
       `${SIGN_IN}/login?next=${encodeURIComponent('/games/bingo/#/match/ABC123')}`,
     );
+  });
+});
+
+// A signed-in session of that mode; every other request answers as without a session: a POST
+// 403 CSRF_INVALID (the CSRF check runs first), anything else 401 (the game session ended).
+function serveEnded(mode: 'local' | 'website'): void {
+  const session = {
+    signedIn: true,
+    kind: 'admin',
+    account: { id: 'a1', displayName: 'Idle_Admin' },
+    permissions: ['match.create'],
+    csrfToken: 'x',
+    features: { guests: true },
+    authMode: mode,
+    ...(mode === 'website' ? { signInPath: SIGN_IN } : {}),
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string, init?: RequestInit) => {
+      if (url.endsWith('/session')) return Promise.resolve(new Response(JSON.stringify(session)));
+      const post = (init?.method ?? 'GET') === 'POST';
+      const code = post ? 'CSRF_INVALID' : 'SIGN_IN_REQUIRED';
+      return Promise.resolve(new Response(JSON.stringify({ code }), { status: post ? 403 : 401 }));
+    }),
+  );
+  vi.stubGlobal('matchMedia', () => ({
+    matches: false,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
+}
+
+describe('a game session that ended while the website still knows the player', () => {
+  it('signs in again through the website and comes back to this page (website mode)', async () => {
+    window.location.hash = '#/host/new';
+    serveEnded('website');
+    const to = vi.spyOn(leavePage, 'to').mockImplementation(() => undefined);
+    await renderShell();
+    await screen.findByTestId('signed-in-as');
+    await api('/matches', { method: 'POST', body: {} }).catch(() => undefined);
+    expect(to).toHaveBeenCalledWith(
+      `${SIGN_IN}?next=${encodeURIComponent('/games/bingo/#/host/new')}`,
+    );
+    await api('/matches/X/state').catch(() => undefined);
+    expect(to).toHaveBeenCalledTimes(2);
+  });
+
+  it('stays on the page in local mode (its own sign-in)', async () => {
+    serveEnded('local');
+    const to = vi.spyOn(leavePage, 'to').mockImplementation(() => undefined);
+    await renderShell();
+    await screen.findByTestId('signed-in-as');
+    await api('/matches', { method: 'POST', body: {} }).catch(() => undefined);
+    expect(to).not.toHaveBeenCalled();
   });
 });
