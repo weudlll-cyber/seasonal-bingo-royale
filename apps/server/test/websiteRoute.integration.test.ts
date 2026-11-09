@@ -16,6 +16,7 @@
  * Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
  */
 import { spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { fileURLToPath } from 'node:url';
@@ -156,7 +157,7 @@ function request(
     Object.assign(headers, {
       Connection: 'Upgrade',
       Upgrade: 'websocket',
-      'Sec-WebSocket-Key': 'dGhlIHNhbXBsZSBub25jZQ==',
+      'Sec-WebSocket-Key': randomBytes(16).toString('base64'),
       'Sec-WebSocket-Version': '13',
     });
   }
