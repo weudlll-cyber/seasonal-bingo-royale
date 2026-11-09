@@ -9,14 +9,17 @@
  *                 path (website mode; after the login the sign-in route brings the visitor back).
  *                 In website mode the sign-in and register pages show that same link instead
  *                 of the forms; `useSignInToPlay` gives the same link to the screens that offer
- *                 Join to a visitor without an account. The server says the mode (GET /session
- *                 `authMode`, `signInPath`).
- * Depends on:     react, ../shell/router, ../shell/session, ./SignIn, ./Register
+ *                 Join to a visitor without an account. `useWebsiteResign`: a game session that
+ *                 ends under a signed-in page (an idle admin's) goes through the sign-in route
+ *                 with this page as `next`, so the next action lands here signed in again. The
+ *                 server says the mode (GET /session `authMode`, `signInPath`).
+ * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./SignIn, ./Register
  * Used by:        ../shell/AppShell, ../game/Lobby, ../game/WaitingRoom, ./AccountPage
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2
  */
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 
+import { onSessionLost } from '../shell/http.js';
 import { hrefOf } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { Register } from './Register.js';
@@ -27,6 +30,31 @@ import { SignIn } from './SignIn.js';
 export function websiteSignInHref(signInPath: string, hash: string): string {
   const base = signInPath.replace(/auth\/website$/, '');
   return `${signInPath}/login?next=${encodeURIComponent(`${base}${hash === '' ? '#/' : hash}`)}`;
+}
+
+// Leaving the page (a seam for the tests: jsdom does not navigate).
+export const leavePage = {
+  to(url: string): void {
+    window.location.assign(url);
+  },
+};
+
+// Website mode: a game session that ends under a signed-in page (an admin's idles out after
+// 30 minutes) is signed in again through the website's sign-in route straight away. The website
+// knows the player: back on this page, signed in, no login form; it does not: its login, as
+// for "Sign in"; it answers guest (locked): this page as a guest.
+export function useWebsiteResign(): void {
+  const session = useSession().session;
+  const path =
+    session?.signedIn === true && session.authMode === 'website' ? session.signInPath : undefined;
+  useEffect(() => {
+    if (path === undefined) return undefined;
+    return onSessionLost(() => {
+      const base = path.replace(/auth\/website$/, '');
+      const hash = window.location.hash === '' ? '#/' : window.location.hash;
+      leavePage.to(`${path}?next=${encodeURIComponent(`${base}${hash}`)}`);
+    });
+  }, [path]);
 }
 
 // The website's sign-in route when the server runs in website mode, else null.
