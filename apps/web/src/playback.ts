@@ -178,7 +178,9 @@ function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApp
   // The server's facts of this cut: points at elimination, how far below the line a
   // saved player was (older views have none).
   const facts = state.facts.cuts[cutNumber - 1];
-  // The server lists the eliminated in ranked order, worst first.
+  // The server lists the eliminated in ranked order, best first (the tie-break chain, as
+  // the final placement ranks them), also in events stored before this fix: outRank 0 is
+  // the best of the cut.
   ev.eliminated.forEach((id, i) => {
     update(state, id, (p) => ({
       ...p,
@@ -186,7 +188,7 @@ function applyCut(state: FoldState, ev: Extract<DomainEventLike, { type: 'cutApp
       eliminatedRound: state.roundIndex,
       eliminatedCut: cutNumber,
       outPoints: facts?.out[id] ?? p.points,
-      outRank: ev.eliminated.length - 1 - i,
+      outRank: i,
     }));
   });
   const below = (id: string): number => facts?.saved[id] ?? 0;

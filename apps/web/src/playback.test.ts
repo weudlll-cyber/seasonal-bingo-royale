@@ -5,15 +5,18 @@
  *
  * Responsibility: each round shows that round's cards with fresh marks; a cut records
  *                 the owner's outcome and marks the owner as out while the match goes
- *                 on; the owner's status is the latest server entry at the current step;
+ *                 on; players out in one cut keep the server's best-first order, so the live
+ *                 standings and the owner's rank match the final placement; the owner's
+ *                 status is the latest server entry at the current step;
  *                 the patterns of this round (first and own, from the server's events), the
  *                 points at elimination and shield-save margins from the server's cut facts,
  *                 and the event lines for patterns and the owner's seasons.
- * Depends on:     ./playback, ./test/quickTestFixture
+ * Depends on:     ./playback, ./components/OwnerArea, ./test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { describe, expect, it } from 'vitest';
 
+import { ownerRank } from './components/OwnerArea.js';
 import { playbackAt } from './playback.js';
 import { numberCard, royaleFixture } from './test/quickTestFixture.js';
 import type { QuickTestResult } from './types.js';
@@ -77,6 +80,31 @@ describe('playbackAt', () => {
       playbackAt(result, step).standings.find((p) => p.accountId === 'bot-02');
     expect(bot(11)?.points).toBe(30);
     expect(bot(12)?.points).toBe(0); // the final stage resets points
+  });
+});
+
+describe('players out in one cut (the final placement order, 01 §8.4)', () => {
+  it('ranks players out in one cut as the final placement will, the best out first', () => {
+    // The server lists a cut's eliminated best first (applyCut keeps the tie-break order):
+    // owner-01 (10 pts) above bot-03 (0 pts); the final placement ranks them 2nd and 3rd.
+    const cut = {
+      type: 'cutApplied' as const,
+      stageIndex: 0,
+      survivors: ['bot-02'],
+      eliminated: ['owner-01', 'bot-03'],
+      shieldSaves: [],
+    };
+    const events = [...result.events.slice(0, 10), cut, ...result.events.slice(11)];
+    const players = result.players.map((p) => ({
+      ...p,
+      place: { 'bot-02': 1, 'owner-01': 2, 'bot-03': 3 }[p.accountId] ?? p.place,
+    }));
+    const cuts = [{ out: { 'owner-01': 10, 'bot-03': 0 }, saved: {} }];
+    const r = { ...result, events, players, cuts };
+    const live = playbackAt(r, 11);
+    const final = [...players].sort((a, b) => a.place - b.place).map((p) => p.accountId);
+    expect(live.standings.map((p) => p.accountId)).toEqual(final);
+    expect(ownerRank(r, live, 'owner-01')).toBe(2);
   });
 });
 
