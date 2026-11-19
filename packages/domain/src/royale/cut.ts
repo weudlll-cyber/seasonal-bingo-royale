@@ -31,8 +31,10 @@ export type CutRule =
   | { readonly keep: 'scoreThreshold'; readonly value: number; readonly minSurvivors: number };
 
 export interface CutResult {
-  readonly survivors: readonly string[]; // account ids, ranked order
-  readonly eliminated: readonly string[]; // account ids, ranked order (worst first)
+  readonly survivors: readonly string[]; // account ids, ranked order (best first)
+  // Account ids, ranked order (best first, the tie-break chain); stored in cutApplied
+  // events, so readers of the log rely on it.
+  readonly eliminated: readonly string[];
   readonly shieldSaves: readonly string[]; // account ids saved by a shield
 }
 

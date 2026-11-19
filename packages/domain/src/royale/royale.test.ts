@@ -4,8 +4,9 @@
  * @brief  Royale structure tests: cut, final ranking, jackpot (12 §3 inv. 7, 8, 10).
  *
  * Responsibility: cover the invariants directly. The cut tests check minSurvivors,
- *                 the shield rescue margin, and the "no survivor is beaten by an
- *                 eliminated player" rule. finalRanking returns a total order 1..N
+ *                 the shield rescue margin, the "no survivor is beaten by an
+ *                 eliminated player" rule and the eliminated listed best first (the
+ *                 order stored in cutApplied events). finalRanking returns a total order 1..N
  *                 without gaps, finalists who never scored by join time; cut and final
  *                 ranking break ties alike (./tieBreak). jackpotValue is `base + growth ×
  *                 unclaimed`.
@@ -61,6 +62,23 @@ describe('applyCut: how many survive (D18, score threshold)', () => {
     expect(cut.survivors).toEqual(['t0', 't1', 't2']);
     const strict = applyCut(candidates, { keep: 'scoreThreshold', value: 500, minSurvivors: 2 });
     expect(strict.survivors).toHaveLength(2);
+  });
+});
+
+describe('applyCut: the order of the eliminated', () => {
+  it('lists the eliminated best first, in the tie-break order (01 §8.4)', () => {
+    // Given worst first, with a tie on points that the seasons decide: the client and the
+    // stored events read `eliminated` best first, as the final ranking orders them.
+    const candidates = [
+      makeCandidate({ accountId: 'worst', points: 10 }),
+      makeCandidate({ accountId: 'tied-fewer', points: 40, seasonsActivated: 0 }),
+      makeCandidate({ accountId: 'tied-more', points: 40, seasonsActivated: 1 }),
+      makeCandidate({ accountId: 'best-out', points: 50 }),
+      makeCandidate({ accountId: 'kept', points: 90 }),
+    ];
+    const result = applyCut(candidates, { keep: 'count', value: 1, minSurvivors: 1 });
+    expect(result.survivors).toEqual(['kept']);
+    expect(result.eliminated).toEqual(['best-out', 'tied-more', 'tied-fewer', 'worst']);
   });
 });
 
