@@ -7,7 +7,9 @@
  * Responsibility: hashes map to the lobby, match, host and Quick Test screens and back;
  *                 the quick sign-in buttons "Sign in as host" / "Sign in as player 1/2/3"
  *                 exist only in development (production passes dev=false); "Host a match"
- *                 shows only with `match.create`; the Quick Test link only in development.
+ *                 shows only with `match.create`; the Quick Test link only in development; in
+ *                 website mode "← Seasonal Entertainment" leads to /games in the same tab, and a
+ *                 standalone install (local mode, or no mode said) has no such link.
  * Depends on:     @testing-library/react, ./AppShell, ./router, ./session
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
@@ -24,12 +26,15 @@ afterEach(() => {
   window.location.hash = '';
 });
 
-function serve(permissions: readonly string[]): void {
+// `mode`: the server's sign-in mode (the chat dock test's switch); none says nothing about it.
+function serve(permissions: readonly string[], mode?: 'local' | 'website'): void {
   const session = {
     signedIn: permissions.length > 0,
     account: permissions.length > 0 ? { id: 'a', displayName: 'dev-host' } : null,
     permissions,
     csrfToken: 'x',
+    ...(mode === undefined ? {} : { authMode: mode }),
+    ...(mode === 'website' ? { signInPath: '/games/bingo/auth/website' } : {}),
   };
   vi.stubGlobal(
     'fetch',
@@ -103,6 +108,26 @@ describe('app shell', () => {
     await renderShell(false);
     expect(screen.queryByText('Host a match')).toBeNull();
     expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (player)');
+  });
+});
+
+describe('the way back to the website (its GAME-INTEGRATION.md section 8)', () => {
+  it('links "← Seasonal Entertainment" to /games in the same tab in website mode', async () => {
+    serve([], 'website');
+    await renderShell(false);
+    const back = await screen.findByRole('link', { name: '← Seasonal Entertainment' });
+    expect(back.getAttribute('href')).toBe('/games');
+    expect(back.getAttribute('target')).toBeNull();
+  });
+
+  it('is not there in a standalone install', async () => {
+    for (const mode of ['local', undefined] as const) {
+      serve([], mode);
+      await renderShell(false);
+      await screen.findByTestId('open-sign-in');
+      expect(screen.queryByRole('link', { name: '← Seasonal Entertainment' })).toBeNull();
+      cleanup();
+    }
   });
 });
 
