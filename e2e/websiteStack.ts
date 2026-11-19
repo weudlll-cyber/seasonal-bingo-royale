@@ -3,8 +3,9 @@
  * @module e2e
  * @brief  A game server in website mode behind a stand-in of the website's proxy (D37).
  *
- * Responsibility: a database of its own (`sbr_e2e_website` beside the e2e database, made once
- *                 and kept, so no other server's scheduler runs its matches); the player client
+ * Responsibility: a database of its own per Playwright worker (`sbr_e2e_website_w<n>` beside
+ *                 the e2e database, made once and kept, so no other server's scheduler runs its
+ *                 matches, not even another worker's stack at the same time); the player client
  *                 built for production; a stand-in proxy on an ephemeral port that plays the
  *                 website: GET /login is its login page (a known stub user goes on to `next`),
  *                 GET /embed/chat its chat embed page (naming the room and theme asked for);
@@ -38,7 +39,9 @@ import { databaseUrl, REPO_ROOT } from './devStack.js';
 
 const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
-const DB_NAME = 'sbr_e2e_website';
+// One database per Playwright worker: specs in other workers run their own stack at the same
+// time, and a server must never see (and schedule) another stack's matches.
+const DB_NAME = `sbr_e2e_website_w${process.env['TEST_PARALLEL_INDEX'] ?? '0'}`;
 const SIGN_IN = '/games/bingo/auth/website';
 const IDENTITY = /^(x-acting-user|x-acting-guest|x-sbr-proxy-secret)/i;
 const SECRET = randomBytes(32).toString('hex');

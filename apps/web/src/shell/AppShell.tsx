@@ -3,7 +3,9 @@
  * @module web/shell
  * @brief  The player client's frame: top bar, navigation, account, screens.
  *
- * Responsibility: emblem, wordmark, light/dark toggle, links to the lobby, hosting (with
+ * Responsibility: in website mode first "← Seasonal Entertainment" (top left, to the website's
+ *                 games page /games in this tab; not in a standalone install), then emblem,
+ *                 wordmark, light/dark toggle, links to the lobby, hosting (with
  *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
  *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
  *                 "Register" (../account; in website mode one "Sign in" to the website, D37). Below the bar the current route's screen (boards and
@@ -60,9 +62,17 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const chat = useChatDock(route);
   // Website mode: an ended game session signs in again through the website (an idle admin).
   useWebsiteResign();
+  const website = useSession().session?.authMode === 'website';
   return (
     <MaintenanceContext.Provider value={maintenance}>
       <header className="shell-bar">
+        {/* Website mode: the way back to the website's games page, an ordinary link in this
+            tab (the website's GAME-INTEGRATION.md section 8); not in a standalone install. */}
+        {website ? (
+          <a className="shell-back" href="/games">
+            ← Seasonal Entertainment
+          </a>
+        ) : null}
         <a className="shell-brand" href={hrefOf({ name: 'lobby' })}>
           <img src={emblem} alt="" width="42" height="37" />
           <span>

@@ -60,6 +60,22 @@
   letter-spacing: 0.02em;
 }
 
+/* Website mode: "← Seasonal Entertainment" back to the website's games page, at the top left
+   before the brand; small text, so it takes no play area */
+.shell-back {
+  order: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.shell-back:hover,
+.shell-back:focus-visible {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
 .shell-brand img {
   width: 42px;
   height: auto;
@@ -177,6 +193,11 @@
 @media (max-width: 640px) {
   .shell-brand small {
     display: none;
+  }
+
+  /* The way back to the website: its own short first row, still at the top left */
+  .shell-back {
+    flex-basis: 100%;
   }
 
   /* The account row keeps the chip whole: the buttons move to a second line only when

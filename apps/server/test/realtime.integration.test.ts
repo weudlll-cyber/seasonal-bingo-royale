@@ -18,7 +18,7 @@
 import { createHash } from 'node:crypto';
 
 import { io as connect, type Socket } from 'socket.io-client';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { deleteAccount } from '../src/auth/accounts.js';
 import type { App } from '../src/index.js';
@@ -174,9 +174,17 @@ describe('draw control and limits', () => {
       ok: false,
       code: 'TOO_MANY_ROOMS',
     });
+    // The five marks within one instant of the limiter's clock (Date only; timers stay real):
+    // one after the other they took longer than a second on a busy machine and the limit
+    // refilled.
+    vi.useFakeTimers({ toFake: ['Date'] });
     const answers = [];
-    for (let i = 0; i < 5; i += 1)
-      answers.push(await kit.send(s, 'mark', { code: codes[0], cardIndex: 0, cell: 0 }));
+    try {
+      for (let i = 0; i < 5; i += 1)
+        answers.push(await kit.send(s, 'mark', { code: codes[0], cardIndex: 0, cell: 0 }));
+    } finally {
+      vi.useRealTimers();
+    }
     expect(answers.at(-1)).toEqual({ ok: false, code: 'RATE_LIMITED' });
   });
 });
