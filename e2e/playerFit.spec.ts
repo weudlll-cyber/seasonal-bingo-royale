@@ -14,7 +14,8 @@
  *                 1280×720, at the root font of 16, 20 and 24 px (Chromium): no text below 14 px
  *                 and no card number below 16 px times the font scale, nothing cut, covered or
  *                 wider than the window (./acceptance/fitProbe), the key parts in view at the
- *                 default font on a phone and at every font on the desktop. The match is
+ *                 default font on a phone and at every font on the desktop; the watched cards'
+ *                 grids line up in a row, also beside a long name. The match is
  *                 aborted afterwards, also on failure.
  * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens, ./acceptance/fitProbe
  * Spec:           docs/spec/01-game-design.md §13
@@ -250,6 +251,29 @@ async function checkFit(page: Page, screen: keyof typeof SCREENS): Promise<void>
   await atFont(page, 16);
 }
 
+// The watched cards' number grids line up in each row, also when one heading is long: the
+// first card's name is set to 24 characters (the longest a name may be) for the measurement.
+// Returns the rows whose grids start at different heights (empty when they line up).
+const misalignedGridRows = (page: Page) =>
+  page.evaluate(() => {
+    const cards = [
+      ...document.querySelectorAll<HTMLElement>('[data-testid^="watch-card-"]'),
+    ].filter((c) => c.checkVisibility());
+    const name = cards[0]?.querySelector('.watch-head strong');
+    const before = name?.textContent ?? '';
+    if (name) name.textContent = '#1 a-very-long-name-24chr';
+    const rows = new Map<number, number[]>();
+    for (const card of cards) {
+      const grid = card.querySelector(':scope > div > div');
+      const top = Math.round(card.getBoundingClientRect().top);
+      rows.set(top, [...(rows.get(top) ?? []), grid?.getBoundingClientRect().top ?? -1]);
+    }
+    if (name) name.textContent = before;
+    return [...rows.values()]
+      .filter((tops) => Math.max(...tops) - Math.min(...tops) > 1)
+      .map((tops) => tops.map(Math.round));
+  });
+
 test('round screens on phones and at large fonts: in view, nothing small or cut', async ({
   browser,
 }, info) => {
@@ -281,6 +305,15 @@ test('round screens on phones and at large fonts: in view, nothing small or cut'
     await watcher.goto(`/#/match/${code}`);
     await expect(watcher.getByTestId('watch-cards')).toBeVisible({ timeout: 20_000 });
     await checkFit(watcher, 'spectator');
+    for (const { size } of SMALL.filter((x) => x.name !== '360x640')) {
+      await atSize(watcher, size);
+      await settled(async () => {
+        expect(
+          await misalignedGridRows(watcher),
+          `${String(size.width)} px: grids in a row`,
+        ).toEqual([]);
+      });
+    }
   } finally {
     await stopMatch(host, code);
   }

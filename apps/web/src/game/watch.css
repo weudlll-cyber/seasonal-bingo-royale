@@ -7,7 +7,8 @@
  *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
  *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
  *                 phone; a followed player's card alone and larger; the heading with place,
- *                 name, points and "1 to go". Colours and spacing from @sbr/ui tokens.
+ *                 name, points and "1 to go", the grids of cards side by side lined up.
+ *                 Colours and spacing from @sbr/ui tokens.
  * Used by:        ./WatchCards
  * Spec:           docs/spec/01-game-design.md §13 (D24)
  */
@@ -35,6 +36,12 @@
   --cell-size: 2.4rem;
   --cell-font: 1rem;
   --card-padding: var(--space-1);
+}
+
+/* Cards side by side share their row's height and the heading takes the spare room, so the
+   number grids line up even when one heading wraps (a long name, "1 to go"). */
+.watch-card > div {
+  grid-template-rows: 1fr auto;
 }
 
 .watch-head {
