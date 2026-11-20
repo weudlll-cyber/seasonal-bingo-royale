@@ -37,7 +37,7 @@ Per group:
 
 ## Open points found while listing
 
-Each with a proposal and the alternative; they join "Needs the owner's word" in admin-area.md §8.
+Each with the proposal and the alternative as listed; the owner decided all of them on 2026-11-20 as proposed (admin-area.md §8 (l)–(r)).
 
 1. **Client copies of server rules.** The client repeats server limits as its own constants: title 60 characters, players 2–200, password 12–128, display name 3–24, the "10-second countdown" text, the 5 s draw-interval placeholder, the missed-number and round-pause bounds (part D, rows marked "Duplicates"). Once these become settings, the copies go wrong. Proposal: the client reads every such limit from the server (the session or settings answer) and keeps no copy. Alternative: keep them fixed in both places.
 2. **A text with a number in it.** `packages/application/src/match/startRules.ts:78` says "Too few players joined within 24 hours", but the window is the ruleset's `lobby.openMsAsync`. Proposal: the text takes the setting's value. Alternative: the async lobby window stays fixed at 24 hours.
