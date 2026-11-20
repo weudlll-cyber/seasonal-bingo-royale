@@ -5,7 +5,9 @@
  *
  * Responsibility: the shared look of everything that ranks or reports: rows with rank,
  *                 name, season icons and points (own row highlighted, out rows dimmed below
- *                 a divider), the final podium in season colours and the prize rows.
+ *                 a divider; a name keeps its whole width, the seasons and points move to a
+ *                 second line when the row is narrow), the final podium in season colours
+ *                 and the prize rows.
  *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §7.4, §7.5, §13
  */
@@ -44,7 +46,7 @@
 /* Ranked rows (standings, final placement) */
 .rank-list {
   display: grid;
-  /* Rows never grow wider than the panel: long names shorten with an ellipsis */
+  /* Rows never grow wider than the panel: a name too long for its line wraps */
   grid-template-columns: minmax(0, 1fr);
   gap: 2px;
   margin: 0;
@@ -57,6 +59,7 @@
      instead of making the page taller. */
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
   min-height: 2.25rem;
@@ -88,22 +91,26 @@
   color: var(--color-text-muted);
 }
 
+/* The name gets the row's free width first: it never shrinks below its own width. When
+   name, seasons and points do not fit one line (a phone, a large font), the seasons and
+   points move to a second line, at the right; only a name longer than the whole line
+   wraps (fit audit F7). */
 .rank-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex: 1 0 auto;
+  max-width: calc(100% - 2.5rem);
+  overflow-wrap: anywhere;
 }
 
 .rank-seasons {
   display: inline-flex;
   flex: none;
   gap: 2px;
+  margin-left: auto;
 }
 
 .rank-note {
   flex: none;
+  margin-left: auto;
   text-align: right;
 }
 
@@ -204,10 +211,59 @@
 
 .podium-name {
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* A name wider than its step wraps rather than being cut (fit audit F7). */
+  overflow-wrap: anywhere;
   font-weight: var(--font-weight-strong);
+}
+
+/* A podium too narrow for three names side by side (18.5rem: a 360 px phone, or a large
+   font) shows its steps as rows in place order: place, name, note (fit audit F7). */
+.podium-box {
+  container-type: inline-size;
+}
+
+@container (max-width: 18.5rem) {
+  .podium {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .podium-step {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--space-1);
+    min-height: 0;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius);
+    text-align: left;
+  }
+
+  .podium-step--1,
+  .podium-step--2,
+  .podium-step--3 {
+    min-height: 0;
+  }
+
+  .podium-step--1 {
+    order: 1;
+  }
+
+  .podium-step--2 {
+    order: 2;
+  }
+
+  .podium-step--3 {
+    order: 3;
+  }
+
+  .podium-place {
+    font-size: var(--font-size-lead);
+  }
+
+  .podium-note {
+    margin-left: auto;
+  }
 }
 
 .podium-note {

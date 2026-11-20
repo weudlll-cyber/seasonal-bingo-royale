@@ -1,17 +1,17 @@
 /**
  * @file   apps/web/src/minTextSize.test.ts
  * @module web
- * @brief  No text below 14 px at the browser's default font (owner decision of 2026-11-20).
+ * @brief  No text below 14 px at the browser's default font, no card number below 16 px, no cut name.
  *
  * Responsibility: scan every stylesheet and component of the client and of @sbr/ui for font
  *                 sizes written as a fixed length and check their floor: the value itself, or
  *                 the first argument of max() and clamp(), or a var()'s fallback. Text keeps
  *                 0.875rem (14 px), card numbers (--cell-font) 1rem (16 px); sizes computed
- *                 from a box (calc of a custom property) are
- *                 left to the e2e fit checks. `small` gets the small size, never the browser's
- *                 `smaller`.
+ *                 from a box (calc of a custom property) are left to the e2e fit checks.
+ *                 `small` gets the small size, never the browser's `smaller`. No text is cut
+ *                 with an ellipsis (names wrap or move their figures to the next line).
  * Depends on:     nothing (reads the source files)
- * Spec:           docs/concepts/fit-audit.md §3 (F1–F6), §5 items 1 and 2
+ * Spec:           docs/concepts/fit-audit.md §3 (F1–F7), §5 items 1, 2 and 6
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -89,6 +89,15 @@ describe('minimum text size', () => {
       .filter(({ value }) => (floorPx(value) ?? 99) < 16)
       .map(({ where, value }) => `${where} ${value}`);
     expect(below).toEqual([]);
+  });
+
+  it('never cuts a name with an ellipsis: rows wrap their figures instead (fit F7)', () => {
+    const cut = ROOTS.flatMap(sources)
+      .filter((file) =>
+        stripComments(readFileSync(file, 'utf8')).includes('text-overflow: ellipsis'),
+      )
+      .map((file) => path.basename(file));
+    expect(cut).toEqual([]);
   });
 
   it('gives `small` the small size', () => {

@@ -3,7 +3,7 @@
  * @module web/game
  * @brief  The cards a player out or a spectator watches (D24): top 4, or one followed player.
  *
- * Responsibility: the watched cards in the card look of a player's own card (./arena.css
+ * Responsibility: the watched cards in the card look of a player's own card (./liveCard.css
  *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
  *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
  *                 phone; a followed player's card alone and larger; the heading with place,

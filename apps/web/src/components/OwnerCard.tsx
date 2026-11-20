@@ -9,7 +9,8 @@
  *                 bonus shows apart from the points, as the Quick Test computes the match before
  *                 playback. With `auto` the card shows the server's marks. The parent remounts it
  *                 per round; between rounds the last number stays and every tap is refused.
- *                 It wears the live player screen's card look (../game/arena.css).
+ *                 It wears the live player screen's card look (../game/liveCard.css, imported
+ *                 by ../game/arena.css).
  * Depends on:     react, ./BingoHeader, ./CellFace, ../manualMarking, ../useReducedMotion, ../types,
  *                 ../game/arena.css
  * Used by:        ./OwnerArea; TapGrid also by the live card (../game/LiveCard)
@@ -65,7 +66,7 @@ export function OwnerCard(props: OwnerCardProps): ReactElement {
       }),
     );
   };
-  // The live player screen's card look (.live-card, ../game/arena.css): card colours,
+  // The live player screen's card look (.live-card, ../game/liveCard.css): card colours,
   // thumb-sized cells; the texts in the card's ink.
   return (
     <div className="live-card">

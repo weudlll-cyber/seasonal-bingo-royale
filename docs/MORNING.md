@@ -16,15 +16,19 @@ What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is ope
   - card numbers never below 16 px on the own card and the watched cards; the unit test reads every card size;
   - cell sizes have floors in rem, so cells grow with the font and numbers never touch; where the cards no longer fit, their box scrolls (desktop: the play area; phone: the two watched cards side by side in a row that scrolls sideways);
   - the own card never wider than a phone; the play area's minimum height is at most half the window, so a round does not scroll the page at 150 % on 1280×720 and 1366×768.
+- Piece 3 — names and the phone header (F7, F13, F14, O1, O2):
+  - names are never cut: in standings, results and the interlude the seasons and points move to a second line when the row is narrow; a narrow podium shows its steps as rows; no ellipsis anywhere (unit test);
+  - below 960 px the top bar is one row (brand, theme toggle, Menu); the menu opens a panel with the links and the account, keyboard usable (aria-expanded, focus inside, Escape); desktop unchanged; "← Seasonal Entertainment" stays top left;
+  - the arena's title line wraps LIVE and the host button under the title instead of covering it;
+  - on phones the ball stops growing past a quarter of the width and the own card also follows the window's height, so ball, numbers and the whole card fit a 360×640 phone at the default font (cells 38 px there).
 - Earlier, on master: the admin-area decisions and build order (PR #54).
 
 ## Running
 
-- Piece 3 — names and the phone header (F7, F14, O1, O2).
+- Piece 4 — keep it so (playerFit at 360×640, the console on phones, 125 % / 150 %).
 
 ## Open
 
-- Piece 4 — keep it so (playerFit at 360×640, the console on phones, 125 % / 150 %).
 - The audit again after the fixes; one royale played at 390×844 and 1280×720; screenshots for the owner.
 - Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
 

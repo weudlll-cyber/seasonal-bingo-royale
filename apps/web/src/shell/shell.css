@@ -6,9 +6,10 @@
  * Responsibility: a top bar on the website's season gradient (emblem, wordmark,
  *                 navigation as pills with the current one solid, the round light/dark toggle,
  *                 the account chip linking to the account page, and the dev sign-in menu)
- *                 over a centred main column, sticky from 640 px with focus kept below it; on
- *                 phones the bar wraps into two rows, scrolls away with the page and the
- *                 navigation scrolls sideways. On desktop a live screen (.fit-window: the arena,
+ *                 over a centred main column, sticky from 640 px with focus kept below it;
+ *                 below 960 px the bar is one row and the navigation and account open from
+ *                 one menu button as a panel under it (./MenuFold); on phones the bar scrolls
+ *                 away with the page. On desktop a live screen (.fit-window: the arena,
  *                 the running host console) fills the window below the bar exactly, so the page
  *                 does not scroll during a round. Colours come from @sbr/ui.
  * Spec:           docs/spec/01-game-design.md §13
@@ -216,11 +217,6 @@
     padding: 0 0.6rem;
     font-size: var(--font-size-small);
     white-space: nowrap;
-  }
-
-  /* On a phone the toggle shares the first row with the brand */
-  .theme-toggle {
-    order: 1;
   }
 }
 

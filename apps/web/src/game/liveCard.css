@@ -1,0 +1,79 @@
+/**
+ * @file   apps/web/src/game/liveCard.css
+ * @module web/game
+ * @brief  The player's card as the hero element: card colours, large thumb-sized cells.
+ *
+ * Responsibility: the own cards' grid and the live card (also worn by the seed check's cards,
+ *                 ../components/OwnerCard, and the watched cards, ./watch.css): cells sized
+ *                 from the window's width (never wider than a phone) and, on phones and
+ *                 tablets, from its height, so the whole card is in view on a 360×640 phone;
+ *                 the cell's floors keep room for the 16 px numbers (fit audit F8, F13).
+ *                 Desktop sizes come from the play area's box (./arena.css). Colours and
+ *                 sizes from @sbr/ui tokens.
+ * Used by:        ./arena.css (@import)
+ * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §5
+ */
+
+/* The player's card: the hero element. On a phone five cells, the gaps and the padding
+   never pass the window's width, whatever the font (fit audit F8); the padding stops
+   growing with the font like the page margin (unchanged at the default font). */
+.own-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.live-card {
+  --card-padding: min(var(--space-2), 4.5vw);
+  --cell-size: min(
+    clamp(2.9rem, 15vw, 4.1rem),
+    calc((100vw - 2 * var(--gutter) - 2 * var(--card-padding) - 24px) / 5)
+  );
+  --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
+  --cell-weight: 700;
+  --cell-radius: 10px;
+  --cell-bg: var(--color-bingo-card);
+  --cell-free-bg: var(--color-bingo-card-line);
+  --cell-ink: var(--color-bingo-card-ink);
+  --cell-marked-bg: var(--color-bingo-card-marked);
+  --cell-marked-ink: var(--color-bingo-card-marked-ink);
+  --cell-marked-ring: var(--color-autumn);
+
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--card-padding);
+  border-radius: var(--radius-card);
+  background: var(--color-bingo-card);
+  color: var(--color-bingo-card-ink);
+  box-shadow: var(--shadow-raised);
+}
+
+.live-card > div {
+  gap: 6px !important;
+}
+
+.live-card-feedback {
+  margin: 0;
+  min-height: 1.4em;
+  color: var(--color-bingo-card-ink);
+  font-weight: var(--font-weight-strong);
+}
+
+/* Phones and tablets: the own card also takes its cells from the window's height, so on
+   a 360×640 phone the whole card is in view below the bar, the title and the ball
+   (28rem: what sits above the cells and around them). The floor keeps room for the
+   16 px numbers: at a large font the card may end below the window instead. */
+@media (max-width: 959px) {
+  .own-cards .live-card {
+    --cell-size: max(
+      2.2rem,
+      min(
+        clamp(2.9rem, 15vw, 4.1rem),
+        calc((100vw - 2 * var(--gutter) - 2 * var(--card-padding) - 24px) / 5),
+        calc((100svh - 28rem) / 5)
+      )
+    );
+  }
+}
