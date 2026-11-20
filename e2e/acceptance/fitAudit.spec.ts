@@ -259,7 +259,7 @@ async function cardComparison(page: Page): Promise<void> {
         if (min === null) return;
         const style = document.createElement('style');
         style.id = 'fit-floor';
-        style.textContent = `[data-testid="watch-cards"] [style*="cell-size"] { font-size: max(${min}, var(--cell-font, 0.9rem)) !important; }`;
+        style.textContent = `[data-testid="watch-cards"] [style*="cell-font"] { font-size: max(${min}, var(--cell-font, 0.9rem)) !important; }`;
         document.head.append(style);
       }, rem);
       await atSize(page, w, h, 16);
@@ -279,7 +279,8 @@ async function cardComparison(page: Page): Promise<void> {
 // Cards shown and whole in the window, per row, the smallest number, numbers wider or taller
 // than their cell, and whether the page or the cards' box scrolls.
 async function cardFacts(page: Page) {
-  return page.evaluate(() => {
+  const cells = await page.evaluate(cellFacts);
+  const layout = await page.evaluate(() => {
     const vh = window.innerHeight;
     const vw = document.documentElement.clientWidth;
     const cards = [...document.querySelectorAll('[data-testid^="watch-card-"]')].filter((c) =>
@@ -292,33 +293,45 @@ async function cardFacts(page: Page) {
     const tops = new Map<number, number>();
     for (const b of boxes)
       tops.set(Math.round(b.top / 4), (tops.get(Math.round(b.top / 4)) ?? 0) + 1);
-    let min = 1e9;
-    let spill = 0;
-    for (const cell of document.querySelectorAll(
-      '[data-testid="watch-cards"] [style*="cell-size"]',
-    )) {
-      if (!cell.checkVisibility()) continue;
-      const span = cell.firstElementChild ?? cell;
-      min = Math.min(min, parseFloat(getComputedStyle(span).fontSize));
-      const range = document.createRange();
-      range.selectNodeContents(span);
-      const t = range.getBoundingClientRect();
-      const c = cell.getBoundingClientRect();
-      if (t.width > c.width - 4 + 0.5 || t.height > c.height - 4 + 0.5) spill += 1;
-    }
     const scroller = document.scrollingElement ?? document.documentElement;
     const box = document.querySelector('[data-testid="watch-cards"]');
     return {
       shown: cards.length,
       whole: whole.length,
       perRow: Math.max(0, ...tops.values()),
-      minPx: Math.round(min * 10) / 10,
-      spill,
       pageScroll: scroller.scrollHeight > vh + 1,
       hScroll: scroller.scrollWidth > vw + 1,
       boxScroll: box === null ? false : box.scrollHeight > box.clientHeight + 1,
     };
   });
+  return { ...layout, ...cells };
+}
+
+// In the page: the watched cards' number sizes and the numbers that spill out of their cell.
+function cellFacts(): { minPx: number; sizes: number[]; spill: number } {
+  let min = 1e9;
+  let spill = 0;
+  const sizes = new Set<number>();
+  for (const cell of document.querySelectorAll(
+    '[data-testid="watch-cards"] [style*="cell-font"]',
+  )) {
+    if (!cell.checkVisibility()) continue;
+    // The number's own text (a season cell also holds its icon below the number).
+    const span = cell.firstElementChild ?? cell;
+    const text = [...span.childNodes].find((n) => n.nodeType === Node.TEXT_NODE);
+    if (text === undefined || !/\d/.test(text.textContent ?? '')) continue;
+    const px = parseFloat(getComputedStyle(span).fontSize);
+    min = Math.min(min, px);
+    sizes.add(Math.round(px * 10) / 10);
+    const range = document.createRange();
+    range.selectNodeContents(text);
+    const t = range.getBoundingClientRect();
+    const c = cell.getBoundingClientRect();
+    // Wider than the cell inside its 2 px border, or its digits (the middle 60 % of the
+    // em box) taller than that.
+    if (t.width > c.width - 4 + 0.5 || t.height * 0.6 > c.height - 4 + 0.5) spill += 1;
+  }
+  return { minPx: Math.round(min * 10) / 10, sizes: [...sizes].sort((a, b) => a - b), spill };
 }
 
 // The lobby side: the console before the start, a player's waiting room and My matches.

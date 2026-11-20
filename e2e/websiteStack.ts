@@ -22,7 +22,7 @@
  *                 matches are never deleted.
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
- * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec
+ * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./acceptance/fitAudit.spec
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';

@@ -8,7 +8,7 @@
  *                 D14), tapping the current number, playing until something shows, and saving
  *                 a screen at several sizes in both themes.
  * Depends on:     @playwright/test, ../realGame, ../screens, ./liveSnap
- * Used by:        ./clarityScreens.spec, ./polishScreens.spec
+ * Used by:        ./clarityScreens.spec, ./polishScreens.spec, ./fitAudit.spec
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/12-testing-strategy.md §4
  */
 import { expect, type Browser, type Locator, type Page } from '@playwright/test';

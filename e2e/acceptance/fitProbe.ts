@@ -36,6 +36,8 @@ export interface Probe {
   readonly view: { readonly width: number; readonly height: number };
   readonly pageScroll: boolean;
   readonly hScroll: boolean;
+  // The top bar's height as a share of the window (it takes room from every screen).
+  readonly headerShare: number;
   readonly smallText: readonly TextHit[];
   readonly smallCells: readonly TextHit[];
   readonly cut: readonly { sel: string; by: string; text: string }[];
@@ -74,14 +76,14 @@ function isEmpty(r: Rect): boolean {
   return r.right - r.left < 1 || r.bottom - r.top < 1;
 }
 
-// The box the element's ancestors let it be seen in: user-scrolled boxes, and hard clips
-// (overflow hidden or clip), each with the nearest clipping ancestor named.
+// The box the element and its ancestors let its text be seen in: user-scrolled boxes, and
+// hard clips (overflow hidden or clip), with the nearest clipping box named.
 function clipsOf(el: Element): { scroll: Rect; hard: Rect; by: string } {
   const all = { top: -1e9, left: -1e9, bottom: 1e9, right: 1e9 };
   let scroll = all;
   let hard = all;
   let by = '';
-  for (let a = el.parentElement; a !== null && a !== document.body; a = a.parentElement) {
+  for (let a: Element | null = el; a !== null && a !== document.body; a = a.parentElement) {
     const cs = getComputedStyle(a);
     const box = a.getBoundingClientRect();
     const x = cs.overflowX;
@@ -99,11 +101,19 @@ function clipsOf(el: Element): { scroll: Rect; hard: Rect; by: string } {
 const FIELDS =
   'input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=hidden]), select, textarea';
 
+// Seen by the reader: visible, not text only for screen readers (a 1 px box), not the free
+// centre's star.
+function readable(el: Element): boolean {
+  if (!el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return false;
+  const box = el.getBoundingClientRect();
+  return box.width > 1 && box.height > 1 && el.textContent.trim() !== '★';
+}
+
 // Visible elements that carry text: own non-blank text nodes, or a form field.
 function textElements(): { el: Element; frags: Rect[] }[] {
   const out: { el: Element; frags: Rect[] }[] = [];
   for (const el of document.body.querySelectorAll('*')) {
-    if (!el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+    if (!readable(el)) continue;
     if (el.matches(FIELDS)) {
       out.push({ el, frags: [el.getBoundingClientRect()] });
       continue;
@@ -123,14 +133,9 @@ function textElements(): { el: Element; frags: Rect[] }[] {
 const snippet = (el: Element): string =>
   ((el as HTMLInputElement).value || el.textContent || '').trim().slice(0, 40);
 
-function cutOrOutside(
-  el: Element,
-  frags: Rect[],
-  view: { width: number },
-): { cut: string | null; outside: boolean; seen: Rect[] } {
+function cutText(el: Element, frags: Rect[]): { cut: string | null; seen: Rect[] } {
   const { scroll, hard, by } = clipsOf(el);
   let cut: string | null = null;
-  let outside = false;
   const seen: Rect[] = [];
   for (const f of frags) {
     const inScroll = intersect(f, scroll);
@@ -139,10 +144,9 @@ function cutOrOutside(
     const lost = inScroll.right - inScroll.left - (shown.right - shown.left);
     const lostY = inScroll.bottom - inScroll.top - (shown.bottom - shown.top);
     if (isEmpty(shown) || lost > 1.5 || lostY > 1.5) cut = by;
-    if (scroll.left < -1e8 && (f.right > view.width + 1 || f.left < -1)) outside = true;
     if (!isEmpty(shown)) seen.push(shown);
   }
-  return { cut, outside, seen };
+  return { cut, seen };
 }
 
 // Text with an ellipsis that hides part of it.
@@ -151,9 +155,15 @@ function ellipsed(el: Element): boolean {
   return cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1;
 }
 
-// Pairs of text fragments of different elements that cover each other noticeably.
+// Pairs of text fragments of different elements that cover each other noticeably. A text box
+// is the font's whole em box; its top and bottom fifth (above capitals, below descenders)
+// are left out, so glyphs set close, as the ball's letter over its number, do not count.
 function overlapPairs(items: { el: Element; seen: Rect[] }[]): { a: string; b: string }[] {
-  const frags = items.flatMap(({ el, seen }) => seen.map((r) => ({ el, r })));
+  const inset = (r: Rect): Rect => {
+    const d = (r.bottom - r.top) * 0.2;
+    return { top: r.top + d, left: r.left, bottom: r.bottom - d, right: r.right };
+  };
+  const frags = items.flatMap(({ el, seen }) => seen.map((r) => ({ el, r: inset(r) })));
   frags.sort((p, q) => p.r.top - q.r.top);
   const found = new Map<string, { a: string; b: string }>();
   for (let i = 0; i < frags.length; i += 1) {
@@ -216,6 +226,11 @@ function wideBoxes(view: { width: number }): { sel: string; left: number; right:
   return out;
 }
 
+function headerShare(height: number): number {
+  const bar = document.querySelector('.shell-bar');
+  return bar === null ? 0 : Math.round((bar.getBoundingClientRect().height / height) * 100) / 100;
+}
+
 function runProbe(): Probe {
   const scale = parseFloat(getComputedStyle(document.documentElement).fontSize) / 16;
   const view = { width: document.documentElement.clientWidth, height: window.innerHeight };
@@ -225,6 +240,7 @@ function runProbe(): Probe {
     view,
     pageScroll: page.scrollHeight > window.innerHeight + 1,
     hScroll: page.scrollWidth > view.width + 1,
+    headerShare: headerShare(view.height),
     smallText: [] as TextHit[],
     smallCells: [] as TextHit[],
     cut: [] as { sel: string; by: string; text: string }[],
@@ -234,13 +250,13 @@ function runProbe(): Probe {
   const items: { el: Element; seen: Rect[] }[] = [];
   for (const { el, frags } of textElements()) {
     const px = parseFloat(getComputedStyle(el).fontSize);
-    const isCell = el.closest('[style*="cell-size"]') !== null && snippet(el) !== '★';
+    const isCell = el.closest('[style*="cell-font"]') !== null;
     const hit = { sel: describeEl(el), px: Math.round(px * 10) / 10, text: snippet(el) };
     if (isCell && px < 16 * scale - 0.05) result.smallCells.push(hit);
     if (!isCell && px < 14 * scale - 0.05) result.smallText.push(hit);
-    const c = cutOrOutside(el, frags, view);
-    if (c.cut !== null) result.cut.push({ sel: hit.sel, by: c.cut, text: hit.text });
-    else if (ellipsed(el)) result.cut.push({ sel: hit.sel, by: 'ellipsis', text: hit.text });
+    const c = cutText(el, frags);
+    if (ellipsed(el)) result.cut.push({ sel: hit.sel, by: 'ellipsis', text: hit.text });
+    else if (c.cut !== null) result.cut.push({ sel: hit.sel, by: c.cut, text: hit.text });
     if (c.seen.length > 0) items.push({ el, seen: c.seen });
     const cover = coveredBy(el, c.seen, view);
     if (cover !== null) result.overlaps.push({ a: hit.sel, b: `covered by ${cover}` });
@@ -254,13 +270,15 @@ const PARTS = [
   intersect,
   isEmpty,
   clipsOf,
+  readable,
   textElements,
   snippet,
-  cutOrOutside,
+  cutText,
   ellipsed,
   overlapPairs,
   coveredBy,
   wideBoxes,
+  headerShare,
   runProbe,
 ];
 

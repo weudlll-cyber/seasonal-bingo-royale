@@ -8,7 +8,7 @@
  *                 config never repeats credentials. CI sets SBR_E2E_DATABASE_URL to its
  *                 PostgreSQL service instead.
  * Depends on:     ops/.env.dev.example
- * Used by:        ./playwright.config.ts, ./globalSetup.ts, ./screens
+ * Used by:        ./playwright.config.ts, ./globalSetup.ts, ./screens, ./acceptance/fitAudit.spec
  * Spec:           docs/spec/08-devops-architecture.md §1, §8
  */
 import { readFileSync } from 'node:fs';
