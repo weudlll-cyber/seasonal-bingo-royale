@@ -9,7 +9,8 @@
  *                 0.875rem (14 px), card numbers (--cell-font) 1rem (16 px); sizes computed
  *                 from a box (calc of a custom property) are left to the e2e fit checks.
  *                 `small` gets the small size, never the browser's `smaller`. No text is cut
- *                 with an ellipsis (names wrap or move their figures to the next line).
+ *                 with an ellipsis (names wrap or move their figures to the next line), and a
+ *                 podium name never breaks inside its step (the podium turns into rows).
  * Depends on:     nothing (reads the source files)
  * Spec:           docs/concepts/fit-audit.md §3 (F1–F7), §5 items 1, 2 and 6
  */
@@ -98,6 +99,16 @@ describe('minimum text size', () => {
       )
       .map((file) => path.basename(file));
     expect(cut).toEqual([]);
+  });
+
+  it('never breaks a podium name inside its step: the podium turns into rows instead', () => {
+    const podium = stripComments(readFileSync(here('components/podium.css'), 'utf8'));
+    const name = /\n\.podium-name \{([^}]*)\}/.exec(podium)?.[1] ?? '';
+    expect(name).toContain('white-space: nowrap;');
+    expect(podium).not.toContain('overflow-wrap: anywhere');
+    // Rows below the width three 24-character names need side by side (fit audit §6).
+    const rows = Number(/@container \(max-width: ([\d.]+)rem\)/.exec(podium)?.[1] ?? 0);
+    expect(rows).toBeGreaterThanOrEqual(46);
   });
 
   it('gives `small` the small size', () => {

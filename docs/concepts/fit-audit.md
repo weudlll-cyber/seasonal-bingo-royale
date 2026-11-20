@@ -279,7 +279,8 @@ Findings per kind:
 
 - **F1–F4:** the brand subline, the LIVE badge and the development badge use `--font-size-small`; `small` gets it in `packages/ui/src/base.css`. `apps/web/src/minTextSize.test.ts` reads every stylesheet and component for a fixed text size below 14 px, a card number below 16 px or an ellipsis.
 - **F5, F6, F15:** `--cell-font` floors at 1rem on the own card, the watched cards and the CellFace fallback; the cells have rem floors (`apps/web/src/game/liveCard.css`, `watch.css`), so at a large font they grow with their numbers. Where the cards then do not fit, the play area's box scrolls (desktop) or the two watched cards scroll sideways in their row (phone) instead of the numbers shrinking.
-- **F7:** rank rows keep the name whole and move seasons and points to a second line when narrow; a narrow podium shows its steps as rows; a narrow leaderboard shows the figures under the name. No `text-overflow: ellipsis` is left.
+- **F7:** rank rows keep the name whole and move seasons and points to a second line when narrow; a podium name stays on one line and is never broken inside (not "dev-" / "player-2"): below 46rem, the width three 24-character names need side by side, the podium shows its steps as rows (phones, tablets, a large font); a narrow leaderboard shows the figures under the name. No `text-overflow: ellipsis` is left.
+- **Watched cards side by side:** they share their row's height and the heading takes the spare room, so a heading that wraps ("#1 dev-player-2 · 37 pts") no longer puts one grid lower than its neighbour (`watch.css`; playerFit checks it with a 24-character name).
 - **F8:** on phones and tablets the cards take their cells from their box's width (container units), not the window's.
 - **F9–F11:** the arena's columns are `minmax(0, 1fr)`; the seasons line wraps between seasons; "Verify this match" scrolls its rounds table inside a focusable box; on phones the page margin and the panel padding stop growing with the font (unchanged at the default font).
 - **F12:** the play area's minimum height is `min(20rem, 50vh)`; the standings keep `min(14rem, 60%)` of the side column, so the own row's strip stays whole at 150 %.
@@ -290,13 +291,19 @@ Findings per kind:
 
 ### 6.3 What remains, and why
 
-- **R1 — Own card below the window on phones at 125 % and 150 %** (360×640, 390×844; royale and classic; 8 combinations). The numbers stay at 16 px × the font scale, so the cells cannot shrink further; the ball and the drawn numbers stay in view and the card follows below. Fitting it would need smaller numbers or no ball on a phone at a large font: the owner's decision.
+- **R1 — Own card below the window on phones at 125 % and 150 %** (360×640, 390×844; royale and classic; 8 combinations). The numbers stay at 16 px × the font scale, so the cells cannot shrink further; the ball and the drawn numbers stay in view and the card follows below. Decided by the owner (below): the page scrolls to it.
 - **R2 — Desktop at 125 % / 150 % (1280×720, 1366×768): the own card (150 %) and the watched cards (125 %, 150 %) are taller than the play area's box** (10 combinations). The page does not scroll; the cards scroll inside their box, as asked for when 16 px numbers do not fit. The box itself is whole in the window (playerFit checks it).
-- **R3 — Host console on phones at 125 % / 150 %:** Draw next below the window (360×640 at 125 % and 150 %, 390×844 at 150 %), at 360×640 also the drawn numbers and at 150 % the ball (3 combinations). The console's header and controls above them grow with the font; moving Draw next above them changes the console's layout: left for the owner.
+- **R3 — Host console on phones at 125 % / 150 %:** Draw next below the window (360×640 at 125 % and 150 %, 390×844 at 150 %), at 360×640 also the drawn numbers and at 150 % the ball (3 combinations). The console's header and controls above them grow with the font; decided by the owner (below): the page scrolls to it.
 - **R4 — Spectator on phones at 125 % / 150 %:** the watched cards or the followed card end below the window (360×640; the followed card also at 390×844 / 150 %; 5 combinations), for the reason of R1.
 - **R5 — Quick Test on phones at 125 % / 150 %:** the development badge (fixed at the bottom right) lies under the page's tiles (4 combinations). Development only; the badge lets clicks through.
 
 None of these is covered by a decision of 2026-11-20: text and card numbers are at their minimums everywhere, and the phone bar is one row.
+
+**Decided (owner, 2026-11-20):**
+
+- Phones at 125 % / 150 % font: the page may scroll to the cards and to Draw next; nothing shrinks or hides. R1–R4 stay as they are.
+- The menu folds below 960 px, tablets included.
+- On phones Chat is one of the folded menu items.
 
 ### 6.4 Spectator cards after the fixes
 

@@ -22,10 +22,11 @@ What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is ope
 - After the fixes (fit-audit.md §6): 588 combinations measured again; with a finding 30 instead of 504, none at the default font (164 before). Small text, card numbers, cut text, overflow and desktop page scroll: 0.
 - Played: one full-length realtime royale (19.7 min) and one with the fast rules, on a 390×844 phone and at 1280×720; no finding. Screenshots `reports/screens/latest/fitfix-*` (lobby, player, spectator, interlude, results, leaderboard, the phone menu closed and open; before: `fit-*`).
 - BACKLOG: the fit item moved to Part two.
+- Two last fixes: a podium name is never broken inside ("dev-player-2" whole; the podium shows rows below 46rem); watched cards side by side line up their grids beside a long heading.
 
 ## Running
 
-- Nothing. The dev server runs on this branch (standalone, 3900/5390).
+- Nothing. PR #55 is merged into master (owner's approval of 2026-11-20); the dev server runs on master (standalone, 3900/5390).
 
 ## Open
 
@@ -33,5 +34,4 @@ What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is ope
 
 ## Needs the owner's word
 
-- fit-audit.md §6.3: on phones at 125 % / 150 % the own card, the watched cards and the console's Draw next end below the window (the 16 px numbers do not leave room). Keep it (the page scrolls to them), or shrink or hide something on a phone at a large font?
-- PR #55 stays open for review (not merged).
+- Nothing. Decided 2026-11-20 (fit-audit.md §6.3): on phones at 125 % / 150 % the page scrolls to the cards and Draw next (nothing shrinks or hides); the menu folds below 960 px, tablets included; Chat is a folded menu item on phones.

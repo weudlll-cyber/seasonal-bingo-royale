@@ -4,7 +4,7 @@
  * @brief  One royale played through on a phone (390×844) and a desktop (1280×720) after the fit fixes.
  *
  * Responsibility: the host plays along at 1280×720, a second player on a 390×844 phone, a third
- *                 account watches; bots fill to 20 and the server draws by itself. Both players
+ *                 account watches; bots fill to 10 and the server draws by itself. Both players
  *                 tap every number. At each state (the lobby, the leaderboard, the phone menu
  *                 closed and open, the live round as a player and as a spectator, the interlude,
  *                 the final results) the screen is saved light and dark at both sizes as
@@ -99,12 +99,16 @@ async function pagesBefore(watcher: Page): Promise<void> {
   await watcher.keyboard.press('Escape');
   await watcher.goto('/#/leaderboard');
   await expect(watcher.getByTestId('leaderboard-page')).toBeVisible();
+  // The board has loaded: its first row is there.
+  await expect(watcher.locator('[data-testid^="league-row-"]').first()).toBeVisible();
   await bothSizes(watcher, 'leaderboard');
 }
 
-// Plays until the end: both players tap; the round and the interlude are saved once each.
+// Plays until the end: both players tap; the round and the interlude are saved once each,
+// the spectator again when a long name is among the watched cards.
 async function playThrough(desk: Page, phone: Page, watcher: Page): Promise<void> {
   let live = false;
+  let long = false;
   let pause = false;
   const done = desk.getByTestId('final-placement');
   await until(
@@ -118,6 +122,14 @@ async function playThrough(desk: Page, phone: Page, watcher: Page): Promise<void
         live = true;
         await shot(desk, 'player', '1280x720');
         await shot(phone, 'player', '390x844');
+        await bothSizes(watcher, 'spectator');
+      }
+      // Once the long name "dev-player-2" is among the watched cards in a running round
+      // (not the interlude), the spectator again.
+      const longIn = await watcher.getByTestId('watch-card-dev-player-2').isVisible();
+      const paused = (await watcher.getByTestId('interlude').count()) > 0;
+      if (live && !long && longIn && !paused) {
+        long = true;
         await bothSizes(watcher, 'spectator');
       }
       if (!pause && (await desk.getByTestId('interlude').count()) > 0) {
@@ -140,7 +152,7 @@ test('fit fixes: a royale on a phone and a desktop', async ({ browser }) => {
     gameType: 'royale',
     drawMode: 'auto',
     missed: 'autoMarkAfter',
-    maxPlayers: 20,
+    maxPlayers: 10,
     fast: !FULL,
   });
   try {
@@ -149,7 +161,7 @@ test('fit fixes: a royale on a phone and a desktop', async ({ browser }) => {
     await joinFromLobby(phone, code);
     const watcher = await newPage(browser, 'player-1', '1280x720');
     await pagesBefore(watcher);
-    await fillAndStart(desk, 20);
+    await fillAndStart(desk, 10);
     await desk.goto(`/#/match/${code}`);
     await phone.goto(`/#/match/${code}`);
     await watcher.goto(`/#/match/${code}`);
