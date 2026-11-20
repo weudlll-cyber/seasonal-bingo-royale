@@ -258,8 +258,10 @@
     overflow-y: auto;
   }
 
+  /* At least 14rem, but never more than 60 % of the column: at a large font the rem floor
+     alone pushed the panel past the column and cut the own row's strip (fit audit). */
   .arena-side > .standings-panel {
-    flex: 1 0 14rem;
+    flex: 1 0 min(14rem, 60%);
     overflow: hidden;
   }
 

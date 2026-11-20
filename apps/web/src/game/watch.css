@@ -73,8 +73,10 @@
     display: none;
   }
 
+  /* A followed card alone: as large as the own card at most, and like it sized from the
+     window's height too, so it stays in view (30rem: what sits above and around its cells). */
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: max(2.2rem, calc((100vw - 5rem) / 5.4));
+    --cell-size: max(2.2rem, min(4.1rem, calc((100vw - 5rem) / 5.4), calc((100svh - 30rem) / 5)));
     --cell-font: 1rem;
   }
 }

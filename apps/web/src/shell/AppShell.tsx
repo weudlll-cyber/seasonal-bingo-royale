@@ -87,8 +87,12 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         </a>
         {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
         <ThemeToggle />
-        {/* Below 960 px the navigation and the account fold into one menu button. */}
-        <MenuFold where={JSON.stringify(route)} who={session?.account?.id ?? null}>
+        {/* Below 960 px the navigation and the account fold into one menu button; it closes
+            on a new route, another sign-in, or when the chat opens from it. */}
+        <MenuFold
+          where={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)}`}
+          who={session?.account?.id ?? null}
+        >
           <Nav route={route} dev={dev} chat={chat} />
           <Account dev={dev} />
         </MenuFold>

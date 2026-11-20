@@ -8,7 +8,8 @@
  *                 one of them opens the menu first. On a desktop the button is hidden and this
  *                 does nothing. The menu closes by itself on a new route or another sign-in.
  * Depends on:     @playwright/test
- * Used by:        ./realGame, ./account.spec, ./leaderboard.spec, ./passwordReset.spec
+ * Used by:        ./realGame, ./account.spec, ./leaderboard.spec, ./passwordReset.spec,
+ *                 ./chatEmbed.spec
  * Spec:           docs/concepts/fit-audit.md §5 item 7
  */
 import type { Page } from '@playwright/test';

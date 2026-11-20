@@ -9,7 +9,8 @@
  *                 (brand, theme toggle, Menu) and the button opens the panel under it. The
  *                 button reports aria-expanded and names the panel; opening moves the focus to
  *                 the panel's first item; Escape closes it and gives the focus back to the
- *                 button; a click outside, a new route or another sign-in close it.
+ *                 button; a click outside, a new route, another sign-in or the chat opening
+ *                 from it close it.
  * Depends on:     react, ./menu.css
  * Used by:        ./AppShell
  * Spec:           docs/concepts/fit-audit.md §5 item 7 (O1, O2); owner decision of 2026-11-20
@@ -19,7 +20,8 @@ import { useEffect, useRef, useState, type ReactElement, type ReactNode } from '
 import './menu.css';
 
 interface MenuFoldProps {
-  // The current route and account as keys: either changing closes the menu.
+  // The current route (and anything else that ends the menu's job, such as the chat opening)
+  // and the account as keys: either changing closes the menu.
   readonly where: string;
   readonly who: string | null;
   readonly children: ReactNode;
