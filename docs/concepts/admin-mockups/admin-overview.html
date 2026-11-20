@@ -1,0 +1,145 @@
+<!doctype html>
+<!--
+  docs/concepts/admin-mockups/admin-overview.html
+  Mockup of the admin-area concept (docs/concepts/admin-area.md §4, section 1), not product
+  code: the Admin's overview — matches with Abort, maintenance, switches, health line.
+  Invented values. Uses the game's own styles (./mockup.css).
+-->
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — overview — mockup</title>
+    <link rel="stylesheet" href="mockup.css" />
+  </head>
+  <body>
+    <header class="shell-bar">
+      <a class="shell-brand" href="#">
+        <img src="../../../assets/brand/emblem.webp" alt="" width="42" height="37" />
+        <span>Seasonal Bingo Royale<small>Seasonal Entertainment</small></span>
+      </a>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-testid="theme-toggle"
+        aria-label="Light or dark"
+      >
+        ◐
+      </button>
+      <nav class="shell-nav" aria-label="Main">
+        <a href="#">Play</a>
+        <a href="#">Host a match</a>
+        <a href="#">Leaderboard</a>
+        <a href="#" aria-current="page">Admin</a>
+      </nav>
+      <div class="shell-account"><span class="sbr-chip">Jonas (admin)</span></div>
+    </header>
+    <main class="shell-main">
+      <div class="admin-layout">
+        <nav class="admin-nav" aria-label="Admin">
+          <a href="#" aria-current="page">Overview</a>
+          <a href="admin-section.html">Presets</a>
+          <a href="#">League</a>
+          <a href="#">Players and accounts</a>
+          <a href="#">Screens and texts</a>
+          <a href="#">Technical</a>
+          <a href="admin-history.html">History</a>
+        </nav>
+        <div class="sbr-stack">
+          <div class="page-head">
+            <h1>Overview</h1>
+            <p class="sbr-muted">Version 0.9.4 · last backup 6 hours ago · 37 players online</p>
+          </div>
+
+          <section class="sbr-panel" aria-labelledby="m">
+            <h2 id="m">Matches</h2>
+            <ul class="list">
+              <li>
+                <span
+                  ><span class="sbr-badge-live">LIVE</span>
+                  <strong>Royale — Thursday evening</strong><br /><span class="sbr-muted"
+                    >Mia · elimination, round 3 · 15 of 60 still in</span
+                  ></span
+                >
+                <button class="sbr-btn sbr-btn--danger" type="button">Abort…</button>
+              </li>
+              <li>
+                <span
+                  ><strong>Classic — Coffee break</strong><br /><span class="sbr-muted"
+                    >Leo · lobby · 12 players · starts 14:30</span
+                  ></span
+                >
+                <button class="sbr-btn sbr-btn--danger" type="button">Abort…</button>
+              </li>
+              <li>
+                <span
+                  ><strong>Slow royale — November week</strong><br /><span class="sbr-muted"
+                    >Jonas · day 3 of 5 · a number every 15 minutes</span
+                  ></span
+                >
+                <button class="sbr-btn sbr-btn--danger" type="button">Abort…</button>
+              </li>
+            </ul>
+            <p class="sbr-muted" style="margin: var(--space-1) 0 0">
+              Abort asks for a reason; players see it.
+            </p>
+          </section>
+
+          <div class="cards">
+            <section class="sbr-panel" aria-labelledby="mt">
+              <h2 id="mt">Maintenance</h2>
+              <label class="switch"><span>Maintenance mode</span><input type="checkbox" /></label>
+              <label class="sbr-field"
+                >Reason shown to players
+                <input class="sbr-input" placeholder="Update, back at 22:00" maxlength="200" />
+              </label>
+              <p class="sbr-muted" style="margin: 0">
+                No new matches start; running matches play to the end.
+              </p>
+            </section>
+
+            <section class="sbr-panel" aria-labelledby="sw">
+              <h2 id="sw">Switches</h2>
+              <label class="switch"
+                ><span>Guests may watch</span><input type="checkbox" checked
+              /></label>
+              <label class="switch"
+                ><span>League points need a confirmed e-mail</span><input type="checkbox"
+              /></label>
+              <label class="switch"
+                ><span>Leaderboard visible without signing in</span><input type="checkbox" checked
+              /></label>
+              <label class="switch"
+                ><span>"Forgot password?" on the sign-in page</span><input type="checkbox" checked
+              /></label>
+            </section>
+          </div>
+
+          <section class="sbr-panel" aria-labelledby="rc">
+            <h2 id="rc">Recent changes</h2>
+            <ul class="list">
+              <li>
+                <span>Presets · Evening royale · draw interval 6 s → 5 s</span
+                ><span class="sbr-muted">Jonas · today 09:12</span>
+              </li>
+              <li>
+                <span>League · finalist bonus 10 → 15</span
+                ><span class="sbr-muted">Jonas · yesterday</span>
+              </li>
+            </ul>
+            <a class="sbr-btn" href="admin-history.html" style="margin-top: var(--space-1)"
+              >All changes</a
+            >
+          </section>
+        </div>
+      </div>
+    </main>
+    <script>
+      /* The bar's light/dark toggle, as in the game (data-theme on html). */
+      document.querySelector('.theme-toggle').onclick = () => {
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      };
+    </script>
+  </body>
+</html>

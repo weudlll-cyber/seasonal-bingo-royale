@@ -1,15 +1,23 @@
 # Morning sheet
 
-What the chain after the night of 2026-11-06 (CHAT-EMBED, then FINAL-BEFORE-MOVE: A three follow-ups, B the move rehearsed against the real website installer) did, what runs, what is open and what needs the owner's word. Regenerated after every finished piece. The night chain of 2026-11-06 (A–D) is done: merges `fd5b8e6`, `1f10f54`, `c5ebcde`, `9de9af8` and the master fix `407629a`, all green.
+What the admin-area concept (branch `docs/admin-concept`, PR #54) did, what runs, what is open and what needs the owner's word. Regenerated after every finished piece. Documentation and mockups only: no product code changed.
 
 ## Done
 
-- CHAT-EMBED — merged `3dba414` (PR #43): the website's chat room `bingo` beside the lobby, the match screens and the host console in website mode; nothing standalone. Master CI and CodeQL green.
-- A — follow-ups — merged `fde292b` (PR #44): nodemailer 10.3.1 (MIT-0 allowed in CI; the game's own SMTP client removed); steps watched live count as seen, so "new" does not come back; `lobby.lateJoin` false. Master CI and CodeQL green.
-- B — the move rehearsed against the real website installer — merged `c44eda9` (PR #45): both modes passed every check (nginx 58 with website d71b111, own Caddy 48 with website dbcf0ed); three bingo faults found and fixed (SMTP questions in a website install, an install without mail that did not start, the authorize check without the method header). `bash ops/test/real-site.sh nginx|caddy master` repeats it.
-- The dev server runs on master with the demo league (badges on `#/players/demo-01`).
+- 1 — Inventory: [docs/concepts/admin-values.md](concepts/admin-values.md), 524 fixed values in four parts (rulesets and contracts 195, game engine 56, server 180, player client 93); per role: organizer per match 27, admin 229, server only 105, stays fixed 163. Eight open points found while listing.
+- 2 — Concept: [docs/concepts/admin-area.md](concepts/admin-area.md) — the Organizer and Admin roles on the seeded roles (standalone and website), the Organizer's three-step "Start a match", seven Admin sections, what stays on the server, versions and undo on `settings_versions`, 14 differences from spec 11 and 15.
+- 3 — Mockups: [docs/concepts/admin-mockups/](concepts/admin-mockups/) — organizer "Start a match", admin overview, one preset's "Draws and timing" (descriptions, min/max, a warning), the history. On the game's own styles; open the `.html` files in a browser. Screenshots (not committed) in `reports/screens/latest/admin-concept-*.jpg`.
+- Decided (owner decision of 2026-11-20): admin-area.md §8 (a)–(r); the admin area is built before the move to the VPS. D58 changed and D63 added in docs/spec/README.md; spec 11 and 15 point to the concept.
+- Build order: admin-area.md §9 — 0 limits from the server, 0b the flaky live-match test, 1 Admin menu and Overview, 2 settings store and History, 3 presets, 4 Start a match, 5 League, 6 Screens and texts, 7 Technical, 8 Players and accounts. BACKLOG Part one and OPEN list it.
+
+## Running
+
+- Nothing.
+
+## Open
+
+- Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
 
 ## Needs the owner's word
 
-- In website mode the game has no password sign-in (D37) and the admin two-factor sign-in exists only standalone (D60), so an account made with `sbr admin create-super` cannot sign in there yet; website admins are game admins (D41). Say whether the super admin needs a way in before the admin app (D58).
-- The rehearsal checked the open rounds through `/games/bingo/api/public/open-rounds`, not on the website's own page; Discord steps could not be given without Discord in the website's harness (unit tests cover them).
+- Nothing for the admin area.

@@ -2,6 +2,8 @@
 
 > Part of the Seasonal Bingo Royale specification. Index: [README](README.md).
 
+> Decided 2026-11-20 (D58, D63): the admin area is an "Admin" menu item inside the game, not a separate app, with fewer sections; where this page differs, [docs/concepts/admin-area.md](../concepts/admin-area.md) (§7, §8) applies.
+
 ## 1. Principles
 
 - Separate app (`apps/admin`) at `/admin`, own bundle, stricter CSP, `frame-ancestors 'none'`.

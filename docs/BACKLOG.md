@@ -7,6 +7,7 @@ The authoritative list. `OPEN.md` is the short page over it and is aligned after
 ### Implementation
 
 - Work packages (docs/spec/15-implementation-plan.md): WP-01 to WP-08 done; WP-09 to WP-15 and WP-27 at first-draft depth on master, their remainders below; WP-16 to WP-26 and WP-28 to WP-30 not started
+- The game's own admin area: before the move (D58, D63), an "Admin" menu item inside the game, not a separate app; build order in docs/concepts/admin-area.md §9 (pieces 0 to 8, with the flaky `e2e/realGame.spec.ts:142` as piece 0b), decisions in its §8, every fixed value in docs/concepts/admin-values.md
 - Audit 3, left after the night of 2026-11-06: uncovered journeys (T4): e-mail verification in the browser (the flow is not built), an eliminated player cannot mark (server-tested, no browser journey), axe accessibility checks (a new dependency; more than an hour); the long Responsibility blocks (H3: 34 headers over 8 lines, the worst in ops/test/website-vps.sh, ops/lib/website.sh, e2e/websiteStack.ts, useLiveMatch.ts, matchViews.ts)
 - Load (12 §5): since PERF-TAPS all targets met on the rehearsal machine (tap acknowledgement p95 90–144 ms, draw on screen p95 0.14–0.18 s, gaps p95 4.1–4.2 s, lag under 130 ms), the tap margin is small; still open: measure on the VPS (`sudo sbr loadcheck`), the 400-player headroom check, the 5 × 40 scenario
 - WP-09 remainder: e-mail verification flow (tokens), player 2FA, session list and revoke (`/me/sessions`), the bundled top-100k breached-password list (admin session lifetimes: built in AUDIT-1; password reset and admin 2FA: built, D60); the flag `SBR_FEATURE_EMAIL_VERIFICATION` stays off until its flow exists
@@ -27,7 +28,6 @@ Delivered by the website (master ee3f97c, PR #42, 2026-11-04; not yet on the liv
 Later:
 
 - Sounds: at the very end, before or after going live (D56)
-- The game's own admin interface (`apps/admin`): after the move (D58)
 
 - Embeddable call view at a predictable URL per call, so the game can render it next to a match when the match carries `host_call_ref` (docs/spec/01-game-design.md §12a, docs/spec/07-integration-architecture.md §6a; consumed by WP-25b)
 
