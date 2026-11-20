@@ -7,7 +7,8 @@
  *                 client computes nothing, 01 §9): one verdict line, the commitment published
  *                 when the match opened and the seed revealed after it ended, whether
  *                 sha256(seed) is that commitment, and per round whether the draw order, the
- *                 draws made and the cards dealt follow from the seed. The data can be
+ *                 draws made and the cards dealt follow from the seed (a table that scrolls
+ *                 inside its own box on a narrow window). The data can be
  *                 downloaded as JSON to check elsewhere. Before the end the page says the seed
  *                 is revealed once the match is over.
  * Depends on:     react, @sbr/contracts (types), ../shell/http, ../shell/router, ./game.css
@@ -124,31 +125,35 @@ function VerifyResult({ v }: { readonly v: MatchVerificationView }): ReactElemen
 }
 
 function RoundTable({ rounds }: { readonly rounds: readonly RoundVerification[] }): ReactElement {
+  // A box that scrolls the table sideways when the window is narrower than its columns (a
+  // phone at a large font); focusable, so the keyboard can scroll it.
   return (
-    <table className="verify-rounds" data-testid="verify-rounds">
-      <thead>
-        <tr>
-          <th scope="col">Round</th>
-          <th scope="col">Draw order</th>
-          <th scope="col">Draws</th>
-          <th scope="col">Cards</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rounds.map((r) => (
-          <tr key={r.roundIndex} data-testid="verify-round">
-            <th scope="row">{r.roundIndex + 1}</th>
-            <td>{matches(r.drawOrderMatches)}</td>
-            <td>
-              {r.draws.length} · {matches(r.drawsMatch)}
-            </td>
-            <td>
-              {r.cardsChecked} · {matches(r.cardsMatch)}
-            </td>
+    <div className="verify-rounds-box" role="region" aria-label="Rounds" tabIndex={0}>
+      <table className="verify-rounds" data-testid="verify-rounds">
+        <thead>
+          <tr>
+            <th scope="col">Round</th>
+            <th scope="col">Draw order</th>
+            <th scope="col">Draws</th>
+            <th scope="col">Cards</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rounds.map((r) => (
+            <tr key={r.roundIndex} data-testid="verify-round">
+              <th scope="row">{r.roundIndex + 1}</th>
+              <td>{matches(r.drawOrderMatches)}</td>
+              <td>
+                {r.draws.length} · {matches(r.drawsMatch)}
+              </td>
+              <td>
+                {r.cardsChecked} · {matches(r.cardsMatch)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

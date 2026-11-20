@@ -85,7 +85,7 @@
   display: block;
   color: var(--color-text-muted);
   font-weight: var(--font-weight-body);
-  font-size: 0.75rem;
+  font-size: var(--font-size-small);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }

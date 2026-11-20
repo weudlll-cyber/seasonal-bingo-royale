@@ -114,7 +114,7 @@
 }
 
 /* "Verify this match" (./VerifyMatch): the verdict, the long hex values wrapping on a phone,
-   the per-round table. */
+   the per-round table, which scrolls inside its box when the window is narrower (fit F10). */
 .verify-verdict {
   margin: 0;
   padding: var(--space-2);
@@ -148,6 +148,10 @@
 .verify-facts code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   overflow-wrap: anywhere;
+}
+
+.verify-rounds-box {
+  overflow-x: auto;
 }
 
 .verify-rounds {

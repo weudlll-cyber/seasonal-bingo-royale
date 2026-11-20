@@ -17,6 +17,9 @@
  *                 injected as CSS from here (fit-cards-<size>-<floor>.jpg, fit-cards.jsonl).
  *                 Matches are aborted at the end; no account is created. Runs only with
  *                 SBR_ACCEPTANCE=1, Chromium, one worker (it switches maintenance on and off).
+ *                 SBR_FIT_SIZES limits the sizes, SBR_FIT_TAG replaces the "fit" prefix of every
+ *                 log and shot (the audit after the fixes: "fitafter"), SBR_FIT_DOM=1 saves each
+ *                 screen's page to reports/logs/fit-dom/<screen>.html (to try style changes).
  * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../layoutChecks,
  *                 ../devStack, ../websiteStack, ./fitProbe, ./screenPlay
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
@@ -50,7 +53,7 @@ test.describe.configure({ mode: 'default' });
 const LOGS = path.join(REPO_ROOT, 'reports', 'logs');
 const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');
 
-const SIZES = [
+const ALL_SIZES = [
   [360, 640],
   [390, 844],
   [768, 1024],
@@ -59,6 +62,13 @@ const SIZES = [
   [1920, 1080],
   [2560, 1440],
 ] as const;
+// SBR_FIT_SIZES="360x640,1280x720" measures only those sizes (a quick check while fixing);
+// SBR_FIT_TAG names the logs and shots (default "fit"; "fitafter" keeps the first audit's files).
+const ONLY = process.env['SBR_FIT_SIZES']?.split(',');
+const SIZES = ALL_SIZES.filter(([w, h]) => ONLY?.includes(`${String(w)}x${String(h)}`) ?? true);
+const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
+// SBR_FIT_DOM=1 also saves each screen's page (its styles included) to reports/logs/fit-dom/.
+const DOM = path.join(REPO_ROOT, 'reports', 'logs', 'fit-dom');
 const FONTS = [16, 20, 24] as const;
 const REFERENCE = new Set(['390x844', '1920x1080']);
 
@@ -157,6 +167,10 @@ async function keysOutOf(page: Page, keys: Record<string, string> | undefined): 
 // Every size and font of one screen; `kind` names a round screen's key boxes.
 async function measure(page: Page, group: string, screen: string, kind?: string): Promise<void> {
   if (await hasToggle(page)) await setTheme(page, 'light');
+  if (process.env['SBR_FIT_DOM'] === '1') {
+    mkdirSync(DOM, { recursive: true });
+    writeFileSync(path.join(DOM, `${screen}.html`), await page.content());
+  }
   for (const [w, h] of SIZES) {
     for (const font of FONTS) {
       const size = `${String(w)}x${String(h)}`;
@@ -173,8 +187,8 @@ async function measure(page: Page, group: string, screen: string, kind?: string)
         keysOut,
         findings: findingsOf(p, round, keysOut),
       };
-      appendFileSync(path.join(LOGS, `fit-${group}.jsonl`), `${JSON.stringify(sample)}\n`);
-      const name = `fit-${screen}-${size}-${String(font)}`;
+      appendFileSync(path.join(LOGS, `${TAG}-${group}.jsonl`), `${JSON.stringify(sample)}\n`);
+      const name = `${TAG}-${screen}-${size}-${String(font)}`;
       if (sample.findings > 0) await shoot(page, name, true);
       else if (font === 16 && REFERENCE.has(size)) await shoot(page, name, false);
     }
@@ -185,7 +199,7 @@ async function measure(page: Page, group: string, screen: string, kind?: string)
 function fresh(group: string): void {
   mkdirSync(LOGS, { recursive: true });
   mkdirSync(SHOTS_DIR, { recursive: true });
-  writeFileSync(path.join(LOGS, `fit-${group}.jsonl`), '');
+  writeFileSync(path.join(LOGS, `${TAG}-${group}.jsonl`), '');
 }
 
 // Opens a route and waits for one of its test ids ("a|b": either).
@@ -251,7 +265,7 @@ const FLOORS = [
 ] as const;
 
 async function cardComparison(page: Page): Promise<void> {
-  writeFileSync(path.join(LOGS, 'fit-cards.jsonl'), '');
+  writeFileSync(path.join(LOGS, `${TAG}-cards.jsonl`), '');
   for (const [w, h] of SIZES) {
     for (const [floor, rem] of FLOORS) {
       await page.evaluate((min) => {
@@ -265,9 +279,9 @@ async function cardComparison(page: Page): Promise<void> {
       await atSize(page, w, h, 16);
       const size = `${String(w)}x${String(h)}`;
       const row = { size, floor, ...(await cardFacts(page)) };
-      appendFileSync(path.join(LOGS, 'fit-cards.jsonl'), `${JSON.stringify(row)}\n`);
+      appendFileSync(path.join(LOGS, `${TAG}-cards.jsonl`), `${JSON.stringify(row)}\n`);
       await page.screenshot({
-        path: path.join(SHOTS_DIR, `fit-cards-${size}-${String(floor)}.jpg`),
+        path: path.join(SHOTS_DIR, `${TAG}-cards-${size}-${String(floor)}.jpg`),
         quality: 70,
         type: 'jpeg',
       });

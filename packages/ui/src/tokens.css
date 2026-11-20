@@ -92,7 +92,11 @@
 
   /* Layout */
   --content-width: 72rem;
-  --gutter: clamp(1rem, 0.5rem + 2vw, 2rem);
+  /* The page's side margin and a panel's padding grow with the font, but on a phone never
+     past a share of the window (4.5vw is 16 px and 6.7vw 24 px at 360 px): at a large font
+     the content keeps its width (fit audit F10, F11). Unchanged at the default font. */
+  --gutter: min(clamp(1rem, 0.5rem + 2vw, 2rem), 4.5vw);
+  --panel-padding: min(var(--space-3), 6.7vw);
 
   /* Motion (off under prefers-reduced-motion, ./motion.css) */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);

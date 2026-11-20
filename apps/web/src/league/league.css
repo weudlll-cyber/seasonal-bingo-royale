@@ -5,7 +5,8 @@
  *
  * Responsibility: a page card with the title and the period selector side by side (stacked on
  *                 phones), the board as a compact table with the own row highlighted like the
- *                 standings and every name on one line (a long one shortened with an ellipsis),
+ *                 standings and every name on one line (a long one shortened with an ellipsis;
+ *                 a narrow board puts the figures under the name instead of their columns),
  *                 the profile's figures as tiles and the recent matches as rows.
  *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §10, §13
@@ -79,19 +80,38 @@
   width: 1%;
 }
 
-/* Phones: narrower gaps between the columns, so a usual name fits without an ellipsis */
-@media (max-width: 640px) {
-  .league-table th,
-  .league-table td {
-    padding-inline: 0.2rem;
-  }
-}
-
 .league-table th[scope='row'] a {
   display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* The figures under the name: only on a narrow board (below). */
+.league-figures {
+  display: none;
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-body);
+  color: var(--color-text-muted);
+}
+
+/* A narrow board (a phone, or a large font: the width is measured in rem): the name gets
+   the whole row and the figures go under it as one line, so neither the name is cut nor
+   the table is wider than the window (fit audit F7, F11). The hidden cells leave the
+   accessibility tree with their columns; the line under the name carries the same figures. */
+.league-page {
+  container-type: inline-size;
+}
+
+@container (max-width: 34rem) {
+  .league-table td:not(:first-child),
+  .league-table thead th:nth-child(n + 3) {
+    display: none;
+  }
+
+  .league-figures {
+    display: block;
+  }
 }
 
 .league-table td:first-child,

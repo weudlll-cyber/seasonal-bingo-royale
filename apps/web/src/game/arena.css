@@ -18,9 +18,11 @@
  * Spec:           docs/spec/01-game-design.md §13
  */
 
-/* Arena */
+/* Arena: one column that never grows past the window (a wide child scrolls or wraps
+   inside it instead of pushing the side panels out, fit audit F9) */
 .arena {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -37,6 +39,7 @@
 
 .arena-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 

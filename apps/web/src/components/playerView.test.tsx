@@ -111,6 +111,14 @@ describe('OwnerStatusPanel', () => {
       'Seasons this match: Spring ✓ · Summer ✓ · Autumn · Winter — all four give +300 (Season Complete)',
     );
     expect(seasons.textContent).not.toContain('–');
+    // Each season stays whole, the line may wrap between them: the separators sit outside
+    // the unbreakable items (fit audit F9).
+    expect([...seasons.querySelectorAll('.season-item')].map((i) => i.textContent)).toEqual([
+      'Spring ✓',
+      'Summer ✓',
+      'Autumn',
+      'Winter',
+    ]);
     expect(screen.getByTestId('seasons-note').textContent).toBe(
       'Seasons count over the whole match.',
     );

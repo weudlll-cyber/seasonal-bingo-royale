@@ -67,6 +67,11 @@ describe('Verify this match (01 §9)', () => {
     expect(screen.getAllByTestId('verify-round').map((r) => r.textContent)).toEqual([
       '1matches3 · matches4 · matches',
     ]);
+    // On a narrow window the table scrolls inside its own box, which the keyboard reaches
+    // (fit audit F10); the page never scrolls sideways.
+    const box = screen.getByRole('region', { name: 'Rounds' });
+    expect(box.tabIndex).toBe(0);
+    expect(box.querySelector('[data-testid="verify-rounds"]')).not.toBeNull();
   });
 
   it('says so when the match does not follow from the seed', async () => {
