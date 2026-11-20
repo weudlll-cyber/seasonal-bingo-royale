@@ -126,6 +126,10 @@ describe('the leaderboard page (01 §10)', () => {
     expect(rows.map((r) => r.dataset['name'])).toEqual(['anna', 'carla', 'bob']);
     expect(rows.map((r) => r.querySelector('td')?.textContent)).toEqual(['1', '2', '2']);
     expect(rows[1]?.className).toContain('is-own');
+    // A narrow board shows the figures under the name instead of in their columns (fit F11).
+    expect(rows[0]?.querySelector('.league-figures')?.textContent).toBe(
+      '199 points · 1 win · 0 Season Completes',
+    );
     expect(screen.getByRole('link', { name: 'anna' }).getAttribute('href')).toBe('#/players/anna');
     const select = screen.getByTestId<HTMLSelectElement>('leaderboard-period');
     expect([...select.options].map((o) => o.textContent)).toEqual(['Autumn 2026', 'All time']);

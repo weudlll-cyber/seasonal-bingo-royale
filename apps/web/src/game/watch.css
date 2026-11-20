@@ -3,11 +3,12 @@
  * @module web/game
  * @brief  The cards a player out or a spectator watches (D24): top 4, or one followed player.
  *
- * Responsibility: the watched cards in the card look of a player's own card (./arena.css
+ * Responsibility: the watched cards in the card look of a player's own card (./liveCard.css
  *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
  *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
  *                 phone; a followed player's card alone and larger; the heading with place,
- *                 name, points and "1 to go". Colours and spacing from @sbr/ui tokens.
+ *                 name, points and "1 to go", the grids of cards side by side lined up.
+ *                 Colours and spacing from @sbr/ui tokens.
  * Used by:        ./WatchCards
  * Spec:           docs/spec/01-game-design.md §13 (D24)
  */
@@ -33,8 +34,14 @@
 
 .watch-card.live-card {
   --cell-size: 2.4rem;
-  --cell-font: 0.9rem;
-  padding: var(--space-1);
+  --cell-font: 1rem;
+  --card-padding: var(--space-1);
+}
+
+/* Cards side by side share their row's height and the heading takes the spare room, so the
+   number grids line up even when one heading wraps (a long name, "1 to go"). */
+.watch-card > div {
+  grid-template-rows: 1fr auto;
 }
 
 .watch-head {
@@ -53,32 +60,59 @@
   color: var(--color-text-muted);
 }
 
-/* Phone: the first 2 side by side under the ball and the numbers. */
+/* Phone: the first 2 side by side under the ball and the numbers. A cell keeps room for
+   its 16 px number (1.6rem grows with the font); when two cards are then wider than the
+   window, they scroll sideways inside their row instead of the numbers shrinking (fit
+   audit F5). */
 @media (max-width: 959px) {
+  /* The cells follow the cards' box (./arena.css), not the window: a desktop browser's
+     scrollbar takes part of the window's width. */
+  /* A narrow padding and corner leave the cells the room: two cards are 10 cells, 8 gaps of
+     2 px, 4 paddings and the gap between them (2.5rem). */
   .watch-card.live-card {
-    --cell-size: calc((100vw - 5.5rem) / 10);
-    --cell-font: 0.8rem;
+    --card-padding: 0.25rem;
+    --cell-size: max(1.6rem, calc((100cqw - 2.5rem) / 10));
+    --cell-font: 1rem;
+    border-radius: var(--radius);
+  }
+
+  .watch-cards.is-following .watch-card.live-card {
+    --card-padding: var(--space-1);
+    border-radius: var(--radius-card);
+  }
+
+  .watch-grid {
+    max-width: 100%;
+    overflow-x: auto;
+    justify-content: safe center;
   }
 
   .watch-cards:not(.is-following) .watch-grid > :nth-child(n + 3) {
     display: none;
   }
 
+  /* A followed card alone: as large as the own card at most, and like it sized from the
+     window's height too, so it stays in view (30rem: what sits above and around its cells). */
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: calc((100vw - 5rem) / 5.4);
+    --cell-size: max(
+      2.2rem,
+      min(4.1rem, calc((100cqw - 1.5rem) / 5.4), calc((100svh - 30rem) / 5))
+    );
     --cell-font: 1rem;
   }
 }
 
-/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. */
+/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
+   never gets smaller than its 16 px number needs (rem floors grow with the font): rather
+   than the numbers shrinking or touching, the play area's box scrolls (fit audit F5, F15). */
 @media (min-width: 960px) {
   .watch-card.live-card {
     /* Two cards high: each with padding, a heading of up to two lines and the letters. */
-    --cell-size: min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5));
-    --cell-font: max(0.75rem, calc(var(--cell-size) * 0.36));
+    --cell-size: max(1.6rem, min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5)));
+    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
   }
 
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5));
+    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5)));
   }
 }

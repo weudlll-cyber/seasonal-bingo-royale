@@ -8,13 +8,16 @@
  *                 wordmark, light/dark toggle, links to the lobby, hosting (with
  *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
  *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
- *                 "Register" (../account; in website mode one "Sign in" to the website, D37). Below the bar the current route's screen (boards and
+ *                 "Register" (../account; in website mode one "Sign in" to the website, D37);
+ *                 below 960 px links and account fold into one menu button (./MenuFold).
+ *                 Below the bar the current route's screen (boards and
  *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
  *                 the lobby and create form show the maintenance page, the host console a banner
  *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch); in website
  *                 mode the website's chat beside the lobby, match and console (./ChatDock). Dev-only Quick
  *                 Test and "Dev sign-in" (./DevTools) load on demand, out of production builds.
- * Depends on:     react, ./router, ./session, ./ThemeToggle, ./Maintenance, ./useMaintenance, ./ChatDock,
+ * Depends on:     react, ./router, ./session, ./ThemeToggle, ./MenuFold, ./Maintenance,
+ *                 ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
  *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
@@ -38,6 +41,7 @@ import { ProfilePage } from '../league/ProfilePage.js';
 import { ChatButton, ChatPanel, useChatDock, type ChatDock } from './ChatDock.js';
 import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
+import { MenuFold } from './MenuFold.js';
 import { useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
@@ -62,7 +66,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const chat = useChatDock(route);
   // Website mode: an ended game session signs in again through the website (an idle admin).
   useWebsiteResign();
-  const website = useSession().session?.authMode === 'website';
+  const session = useSession().session;
+  const website = session?.authMode === 'website';
   return (
     <MaintenanceContext.Provider value={maintenance}>
       <header className="shell-bar">
@@ -82,8 +87,15 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         </a>
         {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
         <ThemeToggle />
-        <Nav route={route} dev={dev} chat={chat} />
-        <Account dev={dev} />
+        {/* Below 960 px the navigation and the account fold into one menu button; it closes
+            on a new route, another sign-in, or when the chat opens from it. */}
+        <MenuFold
+          where={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)}`}
+          who={session?.account?.id ?? null}
+        >
+          <Nav route={route} dev={dev} chat={chat} />
+          <Account dev={dev} />
+        </MenuFold>
       </header>
       <main className="shell-main">
         <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />

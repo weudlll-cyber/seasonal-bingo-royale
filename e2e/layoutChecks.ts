@@ -10,7 +10,8 @@
  *                 scrolls itself and shows the top 3 rows and the own row whole; the checks
  *                 over such a report, repeated until the layout has settled after a resize.
  * Depends on:     @playwright/test
- * Used by:        ./playerFit.spec, ./acceptance/clarityScreens.spec, ./acceptance/polishScreens.spec
+ * Used by:        ./playerFit.spec, ./acceptance/clarityScreens.spec, ./acceptance/polishScreens.spec,
+ *                 ./acceptance/fitAudit.spec
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { expect, type Page } from '@playwright/test';

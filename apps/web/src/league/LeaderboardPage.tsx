@@ -9,7 +9,8 @@
  *                 as the server ranked them, equal players sharing a rank (the client computes
  *                 nothing, 01 §10, D28), the signed-in player's row highlighted, and their place
  *                 with neighbours when it is further down. States the counting rule (03 §11)
- *                 with the period's player minimum.
+ *                 with the period's player minimum. A narrow board (a phone, a large font)
+ *                 shows each row's figures as one line under the name (./league.css).
  * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/http, ../shell/router, ../shell/session,
  *                 ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
@@ -140,6 +141,17 @@ function useBoardRows(periodId: string) {
   return { rows: pages.flatMap((p) => p.items), next, loadMore, state };
 }
 
+const count = (n: number, one: string, many: string): string =>
+  `${String(n)} ${n === 1 ? one : many}`;
+
+// "199 points · 1 win · 0 Season Completes": a row's figures as one line.
+const figures = (r: LeaderboardRow): string =>
+  [
+    count(r.points, 'point', 'points'),
+    count(r.wins, 'win', 'wins'),
+    count(r.seasonCompletes, 'Season Complete', 'Season Completes'),
+  ].join(' · ');
+
 function BoardTable(props: {
   readonly rows: readonly LeaderboardRow[];
   readonly testId: string;
@@ -169,6 +181,8 @@ function BoardTable(props: {
               <a href={hrefOf({ name: 'player', displayName: r.displayName })}>{r.displayName}</a>
               <StepBadges steps={r.steps} />
               {r.isYou ? <span className="sbr-visually-hidden"> (you)</span> : null}
+              {/* A narrow board shows these under the name instead of the three columns. */}
+              <span className="league-figures">{figures(r)}</span>
             </th>
             <td>{r.points}</td>
             <td>{r.wins}</td>

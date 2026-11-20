@@ -16,7 +16,7 @@
  * Used by:        ./OwnerArea
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13; docs/spec/15-implementation-plan.md WP-08
  */
-import type { ReactElement, ReactNode } from 'react';
+import { Fragment, type ReactElement, type ReactNode } from 'react';
 
 import { SeasonIcon } from './SeasonIcon.js';
 import {
@@ -139,14 +139,17 @@ function Seasons({
     <>
       <p className="season-list" data-testid="seasons-collected" data-count={collected.size}>
         Seasons this match:{' '}
+        {/* The separator outside the unbreakable item: the line wraps between seasons. */}
         {SEASON_NAMES.map((s, i) => (
-          <span key={s} className="season-item">
+          <Fragment key={s}>
             {i > 0 ? ' · ' : ''}
-            <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
-            {/* A collected season is ticked; an open one is its name alone. */}
-            {seasonName(s)}
-            {collected.has(s) ? ' ✓' : ''}
-          </span>
+            <span className="season-item">
+              <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
+              {/* A collected season is ticked; an open one is its name alone. */}
+              {seasonName(s)}
+              {collected.has(s) ? ' ✓' : ''}
+            </span>
+          </Fragment>
         ))}{' '}
         — {seasonCompleteNote(points)}
       </p>

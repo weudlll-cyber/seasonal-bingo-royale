@@ -11,7 +11,7 @@
  *                 fresh account downloads its data and deletes itself on the account page.
  *                 Unfinished matches are aborted, accounts left behind deleted. In Chromium the
  *                 leaderboard, profile and deletion step are saved (both sizes and themes).
- * Depends on:     @playwright/test, ./realGame, ./screens
+ * Depends on:     @playwright/test, ./menu, ./realGame, ./screens
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2, §2.4;
  *                 docs/spec/03-security-architecture.md §11, §19
  */
@@ -27,6 +27,7 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+import { openMenu } from './menu.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
 
 const PASSWORD = 'correct horse battery staple';
@@ -123,6 +124,7 @@ test('the account page downloads the data and deletes the account', async ({ bro
     await page.getByTestId('register-password').fill(PASSWORD);
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
+    await openMenu(page);
     await page.getByTestId('signed-in-as').click();
     await expect(page.getByTestId('account-page')).toBeVisible();
     const download = page.waitForEvent('download');
@@ -138,6 +140,8 @@ test('the account page downloads the data and deletes the account', async ({ bro
     await page.getByTestId('delete-confirm').click();
     await expect(page.getByTestId('account-deleted')).toBeVisible();
     deleted = true;
+    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await openMenu(page);
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
     const again = await page.request.post('/api/v1/auth/login', {
       data: { email, password: PASSWORD },

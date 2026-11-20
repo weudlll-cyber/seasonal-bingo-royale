@@ -11,11 +11,12 @@
  *                 (DELETE /me) and stops its match, also when a step fails. In Chromium it
  *                 saves the register and sign-in forms (both sizes and themes) to
  *                 reports/screens/latest/.
- * Depends on:     @playwright/test, ./realGame, ./screens
+ * Depends on:     @playwright/test, ./menu, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §13
  */
 import { expect, test, type Page } from '@playwright/test';
 
+import { openMenu } from './menu.js';
 import { closeContexts, hostMatch, signIn, stopMatch } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
 
@@ -39,6 +40,7 @@ async function deleteAccount(page: Page, email: string): Promise<void> {
 }
 
 async function signInWithForm(page: Page, email: string, password: string): Promise<void> {
+  await openMenu(page);
   await page.getByTestId('open-sign-in').click();
   await page.getByTestId('sign-in-email').fill(email);
   await page.getByTestId('sign-in-password').fill(password);
@@ -68,6 +70,7 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
   let registered = false;
   try {
     await page.goto('/#/');
+    await openMenu(page);
     await page.getByTestId('open-register').click();
     await page.getByTestId('register-displayName').fill(name);
     await page.getByTestId('register-email').fill(email);
@@ -76,7 +79,11 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await page.getByTestId('register-submit').click();
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
     registered = true;
+    await openMenu(page);
     await page.getByTestId('sign-out').click();
+    // Signed out (the menu closes on it), then the sign-in in the opened menu.
+    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await openMenu(page);
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
     if (shots) {
       await page.getByTestId('open-sign-in').click();
@@ -86,7 +93,11 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await expect(page.getByTestId('signed-in-as')).toContainText(`${name} (player)`);
     await page.getByTestId(`join-${code}`).click();
     await expect(page.getByTestId('waiting-room')).toBeVisible();
+    await openMenu(page);
     await page.getByTestId('sign-out').click();
+    // Signed out (the menu closes on it), then the sign-in in the opened menu.
+    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await openMenu(page);
     await expect(page.getByTestId('open-sign-in')).toBeVisible();
   } finally {
     await stopMatch(host, code);

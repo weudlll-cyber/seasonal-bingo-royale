@@ -8,19 +8,21 @@
  *                 numbers and the newest lines beside the card, which takes its cell size from
  *                 the space it has, the side column beside them with the standings filling the
  *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
- *                 itself, so the page does not scroll during a round, 01 §13), the player's card
- *                 as the hero element in card colours with large, thumb-sized cells (at least
- *                 44 px on a 360 px phone), also worn by the seed check's cards
- *                 (../components/OwnerCard) and the watched cards (./watch.css). Colours and
- *                 sizes from @sbr/ui tokens.
+ *                 itself, so the page does not scroll during a round, 01 §13); the player's card
+ *                 itself is in ./liveCard.css (imported here). Colours and sizes from @sbr/ui
+ *                 tokens.
  * Used by:        ./MatchScreen, ../host/HostConsole (header, ball and numbers),
  *                 ../components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §13
  */
 
-/* Arena */
+@import './liveCard.css';
+
+/* Arena: one column that never grows past the window (a wide child scrolls or wraps
+   inside it instead of pushing the side panels out, fit audit F9) */
 .arena {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -37,6 +39,7 @@
 
 .arena-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
 }
 
@@ -91,6 +94,9 @@
 .arena-cards {
   grid-area: cards;
   min-width: 0;
+  /* The cards take their cells from this box's width (container units, ./liveCard.css,
+     ./watch.css); from 960 px from its width and height (below). */
+  container-type: inline-size;
 }
 
 .arena-events {
@@ -114,12 +120,13 @@
     gap: var(--space-2);
   }
 
-  /* Title and host link/LIVE on one line, the progress line under both at full width. */
+  /* Title and host link/LIVE on one line while both fit, else the link and LIVE wrap under
+     the title at the right (never over it, fit audit F14); the progress line last at full
+     width. */
   .arena > .arena-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    flex-wrap: wrap;
     align-items: center;
-    column-gap: var(--space-1);
+    gap: 0.25rem var(--space-1);
   }
 
   .arena > .arena-head > div:first-child {
@@ -127,19 +134,23 @@
   }
 
   .arena > .arena-head h1 {
+    flex: 1 0 auto;
+    max-width: 100%;
     margin: 0;
     font-size: var(--font-size-lead);
+    overflow-wrap: anywhere;
   }
 
   .arena > .arena-head [data-testid='arena-progress'] {
-    grid-column: 1 / -1;
+    order: 1;
+    flex-basis: 100%;
     font-size: var(--font-size-small);
   }
 
   .arena > .arena-head .sbr-row {
-    grid-area: 1 / 2;
     flex-wrap: nowrap;
     gap: 0.4rem;
+    margin-left: auto;
   }
 
   .arena > .arena-head .sbr-btn {
@@ -147,8 +158,10 @@
     font-size: var(--font-size-small);
   }
 
+  /* Never more than a quarter of the width: at a large font the ball does not push the
+     card down (unchanged at the default font). */
   .arena-ball .ball {
-    --ball-size: 5.5rem;
+    --ball-size: min(5.5rem, 25vw);
   }
 
   .arena-ticker p {
@@ -164,7 +177,9 @@
    other panels scroll inside themselves when the window is short. */
 @media (min-width: 960px) {
   /* A column: title, rules and whatever notices there are, then the play area with the
-     rest of the height (never less than 20rem; a tall recap in a pause may scroll). */
+     rest of the height (never less than 20rem or half the window, whichever is smaller: at
+     a large font the rem floor alone pushed the round past the window, fit audit F12; a
+     tall recap in a pause may scroll). */
   .arena {
     display: flex;
     flex-direction: column;
@@ -172,10 +187,10 @@
   }
 
   .arena-grid {
-    flex: 1 1 20rem;
+    flex: 1 1 min(20rem, 50vh);
     grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
     grid-template-rows: minmax(0, 1fr);
-    min-height: 20rem;
+    min-height: min(20rem, 50vh);
   }
 
   /* In a pause the recap stands above: the play area keeps a readable height and the page
@@ -220,10 +235,13 @@
     overflow-y: auto;
   }
 
-  /* Five rows of cells plus the letters, the feedback line and the padding fit the box. */
+  /* Five rows of cells plus the letters, the feedback line and the padding fit the box.
+     The cell never gets smaller than its 16 px number with the season icon needs (2.2rem
+     grows with the font): rather than the numbers shrinking or touching, the box scrolls
+     (fit audit F6, F15). */
   .arena-cards .live-card {
-    --cell-size: min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5));
-    --cell-font: max(0.85rem, calc(var(--cell-size) * 0.36));
+    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5)));
+    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
   }
 
   /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
@@ -243,8 +261,10 @@
     overflow-y: auto;
   }
 
+  /* At least 14rem, but never more than 60 % of the column: at a large font the rem floor
+     alone pushed the panel past the column and cut the own row's strip (fit audit). */
   .arena-side > .standings-panel {
-    flex: 1 0 14rem;
+    flex: 1 0 min(14rem, 60%);
     overflow: hidden;
   }
 
@@ -252,45 +272,4 @@
     order: 0;
     margin-top: calc(0.25rem - var(--space-2));
   }
-}
-
-/* The player's card: the hero element */
-.own-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
-  gap: var(--space-2);
-  justify-items: center;
-}
-
-.live-card {
-  --cell-size: clamp(2.9rem, 15vw, 4.1rem);
-  --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
-  --cell-weight: 700;
-  --cell-radius: 10px;
-  --cell-bg: var(--color-bingo-card);
-  --cell-free-bg: var(--color-bingo-card-line);
-  --cell-ink: var(--color-bingo-card-ink);
-  --cell-marked-bg: var(--color-bingo-card-marked);
-  --cell-marked-ink: var(--color-bingo-card-marked-ink);
-  --cell-marked-ring: var(--color-autumn);
-
-  display: grid;
-  justify-items: center;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  border-radius: var(--radius-card);
-  background: var(--color-bingo-card);
-  color: var(--color-bingo-card-ink);
-  box-shadow: var(--shadow-raised);
-}
-
-.live-card > div {
-  gap: 6px !important;
-}
-
-.live-card-feedback {
-  margin: 0;
-  min-height: 1.4em;
-  color: var(--color-bingo-card-ink);
-  font-weight: var(--font-weight-strong);
 }

@@ -8,11 +8,13 @@
  *                 it with bots, press Draw next once its window allows, read the current
  *                 number and the standings from a screen, post as the signed-in account (with
  *                 its CSRF token), stop a match in teardown and close the test's contexts.
- * Depends on:     @playwright/test
- * Used by:        ./acceptance/combos
+ * Depends on:     @playwright/test, ./menu
+ * Used by:        ./acceptance/combos, the real-game specs, ./acceptance/fitAudit.spec
  * Spec:           docs/spec/15-implementation-plan.md WP-12, WP-13; docs/spec/12-testing-strategy.md §4
  */
 import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';
+
+import { openMenu } from './menu.js';
 
 export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
 
@@ -22,8 +24,10 @@ const SETTLE_MS = 20_000;
 
 export async function signIn(page: Page, who: Who): Promise<void> {
   await page.goto('/#/');
+  // Attached, not visible: on a phone the account items wait behind the menu (./menu).
   const account = page.getByTestId('open-sign-in').or(page.getByTestId('signed-in-as'));
-  await expect(account.first()).toBeVisible({ timeout: SETTLE_MS });
+  await expect(account.first()).toBeAttached({ timeout: SETTLE_MS });
+  await openMenu(page);
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
   await expect(page.getByTestId('signed-in-as')).toContainText(

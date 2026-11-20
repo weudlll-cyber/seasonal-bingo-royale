@@ -4,15 +4,17 @@
  * @brief  Places 1–3 as a podium in season colours.
  *
  * Responsibility: one step per entry with its place, name (a profile link when given) and a
- *                 note (points or prizes), the viewer's own step highlighted; extracted from the final placement so
- *                 the round recap's top three (D20) uses the same podium.
- * Depends on:     react, ./results.css
+ *                 note (points or prizes), the viewer's own step highlighted; on a narrow
+ *                 podium (a phone, a large font) the steps are rows, so names stay whole.
+ *                 Extracted from the final placement so the round recap's top three (D20)
+ *                 uses the same podium.
+ * Depends on:     react, ./podium.css
  * Used by:        ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7 (D20), §7.5, §13
  */
 import type { ReactElement } from 'react';
 
-import './results.css';
+import './podium.css';
 
 interface PodiumEntry {
   readonly place: number;
@@ -25,21 +27,25 @@ interface PodiumEntry {
 }
 
 export function Podium({ entries }: { readonly entries: readonly PodiumEntry[] }): ReactElement {
+  // The box measures the podium's width: too narrow for three names side by side, the
+  // steps become rows (podium.css).
   return (
-    <ol className="podium">
-      {entries.map((e) => (
-        <li
-          key={e.name}
-          className={`podium-step podium-step--${String(e.place)}${e.own ? ' is-own' : ''}`}
-          {...e.attrs}
-        >
-          <span className="podium-place">{e.place}</span>
-          <span className="podium-name">
-            {e.href == null ? e.name : <a href={e.href}>{e.name}</a>}
-          </span>
-          <span className="podium-note">{e.note}</span>
-        </li>
-      ))}
-    </ol>
+    <div className="podium-box">
+      <ol className="podium">
+        {entries.map((e) => (
+          <li
+            key={e.name}
+            className={`podium-step podium-step--${String(e.place)}${e.own ? ' is-own' : ''}`}
+            {...e.attrs}
+          >
+            <span className="podium-place">{e.place}</span>
+            <span className="podium-name">
+              {e.href == null ? e.name : <a href={e.href}>{e.name}</a>}
+            </span>
+            <span className="podium-note">{e.note}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }

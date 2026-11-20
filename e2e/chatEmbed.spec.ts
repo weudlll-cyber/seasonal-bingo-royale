@@ -7,17 +7,19 @@
  *                 member who may host sees "Chat" on the lobby, the host console and the match
  *                 screen; at 1440×900 the side panel opens with the frame of
  *                 /embed/chat?room=bingo&theme=<the game's theme>, follows a theme switch, and
- *                 stays open after a reload (remembered); at 390×844 it is a drawer that one tap
- *                 on the dimmed page closes, leaving only the button. Screenshots of the open
+ *                 stays open after a reload (remembered); at 390×844 "Chat" is in the top bar's
+ *                 menu (./menu), opens a drawer and closes the menu, and one tap on the dimmed
+ *                 page closes the drawer, leaving the bar with its Menu button. Screenshots of the open
  *                 panel in both sizes and themes go to reports/screens/latest. The standalone
  *                 development server shows no button and asks for no embed page. The match is
  *                 aborted, the website user's account removed. Chromium only (it builds the client).
- * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
+ * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack, ./menu
  * Spec:           docs/spec/07-integration-architecture.md §6
  */
 import { expect, test, type Page } from '@playwright/test';
 
 import { CLIENT_URL } from './devStack.js';
+import { openMenu } from './menu.js';
 import { captureThemes, PHONE, setTheme, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 
@@ -113,14 +115,16 @@ test('a drawer on a phone that one tap closes', async ({ page }) => {
   await signInMember(page);
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme);
+    await openMenu(page);
     await page.getByTestId('chat-toggle').click();
     await expect(page.getByTestId('chat-panel')).toBeVisible();
+    await expect(page.getByTestId('menu-button')).toHaveAttribute('aria-expanded', 'false');
     await expectRoom(page, theme);
     await page.screenshot({ path: `${SHOTS_DIR}/chat-390-${theme}.jpg`, quality: 75 });
-    // One tap on the dimmed page above the drawer closes it; only the button stays.
+    // One tap on the dimmed page above the drawer closes it; the bar stays.
     await page.mouse.click(PHONE.width / 2, 40);
     await expect(page.getByTestId('chat-panel')).toBeHidden();
-    await expect(page.getByTestId('chat-toggle')).toBeVisible();
+    await expect(page.getByTestId('menu-button')).toBeVisible();
   }
 });
 

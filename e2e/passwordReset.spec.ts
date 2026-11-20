@@ -7,12 +7,13 @@
  *                 page; the mail arrives in Mailpit with the link; the link sets a new password;
  *                 the other device's session is gone, the old password fails and the new one
  *                 signs in. The account is deleted at the end (DELETE /me with the new password).
- * Depends on:     @playwright/test, ./devStack
+ * Depends on:     @playwright/test, ./devStack, ./menu
  * Spec:           docs/spec/03-security-architecture.md §1; docs/spec/12-testing-strategy.md §4
  */
 import { expect, request, test, type APIRequestContext } from '@playwright/test';
 
 import { CLIENT_URL, mailpit } from './devStack.js';
+import { openMenu } from './menu.js';
 
 const OLD = 'correct horse battery staple';
 const NEW = 'another long passphrase now';
@@ -78,6 +79,8 @@ test('a forgotten password is reset through the e-mailed link; the other session
     await page.getByTestId('sign-in-email').fill(email);
     await page.getByTestId('sign-in-password').fill(NEW);
     await page.getByTestId('sign-in-submit').click();
+    await expect(page.getByTestId('signed-in-as')).toBeAttached();
+    await openMenu(page);
     await expect(page.getByTestId('signed-in-as')).toBeVisible();
   } finally {
     await other.post('/api/v1/auth/login', { data: { email, password: NEW } });

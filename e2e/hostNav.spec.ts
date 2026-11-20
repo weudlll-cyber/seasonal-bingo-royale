@@ -7,8 +7,9 @@
  *                 with bots and starts it; opens the match screen and returns via "Open host
  *                 console"; as a player the window shows no "Manage" and no host link. The top
  *                 bar never covers a field at the top edge on a wide screen and scrolls away on a
- *                 phone; at 360 and 390 px the account chip is not cut and buttons stay on one
- *                 line. The lobby console shows the open-match notice with the code. Chromium
+ *                 phone; on a phone (360 and 390 px, and at a 150 % font) the bar is one row and
+ *                 one Menu button opens the links and the account, by keyboard too, the chip
+ *                 not cut and nothing wider than the window. The lobby console shows the open-match notice with the code. Chromium
  *                 saves the create form ("At a set time"), lobby console, lobby and waiting room
  *                 at desktop and phone size, light and dark, to reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
@@ -152,23 +153,60 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
   expect(phone.top, 'the bar scrolled away on a phone').toBeCloseTo(-phone.scrolled, 0);
 });
 
-test('the account chip and the buttons fit on a phone (360 and 390 px)', async ({ browser }) => {
-  for (const width of [360, 390]) {
+// In the page: the bar's height and the tops of the theme toggle and the Menu button.
+function barRow(): { height: number; toggle: number; menu: number } {
+  const top = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
+  return {
+    height: document.querySelector('.shell-bar')?.getBoundingClientRect().height ?? 0,
+    toggle: top('[data-testid="theme-toggle"]'),
+    menu: top('[data-testid="menu-button"]'),
+  };
+}
+
+// In the page, with the menu open: the chip whole, every link inside the window, no overflow.
+function openMenuFacts(): { chipCut: boolean; linksIn: boolean; wider: boolean } {
+  const chip = document.querySelector<HTMLElement>('[data-testid="signed-in-as"]');
+  const links = [...document.querySelectorAll<HTMLElement>('.shell-nav a')];
+  return {
+    chipCut: chip === null ? true : chip.scrollWidth > chip.clientWidth,
+    linksIn: links.every((a) => a.getBoundingClientRect().right <= window.innerWidth),
+    wider: document.documentElement.scrollWidth > window.innerWidth,
+  };
+}
+
+// The phone menu (fit audit O1, O2): the bar is one row, the links and the account open from
+// one button, by keyboard too. 360 and 390 px, and 360 px at a 150 % font.
+test('on a phone the bar is one row and the menu holds links and account', async ({ browser }) => {
+  for (const [width, font] of [
+    [360, 16],
+    [390, 16],
+    [360, 24],
+  ] as const) {
+    const where = `${String(width)} px at ${String(font)} px`;
     const page = await (await browser.newContext({ viewport: { width, height: 800 } })).newPage();
-    // The longest development name, with "Dev sign-in" in the bar.
+    // The longest development name, with "Dev sign-in" in the menu.
     await signIn(page, 'player-3');
-    const fit = await page.evaluate(() => {
-      const chip = document.querySelector<HTMLElement>('[data-testid="signed-in-as"]');
-      const buttons = [...document.querySelectorAll<HTMLElement>('.shell-account .sbr-btn')];
-      return {
-        chipCut: chip === null ? true : chip.scrollWidth > chip.clientWidth,
-        tallest: Math.max(...buttons.map((b) => b.getBoundingClientRect().height)),
-        wider: document.documentElement.scrollWidth > window.innerWidth,
-      };
-    });
-    expect(fit.chipCut, `${String(width)} px: chip not cut`).toBe(false);
-    expect(fit.tallest, `${String(width)} px: buttons on one line`).toBeLessThanOrEqual(50);
-    expect(fit.wider, `${String(width)} px: nothing wider than the window`).toBe(false);
+    await page.evaluate((px) => {
+      document.documentElement.style.fontSize = `${String(px)}px`;
+    }, font);
+    const button = page.getByTestId('menu-button');
+    await expect(page.getByRole('navigation', { name: 'Main' }), where).toBeHidden();
+    const bar = await page.evaluate(barRow);
+    expect(Math.abs(bar.toggle - bar.menu), `${where}: toggle and Menu on one row`).toBeLessThan(4);
+    expect(bar.height, `${where}: the bar is at most a fifth of the window`).toBeLessThan(160);
+    // Keyboard: Enter opens it with the focus on the first link, Escape closes it.
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(button).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('link', { name: 'Play', exact: true })).toBeFocused();
+    const open = await page.evaluate(openMenuFacts);
+    expect(open.chipCut, `${where}: chip not cut`).toBe(false);
+    expect(open.linksIn, `${where}: every link whole in the window`).toBe(true);
+    expect(open.wider, `${where}: nothing wider than the window`).toBe(false);
+    await expect(page.getByTestId('sign-out')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    await expect(button).toBeFocused();
     await page.context().close();
   }
 });

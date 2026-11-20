@@ -48,7 +48,8 @@
 }
 
 .ball-letter {
-  font-size: calc(var(--ball-size) * 0.17);
+  /* From the ball, never below the small size (a phone's ball stops growing with the font). */
+  font-size: max(var(--font-size-small), calc(var(--ball-size) * 0.17));
   font-weight: var(--font-weight-strong);
   color: var(--color-text-muted);
   filter: brightness(0.5);
