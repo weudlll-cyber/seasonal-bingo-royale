@@ -94,6 +94,9 @@
 .arena-cards {
   grid-area: cards;
   min-width: 0;
+  /* The cards take their cells from this box's width (container units, ./liveCard.css,
+     ./watch.css); from 960 px from its width and height (below). */
+  container-type: inline-size;
 }
 
 .arena-events {

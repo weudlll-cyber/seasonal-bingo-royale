@@ -216,13 +216,13 @@
   font-weight: var(--font-weight-strong);
 }
 
-/* A podium too narrow for three names side by side (18.5rem: a 360 px phone, or a large
+/* A podium too narrow for three names side by side (17.5rem: a 360 px phone, or a large
    font) shows its steps as rows in place order: place, name, note (fit audit F7). */
 .podium-box {
   container-type: inline-size;
 }
 
-@container (max-width: 18.5rem) {
+@container (max-width: 17.5rem) {
   .podium {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;

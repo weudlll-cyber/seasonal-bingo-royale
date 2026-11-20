@@ -71,7 +71,7 @@
       2.2rem,
       min(
         clamp(2.9rem, 15vw, 4.1rem),
-        calc((100vw - 2 * var(--gutter) - 2 * var(--card-padding) - 24px) / 5),
+        calc((100cqw - 2 * var(--card-padding) - 24px) / 5),
         calc((100svh - 28rem) / 5)
       )
     );

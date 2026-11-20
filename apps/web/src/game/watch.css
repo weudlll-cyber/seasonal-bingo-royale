@@ -58,8 +58,10 @@
    window, they scroll sideways inside their row instead of the numbers shrinking (fit
    audit F5). */
 @media (max-width: 959px) {
+  /* The cells follow the cards' box (./arena.css), not the window: a desktop browser's
+     scrollbar takes part of the window's width. */
   .watch-card.live-card {
-    --cell-size: max(1.6rem, calc((100vw - 5.5rem) / 10));
+    --cell-size: max(1.6rem, calc((100cqw - 3.5rem) / 10));
     --cell-font: 1rem;
   }
 
@@ -76,7 +78,10 @@
   /* A followed card alone: as large as the own card at most, and like it sized from the
      window's height too, so it stays in view (30rem: what sits above and around its cells). */
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: max(2.2rem, min(4.1rem, calc((100vw - 5rem) / 5.4), calc((100svh - 30rem) / 5)));
+    --cell-size: max(
+      2.2rem,
+      min(4.1rem, calc((100cqw - 1.5rem) / 5.4), calc((100svh - 30rem) / 5))
+    );
     --cell-font: 1rem;
   }
 }
