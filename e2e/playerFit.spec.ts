@@ -10,8 +10,13 @@
  *                 and the own row whole (royale player: two effects, a shield and two seasons
  *                 filled in by the spec); on a phone the ball, numbers and card(s) in view. One
  *                 measurement per screen and size (WebKit round trips are slow). Chromium saves
- *                 player-fit-*. The match is aborted afterwards, also on failure.
- * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens
+ *                 player-fit-*. On phones (360×640, 390×844; the host console too) and at
+ *                 1280×720, at the root font of 16, 20 and 24 px (Chromium): no text below 14 px
+ *                 and no card number below 16 px times the font scale, nothing cut, covered or
+ *                 wider than the window (./acceptance/fitProbe), the key parts in view at the
+ *                 default font on a phone and at every font on the desktop. The match is
+ *                 aborted afterwards, also on failure.
+ * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens, ./acceptance/fitProbe
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { expect, test, type Page } from '@playwright/test';
@@ -34,6 +39,7 @@ import {
   layoutReport,
   settled,
 } from './layoutChecks.js';
+import { probe } from './acceptance/fitProbe.js';
 import { captureThemes, SHOTS_DIR } from './screens.js';
 
 const DESKTOPS = [
@@ -193,3 +199,89 @@ for (const { gameType, players } of CASES) {
     }
   });
 }
+
+// Phones, the host console on a phone and larger fonts (fit audit §5 item 8; owner decisions
+// of 2026-11-20). Every size at the root font of 16, 20 and 24 px (100, 125, 150 %).
+const SMALL = [
+  { name: '360x640', size: { width: 360, height: 640 } },
+  { name: '390x844', size: { width: 390, height: 844 } },
+  { name: '1280x720', size: { width: 1280, height: 720 } },
+] as const;
+const FONTS = [16, 20, 24] as const;
+
+// What must be whole in the window: on a phone at the default font the ball, the drawn
+// numbers and the card(s) or Draw next; on a desktop at every font the ball, the numbers and
+// the cards' box (at a large font the cards scroll inside it) or Draw next, no page scroll.
+function keysFor(screen: keyof typeof SCREENS, desktop: boolean): Record<string, string> {
+  const keys = Object.entries(SCREENS[screen]).slice(0, 3);
+  if (!desktop || screen === 'console') return Object.fromEntries(keys);
+  return Object.fromEntries([...keys.slice(0, 2), ['cards box', '.arena-cards']]);
+}
+
+async function atFont(page: Page, px: number): Promise<void> {
+  await page.evaluate((font) => {
+    document.documentElement.style.fontSize = font === 16 ? '' : `${String(font)}px`;
+  }, px);
+}
+
+// No text below 14 px × the font scale, no card number below 16 px × scale, nothing cut,
+// covered or wider than the window (./acceptance/fitProbe); the key parts in view.
+async function checkFit(page: Page, screen: keyof typeof SCREENS): Promise<void> {
+  for (const { name, size } of SMALL) {
+    for (const font of FONTS) {
+      await atSize(page, size);
+      await atFont(page, font);
+      const what = `${screen} ${name} at ${String(font)} px`;
+      const desktop = size.width >= 960;
+      await settled(async () => {
+        const p = await probe(page);
+        expect(p.smallText, `${what}: text below 14 px`).toEqual([]);
+        expect(p.smallCells, `${what}: card numbers below 16 px`).toEqual([]);
+        expect(p.cut, `${what}: text cut`).toEqual([]);
+        expect(p.overlaps, `${what}: text covered`).toEqual([]);
+        expect(p.hScroll, `${what}: no sideways scroll`).toBe(false);
+        if (!desktop && font !== 16) return;
+        const report = await layoutReport(page, keysFor(screen, desktop));
+        if (desktop) expectInWindow(report, what);
+        else expectBoxesInWindow(report, what);
+      });
+    }
+  }
+  await atFont(page, 16);
+}
+
+test('round screens on phones and at large fonts: in view, nothing small or cut', async ({
+  browser,
+}, info) => {
+  // The rules are CSS: one engine measures them (WebKit runs the phone checks above).
+  test.skip(info.project.name !== 'chromium', 'Chromium only');
+  test.setTimeout(300_000);
+  const host = await (await browser.newContext()).newPage();
+  await signIn(host, 'host');
+  const code = await hostMatch(host, {
+    title: 'Fit check',
+    gameType: 'royale',
+    drawMode: 'host',
+    missed: 'autoMarkAfter',
+    maxPlayers: 11,
+  });
+  try {
+    expect((await post(host, `/api/v1/matches/${code}/join`, {})).status()).toBe(204);
+    await fillAndStart(host, 11);
+    for (let i = 0; i < 3; i += 1) await drawNext(host);
+    await checkFit(host, 'console');
+    const player = await (await browser.newContext()).newPage();
+    await signIn(player, 'host');
+    await withEffects(player);
+    await player.goto(`/#/match/${code}`);
+    await expect(player.getByTestId('effect-growth')).toBeVisible({ timeout: 20_000 });
+    await checkFit(player, 'player');
+    const watcher = await (await browser.newContext()).newPage();
+    await signIn(watcher, 'player-1');
+    await watcher.goto(`/#/match/${code}`);
+    await expect(watcher.getByTestId('watch-cards')).toBeVisible({ timeout: 20_000 });
+    await checkFit(watcher, 'spectator');
+  } finally {
+    await stopMatch(host, code);
+  }
+});

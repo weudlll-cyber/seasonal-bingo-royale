@@ -13,7 +13,7 @@
  *                 their source into the page as one script (they call each other by name, so
  *                 they use nothing from outside this file), `probe` calls it.
  * Depends on:     @playwright/test
- * Used by:        ./fitAudit.spec
+ * Used by:        ./fitAudit.spec, ../playerFit.spec (the round screens in CI)
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
  */
 import type { Page } from '@playwright/test';

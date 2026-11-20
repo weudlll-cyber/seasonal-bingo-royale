@@ -21,15 +21,16 @@ What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is ope
   - below 960 px the top bar is one row (brand, theme toggle, Menu); the menu opens a panel with the links and the account, keyboard usable (aria-expanded, focus inside, Escape); desktop unchanged; "← Seasonal Entertainment" stays top left;
   - the arena's title line wraps LIVE and the host button under the title instead of covering it;
   - on phones the ball stops growing past a quarter of the width and the own card also follows the window's height, so ball, numbers and the whole card fit a 360×640 phone at the default font (cells 38 px there).
+- Piece 4 — keep it so: a new test in e2e/playerFit.spec.ts (Chromium) measures console, player and spectator at 360×640, 390×844 and 1280×720 at 100, 125 and 150 %: no text below 14 px, no card number below 16 px, nothing cut, covered or wider than the window, the key parts in view; it adds about 40 s to the Chromium CI job.
 - Earlier, on master: the admin-area decisions and build order (PR #54).
 
 ## Running
 
-- Piece 4 — keep it so (playerFit at 360×640, the console on phones, 125 % / 150 %).
+- The audit again after the fixes.
 
 ## Open
 
-- The audit again after the fixes; one royale played at 390×844 and 1280×720; screenshots for the owner.
+- One royale played at 390×844 and 1280×720; screenshots for the owner.
 - Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
 
 ## Needs the owner's word
