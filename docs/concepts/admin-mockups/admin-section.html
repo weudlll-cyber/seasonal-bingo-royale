@@ -1,0 +1,186 @@
+<!doctype html>
+<!--
+  docs/concepts/admin-mockups/admin-section.html
+  Mockup of the admin-area concept (docs/concepts/admin-area.md §4, section 2), not product
+  code: one preset's "Draws and timing" tab — every value with its description, min/max
+  (technical limit or proposal), default, a warning where needed and when it applies.
+  Values as in packages/contracts/src/config/defaults/royaleRealtime.ts; one change pending.
+-->
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — preset — mockup</title>
+    <link rel="stylesheet" href="mockup.css" />
+  </head>
+  <body>
+    <header class="shell-bar">
+      <a class="shell-brand" href="#">
+        <img src="../../../assets/brand/emblem.webp" alt="" width="42" height="37" />
+        <span>Seasonal Bingo Royale<small>Seasonal Entertainment</small></span>
+      </a>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-testid="theme-toggle"
+        aria-label="Light or dark"
+      >
+        ◐
+      </button>
+      <nav class="shell-nav" aria-label="Main">
+        <a href="#">Play</a>
+        <a href="#">Host a match</a>
+        <a href="#">Leaderboard</a>
+        <a href="#" aria-current="page">Admin</a>
+      </nav>
+      <div class="shell-account"><span class="sbr-chip">Jonas (admin)</span></div>
+    </header>
+    <main class="shell-main">
+      <div class="admin-layout">
+        <nav class="admin-nav" aria-label="Admin">
+          <a href="admin-overview.html">Overview</a>
+          <a href="#" aria-current="page">Presets</a>
+          <a href="#">League</a>
+          <a href="#">Players and accounts</a>
+          <a href="#">Screens and texts</a>
+          <a href="#">Technical</a>
+          <a href="admin-history.html">History</a>
+        </nav>
+        <div>
+          <div class="page-head">
+            <p class="sbr-muted">Presets · Royale</p>
+            <h1>Evening royale</h1>
+            <p class="sbr-muted">
+              Published, version 7 · used by 23 matches · changes apply to matches created
+              afterwards
+            </p>
+          </div>
+          <nav class="tabs" aria-label="Preset">
+            <a href="#">For the organizer</a>
+            <a href="#" aria-current="page">Draws and timing</a>
+            <a href="#">Marking</a>
+            <a href="#">Points and patterns</a>
+            <a href="#">Seasons</a>
+            <a href="#">Stages and cuts</a>
+            <a href="#">Jackpot</a>
+            <a href="#">Lobby</a>
+          </nav>
+
+          <section class="sbr-panel">
+            <div class="value-row changed">
+              <div>
+                <h3>Time between numbers ("Normal" speed)</h3>
+                <p>
+                  How long players see each number before the next one comes. Shorter makes the
+                  match faster and harder; longer gives slow tappers time.
+                </p>
+                <p class="limits">
+                  Default 5 s · min 2 s, max 60 s (technical limit) · must stay longer than the
+                  speed window (3 s)
+                </p>
+              </div>
+              <div class="value-field">
+                <span class="unit"
+                  ><input class="sbr-input" value="4" inputmode="numeric" /> s</span
+                >
+                <span class="applies">Changed from 5 s · applies to new matches</span>
+              </div>
+            </div>
+
+            <div class="value-row">
+              <div>
+                <h3>"Relaxed" and "Quick" speed</h3>
+                <p>
+                  The two other speeds the organizer can pick. Players see them as words, not
+                  seconds.
+                </p>
+                <p class="limits">
+                  Default 8 s and 3.5 s · min 2 s, max 60 s (technical limit) · each longer than the
+                  speed window
+                </p>
+              </div>
+              <div class="value-field">
+                <span class="unit"><input class="sbr-input" value="8" /> s</span>
+                <span class="unit"><input class="sbr-input" value="3.5" /> s</span>
+              </div>
+            </div>
+
+            <div class="value-row">
+              <div>
+                <h3>Speed window</h3>
+                <p>
+                  How long after a number appears a tap still earns the speed bonus, and when a
+                  prize on that number is decided.
+                </p>
+                <p class="limits">
+                  Default 3 s · min 0.5 s, max 10 s (technical limit) · must stay shorter than the
+                  time between numbers
+                </p>
+              </div>
+              <div class="value-field">
+                <span class="unit"><input class="sbr-input" value="3" /> s</span>
+              </div>
+              <p class="warning">
+                Changes who wins ties and the speed bonus. Players used to the current speed will
+                notice; try it in a practice match first.
+              </p>
+            </div>
+
+            <div class="value-row">
+              <div>
+                <h3>Numbers per qualification round</h3>
+                <p>How many numbers are drawn before a qualification round ends.</p>
+                <p class="limits">
+                  Default 40 · min 1, max 75 (technical limit: there are 75 numbers)
+                </p>
+              </div>
+              <div class="value-field">
+                <span class="unit"><input class="sbr-input" value="40" /> numbers</span>
+              </div>
+            </div>
+
+            <div class="value-row">
+              <div>
+                <h3>Pause between rounds</h3>
+                <p>
+                  How long players wait after a round before the next one starts, when the organizer
+                  does not start rounds by hand.
+                </p>
+                <p class="limits">Default 15 s · min 3 s, max 120 s (technical limit)</p>
+              </div>
+              <div class="value-field">
+                <span class="unit"><input class="sbr-input" value="15" /> s</span>
+              </div>
+            </div>
+
+            <div class="value-row">
+              <div>
+                <h3>Fewest players to start</h3>
+                <p>A match with fewer players than this in its lobby does not start.</p>
+                <p class="limits">Default 2 · min 2, max 200 (technical limit)</p>
+              </div>
+              <div class="value-field">
+                <span class="unit"><input class="sbr-input" value="8" /> players</span>
+              </div>
+            </div>
+
+            <div class="save-bar">
+              <span class="sbr-muted">1 change · applies to matches created after saving</span>
+              <span class="sbr-row">
+                <button class="sbr-btn" type="button">Discard</button>
+                <button class="sbr-btn sbr-btn--primary" type="button">Save as version 8…</button>
+              </span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+    <script>
+      /* The bar's light/dark toggle, as in the game (data-theme on html). */
+      document.querySelector('.theme-toggle').onclick = () => {
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      };
+    </script>
+  </body>
+</html>

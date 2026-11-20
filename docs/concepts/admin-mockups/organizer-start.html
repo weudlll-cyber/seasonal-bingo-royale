@@ -1,0 +1,180 @@
+<!doctype html>
+<!--
+  docs/concepts/admin-mockups/organizer-start.html
+  Mockup of the admin-area concept (docs/concepts/admin-area.md §3), not product code:
+  the Organizer's "Start a match" page — game type, a preset the Admin published, the few
+  choices of this match. Invented values. Uses the game's own styles (./mockup.css).
+-->
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Start a match — mockup</title>
+    <link rel="stylesheet" href="mockup.css" />
+  </head>
+  <body>
+    <header class="shell-bar">
+      <a class="shell-brand" href="#">
+        <img src="../../../assets/brand/emblem.webp" alt="" width="42" height="37" />
+        <span>Seasonal Bingo Royale<small>Seasonal Entertainment</small></span>
+      </a>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-testid="theme-toggle"
+        aria-label="Light or dark"
+      >
+        ◐
+      </button>
+      <nav class="shell-nav" aria-label="Main">
+        <a href="#">Play</a>
+        <a href="#" aria-current="page">Host a match</a>
+        <a href="#">Leaderboard</a>
+      </nav>
+      <div class="shell-account"><span class="sbr-chip">Mia (organizer)</span></div>
+    </header>
+    <main class="shell-main">
+      <div class="page-head">
+        <h1>Start a match</h1>
+        <p class="sbr-muted">
+          Three choices, then open the lobby. Everything else comes from the preset.
+        </p>
+      </div>
+
+      <section class="step" aria-labelledby="s1">
+        <h2 id="s1"><span class="step-num">1</span>Game type</h2>
+        <div class="tiles" role="radiogroup" aria-label="Game type">
+          <div class="tile" role="radio" aria-checked="true">
+            <strong>Royale</strong>
+            <span class="sbr-muted"
+              >Stages and cuts: half the field goes out after each stage, the best play the
+              final.</span
+            >
+            <span class="season-dots"
+              ><i style="background: var(--color-spring)"></i
+              ><i style="background: var(--color-summer)"></i
+              ><i style="background: var(--color-autumn)"></i
+              ><i style="background: var(--color-winter)"></i
+            ></span>
+          </div>
+          <div class="tile" role="radio" aria-checked="false">
+            <strong>Classic with seasons</strong>
+            <span class="sbr-muted"
+              >One round, prizes for rows and the full card, season effects on.</span
+            >
+          </div>
+          <div class="tile" role="radio" aria-checked="false">
+            <strong>Classic</strong>
+            <span class="sbr-muted"
+              >Plain bingo: one round, prizes for rows and the full card.</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <h2 id="s2"><span class="step-num">2</span>Preset</h2>
+        <div class="tiles" role="radiogroup" aria-label="Preset">
+          <div class="tile" role="radio" aria-checked="true">
+            <strong>Evening royale</strong>
+            <span>About 45 min · 8 to 100 players</span>
+            <span class="sbr-muted"
+              >Two qualification rounds, two elimination rounds, final to the full card.</span
+            >
+            <span class="sbr-chip">Counts for the league</span>
+          </div>
+          <div class="tile" role="radio" aria-checked="false">
+            <strong>Quick royale</strong>
+            <span>About 20 min · 8 to 40 players</span>
+            <span class="sbr-muted">One round per stage, shorter rounds, faster draws.</span>
+            <span class="sbr-chip">Counts for the league</span>
+          </div>
+          <div class="tile" role="radio" aria-checked="false">
+            <strong>Practice royale</strong>
+            <span>About 20 min · 2 to 40 players</span>
+            <span class="sbr-muted">As Quick royale for a small group; no league points.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s3">
+        <h2 id="s3"><span class="step-num">3</span>This match</h2>
+        <div class="choices">
+          <label class="sbr-field">
+            Title
+            <input class="sbr-input" value="Royale — Friday 21 November" maxlength="80" />
+          </label>
+          <div class="sbr-field">
+            Start
+            <div class="segmented" role="group" aria-label="Start">
+              <button class="sbr-btn" type="button" aria-pressed="false">Now</button>
+              <button class="sbr-btn" type="button" aria-pressed="true">At 20:00</button>
+              <button class="sbr-btn" type="button" aria-pressed="false">When full</button>
+            </div>
+            <span>The lobby opens now; players can join until the start.</span>
+          </div>
+          <label class="sbr-field">
+            Players: up to 60
+            <input class="range" type="range" min="8" max="100" value="60" />
+            <span>This preset allows 8 to 100. Stages: 60 → 30 → 15 → 8 → final.</span>
+          </label>
+          <div class="sbr-field">
+            Speed
+            <div class="segmented" role="group" aria-label="Speed">
+              <button class="sbr-btn" type="button" aria-pressed="false">Relaxed</button>
+              <button class="sbr-btn" type="button" aria-pressed="true">Normal</button>
+              <button class="sbr-btn" type="button" aria-pressed="false">Quick</button>
+            </div>
+            <span>A new number every 5 seconds.</span>
+          </div>
+        </div>
+        <label class="switch">
+          <span
+            ><strong>Show on the Seasonal Entertainment website</strong><br /><span
+              class="sbr-muted"
+              >The website lists the open sign-up until the start.</span
+            ></span
+          >
+          <input type="checkbox" checked />
+        </label>
+        <details class="more">
+          <summary>More choices</summary>
+          <div class="choices" style="margin-top: var(--space-2)">
+            <label class="sbr-field"
+              >Between rounds
+              <select class="sbr-select">
+                <option>Wait 15 seconds</option>
+                <option>I start each round</option>
+              </select>
+            </label>
+            <label class="sbr-field"
+              >Missed numbers
+              <select class="sbr-select">
+                <option>Marked after 3 seconds</option>
+                <option>Not marked</option>
+              </select>
+            </label>
+            <label class="switch"
+              ><span>Counts for the league</span><input type="checkbox" checked
+            /></label>
+          </div>
+        </details>
+      </section>
+
+      <div class="summary-bar">
+        <span
+          ><strong>Royale · Evening royale</strong> · up to 60 players · starts at 20:00 · about 45
+          min</span
+        >
+        <button class="sbr-btn sbr-btn--primary sbr-btn--big" type="button">Open the lobby</button>
+      </div>
+    </main>
+    <script>
+      /* The bar's light/dark toggle, as in the game (data-theme on html). */
+      document.querySelector('.theme-toggle').onclick = () => {
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      };
+    </script>
+  </body>
+</html>

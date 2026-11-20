@@ -134,4 +134,6 @@ Each point has the proposal this concept assumes (the default) and the alternati
 - **(p) Values read at server start** (guests switch, e-mail confirmation switch, socket caps, website feed interval). Proposal: they become settings read from the database; the environment value is only the first default. Alternative: they stay environment values on the server.
 - **(q) Development tools** (Quick Test defaults, time travel, demo league, fast test rules: about 50 values). Proposal: not in the admin area; they exist only with `SBR_DEV=1`. Alternative: a hidden "Development" section.
 
+- **(r) Ruleset values nobody reads** (`lobby.maxPlayers`, `lobby.openMsRealtime`, `lobby.startRule`, `lobby.lateJoin`; BACKLOG Part one). Proposal: the admin area shows only values the game reads; these are wired up or left out. Alternative: shown greyed out as "not used yet".
+
 The inventory's own list of these points, with file references, is in [admin-values.md](admin-values.md) §"Open points found while listing".

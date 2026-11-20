@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+  docs/concepts/admin-mockups/admin-history.html
+  Mockup of the admin-area concept (docs/concepts/admin-area.md §4 section 7, §6), not
+  product code: the version history — every change with date, who, old → new and comment,
+  and "Undo this change" (a new version, never a delete). Invented values.
+-->
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin — history — mockup</title>
+    <link rel="stylesheet" href="mockup.css" />
+  </head>
+  <body>
+    <header class="shell-bar">
+      <a class="shell-brand" href="#">
+        <img src="../../../assets/brand/emblem.webp" alt="" width="42" height="37" />
+        <span>Seasonal Bingo Royale<small>Seasonal Entertainment</small></span>
+      </a>
+      <button
+        class="theme-toggle"
+        type="button"
+        data-testid="theme-toggle"
+        aria-label="Light or dark"
+      >
+        ◐
+      </button>
+      <nav class="shell-nav" aria-label="Main">
+        <a href="#">Play</a>
+        <a href="#">Host a match</a>
+        <a href="#">Leaderboard</a>
+        <a href="#" aria-current="page">Admin</a>
+      </nav>
+      <div class="shell-account"><span class="sbr-chip">Jonas (admin)</span></div>
+    </header>
+    <main class="shell-main">
+      <div class="admin-layout">
+        <nav class="admin-nav" aria-label="Admin">
+          <a href="admin-overview.html">Overview</a>
+          <a href="admin-section.html">Presets</a>
+          <a href="#">League</a>
+          <a href="#">Players and accounts</a>
+          <a href="#">Screens and texts</a>
+          <a href="#">Technical</a>
+          <a href="#" aria-current="page">History</a>
+        </nav>
+        <div>
+          <div class="page-head">
+            <h1>History</h1>
+            <p class="sbr-muted">
+              Every change, newest first. Undo makes a new version with the old values; nothing is
+              deleted. Matches already created keep their rules.
+            </p>
+          </div>
+          <div class="sbr-row" style="margin-bottom: var(--space-2)">
+            <select class="sbr-select" style="width: auto" aria-label="Section">
+              <option>All sections</option>
+              <option>Presets</option>
+              <option>League</option>
+              <option>Technical</option>
+            </select>
+            <select class="sbr-select" style="width: auto" aria-label="Who">
+              <option>Everyone</option>
+              <option>Jonas</option>
+              <option>Sam</option>
+            </select>
+          </div>
+          <ol class="history">
+            <li class="sbr-panel">
+              <div class="meta">
+                <strong>Presets · Evening royale · version 8</strong>
+                <span class="sbr-muted">Jonas · Thu 20 Nov 2026, 09:12</span>
+              </div>
+              <ul class="diff">
+                <li>Time between numbers ("Normal"): <del>5 s</del> → <ins>4 s</ins></li>
+              </ul>
+              <p class="sbr-muted" style="margin: 0">"Players asked for a faster evening match."</p>
+              <div class="sbr-row">
+                <button class="sbr-btn" type="button">Undo this change…</button>
+              </div>
+            </li>
+            <li class="sbr-panel">
+              <div class="meta">
+                <strong>League · version 4</strong>
+                <span class="sbr-muted">Jonas · Wed 19 Nov 2026, 21:40</span>
+              </div>
+              <ul class="diff">
+                <li>Finalist bonus: <del>10</del> → <ins>15</ins> points</li>
+                <li>Placement points for 2nd: <del>30</del> → <ins>32</ins></li>
+              </ul>
+              <div class="sbr-row">
+                <button class="sbr-btn" type="button">Undo this change…</button>
+              </div>
+            </li>
+            <li class="sbr-panel">
+              <div class="meta">
+                <strong>Technical · version 3</strong>
+                <span class="sbr-muted">Sam (owner) · Mon 17 Nov 2026, 18:05</span>
+              </div>
+              <ul class="diff">
+                <li>Sign-in attempts per 15 minutes: <del>10</del> → <ins>8</ins></li>
+              </ul>
+              <p class="sbr-muted" style="margin: 0">"Undo of version 2."</p>
+              <div class="sbr-row">
+                <button class="sbr-btn" type="button">Undo this change…</button>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </main>
+    <script>
+      /* The bar's light/dark toggle, as in the game (data-theme on html). */
+      document.querySelector('.theme-toggle').onclick = () => {
+        const root = document.documentElement;
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      };
+    </script>
+  </body>
+</html>

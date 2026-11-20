@@ -4,13 +4,14 @@ What the night of 2026-11-20 (the admin-area concept, branch `docs/admin-concept
 
 ## Done
 
-- 1 — Inventory: [docs/concepts/admin-values.md](concepts/admin-values.md), 524 fixed values in four parts (rulesets and contracts 195, game engine 56, server 180, player client 93); per role: organizer per match 27, admin 229, server only 105, stays fixed 163. Seven open points found while listing.
-
+- 1 — Inventory: [docs/concepts/admin-values.md](concepts/admin-values.md), 524 fixed values in four parts (rulesets and contracts 195, game engine 56, server 180, player client 93); per role: organizer per match 27, admin 229, server only 105, stays fixed 163. Eight open points found while listing.
 - 2 — Concept: [docs/concepts/admin-area.md](concepts/admin-area.md) — the Organizer and Admin roles on the seeded roles (standalone and website), the Organizer's three-step "Start a match", seven Admin sections, what stays on the server, versions and undo on `settings_versions`, 13 differences from spec 11 and 15. PR #54 (open, not merged).
+- 3 — Mockups: [docs/concepts/admin-mockups/](concepts/admin-mockups/) — organizer "Start a match", admin overview, one preset's "Draws and timing" (descriptions, min/max, a warning), the history. On the game's own styles; open the `.html` files in a browser. Screenshots (not committed) in `reports/screens/latest/admin-concept-<page>-<desktop|phone>-<light|dark>.jpg` and `admin-concept-<page>-full-<light|dark>.jpg` (whole page at 1280 px). Nothing dropped for time.
+- BACKLOG Part one's admin item and OPEN point to the concept; nothing moved to Part two.
 
 ## Running
 
-- 3 — Mockups and screenshots.
+- Nothing. The PR waits for the owner.
 
 ## Needs the owner's word
 
@@ -32,4 +33,5 @@ All in admin-area.md §8, each with the proposal the concept assumes and the alt
 - (n) the "within 24 hours" text follows the setting — or the window stays fixed;
 - (o) bots stay development only — or a per-preset "bots allowed";
 - (p) values read at server start become settings — or stay environment values;
-- (q) development tools stay out of the admin area — or a hidden section.
+- (q) development tools stay out of the admin area — or a hidden section;
+- (r) ruleset values nobody reads (`lobby.maxPlayers`, `openMsRealtime`, `startRule`, `lateJoin`) are wired up or left out — or shown as "not used yet".

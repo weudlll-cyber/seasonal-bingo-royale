@@ -27,7 +27,7 @@ Delivered by the website (master ee3f97c, PR #42, 2026-11-04; not yet on the liv
 Later:
 
 - Sounds: at the very end, before or after going live (D56)
-- The game's own admin interface (`apps/admin`): after the move (D58)
+- The game's own admin interface (`apps/admin`): after the move (D58). Concept, inventory of every fixed value and mockups: docs/concepts/admin-area.md (PR #54); waiting for the owner's word on its §8
 
 - Embeddable call view at a predictable URL per call, so the game can render it next to a match when the match carries `host_call_ref` (docs/spec/01-game-design.md §12a, docs/spec/07-integration-architecture.md §6a; consumed by WP-25b)
 
