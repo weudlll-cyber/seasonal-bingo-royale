@@ -102,6 +102,8 @@ Accept: E2E journey 6 (moderator side). Owner sees: mute/ban flow.
 
 ### Phase 5 — Admin
 
+Decided 2026-11-20 (D58, D63): built before the move, in the pieces of the build order in [docs/concepts/admin-area.md](../concepts/admin-area.md) §9, which replaces WP-19 to WP-23 below where they differ.
+
 **WP-19 Admin shell, RBAC, 2FA, audit**
 Spec: 03 §2.1 (TOTP), §5, §16; 11 §1–§2. Separate admin app, permission model, TOTP setup/step-up, audit log with hash chain, authz matrix test, bootstrap setup page.
 Accept: authz matrix test green. Owner sees: admin login with 2FA, empty sections per permission.
