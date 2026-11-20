@@ -10,4 +10,5 @@ Full list: [BACKLOG.md](BACKLOG.md).
 - From the website repository: delivered (website master ee3f97c, not yet live; the move rehearsed against the real website installer at d71b111 and dbcf0ed in both modes, 2026-11-06, `ops/test/real-site.sh`); still open there the link on the games page, the open-rounds widget and the embeddable call view; the chat room `bingo` exists since the website's SE-EMBEDDED-GAMES (82e9e30) and the game shows it beside the lobby, the matches and the console (branch feat/chat-embed) (consumed by WP-25b). The game goes online only once the website login works end to end (D38).
 - Deployment, still open: signed release images (cosign) instead of building on the server, staging beside prod on one server.
 - Later: "Verify this match" recomputed in the player's own browser (the server recomputes today).
-- Later: the admin app (`apps/admin`, after the move, D58; concept and mockups in docs/concepts/admin-area.md, PR #54, waiting for the owner's word); sounds (at the very end, D56); an app icon.
+- Before the move: the game's own admin area (D58, D63), an "Admin" menu item inside the game; build order in docs/concepts/admin-area.md §9.
+- Later: sounds (at the very end, D56); an app icon.
