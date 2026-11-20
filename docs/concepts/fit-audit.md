@@ -1,6 +1,6 @@
 # Fit audit — every screen at every size and font size
 
-Status: measurement only, 2026-11-20, on master `c3b76c1` (no product change). Owner request of 2026-11-20: every page adapts to the space the user really has (window size and font size); owner decision of the same day: no text below 14 px at the browser's default font. For the card numbers in the spectator view the owner decides after the comparison in §4.
+Status: measured 2026-11-20 on master `c3b76c1` (§1–§5, the state before the fixes); fixed on branch `docs/fit-audit` and measured again (§6). Owner request of 2026-11-20: every page adapts to the space the user really has (window size and font size); owner decision of the same day: no text below 14 px at the browser's default font. The card numbers' floor was then decided at 16 px (§6).
 
 ## 1. How it was measured
 
@@ -223,7 +223,7 @@ The top 4 in the spectator view, default font, with the number's minimum injecte
 - Above the default font, numbers at today's rules already touch at 1280×720 and 1366×768 (F15).
 - Screenshots: `fit-cards-<size>-12.jpg`, `-14.jpg`, `-16.jpg` for each size, to view side by side.
 
-## 5. Proposed fixes, by cause (not implemented)
+## 5. Proposed fixes, by cause (as proposed; what was built is in §6.2)
 
 1. **Fixed small sizes:** F1, F2 and F4 use `--font-size-small` (0.875rem) instead of 0.75rem; F3 gives `small` the same size in `packages/ui/src/base.css`.
 2. **Card numbers on the owner's floor:** the watch and own card `--cell-font` minimums become the owner's choice from §4 (0.875rem or 1rem) (F5, F6).
@@ -233,3 +233,91 @@ The top 4 in the spectator view, default font, with the number's minimum injecte
 6. **Names before numbers on phones:** in standings, results and the leaderboard a name gets the row's free width first. Points and seasons move under the name, or wrap, at large fonts instead of the name being cut (F7).
 7. **Phone header:** the arena's title line wraps the LIVE badge and host button under the title when space is short (F14). The top bar folds its menu and account buttons into one menu on phones (O1, O2).
 8. **Round screens on small phones and large fonts:** the playerFit rule extends to 360×640, the console on phones, and 125 % / 150 % fonts. The arena gives its fixed rows less height at large fonts (F12, F13).
+
+## 6. After the fixes
+
+Owner decisions of 2026-11-20: text is never below 14 px at the browser's default font; card numbers (own card and spectator cards) are never below 16 px; on phones the top bar folds the menu items and the account buttons into one menu button, desktop stays as it was.
+
+Measured again on the branch with the same script (`SBR_FIT_TAG=fitafter`): the same 28 screens, 7 sizes and 3 fonts, 588 combinations, nothing dropped. Logs `reports/logs/fitafter-*.jsonl`, screenshots `reports/screens/latest/fitafter-*.jpg` (the first audit's `fit-*` files are kept as the "before").
+
+### 6.1 Before and after
+
+Combinations with each code (§2):
+
+| Code | Meaning                                       | Before | After |
+| ---- | --------------------------------------------- | -----: | ----: |
+| B    | brand subline below the minimum               |    420 |     0 |
+| L    | LIVE badge below the minimum                  |    168 |     0 |
+| T    | other text below the minimum                  |     42 |     0 |
+| N    | card numbers below 16 px × scale              |     59 |     0 |
+| X    | text cut                                      |     45 |     0 |
+| W    | wider than the window, sideways scroll        |     21 |     0 |
+| V    | overlap                                       |     11 |     4 |
+| S    | page scroll on a desktop round screen         |      8 |     0 |
+| K    | key part of a round screen outside the window |     40 |    26 |
+
+| Font            | With a finding, before | After |
+| --------------- | ---------------------: | ----: |
+| 16 px (default) |             164 of 196 |     0 |
+| 20 px (125 %)   |             170 of 196 |    11 |
+| 24 px (150 %)   |             170 of 196 |    19 |
+| All             |             504 of 588 |    30 |
+
+Findings per kind:
+
+| Kind                            | Before                     | After                                            |
+| ------------------------------- | -------------------------- | ------------------------------------------------ |
+| Small text                      | 4 (F1–F4)                  | 0                                                |
+| Small card numbers              | 2 (F5, F6)                 | 0                                                |
+| Cut text                        | 1 (F7, three places)       | 0                                                |
+| Wider than the window           | 4 (F8–F11)                 | 0                                                |
+| Round screens out of the window | 2 (F12, F13)               | F12: 0; F13 only at 125 % / 150 % (R1–R4)        |
+| Overlaps                        | 2 (F14, F15) and F4's      | F14, F15: 0; F4's overlap remains (R5)           |
+| Observed (O1, O2)               | top bar up to half a phone | one row: 11 % of a 360×640 phone (22 % at 150 %) |
+
+### 6.2 What closed each finding
+
+- **F1–F4:** the brand subline, the LIVE badge and the development badge use `--font-size-small`; `small` gets it in `packages/ui/src/base.css`. `apps/web/src/minTextSize.test.ts` reads every stylesheet and component for a fixed text size below 14 px, a card number below 16 px or an ellipsis.
+- **F5, F6, F15:** `--cell-font` floors at 1rem on the own card, the watched cards and the CellFace fallback; the cells have rem floors (`apps/web/src/game/liveCard.css`, `watch.css`), so at a large font they grow with their numbers. Where the cards then do not fit, the play area's box scrolls (desktop) or the two watched cards scroll sideways in their row (phone) instead of the numbers shrinking.
+- **F7:** rank rows keep the name whole and move seasons and points to a second line when narrow; a narrow podium shows its steps as rows; a narrow leaderboard shows the figures under the name. No `text-overflow: ellipsis` is left.
+- **F8:** on phones and tablets the cards take their cells from their box's width (container units), not the window's.
+- **F9–F11:** the arena's columns are `minmax(0, 1fr)`; the seasons line wraps between seasons; "Verify this match" scrolls its rounds table inside a focusable box; on phones the page margin and the panel padding stop growing with the font (unchanged at the default font).
+- **F12:** the play area's minimum height is `min(20rem, 50vh)`; the standings keep `min(14rem, 60%)` of the side column, so the own row's strip stays whole at 150 %.
+- **F13:** on phones the ball is at most a quarter of the width and the own and followed cards also follow the window's height, so at the default font ball, drawn numbers and the whole card (or the watched cards, or Draw next) fit a 360×640 phone (own cells 38 px there).
+- **F14:** the arena's title line wraps the host button and LIVE under the title.
+- **O1, O2:** below 960 px the top bar is one row: brand, theme toggle and "Menu" (`apps/web/src/shell/MenuFold.tsx`). The menu opens a panel with the links and the account (name, Sign out, Dev sign-in in development, Chat in website mode): `aria-expanded`, the focus moves into the panel, Escape closes it and returns the focus; it also closes on a click outside, a new route, another sign-in or the chat opening. "← Seasonal Entertainment" stays at the top left in website mode.
+- **Kept so:** `e2e/playerFit.spec.ts` measures console, player and spectator at 360×640, 390×844 and 1280×720 at 100, 125 and 150 % (Chromium, about 40 s): nothing below the minimums, nothing cut, covered or wider than the window, the key parts in view at the default font on a phone and at every font on the desktop.
+
+### 6.3 What remains, and why
+
+- **R1 — Own card below the window on phones at 125 % and 150 %** (360×640, 390×844; royale and classic; 8 combinations). The numbers stay at 16 px × the font scale, so the cells cannot shrink further; the ball and the drawn numbers stay in view and the card follows below. Fitting it would need smaller numbers or no ball on a phone at a large font: the owner's decision.
+- **R2 — Desktop at 125 % / 150 % (1280×720, 1366×768): the own card (150 %) and the watched cards (125 %, 150 %) are taller than the play area's box** (10 combinations). The page does not scroll; the cards scroll inside their box, as asked for when 16 px numbers do not fit. The box itself is whole in the window (playerFit checks it).
+- **R3 — Host console on phones at 125 % / 150 %:** Draw next below the window (360×640 at 125 % and 150 %, 390×844 at 150 %), at 360×640 also the drawn numbers and at 150 % the ball (3 combinations). The console's header and controls above them grow with the font; moving Draw next above them changes the console's layout: left for the owner.
+- **R4 — Spectator on phones at 125 % / 150 %:** the watched cards or the followed card end below the window (360×640; the followed card also at 390×844 / 150 %; 5 combinations), for the reason of R1.
+- **R5 — Quick Test on phones at 125 % / 150 %:** the development badge (fixed at the bottom right) lies under the page's tiles (4 combinations). Development only; the badge lets clicks through.
+
+None of these is covered by a decision of 2026-11-20: text and card numbers are at their minimums everywhere, and the phone bar is one row.
+
+### 6.4 Spectator cards after the fixes
+
+Default font, the view as built (§4's 14 px and 16 px columns are the same now):
+
+| Size      | Cards | Per row | Whole in window | Smallest number | Overflow                          |
+| --------- | ----- | ------- | --------------- | --------------- | --------------------------------- |
+| 360×640   | 2     | 2       | 2               | 16 px           | none (numbers close to the frame) |
+| 390×844   | 2     | 2       | 2               | 16 px           | none                              |
+| 768×1024  | 2     | 2       | 2               | 16 px           | none                              |
+| 1280×720  | 4     | 2       | 4               | 16 px           | none                              |
+| 1366×768  | 4     | 2       | 4               | 16 px           | none                              |
+| 1920×1080 | 4     | 2       | 4               | 19.6 px         | none                              |
+| 2560×1440 | 4     | 2       | 4               | 19.6 px         | none                              |
+
+The number of cards is unchanged. At 360×640 the 16 px numbers nearly filled their 27 px cells in this measurement; after it the phone's watched cards got a narrower padding and corner, which gives each cell about 1.6 px more.
+
+### 6.5 Screenshots for the owner
+
+In `reports/screens/latest/` (not committed), from a royale played with `e2e/acceptance/fitFixPlay.spec.ts` (fast rules). One full-length realtime royale was played with `SBR_FIT_FULL=1` before the last two fixes: 19.7 minutes, no finding.
+
+- `fitfix-<screen>-<390x844|1280x720>-<light|dark>.jpg` for `lobby`, `player`, `spectator`, `interlude`, `results`, `leaderboard`;
+- `fitfix-menu-closed-390x844-<light|dark>.jpg` and `fitfix-menu-open-390x844-light.jpg`;
+- before: the `fit-*` shots of §3; after, per combination: `fitafter-*`.

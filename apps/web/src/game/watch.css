@@ -60,9 +60,18 @@
 @media (max-width: 959px) {
   /* The cells follow the cards' box (./arena.css), not the window: a desktop browser's
      scrollbar takes part of the window's width. */
+  /* A narrow padding and corner leave the cells the room: two cards are 10 cells, 8 gaps of
+     2 px, 4 paddings and the gap between them (2.5rem). */
   .watch-card.live-card {
-    --cell-size: max(1.6rem, calc((100cqw - 3.5rem) / 10));
+    --card-padding: 0.25rem;
+    --cell-size: max(1.6rem, calc((100cqw - 2.5rem) / 10));
     --cell-font: 1rem;
+    border-radius: var(--radius);
+  }
+
+  .watch-cards.is-following .watch-card.live-card {
+    --card-padding: var(--space-1);
+    border-radius: var(--radius-card);
   }
 
   .watch-grid {

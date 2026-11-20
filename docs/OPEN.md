@@ -11,5 +11,5 @@ Full list: [BACKLOG.md](BACKLOG.md).
 - Deployment, still open: signed release images (cosign) instead of building on the server, staging beside prod on one server.
 - Later: "Verify this match" recomputed in the player's own browser (the server recomputes today).
 - Before the move: the game's own admin area (D58, D63), an "Admin" menu item inside the game; build order in docs/concepts/admin-area.md §9.
-- Fit and minimum text size on every screen (no text below 14 px at the default font, 2026-11-20): measured in docs/concepts/fit-audit.md; the owner picks the spectator card numbers' floor (its §4) before the fixes.
+- Built on branch docs/fit-audit (PR #55, open): fit and minimum text size on every screen (decisions of 2026-11-20: 14 px text, 16 px card numbers, one menu button on phones); docs/concepts/fit-audit.md §6, what remains for the owner in its §6.3.
 - Later: sounds (at the very end, D56); an app icon.

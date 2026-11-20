@@ -1,38 +1,37 @@
 # Morning sheet
 
-What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is open and what needs the owner's word. Regenerated after every finished piece. Source: [docs/concepts/fit-audit.md](concepts/fit-audit.md) §3 and §5. Owner decisions of 2026-11-20: no text below 14 px at the default font; card numbers never below 16 px; on phones the top bar folds its items into one menu button.
+What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is open and what needs the owner's word. Regenerated after every finished piece. Source: [docs/concepts/fit-audit.md](concepts/fit-audit.md) §3 and §5; the result in its §6. Owner decisions of 2026-11-20: no text below 14 px at the default font; card numbers never below 16 px; on phones the top bar folds its items into one menu button.
 
 ## Done
 
-- Audit: [docs/concepts/fit-audit.md](concepts/fit-audit.md), 588 combinations measured, findings F1–F15, O1, O2 (measuring spec [e2e/acceptance/fitAudit.spec.ts](../e2e/acceptance/fitAudit.spec.ts), not in CI).
 - Piece 1 — small text and overflow (F1–F4, F9–F11):
-  - the brand subline, the LIVE badge, the development badge and every `<small>` hint at the small size (14 px);
-  - a unit test reads every stylesheet and component for a text size below 14 px;
+  - the brand subline, the LIVE badge, the development badge and every `<small>` hint at the small size (14 px); a unit test reads every stylesheet and component;
   - the arena's phone column never grows past the window; the seasons line wraps between seasons;
   - "Verify this match": the rounds table scrolls inside its own box;
-  - the leaderboard on a narrow board (a phone, a large font) shows the figures under the name, so names are not cut;
+  - a narrow leaderboard shows the figures under the name;
   - on phones at a large font the page margin and the panel padding stop growing (unchanged at the default font).
 - Piece 2 — cards (F5, F6, F8, F12, F15):
-  - card numbers never below 16 px on the own card and the watched cards; the unit test reads every card size;
-  - cell sizes have floors in rem, so cells grow with the font and numbers never touch; where the cards no longer fit, their box scrolls (desktop: the play area; phone: the two watched cards side by side in a row that scrolls sideways);
-  - the own card never wider than a phone; the play area's minimum height is at most half the window, so a round does not scroll the page at 150 % on 1280×720 and 1366×768.
+  - card numbers never below 16 px on the own card and the watched cards;
+  - cells grow with the font; where the cards no longer fit, their box scrolls instead of the numbers shrinking;
+  - the own card never wider than a phone; no page scroll on a desktop round at 150 %.
 - Piece 3 — names and the phone header (F7, F13, F14, O1, O2):
-  - names are never cut: in standings, results and the interlude the seasons and points move to a second line when the row is narrow; a narrow podium shows its steps as rows; no ellipsis anywhere (unit test);
-  - below 960 px the top bar is one row (brand, theme toggle, Menu); the menu opens a panel with the links and the account, keyboard usable (aria-expanded, focus inside, Escape); desktop unchanged; "← Seasonal Entertainment" stays top left;
-  - the arena's title line wraps LIVE and the host button under the title instead of covering it;
-  - on phones the ball stops growing past a quarter of the width and the own card also follows the window's height, so ball, numbers and the whole card fit a 360×640 phone at the default font (cells 38 px there).
-- Piece 4 — keep it so: a new test in e2e/playerFit.spec.ts (Chromium) measures console, player and spectator at 360×640, 390×844 and 1280×720 at 100, 125 and 150 %: no text below 14 px, no card number below 16 px, nothing cut, covered or wider than the window, the key parts in view; it adds about 40 s to the Chromium CI job.
-- Earlier, on master: the admin-area decisions and build order (PR #54).
+  - names are never cut (rows move seasons and points to a second line; a narrow podium shows rows);
+  - below 960 px the top bar is one row (brand, theme toggle, Menu); the menu holds the links and the account, keyboard usable; desktop unchanged; "← Seasonal Entertainment" stays top left;
+  - the arena's title line wraps LIVE and the host button; ball, numbers and the whole card fit a 360×640 phone at the default font.
+- Piece 4 — keep it so: a test in e2e/playerFit.spec.ts (Chromium, about 40 s in CI) at 360×640, 390×844 and 1280×720, 100 / 125 / 150 %, the console on phones included.
+- After the fixes (fit-audit.md §6): 588 combinations measured again; with a finding 30 instead of 504, none at the default font (164 before). Small text, card numbers, cut text, overflow and desktop page scroll: 0.
+- Played: one full-length realtime royale (19.7 min) and one with the fast rules, on a 390×844 phone and at 1280×720; no finding. Screenshots `reports/screens/latest/fitfix-*` (lobby, player, spectator, interlude, results, leaderboard, the phone menu closed and open; before: `fit-*`).
+- BACKLOG: the fit item moved to Part two.
 
 ## Running
 
-- The audit again after the fixes.
+- Nothing. The dev server runs on this branch (standalone, 3900/5390).
 
 ## Open
 
-- One royale played at 390×844 and 1280×720; screenshots for the owner.
 - Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
 
 ## Needs the owner's word
 
-- Nothing yet. PR #55 stays open for review (not merged).
+- fit-audit.md §6.3: on phones at 125 % / 150 % the own card, the watched cards and the console's Draw next end below the window (the 16 px numbers do not leave room). Keep it (the page scrolls to them), or shrink or hide something on a phone at a large font?
+- PR #55 stays open for review (not merged).
