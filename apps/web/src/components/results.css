@@ -1,13 +1,13 @@
 /**
  * @file   apps/web/src/components/results.css
  * @module web
- * @brief  Cut screen (and the final's notice in its style), ranked rows, podium, prize rows.
+ * @brief  Cut screen (and the final's notice in its style), ranked rows, prize rows.
  *
  * Responsibility: the shared look of everything that ranks or reports: rows with rank,
  *                 name, season icons and points (own row highlighted, out rows dimmed below
  *                 a divider; a name keeps its whole width, the seasons and points move to a
- *                 second line when the row is narrow), the final podium in season colours
- *                 and the prize rows.
+ *                 second line when the row is narrow) and the prize rows; the podium is in
+ *                 ./podium.css.
  *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §7.4, §7.5, §13
  */
@@ -155,119 +155,6 @@
   font-size: var(--font-size-title);
   font-weight: var(--font-weight-heading);
   line-height: 1.1;
-}
-
-.podium {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: end;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.podium-step {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 0.15rem;
-  min-width: 0;
-  padding: var(--space-1) 0.4rem var(--space-2);
-  border-radius: var(--radius) var(--radius) 0 0;
-  color: var(--color-on-season);
-  text-align: center;
-}
-
-/* Second left, first in the middle and tallest, third right */
-.podium-step--1 {
-  order: 2;
-  min-height: 9rem;
-  background: var(--color-autumn);
-}
-
-.podium-step--2 {
-  order: 1;
-  min-height: 7.5rem;
-  background: var(--color-winter);
-}
-
-.podium-step--3 {
-  order: 3;
-  min-height: 6.5rem;
-  background: var(--color-spring);
-}
-
-.podium-step.is-own {
-  outline: 3px solid var(--color-text);
-  outline-offset: 2px;
-}
-
-.podium-place {
-  font-size: var(--font-size-title);
-  font-weight: var(--font-weight-heading);
-  line-height: 1;
-}
-
-.podium-name {
-  max-width: 100%;
-  /* A name wider than its step wraps rather than being cut (fit audit F7). */
-  overflow-wrap: anywhere;
-  font-weight: var(--font-weight-strong);
-}
-
-/* A podium too narrow for three names side by side (17.5rem: a 360 px phone, or a large
-   font) shows its steps as rows in place order: place, name, note (fit audit F7). */
-.podium-box {
-  container-type: inline-size;
-}
-
-@container (max-width: 17.5rem) {
-  .podium {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: stretch;
-  }
-
-  .podium-step {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 var(--space-1);
-    min-height: 0;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius);
-    text-align: left;
-  }
-
-  .podium-step--1,
-  .podium-step--2,
-  .podium-step--3 {
-    min-height: 0;
-  }
-
-  .podium-step--1 {
-    order: 1;
-  }
-
-  .podium-step--2 {
-    order: 2;
-  }
-
-  .podium-step--3 {
-    order: 3;
-  }
-
-  .podium-place {
-    font-size: var(--font-size-lead);
-  }
-
-  .podium-note {
-    margin-left: auto;
-  }
-}
-
-.podium-note {
-  font-size: var(--font-size-small);
 }
 
 /* Prize rows */

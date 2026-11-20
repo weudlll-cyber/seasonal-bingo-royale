@@ -8,13 +8,13 @@
  *                 podium (a phone, a large font) the steps are rows, so names stay whole.
  *                 Extracted from the final placement so the round recap's top three (D20)
  *                 uses the same podium.
- * Depends on:     react, ./results.css
+ * Depends on:     react, ./podium.css
  * Used by:        ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7 (D20), §7.5, §13
  */
 import type { ReactElement } from 'react';
 
-import './results.css';
+import './podium.css';
 
 interface PodiumEntry {
   readonly place: number;
@@ -28,7 +28,7 @@ interface PodiumEntry {
 
 export function Podium({ entries }: { readonly entries: readonly PodiumEntry[] }): ReactElement {
   // The box measures the podium's width: too narrow for three names side by side, the
-  // steps become rows (results.css).
+  // steps become rows (podium.css).
   return (
     <div className="podium-box">
       <ol className="podium">
