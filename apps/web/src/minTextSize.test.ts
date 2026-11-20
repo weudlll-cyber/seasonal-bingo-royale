@@ -6,11 +6,12 @@
  * Responsibility: scan every stylesheet and component of the client and of @sbr/ui for font
  *                 sizes written as a fixed length and check their floor: the value itself, or
  *                 the first argument of max() and clamp(), or a var()'s fallback. Text keeps
- *                 0.875rem (14 px); sizes computed from a box (calc of a custom property) are
+ *                 0.875rem (14 px), card numbers (--cell-font) 1rem (16 px); sizes computed
+ *                 from a box (calc of a custom property) are
  *                 left to the e2e fit checks. `small` gets the small size, never the browser's
  *                 `smaller`.
  * Depends on:     nothing (reads the source files)
- * Spec:           docs/concepts/fit-audit.md §3 (F1–F4), §5 item 1
+ * Spec:           docs/concepts/fit-audit.md §3 (F1–F6), §5 items 1 and 2
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -78,6 +79,14 @@ describe('minimum text size', () => {
   it('writes no text size below 14 px', () => {
     const below = fontSizes(/(font-size|fontSize|--font-size-[\w-]+):\s*('[^']*'|[^;\n]+)/g)
       .filter(({ value }) => (floorPx(value) ?? 99) < 14)
+      .map(({ where, value }) => `${where} ${value}`);
+    expect(below).toEqual([]);
+  });
+
+  it('writes no card number below 16 px (own card and watched cards)', () => {
+    const below = fontSizes(/(--cell-font):\s*([^;\n]+)/g)
+      .concat(fontSizes(/(fontSize): '(var\(--cell-font[^']*)'/g))
+      .filter(({ value }) => (floorPx(value) ?? 99) < 16)
       .map(({ where, value }) => `${where} ${value}`);
     expect(below).toEqual([]);
   });

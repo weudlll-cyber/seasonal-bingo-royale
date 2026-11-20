@@ -167,7 +167,9 @@
    other panels scroll inside themselves when the window is short. */
 @media (min-width: 960px) {
   /* A column: title, rules and whatever notices there are, then the play area with the
-     rest of the height (never less than 20rem; a tall recap in a pause may scroll). */
+     rest of the height (never less than 20rem or half the window, whichever is smaller: at
+     a large font the rem floor alone pushed the round past the window, fit audit F12; a
+     tall recap in a pause may scroll). */
   .arena {
     display: flex;
     flex-direction: column;
@@ -175,10 +177,10 @@
   }
 
   .arena-grid {
-    flex: 1 1 20rem;
+    flex: 1 1 min(20rem, 50vh);
     grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
     grid-template-rows: minmax(0, 1fr);
-    min-height: 20rem;
+    min-height: min(20rem, 50vh);
   }
 
   /* In a pause the recap stands above: the play area keeps a readable height and the page
@@ -223,10 +225,13 @@
     overflow-y: auto;
   }
 
-  /* Five rows of cells plus the letters, the feedback line and the padding fit the box. */
+  /* Five rows of cells plus the letters, the feedback line and the padding fit the box.
+     The cell never gets smaller than its 16 px number with the season icon needs (2.2rem
+     grows with the font): rather than the numbers shrinking or touching, the box scrolls
+     (fit audit F6, F15). */
   .arena-cards .live-card {
-    --cell-size: min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5));
-    --cell-font: max(0.85rem, calc(var(--cell-size) * 0.36));
+    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5)));
+    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
   }
 
   /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
@@ -257,7 +262,9 @@
   }
 }
 
-/* The player's card: the hero element */
+/* The player's card: the hero element. On a phone five cells, the gaps and the padding
+   never pass the window's width, whatever the font (fit audit F8); the padding stops
+   growing with the font like the page margin (unchanged at the default font). */
 .own-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
@@ -266,7 +273,11 @@
 }
 
 .live-card {
-  --cell-size: clamp(2.9rem, 15vw, 4.1rem);
+  --card-padding: min(var(--space-2), 4.5vw);
+  --cell-size: min(
+    clamp(2.9rem, 15vw, 4.1rem),
+    calc((100vw - 2 * var(--gutter) - 2 * var(--card-padding) - 24px) / 5)
+  );
   --cell-font: clamp(1.05rem, 0.8rem + 1.6vw, 1.45rem);
   --cell-weight: 700;
   --cell-radius: 10px;
@@ -280,7 +291,7 @@
   display: grid;
   justify-items: center;
   gap: var(--space-1);
-  padding: var(--space-2);
+  padding: var(--card-padding);
   border-radius: var(--radius-card);
   background: var(--color-bingo-card);
   color: var(--color-bingo-card-ink);

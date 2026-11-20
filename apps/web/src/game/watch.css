@@ -33,8 +33,8 @@
 
 .watch-card.live-card {
   --cell-size: 2.4rem;
-  --cell-font: 0.9rem;
-  padding: var(--space-1);
+  --cell-font: 1rem;
+  --card-padding: var(--space-1);
 }
 
 .watch-head {
@@ -53,11 +53,20 @@
   color: var(--color-text-muted);
 }
 
-/* Phone: the first 2 side by side under the ball and the numbers. */
+/* Phone: the first 2 side by side under the ball and the numbers. A cell keeps room for
+   its 16 px number (1.6rem grows with the font); when two cards are then wider than the
+   window, they scroll sideways inside their row instead of the numbers shrinking (fit
+   audit F5). */
 @media (max-width: 959px) {
   .watch-card.live-card {
-    --cell-size: calc((100vw - 5.5rem) / 10);
-    --cell-font: 0.8rem;
+    --cell-size: max(1.6rem, calc((100vw - 5.5rem) / 10));
+    --cell-font: 1rem;
+  }
+
+  .watch-grid {
+    max-width: 100%;
+    overflow-x: auto;
+    justify-content: safe center;
   }
 
   .watch-cards:not(.is-following) .watch-grid > :nth-child(n + 3) {
@@ -65,20 +74,22 @@
   }
 
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: calc((100vw - 5rem) / 5.4);
+    --cell-size: max(2.2rem, calc((100vw - 5rem) / 5.4));
     --cell-font: 1rem;
   }
 }
 
-/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. */
+/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
+   never gets smaller than its 16 px number needs (rem floors grow with the font): rather
+   than the numbers shrinking or touching, the play area's box scrolls (fit audit F5, F15). */
 @media (min-width: 960px) {
   .watch-card.live-card {
     /* Two cards high: each with padding, a heading of up to two lines and the letters. */
-    --cell-size: min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5));
-    --cell-font: max(0.75rem, calc(var(--cell-size) * 0.36));
+    --cell-size: max(1.6rem, min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5)));
+    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
   }
 
   .watch-cards.is-following .watch-card.live-card {
-    --cell-size: min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5));
+    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5)));
   }
 }

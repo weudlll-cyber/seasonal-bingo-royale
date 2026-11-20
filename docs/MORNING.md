@@ -12,15 +12,19 @@ What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is ope
   - "Verify this match": the rounds table scrolls inside its own box;
   - the leaderboard on a narrow board (a phone, a large font) shows the figures under the name, so names are not cut;
   - on phones at a large font the page margin and the panel padding stop growing (unchanged at the default font).
+- Piece 2 — cards (F5, F6, F8, F12, F15):
+  - card numbers never below 16 px on the own card and the watched cards; the unit test reads every card size;
+  - cell sizes have floors in rem, so cells grow with the font and numbers never touch; where the cards no longer fit, their box scrolls (desktop: the play area; phone: the two watched cards side by side in a row that scrolls sideways);
+  - the own card never wider than a phone; the play area's minimum height is at most half the window, so a round does not scroll the page at 150 % on 1280×720 and 1366×768.
 - Earlier, on master: the admin-area decisions and build order (PR #54).
 
 ## Running
 
-- Piece 2 — card numbers and cell sizes (F5, F6, F8, F12, F15).
+- Piece 3 — names and the phone header (F7, F14, O1, O2).
 
 ## Open
 
-- Piece 3 — names and the phone header (F7, F14, O1, O2); piece 4 — keep it so (playerFit at 360×640, the console on phones, 125 % / 150 %).
+- Piece 4 — keep it so (playerFit at 360×640, the console on phones, 125 % / 150 %).
 - The audit again after the fixes; one royale played at 390×844 and 1280×720; screenshots for the owner.
 - Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
 

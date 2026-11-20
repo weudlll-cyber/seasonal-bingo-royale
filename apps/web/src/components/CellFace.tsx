@@ -52,7 +52,7 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
     height: 'var(--cell-size, 2.6rem)',
     display: 'grid',
     placeItems: 'center',
-    fontSize: 'var(--cell-font, 0.9rem)',
+    fontSize: 'var(--cell-font, 1rem)',
     fontWeight: 'var(--cell-weight, 400)',
     borderRadius: 'var(--cell-radius, 0.25rem)',
     border: season === null ? '2px solid transparent' : `2px solid ${seasonColor(season)}`,
