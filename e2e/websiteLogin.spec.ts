@@ -112,6 +112,8 @@ test('website users sign in through the website and get league points when verif
     maxPlayers: 9,
     roundPause: { kind: 'wait', ms: 3_000 },
     testProfile: 'fast',
+    // A spec is a development tool: no preset needed (2026-11-21).
+    devTools: true,
   });
   expect(created.status()).toBe(201);
   const { code } = (await created.json()) as { code: string };

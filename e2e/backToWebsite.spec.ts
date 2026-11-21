@@ -63,7 +63,8 @@ async function signIn(page: Page, id: string, hash: string): Promise<void> {
   await page.goto(
     `${stack.origin}${BASE}/auth/website?next=${encodeURIComponent(`${BASE}/${hash}`)}`,
   );
-  await expect(page.getByTestId('signed-in-as')).toBeVisible();
+  // Attached, not visible: the account folds into the menu when the bar's items do not fit.
+  await expect(page.getByTestId('signed-in-as')).toBeAttached();
 }
 
 // The same member as an API client, for the host's steps.
@@ -98,6 +99,8 @@ async function newMatch(
     drawMode: 'auto',
     missedNumbers: { kind: 'autoMarkAfter', delayMs: 1000 },
     maxPlayers: 20,
+    // A spec is a development tool: no preset needed (2026-11-21).
+    devTools: true,
     ...extra,
   });
   expect(created.status()).toBe(201);
