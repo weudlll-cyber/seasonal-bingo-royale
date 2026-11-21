@@ -1,0 +1,52 @@
+/**
+ * @file   apps/web/src/admin/admin.css
+ * @module web/admin
+ * @brief  The admin area's pages: a reading column of panels, the list of open matches.
+ *
+ * Responsibility: the Overview in one column of panels; each open match a row whose head
+ *                 (title and state) wraps on a phone, its facts below and Abort under them.
+ *                 Sizes from the @sbr/ui tokens (no text below the small size, fit audit);
+ *                 colours from the tokens only.
+ * Used by:        ./AdminOverview
+ * Spec:           docs/concepts/admin-area.md §4; docs/concepts/fit-audit.md §6
+ */
+
+.admin-page {
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.admin-page h1,
+.admin-page h2,
+.admin-page p {
+  margin: 0;
+}
+
+.admin-matches {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-match {
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+}
+
+.admin-match-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.admin-match-facts {
+  margin: 0;
+  font-size: var(--font-size-small);
+}

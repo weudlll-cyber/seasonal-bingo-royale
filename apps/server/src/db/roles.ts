@@ -6,8 +6,9 @@
  * Responsibility: when the role `sbr_app` exists (a production install; ops/lib/db-roles.sql
  *                 makes it), the owner that just migrated lets it use the schema `sbr`, read and
  *                 write the rows of every table and use their sequences, but never change or
- *                 remove a match event (append-only, 04 §3.3) or the migration record: UPDATE,
- *                 DELETE and TRUNCATE on them are revoked on top of match_events' trigger. The
+ *                 remove a match event, an audit entry (both append-only, 04 §3.3) or the
+ *                 migration record: UPDATE, DELETE and TRUNCATE on them are revoked on top of
+ *                 the tables' triggers. The
  *                 app role cannot create, alter or drop anything (it owns nothing and has no
  *                 CREATE). Without the role (development, the test suites) nothing is granted.
  * Depends on:     ./pool
@@ -25,6 +26,7 @@ const GRANTS = `
   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA sbr TO ${APP_ROLE};
   GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA sbr TO ${APP_ROLE};
   REVOKE UPDATE, DELETE, TRUNCATE ON sbr.match_events FROM ${APP_ROLE};
+  REVOKE UPDATE, DELETE, TRUNCATE ON sbr.audit_log FROM ${APP_ROLE};
   REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON sbr.schema_migrations FROM ${APP_ROLE};
 `;
 

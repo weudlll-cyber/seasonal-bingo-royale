@@ -5,14 +5,16 @@
  *
  * Responsibility: for each registered route and gateway intent, the callers that get through and
  *                 those refused (401/403 with SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or
- *                 CSRF_INVALID; a refused handshake) — anonymous, guest, player, another host and
- *                 the match's host, each with a fresh session; allowed callers never meet a 5xx
- *                 or INTERNAL. A route or intent missing from the tables fails the test. Bodies
- *                 keep a successful call's changes minimal. One write per route group is refused
- *                 without the CSRF token or with another session's. The account and guest
- *                 sessions it creates are removed at the end.
- * Depends on:     fastify (inject), ../src/auth/*, ../src/realtime/intents, ./harness,
- *                 ./socketKit
+ *                 CSRF_INVALID; a refused handshake) — anonymous, guest, player, another host,
+ *                 the match's host, an Admin (game_admin) and the owner (super_admin), each with
+ *                 a fresh session; allowed callers never meet a 5xx or INTERNAL. A route or
+ *                 intent missing from the tables fails the test. Bodies keep a successful call's
+ *                 changes minimal. The admin area's routes again in website mode (signed out,
+ *                 guest, member, a member who may host, a website admin; D37, D41). One write per
+ *                 route group is refused without the CSRF token or with another session's. The
+ *                 accounts and guest sessions it creates are removed at the end.
+ * Depends on:     fastify (inject), ../src/auth/*, ../src/http/app (types),
+ *                 ../src/realtime/intents, ./harness, ./socketKit, ./websiteHelpers
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/12-testing-strategy.md §7;
  *                 docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1
  */
@@ -25,6 +27,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { createSession } from '../src/auth/sessions.js';
+import type { App } from '../src/http/app.js';
 import { INTENT_TYPES } from '../src/realtime/intents.js';
 import {
   buildOn,
@@ -34,12 +37,22 @@ import {
   SUITE_TIMEOUT_MS,
 } from './harness.js';
 import { startSocketKit, type SocketKit } from './socketKit.js';
+import {
+  BASE,
+  cookieOf,
+  sessionOf as webSessionOf,
+  signInAs,
+  WEBSITE,
+  type Visitor,
+} from './websiteHelpers.js';
 
-type Role = 'anonymous' | 'guest' | 'player' | 'otherHost' | 'host';
-const ROLES: readonly Role[] = ['anonymous', 'guest', 'player', 'otherHost', 'host'];
-const SESSION: readonly Role[] = ['guest', 'player', 'otherHost', 'host'];
-const ACCOUNTS: readonly Role[] = ['player', 'otherHost', 'host'];
-const HOSTS: readonly Role[] = ['otherHost', 'host'];
+// The admin area's roles (admin-area §2.2): an Admin (game_admin) and the owner (super_admin).
+type Role = 'anonymous' | 'guest' | 'player' | 'otherHost' | 'host' | 'admin' | 'superAdmin';
+const ADMINS: readonly Role[] = ['admin', 'superAdmin'];
+const ROLES: readonly Role[] = ['anonymous', 'guest', 'player', 'otherHost', 'host', ...ADMINS];
+const SESSION: readonly Role[] = ['guest', 'player', 'otherHost', 'host', ...ADMINS];
+const ACCOUNTS: readonly Role[] = ['player', 'otherHost', 'host', ...ADMINS];
+const HOSTS: readonly Role[] = ['otherHost', 'host', ...ADMINS];
 const HOST: readonly Role[] = ['host'];
 const REFUSALS = new Set(['SIGN_IN_REQUIRED', 'FORBIDDEN', 'NOT_YOUR_MATCH', 'CSRF_INVALID']);
 
@@ -51,6 +64,18 @@ interface RouteCase {
   // Only when the server serves the built client (SBR_WEB_DIR, as in the image).
   readonly web?: true;
 }
+
+// The admin area's routes: Admins only, in standalone and in website mode.
+const ADMIN_ROUTES: readonly RouteCase[] = [
+  { method: 'GET', path: '/api/v1/admin/overview', allow: ADMINS },
+  {
+    method: 'POST',
+    path: '/api/v1/admin/matches/:code/abort',
+    body: { reason: '' },
+    allow: ADMINS,
+  },
+  { method: 'POST', path: '/api/v1/admin/maintenance', body: {}, allow: ADMINS },
+];
 
 // `:code` is the host's match. Every route the server registers is listed here.
 const ROUTES: readonly RouteCase[] = [
@@ -124,6 +149,8 @@ const ROUTES: readonly RouteCase[] = [
     body: { reason: '' },
     allow: HOST,
   },
+  // The admin area (admin-area §9 piece 1); the empty bodies are refused before any change.
+  ...ADMIN_ROUTES,
 ];
 
 // Every intent of the gateway (INTENT_TYPES); anonymous sockets are refused at the handshake.
@@ -161,12 +188,26 @@ beforeAll(async () => {
   });
   otherHostId = other.ok ? other.id : '';
   accounts.otherHost = otherHostId;
+  for (const [role, seeded] of [
+    ['admin', 'game_admin'],
+    ['superAdmin', 'super_admin'],
+  ] as const) {
+    const made = await registerAccount(pool, {
+      email: `${role}@example.com`,
+      displayName: `authz${role}`,
+      password: 'correct horse battery staple',
+      roles: [seeded],
+    });
+    accounts[role] = made.ok ? made.id : null;
+  }
   code = await kit.createMatch('host');
 }, SUITE_TIMEOUT_MS);
 
 afterAll(async () => {
   await stopOpenMatches(kit.harness);
-  if (otherHostId !== '') await deleteAccount(kit.harness.pool, otherHostId);
+  for (const id of [otherHostId, accounts.admin, accounts.superAdmin]) {
+    if (id) await deleteAccount(kit.harness.pool, id);
+  }
   await removeGuests(kit.harness);
   expect(await guestSessions(kit.harness)).toBe(0);
   await kit.close();
@@ -176,6 +217,13 @@ afterAll(async () => {
 async function sessionOf(role: Role): Promise<{ cookie: string; csrf: string } | null> {
   if (role === 'anonymous') return null;
   const s = await createSession(kit.harness.pool, accounts[role] ?? null, null);
+  // An Admin's session counts once its second step is done (D60); the matrix tests the route.
+  if (ADMINS.includes(role)) {
+    await kit.harness.pool.query(
+      'UPDATE sbr.sessions SET last_2fa_at = now() WHERE account_id = $1',
+      [accounts[role]],
+    );
+  }
   return { cookie: `sbr_session=${s.token}`, csrf: s.csrfToken };
 }
 
@@ -266,6 +314,62 @@ describe('the authorization matrix: HTTP routes', () => {
         }
       }
     }
+    expect(wrong).toEqual([]);
+  }, 120_000);
+});
+
+// Website mode (D37, D41, D46): a member, a member the website lets host (organizer), a website
+// admin (game_admin) and a guest; nobody is super_admin there. Sessions come from the proxy's
+// sign-in; the accounts this makes are removed at the end.
+const WEB_VISITORS = {
+  player: { id: 'authz-w1', name: 'Authz_Member' },
+  host: { id: 'authz-w2', name: 'Authz_Host', canHost: 'true' },
+  admin: { id: 'authz-w3', name: 'Authz_Admin', roles: 'admin' },
+} as const satisfies Record<string, Visitor>;
+
+async function webSession(app: App, who: keyof typeof WEB_VISITORS | 'guest') {
+  const r =
+    who === 'guest'
+      ? await app.fastify.inject({ method: 'POST', url: `${BASE}api/v1/auth/guest`, payload: {} })
+      : await signInAs(app, WEB_VISITORS[who]);
+  const cookie = cookieOf(r);
+  const s = await webSessionOf(app, cookie);
+  return { cookie, csrf: s.csrfToken, accountId: s.account?.id ?? null };
+}
+
+// One admin route under the website's base path, with the session's cookie and token.
+async function webCall(
+  app: App,
+  s: { cookie: string | null; csrf: string | null } | null,
+  route: RouteCase,
+): Promise<{ status: number; code: unknown }> {
+  const r = await app.fastify.inject({
+    method: route.method,
+    url: `${BASE}${route.path.slice(1).replace(':code', code)}`,
+    headers: s === null ? {} : { cookie: s.cookie ?? '', 'x-csrf-token': s.csrf ?? '' },
+    ...(route.body === undefined ? {} : { payload: route.body }),
+  });
+  const body = r.body.startsWith('{') ? r.json<{ code?: unknown }>() : {};
+  return { status: r.statusCode, code: body.code };
+}
+
+describe('the authorization matrix: the admin area in website mode', () => {
+  it('lets only the website admins through', async () => {
+    const app = await buildOn(kit.harness.pool, kit.harness.container.getConnectionUri(), WEBSITE);
+    const made: string[] = [];
+    const wrong: string[] = [];
+    for (const who of ['anonymous', 'guest', 'player', 'host', 'admin'] as const) {
+      const s = who === 'anonymous' ? null : await webSession(app, who);
+      if (s?.accountId) made.push(s.accountId);
+      for (const route of ADMIN_ROUTES) {
+        const r = await webCall(app, s, route);
+        if (refused(r.status, r.code) === (who === 'admin') || r.status >= 500) {
+          wrong.push(`${route.method} ${route.path} as ${who}: ${String(r.status)}`);
+        }
+      }
+    }
+    for (const id of made) await deleteAccount(kit.harness.pool, id);
+    await app.fastify.close();
     expect(wrong).toEqual([]);
   }, 120_000);
 });

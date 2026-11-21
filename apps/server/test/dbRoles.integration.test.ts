@@ -8,9 +8,9 @@
  *                 owner migrates (nothing left on the converted one, all of it on the fresh one)
  *                 and grants the app role (`cli migrate`). The app role then plays a whole
  *                 match through the real app, but is refused UPDATE, DELETE and TRUNCATE on the
- *                 event log (by permission, not only by its trigger), turning the trigger off,
- *                 writing the migration record, creating or dropping tables and creating roles;
- *                 the owner cannot create roles either. The match it plays is finished in the
+ *                 event log and the audit log (by permission, not only by their triggers),
+ *                 turning a trigger off, writing the migration record, creating or dropping
+ *                 tables and creating roles; the owner cannot create roles either. The match it plays is finished in the
  *                 throw-away database; its accounts go with the container.
  * Depends on:     vitest, @testcontainers/postgresql, ../src/index, ../src/db/roles,
  *                 ./harness, ./session, ./playToEnd
@@ -101,6 +101,21 @@ async function playedAs(pool: DbPool, url: string): Promise<string | undefined> 
   }
 }
 
+// UPDATE, DELETE and TRUNCATE refused by permission (not only by the table's trigger), and the
+// trigger cannot be turned off: the app role does not own the table.
+async function expectAppendOnly(app: DbPool, table: string, column: string): Promise<void> {
+  for (const sql of [
+    `UPDATE sbr.${table} SET ${column} = ${column} WHERE false`,
+    `DELETE FROM sbr.${table} WHERE false`,
+    `TRUNCATE sbr.${table}`,
+  ]) {
+    expect(await refusal(app, sql)).toMatch(new RegExp(`permission denied for table ${table}`));
+  }
+  expect(await refusal(app, `ALTER TABLE sbr.${table} DISABLE TRIGGER ALL`)).toMatch(
+    /must be owner/,
+  );
+}
+
 beforeAll(async () => {
   container = await new PostgreSqlContainer('postgres:17-alpine').start();
 }, SUITE_TIMEOUT_MS);
@@ -130,17 +145,9 @@ describe('an install made before the roles, converted (S1)', () => {
     expect(await playedAs(app, appUrl)).toBe('finished');
   });
 
-  it('refuses the app changing or removing match events, by permission', async () => {
-    for (const sql of [
-      'UPDATE sbr.match_events SET seq = seq WHERE false',
-      'DELETE FROM sbr.match_events WHERE false',
-      'TRUNCATE sbr.match_events',
-    ]) {
-      expect(await refusal(app, sql)).toMatch(/permission denied for table match_events/);
-    }
-    expect(await refusal(app, 'ALTER TABLE sbr.match_events DISABLE TRIGGER ALL')).toMatch(
-      /must be owner/,
-    );
+  it('refuses the app changing or removing match events and audit entries, by permission', async () => {
+    await expectAppendOnly(app, 'match_events', 'seq');
+    await expectAppendOnly(app, 'audit_log', 'action');
     expect(await refusal(app, "DELETE FROM sbr.schema_migrations WHERE id = 'x'")).toMatch(
       /permission denied/,
     );

@@ -16,10 +16,24 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - The reason an asynchronous lobby closes with names the frozen ruleset's `lobby.openMsAsync` ("within 24 hours" today; `lobbyTooFewReason`).
   - Tests that failed first: `apps/server/test/auth.integration.test.ts` "sends the limits…" (expected undefined to equal LIMITS), `packages/application/src/match/startRules.test.ts` (lobbyTooFewReason not a function), `apps/web/src/host/serverLimits.test.tsx` (title maxLength 60 instead of the sent 40; register hint "3 to 24" instead of the sent "4 to 20"). Reused: `show`/`serveMatch` (test/matchFixture, which now serves the limits; new `serveWithLimits`, `showWithLimits`, `renderInSession` for forms on their own).
   - e2e (Chromium): hostNav flaked twice under load in the full local run and was fixed at its cause: the new console tab gets the suite's 20 s first-load time, and the phone-menu check measures the bar and its menu, not the lobby below (which lists whatever other tests created).
+  - Commit `5f0e965`; CI and CodeQL green (run 44855660840).
+- Piece 1 — the Admin menu and the Overview:
+  - Migration `0020_admin_overview.sql`: permissions `admin.view` and `maintenance.manage` for game_admin and super_admin (website admins are game_admin, D41); aborting any match is their seeded `match.abort`. The audit log `sbr.audit_log` (04 §3): when, the admin's account id (no foreign key) and roles at the time, action, target, the change as JSON, the request id; each entry chains the hash of the one before (`apps/server/src/admin/audit.ts`, SHA-256, written under an advisory lock); triggers refuse UPDATE, DELETE and TRUNCATE and the app role may only INSERT and SELECT (`db/roles.ts`).
+  - New endpoints (`apps/server/src/http/routes/admin.ts`), each checked on the server, zod-validated, under the session plugin's API rate limit and CSRF check, every change audited:
+    - `GET /api/v1/admin/overview` (`admin.view`): open and running matches with host and players, maintenance, the health line (version, start time).
+    - `POST /api/v1/admin/matches/:code/abort { reason }` (`match.abort`): stops any match as the system; players read "cancelled by the system" with the reason.
+    - `POST /api/v1/admin/maintenance { on, reason }` (`maintenance.manage`): writes or removes the same flag file `sbr maintenance` uses; the check reads it again at once.
+    - Authz rows (apps/server/test/authzMatrix.integration.test.ts): allowed for Admin (game_admin) and owner (super_admin); refused for signed out, guest, player, another host and the match's host. Website mode: allowed for the website admin; refused for signed out, guest, member and a member who may host (no super_admin there, D41).
+  - Client: "Admin" in the navigation for `admin.view` (in the phone menu too), `#/admin` with the Overview (`apps/web/src/admin/AdminOverview.tsx`, `admin.css`): health line, Maintenance with a reason and one button, the open matches with Abort (reused `host/AbortMatch`, now with an optional route and a done callback).
+  - The version: the image build takes `SBR_VERSION` (Dockerfile ARG; `ops/lib/config.sh` passes the ref and commit); without it "development".
+  - Development sign-in "Sign in as admin" (`dev-admin`, game_admin); its sessions count the second step as done, since nobody knows a development account's password.
+  - Tests that failed first: `dbRoles.integration` (audit_log did not exist), `adminOverview.integration` (no module), `authzMatrix.integration` with the routes unregistered (4 failed), `apps/web/src/admin/adminOverview.test.tsx` (no page). e2e: `adminOverview.spec` (Overview, abort, fit at 1280×720 and 390×844 at 100/125/150 % with `acceptance/fitProbe`), `adminMaintenance.spec` (serial, with the maintenance spec).
+  - Reused: `requirePermission`, `matchIdByCode`, `sendEngineError`, the maintenance flag, `AbortMatch`, `gameTypeName`/`problemText`, the panel/chip/field tokens; e2e `signIn`, `hostMatch`, `stopMatch`, `post`, `captureLook`, `openMenu`, `fitProbe`.
+  - Review shots: `admin-1-overview-*`, `admin-1-maintenance-*` (desktop and phone, light and dark).
 
 ## Running
 
-- Piece 1 — the Admin menu and the Overview.
+- Piece 1's CI run.
 
 ## Open
 
@@ -31,4 +45,5 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 
 ## Needs the owner's word
 
-- Nothing yet.
+- An Admin's abort reads "This match was cancelled by the system" with the reason. "by an admin" would need a new value in the abort event and new wording for players; left as is.
+- The audit log stores no IP address: docs/spec/04 lists `ip inet` for `audit_log`, but the game stores no IP address (migration 0018, docs/PRIVACY-DATA.md). Which should win?

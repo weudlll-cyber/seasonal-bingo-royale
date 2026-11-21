@@ -16,7 +16,7 @@ import { expect, type APIResponse, type Browser, type Page } from '@playwright/t
 
 import { openMenu } from './menu.js';
 
-export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
+export type Who = 'host' | 'admin' | 'player-1' | 'player-2' | 'player-3';
 
 // The first page of a run is slow (the dev server compiles on demand): the page must have
 // its session (signed in or not) before the quick sign-in is used, and gets 20 s for it.
@@ -31,7 +31,8 @@ export async function signIn(page: Page, who: Who): Promise<void> {
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
   await expect(page.getByTestId('signed-in-as')).toContainText(
-    who === 'host' ? 'dev-host (host)' : `dev-${who} (player)`,
+    // The host and the admin may create matches: the chip names them "host".
+    who.startsWith('player') ? `dev-${who} (player)` : `dev-${who} (host)`,
     { timeout: SETTLE_MS },
   );
 }

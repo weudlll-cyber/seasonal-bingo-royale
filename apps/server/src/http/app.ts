@@ -9,14 +9,15 @@
  *                 and its account-changes feed, ../website/accountFeed, polled from main),
  *                 the live match engine and its routes (in development on the time-travel
  *                 clock, with its route), the leaderboards and profiles (in development also the
- *                 demo league) onto a fresh Fastify instance, under the base path and behind the
+ *                 demo league), the admin area's Overview (./routes/admin) onto a fresh Fastify
+ *                 instance, under the base path and behind the
  *                 trusted proxies; first of all, refuse a seed key that does not open the stored
  *                 match secrets. The caller owns the lifecycle (listen, scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
  *                 ../auth/sessionEnds, ../auth/sessionPlugin, ../website/accountFeed, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ../dev/demoLeague,
  *                 ./plugins/problem, ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
- *                 ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
+ *                 ./routes/admin, ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
  *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
  *                 ./routes/quicktest, ./routes/timeTravel, ./routes/webClient, ./routes/websiteSignIn,
  *                 ../match/runtime,
@@ -46,6 +47,7 @@ import { SeenLive } from '../realtime/seenLive.js';
 import { liveViewsOn, type LiveViews } from '../view/liveViews.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
+import { registerAdminRoutes } from './routes/admin.js';
 import { registerHealth } from './routes/health.js';
 import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
@@ -153,6 +155,15 @@ function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void
   registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
   registerLeaderboardRoutes(fastify, { pool });
   registerProfileRoutes(fastify, { pool });
+  // The admin area's Overview: open matches, abort, maintenance, the health line.
+  registerAdminRoutes(fastify, {
+    pool,
+    engine: match.engine,
+    maintenance: deps.maintenance,
+    dataDir: deps.env.SBR_DATA_DIR,
+    version: deps.env.SBR_VERSION,
+    startedAt: Date.now(),
+  });
   // Development only: ten demo accounts and three counting matches for the boards.
   if (deps.isDev) registerDemoLeague(fastify, { pool, engine: match.engine });
   if (deps.clock !== undefined) {

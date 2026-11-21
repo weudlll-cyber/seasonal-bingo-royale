@@ -8,7 +8,8 @@
  *                 hash changes. Hash routing keeps every screen reachable from the dev
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
- *                 profile (the display name URL-encoded) are routes too.
+ *                 profile (the display name URL-encoded) and the admin area's Overview
+ *                 (`#/admin`) are routes too.
  * Depends on:     react
  * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
@@ -35,7 +36,9 @@ export type Route =
   | { readonly name: 'resetPassword' }
   | { readonly name: 'account' }
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
-  | { readonly name: 'player'; readonly displayName: string };
+  | { readonly name: 'player'; readonly displayName: string }
+  // The admin area (admin-area §8 (a)): the Overview.
+  | { readonly name: 'admin' };
 
 // Routes without a parameter (a trailing segment is ignored).
 const PLAIN: Readonly<Record<string, Route>> = {
@@ -47,6 +50,7 @@ const PLAIN: Readonly<Record<string, Route>> = {
   'reset-password': { name: 'resetPassword' },
   account: { name: 'account' },
   leaderboard: { name: 'leaderboard', periodId: null },
+  admin: { name: 'admin' },
 };
 
 export function parseRoute(hash: string): Route {
@@ -96,7 +100,14 @@ function playerRoute(encoded: string): Route | null {
 // The address of every route without a parameter.
 const PLAIN_HREFS: Readonly<
   Record<
-    'lobby' | 'hostNew' | 'signIn' | 'register' | 'forgotPassword' | 'resetPassword' | 'account',
+    | 'lobby'
+    | 'hostNew'
+    | 'signIn'
+    | 'register'
+    | 'forgotPassword'
+    | 'resetPassword'
+    | 'account'
+    | 'admin',
     string
   >
 > = {
@@ -107,6 +118,7 @@ const PLAIN_HREFS: Readonly<
   forgotPassword: '#/forgot-password',
   resetPassword: '#/reset-password',
   account: '#/account',
+  admin: '#/admin',
 };
 
 export function hrefOf(route: Route): string {

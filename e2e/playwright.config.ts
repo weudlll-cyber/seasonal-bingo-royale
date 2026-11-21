@@ -28,6 +28,7 @@ const TIMING = [
   'manual.spec.ts',
   'newRun.spec.ts',
   'maintenance.spec.ts',
+  'adminMaintenance.spec.ts',
 ];
 const ACCEPTANCE = process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'];
 const ALL_BROWSERS = [

@@ -21,7 +21,7 @@ export interface Client {
 
 export async function signIn(
   app: FastifyInstance,
-  as: 'host' | 'player-1' | 'player-2' | 'player-3',
+  as: 'host' | 'admin' | 'player-1' | 'player-2' | 'player-3',
 ): Promise<Client> {
   const r = await app.inject({ method: 'POST', url: '/api/v1/dev/sign-in', payload: { as } });
   const cookie = `sbr_session=${r.cookies.find((c) => c.name === 'sbr_session')?.value ?? ''}`;

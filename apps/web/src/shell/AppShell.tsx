@@ -28,6 +28,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
+import { AdminOverview } from '../admin/AdminOverview.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
 import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
@@ -137,6 +138,8 @@ function Nav({ route, dev, chat }: NavProps): ReactElement {
         'Leaderboard',
         route.name === 'leaderboard' || route.name === 'player',
       )}
+      {/* The admin area, for Admins only (admin-area §8 (a)); the server checks every call. */}
+      {can('admin.view') ? link({ name: 'admin' }, 'Admin', route.name === 'admin') : null}
       {dev && QuickTestLink !== null ? (
         <Suspense fallback={null}>
           <QuickTestLink active={route.name === 'quicktest'} />
@@ -239,11 +242,13 @@ type AccountRoute = Extract<
       | 'resetPassword'
       | 'account'
       | 'leaderboard'
-      | 'player';
+      | 'player'
+      | 'admin';
   }
 >;
 
-// The screens around the player: sign-in, register, account, leaderboard and profiles.
+// The screens around the player: sign-in, register, account, leaderboard and profiles; the
+// admin area's Overview.
 function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElement {
   switch (route.name) {
     case 'signIn':
@@ -260,6 +265,8 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
       return <LeaderboardPage periodId={route.periodId} />;
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
+    case 'admin':
+      return <AdminOverview />;
   }
 }
 

@@ -3,8 +3,8 @@
  * @module web/shell
  * @brief  Development-only parts of the top bar: the "Dev sign-in" menu and the Quick Test link.
  *
- * Responsibility: a compact "Dev sign-in" menu with "Sign in as host" / "Sign in as player
- *                 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
+ * Responsibility: a compact "Dev sign-in" menu with "Sign in as host" / "Sign in as admin"
+ *                 (the admin area's Admin) / "Sign in as player 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
  *                 navigation link to the Quick Test; `useDevSignIn` for the test page's
  *                 "Sign in as host". Loaded on demand by ./AppShell only
  *                 when Vite's DEV flag is set, so a production bundle contains neither
@@ -20,10 +20,12 @@ import { api } from './http.js';
 import { hrefOf } from './router.js';
 import { useSession } from './session.js';
 
-type DevIdentity = 'host' | 'player-1' | 'player-2' | 'player-3';
+type DevIdentity = 'host' | 'admin' | 'player-1' | 'player-2' | 'player-3';
 
 const DEV_IDENTITIES: readonly { readonly as: DevIdentity; readonly label: string }[] = [
   { as: 'host', label: 'Sign in as host' },
+  // The admin area's Admin (dev-admin, game_admin).
+  { as: 'admin', label: 'Sign in as admin' },
   { as: 'player-1', label: 'Sign in as player 1' },
   { as: 'player-2', label: 'Sign in as player 2' },
   { as: 'player-3', label: 'Sign in as player 3' },
