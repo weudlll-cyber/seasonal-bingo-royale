@@ -6,7 +6,8 @@
  * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
  *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
  *                 503 MAINTENANCE while `sbr maintenance on`, except for the load check's host,
- *                 12 §5; without a chosen ruleset the published preset, admin-area §8 (b)), GET
+ *                 12 §5; an organizer names a published preset, 403 PRESET_REQUIRED otherwise;
+ *                 Admins, the load check and development tools may go without, ./startPresets), GET
  *                 /matches/:code, GET
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
@@ -37,7 +38,7 @@ import type { LiveViews } from '../../view/liveViews.js';
 import type { WatchQuery } from '../../view/watchView.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
-import { presetInput, type PresetSource } from './startPresets.js';
+import { mayGoWithoutPreset, presetInput, type PresetSource } from './startPresets.js';
 
 export interface MatchRouteDeps {
   readonly pool: DbPool;
@@ -159,6 +160,24 @@ function watchQuery(q: WatchParams): WatchQuery {
 const website = (deps: MatchRouteDeps, body: { showOnWebsite?: boolean | undefined }) =>
   deps.website && body.showOnWebsite === true;
 
+// The fast test profile and the development tools' mark exist in development builds only;
+// an organizer names a published preset (owner decision of 2026-11-21).
+function createRefusal(
+  request: FastifyRequest,
+  deps: MatchRouteDeps,
+  body: { testProfile?: unknown; devTools?: true | undefined; preset?: string | undefined },
+): readonly [number, string] | null {
+  if ((body.testProfile ?? body.devTools) !== undefined && !deps.dev)
+    return [400, 'VALIDATION_FAILED'];
+  const permissions = request.session?.permissions ?? [];
+  if (
+    body.preset === undefined &&
+    !mayGoWithoutPreset(permissions, deps.dev, body.devTools === true)
+  )
+    return [403, 'PRESET_REQUIRED'];
+  return null;
+}
+
 export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
   registerMatchList(app, deps);
   app.post('/api/v1/matches', async (request, reply) => {
@@ -170,10 +189,8 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (maintenance !== null && !maintenanceExempt(request)) {
       return reply.status(503).send({ code: 'MAINTENANCE', reason: maintenance.reason });
     }
-    // The fast test profile exists in development builds only.
-    if (parsed.data.testProfile !== undefined && !deps.dev) {
-      return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    }
+    const refusal = createRefusal(request, deps, parsed.data);
+    if (refusal !== null) return reply.status(refusal[0]).send({ code: refusal[1] });
     try {
       const input = presetInput(deps.presets, parsed.data, {
         ...toCreateInput(parsed.data),

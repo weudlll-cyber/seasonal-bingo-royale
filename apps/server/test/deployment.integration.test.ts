@@ -5,7 +5,9 @@
  *
  * Responsibility: a production app has none of the development features (quick sign-in,
  *                 load-account clean-up, Quick Test, demo league, fast rules, bot fill,
- *                 system abort, time travel: 404); an organizer signs in with a password. Under
+ *                 system abort, time travel: 404); an organizer signs in with a password and
+ *                 names a published preset (403 PRESET_REQUIRED without; the development marker
+ *                 is refused). Under
  *                 /games/bingo/ the app answers /healthz, /readyz, index.html and the
  *                 WebSocket. With the maintenance flag file no match is created or started
  *                 (503 with the reason), start-when-full is held until the flag goes (D22), a
@@ -84,7 +86,14 @@ describe('the production build (09 §1)', () => {
     expect(
       status(await call('POST', '/api/v1/matches', { ...match, testProfile: 'fast' }, headers)),
     ).toBe(400);
-    const created = await call('POST', '/api/v1/matches', match, headers);
+    // An organizer names a published preset (2026-11-21); the development marker does not exist.
+    const refused = await call('POST', '/api/v1/matches', match, headers);
+    expect([status(refused), refused.json()]).toEqual([403, { code: 'PRESET_REQUIRED' }]);
+    expect(
+      status(await call('POST', '/api/v1/matches', { ...match, devTools: true }, headers)),
+    ).toBe(400);
+    const fromPreset = { ...match, drawMode: 'auto', preset: 'royale-realtime', speed: 'normal' };
+    const created = await call('POST', '/api/v1/matches', fromPreset, headers);
     expect(status(created)).toBe(201);
     const { code } = created.json<{ code: string }>();
     expect(status(await call('POST', `/api/v1/matches/${code}/bots`, { upTo: 4 }, headers))).toBe(

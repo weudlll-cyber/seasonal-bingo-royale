@@ -80,10 +80,13 @@ export const createBody = z.object({
     .regex(/^[a-zA-Z0-9-]{1,80}$/)
     .optional(),
   speed: z.enum(SPEEDS).optional(),
+  // Development only (the route refuses it otherwise): the request comes from a development
+  // tool (Quick Test, the tests), which may create a match without a preset.
+  devTools: z.literal(true).optional(),
 });
 
 export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
-  const { testProfile, preset: _preset, speed: _speed, ...input } = body;
+  const { testProfile, preset: _preset, speed: _speed, devTools: _devTools, ...input } = body;
   const fast = testProfile === 'fast' ? fastRuleset(body.gameType) : null;
   return fast === null ? input : { ...input, ruleset: fast };
 }

@@ -44,7 +44,7 @@ import { ChatButton, ChatPanel, useChatDock, type ChatDock } from './ChatDock.js
 import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { MenuFold } from './MenuFold.js';
-import { useSession } from './session.js';
+import { highestRole, useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
@@ -164,7 +164,7 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
             data-testid="signed-in-as"
           >
             <span className="chip-prefix">Signed in as </span>
-            {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
+            {session.account.displayName} ({highestRole(can)})
           </a>
           <button
             type="button"

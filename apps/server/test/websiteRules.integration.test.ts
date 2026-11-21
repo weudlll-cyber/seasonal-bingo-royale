@@ -245,6 +245,8 @@ describe('guests in website mode (2026-11-04)', () => {
         drawMode: 'host',
         missedNumbers: { kind: 'noAutoMark' },
         maxPlayers: 8,
+        // A production build: the organizer names a published preset (2026-11-21).
+        preset: 'royale-realtime',
       },
     });
     const { code, id } = created.json<{ code: string; id: string }>();

@@ -9,13 +9,13 @@
  *                 Time between numbers: 3 s → 9 s"); a new preset (a duplicate) reads as one
  *                 line. Names come from @sbr/contracts presetPathName, the same catalogue the
  *                 server builds the fields from.
- * Depends on:     @sbr/contracts (presetPathName), ../game/labels (gameTypeName)
+ * Depends on:     @sbr/contracts (presetPathName), ../game/labels (gameTypeName, unitFor)
  * Used by:        ./changeText, ./AdminPresets, ./PresetEditor
  * Spec:           docs/concepts/admin-area.md §4 (Presets, History), §6, §9 piece 3
  */
 import { presetPathName } from '@sbr/contracts';
 
-import { gameTypeName } from '../game/labels.js';
+import { gameTypeName, unitFor } from '../game/labels.js';
 
 export const STATUS_NAMES: Readonly<Record<string, string>> = {
   draft: 'Draft',
@@ -32,7 +32,7 @@ export function shownValue(v: unknown, unit = '', scale = 1): string {
   if (typeof v === 'string') return v;
   if (typeof v !== 'number') return v === undefined ? '—' : JSON.stringify(v);
   const n = Number((v / scale).toFixed(3));
-  return unit === '' ? String(n) : `${String(n)} ${unit}`;
+  return unit === '' ? String(n) : `${String(n)} ${unitFor(n, unit)}`;
 }
 
 // "Stage 2 · ", "Spring · ": where a stage's or a season's value sits.

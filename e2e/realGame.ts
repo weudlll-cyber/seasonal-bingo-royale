@@ -23,6 +23,15 @@ export type Who = 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player
 // its session (signed in or not) before the quick sign-in is used, and gets 20 s for it.
 const SETTLE_MS = 20_000;
 
+const CHIP_ROLE: Readonly<Record<Who, string>> = {
+  host: 'organizer',
+  admin: 'admin',
+  owner: 'owner',
+  'player-1': 'player',
+  'player-2': 'player',
+  'player-3': 'player',
+};
+
 export async function signIn(page: Page, who: Who): Promise<void> {
   await page.goto('/#/');
   // Attached, not visible: on a phone the account items wait behind the menu (./menu).
@@ -32,8 +41,8 @@ export async function signIn(page: Page, who: Who): Promise<void> {
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
   await expect(page.getByTestId('signed-in-as')).toContainText(
-    // The host and the admin may create matches: the chip names them "host".
-    who.startsWith('player') ? `dev-${who} (player)` : `dev-${who} (host)`,
+    // The chip names the highest role.
+    `dev-${who} (${CHIP_ROLE[who]})`,
     { timeout: SETTLE_MS },
   );
 }
@@ -118,11 +127,18 @@ export async function stopMatch(page: Page, code: string): Promise<void> {
 }
 
 // A POST as the page's signed-in account, with its CSRF token (as the client sends it).
+// A spec is a development tool: a new match without a preset says so (an organizer creates one
+// only from a development tool, 2026-11-21); `devTools: undefined` sends the organizer's own.
 export async function post(page: Page, path: string, data: unknown): Promise<APIResponse> {
   const session = (await (await page.request.get('/api/v1/session')).json()) as {
     csrfToken: string;
   };
-  return page.request.post(path, { headers: { 'x-csrf-token': session.csrfToken }, data });
+  const d = data as Record<string, unknown>;
+  const body =
+    path === '/api/v1/matches' && !('preset' in d) && !('devTools' in d)
+      ? { ...d, devTools: true }
+      : d;
+  return page.request.post(path, { headers: { 'x-csrf-token': session.csrfToken }, data: body });
 }
 
 // The current number on a screen (data-item of the ball), or null before the first draw.

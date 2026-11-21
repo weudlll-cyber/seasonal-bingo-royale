@@ -8,13 +8,14 @@
  *                 where it sits), its warning, the input (a number in the shown unit — seconds
  *                 for milliseconds —, a yes/no box, a choice or a line of text), what changing
  *                 it does, and "Built in: … · technical limit …". The server checks and stores.
- * Depends on:     react, @sbr/contracts (types), ./presetText
+ * Depends on:     react, @sbr/contracts (types), ../game/labels (unitFor), ./presetText
  * Used by:        ./PresetEditor, ./SettingsValues
  * Spec:           docs/concepts/admin-area.md §4, §9 pieces 3 and 5
  */
 import type { SettingField } from '@sbr/contracts';
 import type { ReactElement } from 'react';
 
+import { unitFor } from '../game/labels.js';
 import { placeOf, shownValue } from './presetText.js';
 
 export interface ValueFieldView extends SettingField {
@@ -54,7 +55,11 @@ export function ValueField(props: {
       {f.warning === undefined ? null : <p className="admin-warning">{f.warning}</p>}
       <div className="admin-field-input">
         <FieldInput id={id} field={f} value={props.value} onChange={props.onChange} />
-        {f.unit === '' || f.kind !== 'number' ? null : <span>{f.unit}</span>}
+        {f.unit === '' || f.kind !== 'number' ? null : (
+          <span>
+            {unitFor(typeof props.value === 'number' ? props.value / f.scale : 0, f.unit)}
+          </span>
+        )}
       </div>
       <p className="sbr-muted admin-match-facts">{f.description}</p>
       <p className="sbr-muted admin-match-facts">{limitsLine(f)}</p>

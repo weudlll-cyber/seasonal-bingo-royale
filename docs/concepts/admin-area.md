@@ -133,6 +133,10 @@ Values the inventory marks **server only** (ports, database, secrets, domain, re
 
 The file references for (m)–(r) are in [admin-values.md](admin-values.md) §"Open points found while listing".
 
+### Decided (owner decision of 2026-11-21)
+
+- **(s) A match without a preset:** only an Admin, the load check and the development tools (Quick Test, the tests; development builds only) create one. An organizer's request names a published preset and stays inside its bounds; the server refuses anything else (403 `PRESET_REQUIRED`).
+
 ## 9. Build order
 
 The admin area is built before the move (§8 (d)) in pieces. Each piece is finished, testable and mergeable on its own, and sized as one unattended block: one subsystem, at most one new mechanism to design (named in bold). The order brings something the owner can use early (the Admin menu, then presets and the Organizer's page) before the long tail. "Values moved" names the groups of [admin-values.md](admin-values.md) (parts A–D) a piece brings into the admin area.

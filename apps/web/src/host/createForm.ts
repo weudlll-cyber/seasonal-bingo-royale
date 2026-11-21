@@ -93,6 +93,8 @@ export function createBody(v: FormValues) {
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
     // Vite makes DEV false in a production build, which then drops this line.
     ...(import.meta.env.DEV && v.fast === true ? { testProfile: 'fast' as const } : {}),
+    // The Quick Test is a development tool: its match needs no preset (development builds only).
+    ...(import.meta.env.DEV ? { devTools: true as const } : {}),
     startRule: toStartRule(v.start, Date.now()) ?? { kind: 'host' as const },
   };
 }

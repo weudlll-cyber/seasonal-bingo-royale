@@ -8,7 +8,8 @@
  *                 its id as the ruleset name and the quick interval; players outside the
  *                 preset's range, a start the preset does not allow, a draw interval or prizes
  *                 beside a preset, and a speed without a preset are refused; a retired preset
- *                 is unavailable. The admin changes the Organizer part on the Presets page; a
+ *                 is unavailable; without a preset an organizer is refused (owner decision of
+ *                 2026-11-21) and an Admin is not. The admin changes the Organizer part on the Presets page; a
  *                 speed outside the mode's range is refused. Matches it opened are aborted.
  * Depends on:     vitest, ./harness, ./session
  * Spec:           docs/concepts/admin-area.md §3, §4 (Presets), §8 (g), (h), §9 piece 4
@@ -73,6 +74,15 @@ describe('the Organizer starts a match from a preset (admin-area §3)', () => {
       players: { min: 2, max: 200, start: 20 },
     });
     expect(royale?.['ruleset']).toBeUndefined();
+  });
+
+  it('refuses an organizer without a preset; an Admin may go without (2026-11-21)', async () => {
+    const { preset: _p, speed: _s, ...plain } = FROM_PRESET;
+    const crafted = await host.post('/api/v1/matches', { ...plain, devTools: undefined });
+    expect([crafted.statusCode, crafted.json()]).toEqual([403, { code: 'PRESET_REQUIRED' }]);
+    expect(
+      (await admin.post('/api/v1/matches', { ...plain, devTools: undefined })).statusCode,
+    ).toBe(201);
   });
 
   it('freezes the preset, its id and the chosen speed', async () => {

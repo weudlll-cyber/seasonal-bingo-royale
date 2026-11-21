@@ -117,6 +117,15 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 
 - Nothing.
 
+## Decided (owner decision of 2026-11-21)
+
+- A match without a preset: only Admins, the load check and development tools (development builds) create one; an organizer names a published preset (admin-area §8 (s)). Built: the server refuses an organizer's request without a preset (403 `PRESET_REQUIRED`); the development tools mark their requests (`devTools: true`, refused outside development builds); the test helpers and the Quick Test send the mark.
+
+## Small faults fixed on 2026-11-21
+
+- The account chip names the highest role — owner, admin, organizer or player — instead of "host" for everyone who may start a match (`highestRole`, `apps/web/src/shell/session.tsx`); the e2e sign-in reads it per identity.
+- Units read in the singular for one ("1 day", "1 try", "+1 point"): `unitFor` (`apps/web/src/game/labels.ts`) in the admin area's values, limits, History lines and league corrections.
+
 ## Needs the owner's word
 
 - An Admin's abort reads "This match was cancelled by the system" with the reason. "by an admin" would need a new value in the abort event and new wording for players; left as is.
@@ -129,7 +138,6 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 - Presets: `stages.*.cut.value` has no schema maximum (it is a share, a number of players or a score, by the cut's kind); the form shows no technical limit for it.
 - Start a match: the estimated length ("about 45 min") and the stage line ("60 → 30 → 15 → 8 → final") of the concept and mockup are left out: the length depends on when bingos come, and the stage sizes would be the client computing cuts. The Admin can write "About 45 min" in the preset's line of what is special. A server-side estimate needs a rule from the owner.
 - Start a match: "the start button always visible" is not built as a bar fixed to the bottom: a fixed bar covers fields while the page scrolls, which the fit rules forbid. The summary and "Open the lobby" come after the three steps.
-- Start a match: the API still accepts a match without a preset with every choice spelled out (draw interval, prizes, quiet hours); only the Organizer's page and requests naming a preset are held to the preset's bounds. Holding every organizer request to a preset would change the Quick Test and the tests' way of creating matches; decide whether to refuse non-preset requests from organizers outside development.
 - Start a match: an asynchronous match's quiet hours now come from its preset (the old form let the host set them per match). Should the Organizer choose them per match again?
 - Start a match: the built-in speeds (relaxed 8 s, normal 5 s, quick 4 s; asynchronous 30, 15, 5 min) are derived from today's interval; no source names them. Change them on the Presets page.
 - Start a match: the fast test rules (development only) stay on the page under "More choices" for a live royale preset; with them the match uses the fast profile, not the preset.

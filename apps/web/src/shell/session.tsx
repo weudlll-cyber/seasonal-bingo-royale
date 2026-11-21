@@ -10,7 +10,8 @@
  *                 Only the newest refresh sets the session (an older answer arriving late
  *                 never undoes a sign-in). Screens read it through `useSession`, forms the
  *                 server's limits through `useLimits` (admin-area §8 (m)) and the screen values
- *                 through `useScreens` (§8 (i)).
+ *                 through `useScreens` (§8 (i)); `highestRole` names the session's highest role
+ *                 (owner, admin, organizer, player) for the account chip.
  * Depends on:     react, @sbr/contracts (types), ./http, ../game/socket
  * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn,
  *                 ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture,
@@ -149,6 +150,14 @@ export function useSession(): SessionContextValue {
 }
 
 // The server's form limits, or null until the session has answered.
+// The highest role a session holds, for the account chip: the owner changes the Technical
+// section, an Admin sees the admin area, an organizer starts matches, else a player.
+export function highestRole(can: (permission: string) => boolean): string {
+  if (can('technical.edit')) return 'owner';
+  if (can('admin.view')) return 'admin';
+  return can('match.create') ? 'organizer' : 'player';
+}
+
 export function useLimits(): ClientLimits | null {
   return useContext(SessionContext)?.session?.limits ?? null;
 }

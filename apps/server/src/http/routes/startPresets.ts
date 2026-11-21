@@ -11,7 +11,9 @@
  *                 chosen published preset's rules, its speed as the draw interval, the players
  *                 and the start inside what the preset allows, and nothing the preset decides
  *                 (interval, prizes, quiet hours, the fast test profile) — else refused; without
- *                 `preset` the most recently published preset of the game type and mode (§8 (b)).
+ *                 `preset` the most recently published preset of the game type and mode (§8 (b)),
+ *                 for those `mayGoWithoutPreset` lets through (Admins, the load check, development
+ *                 tools in a development build; an organizer must name a preset, 2026-11-21).
  *                 The match freezes the preset's id as its ruleset name.
  * Depends on:     fastify, @sbr/application (types), @sbr/contracts (types), ./matches
  *                 (requirePermission), ./matchInput (types)
@@ -63,6 +65,21 @@ function insidePreset(body: Body, p: SourcePreset): boolean {
     body.maxPlayers >= o.players.min &&
     body.maxPlayers <= o.players.max &&
     decided.every((v) => v === undefined)
+  );
+}
+
+// Who may create a match without naming a preset (owner decision of 2026-11-21): an Admin
+// (`admin.view`), the load check's host (`match.loadcheck`), or a development tool in a
+// development build; an organizer must name a published preset.
+export function mayGoWithoutPreset(
+  permissions: readonly string[],
+  dev: boolean,
+  devTools: boolean,
+): boolean {
+  return (
+    permissions.includes('admin.view') ||
+    permissions.includes('match.loadcheck') ||
+    (dev && devTools)
   );
 }
 

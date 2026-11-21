@@ -112,7 +112,9 @@ export function startBody(v: StartValues, p: StartPreset, now: number) {
   return {
     title: v.title,
     gameType: p.gameType,
-    ...(fast ? { testProfile: 'fast' as const } : { preset: p.id, speed: v.speed }),
+    ...(fast
+      ? { testProfile: 'fast' as const, devTools: true as const }
+      : { preset: p.id, speed: v.speed }),
     ...(p.mode === 'async' ? { mode: 'async' as const, timeZone: browserTimeZone() } : {}),
     drawMode: 'auto' as const,
     missedNumbers: toMissedNumbers(v.missed),
