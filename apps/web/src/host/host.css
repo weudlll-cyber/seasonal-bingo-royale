@@ -100,6 +100,18 @@
   color: var(--color-text-muted);
 }
 
+/* The match's rules line: under the title on desktop, below the console on a phone, so the
+   ball, the numbers and Draw next stay in a small window (as the player's .arena-rules) */
+.host-rules {
+  margin: 0;
+}
+
+@media (max-width: 959px) {
+  .host-console > .host-rules {
+    order: 1;
+  }
+}
+
 /* The create form */
 .create-form {
   display: grid;
