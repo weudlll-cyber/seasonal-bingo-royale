@@ -23,7 +23,7 @@ import type { AppendInput, StoredEvent } from '@sbr/application';
 import type { PoolClient } from 'pg';
 
 import type { DbPool } from '../db/pool.js';
-import { awardFinishedMatch } from '../leaderboard/awards.js';
+import { awardFinishedMatch, type LeagueRules } from '../leaderboard/awards.js';
 import { insertEntries, projectionParts, SqlParams, type ProjectionInput } from './projections.js';
 
 export class VersionConflict extends Error {}
@@ -34,8 +34,8 @@ export interface BatchInput extends AppendInput {
   readonly payloads: readonly string[];
   // The state in its stored encoding when a snapshot is due with this batch, else null.
   readonly snapshot: string | null;
-  // League points only with confirmed e-mail addresses (D59; ../leaderboard/awards).
-  readonly needsVerifiedEmail: boolean;
+  // The league's rules at this moment (../leaderboard/awards).
+  readonly league: LeagueRules;
 }
 
 function projectionOf(input: BatchInput): ProjectionInput {
@@ -98,7 +98,7 @@ export async function appendBatch(pool: DbPool, input: BatchInput): Promise<numb
     await run(tx, input);
     if (input.snapshot !== null) await snapshot(tx, input);
     if (input.events.some((e) => e.type === 'matchFinished')) {
-      await awardFinishedMatch(tx, projectionOf(input), input.needsVerifiedEmail);
+      await awardFinishedMatch(tx, projectionOf(input), input.league);
     }
     await tx.query('COMMIT');
     return trips;

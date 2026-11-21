@@ -7,9 +7,10 @@
  *                 over the finished matches without bots the account played (D29), Season
  *                 Completes and the badges (given by such matches only), and the last 10
  *                 finished matches, those with bots too, with their place, player count and
- *                 whether they gave league points or why not. Computed on read; no e-mail,
+ *                 whether they gave league points or why not, and the corrections of the
+ *                 player's league points with their reasons (admin-area §4). Computed on read; no e-mail,
  *                 real name or id.
- * Depends on:     @sbr/contracts (types), ../db/pool
+ * Depends on:     @sbr/contracts (types), ../db/pool, ./corrections
  * Used by:        ../http/routes/profiles
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
@@ -22,6 +23,7 @@ import type {
 } from '@sbr/contracts';
 
 import type { DbPool } from '../db/pool.js';
+import { correctionsOf, publicCorrection } from './corrections.js';
 
 const RECENT = 10;
 
@@ -55,6 +57,7 @@ export async function playerProfile(
     [account.id],
   );
   const badges = await badgesOf(pool, account.id);
+  const corrections = (await correctionsOf(pool, account.id)).map(publicCorrection);
   const t = totals.rows[0];
   return {
     displayName: account.display_name,
@@ -65,6 +68,7 @@ export async function playerProfile(
     seasonCompletes: badges.find((b) => b.id === 'season-complete')?.count ?? 0,
     badges,
     recentMatches: await recentMatches(pool, account.id),
+    ...(corrections.length === 0 ? {} : { corrections }),
   };
 }
 

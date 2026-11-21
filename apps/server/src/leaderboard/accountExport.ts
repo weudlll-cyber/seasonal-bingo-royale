@@ -5,15 +5,16 @@
  *
  * Responsibility: the account (e-mail, verification, display name, status, dates, roles),
  *                 every match it played with status, place and score, its league entries and
- *                 awards per period, and its badges. Only for the signed-in account itself;
+ *                 awards per period, its badges and the corrections of its league points. Only for the signed-in account itself;
  *                 password hash and sessions stay out (secrets, not personal history).
- * Depends on:     @sbr/contracts (types), ../db/pool
+ * Depends on:     @sbr/contracts (types), ../db/pool, ./corrections
  * Used by:        ../http/routes/profiles
  * Spec:           docs/spec/03-security-architecture.md §19; docs/spec/05-api-design.md §2.2
  */
 import type { AccountExport } from '@sbr/contracts';
 
 import type { DbPool } from '../db/pool.js';
+import { correctionsOf, publicCorrection } from './corrections.js';
 
 interface AccountRow {
   readonly id: string;
@@ -58,6 +59,7 @@ export async function accountExport(
     matches: await matchesOf(pool, accountId),
     ...(await leagueOf(pool, accountId)),
     badges: await badgesOf(pool, accountId),
+    leagueCorrections: (await correctionsOf(pool, accountId)).map(publicCorrection),
   };
 }
 

@@ -27,6 +27,7 @@ const GRANTS = `
   REVOKE UPDATE, DELETE, TRUNCATE ON sbr.match_events FROM ${APP_ROLE};
   REVOKE UPDATE, DELETE, TRUNCATE ON sbr.audit_log FROM ${APP_ROLE};
   REVOKE UPDATE, DELETE, TRUNCATE ON sbr.settings_versions FROM ${APP_ROLE};
+  REVOKE UPDATE, DELETE, TRUNCATE ON sbr.league_corrections FROM ${APP_ROLE};
   REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON sbr.schema_migrations FROM ${APP_ROLE};
 `;
 

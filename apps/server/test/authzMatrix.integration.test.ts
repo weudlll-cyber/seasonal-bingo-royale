@@ -86,6 +86,10 @@ const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/admin/presets/:id', body: {}, allow: ADMINS },
   { method: 'POST', path: '/api/v1/admin/presets/:id/duplicate', body: {}, allow: ADMINS },
   { method: 'POST', path: '/api/v1/admin/presets/:id/status', body: {}, allow: ADMINS },
+  // Empty bodies: refused before, 400 after the permission check.
+  { method: 'GET', path: '/api/v1/admin/league', allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/league', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/league/corrections', body: {}, allow: ADMINS },
 ];
 
 // `:code` is the host's match. Every route the server registers is listed here.

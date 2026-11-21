@@ -48,8 +48,10 @@ const PAGE = 50;
 
 const HISTORY = `
   SELECT l.id, l.occurred_at, l.action, l.target_type, l.target_id, l.diff,
-         a.display_name AS actor
+         a.display_name AS actor, t.display_name AS target_name
     FROM sbr.audit_log l LEFT JOIN sbr.accounts a ON a.id = l.actor_account_id
+         LEFT JOIN sbr.accounts t
+           ON l.target_type = 'account' AND t.id::text = l.target_id
    WHERE $1::bigint IS NULL OR l.id < $1
    ORDER BY l.id DESC LIMIT ${String(PAGE)}`;
 
@@ -61,6 +63,8 @@ interface HistoryRow {
   target_id: string;
   diff: Record<string, unknown>;
   actor: string | null;
+  // An account the change was about (a correction), by name while it exists.
+  target_name: string | null;
 }
 
 // "features@3": the settings document and version a settings change wrote.
@@ -98,7 +102,7 @@ export function registerAdminSettingsRoutes(app: FastifyInstance, deps: AdminSet
         at: r.occurred_at.getTime(),
         actor: r.actor,
         action: r.action,
-        target: r.target_id,
+        target: r.target_type === 'account' ? (r.target_name ?? 'a removed account') : r.target_id,
         diff: r.diff,
         undoable: settingsTarget(r) !== null,
       })),

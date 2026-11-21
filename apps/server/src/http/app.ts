@@ -25,6 +25,7 @@
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
 import rateLimit from '@fastify/rate-limit';
+import { leagueConfigOf, leagueSettingsOf } from '@sbr/contracts';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { Presets } from '../admin/presets.js';
@@ -109,19 +110,22 @@ async function registerRouteLimits(fastify: FastifyInstance): Promise<void> {
   });
 }
 
-// The match runtime's clock and meters; league points need confirmed e-mail addresses in
-// website mode, and in a standalone install only with the e-mail switch on (D59; the admin
-// area's switch, read when a match's points are awarded).
+// The match runtime's clock and meters; the league's rules read when a match's points are
+// awarded: the League settings, and confirmed e-mail addresses in website mode or with the
+// e-mail switch on in a standalone install (D59).
 const runtimeOptions = (
   env: Env,
   metrics: MetricsHandle,
   clock: DevClock | undefined,
-  switches: () => Switches,
+  live: { readonly settings: SettingsStore; readonly switches: () => Switches },
 ) => ({
   clock,
   onTapBatch: metrics.taps.batch,
   onAppend: metrics.taps.appended,
-  leagueNeedsVerifiedEmail: () => env.SBR_AUTH_MODE === 'website' || switches().emailVerification,
+  league: () => ({
+    config: leagueConfigOf(leagueSettingsOf(live.settings.get('leaderboard'))),
+    needsVerifiedEmail: env.SBR_AUTH_MODE === 'website' || live.switches().emailVerification,
+  }),
 });
 
 // The admin area's settings, read by the server at runtime (../admin/settings), the presets
@@ -152,7 +156,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
   const { settings, presets, switches } = await loadSettings(deps.pool, deps.env);
-  const options = runtimeOptions(deps.env, metrics, clock, switches);
+  const options = runtimeOptions(deps.env, metrics, clock, { settings, switches });
   const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).

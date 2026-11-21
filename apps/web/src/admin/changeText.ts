@@ -6,12 +6,16 @@
  * Responsibility: the names of the switches (also the Overview's labels), a settings change as
  *                 one line per value that changed (a value the version leaves out reads as the
  *                 default the server named; a preset's values through ./presetText),
- *                 maintenance switched on or off, and a match aborted with its reason. Unknown
+ *                 maintenance switched on or off, a match aborted with its reason, and a
+ *                 correction of a player's league points with its reason. Unknown
  *                 actions read as their name.
- * Depends on:     ./presetText
- * Used by:        ./AdminHistory, ./AdminSwitches
+ * Depends on:     @sbr/contracts (LEAGUE_CATALOGUE), ../game/labels, ./presetText
+ * Used by:        ./AdminHistory, ./AdminSwitches, ./LeagueCorrections
  * Spec:           docs/concepts/admin-area.md §4 (History), §6
  */
+import { LEAGUE_CATALOGUE } from '@sbr/contracts';
+
+import { pointsDelta } from '../game/labels.js';
 import { presetLines } from './presetText.js';
 
 export interface HistoryEntry {
@@ -32,6 +36,12 @@ export const SWITCH_NAMES: Readonly<Record<string, string>> = {
   emailVerification: 'Players must confirm their e-mail',
 };
 
+// A switch's or a League value's name; else the key.
+const nameOf = (key: string): string =>
+  SWITCH_NAMES[key] ??
+  (LEAGUE_CATALOGUE as Readonly<Record<string, { label: string }>>)[key]?.label ??
+  key;
+
 const valueText = (v: unknown): string =>
   typeof v === 'boolean' ? (v ? 'on' : 'off') : JSON.stringify(v);
 
@@ -48,7 +58,7 @@ function settingsLines(e: HistoryEntry, defaults: Defaults): string[] {
   const to = { ...base, ...record(e.diff['to']) };
   return [...new Set([...Object.keys(from), ...Object.keys(to)])]
     .filter((key) => JSON.stringify(from[key]) !== JSON.stringify(to[key]))
-    .map((key) => `${SWITCH_NAMES[key] ?? key}: ${valueText(from[key])} → ${valueText(to[key])}`);
+    .map((key) => `${nameOf(key)}: ${valueText(from[key])} → ${valueText(to[key])}`);
 }
 
 export function changeLines(e: HistoryEntry, defaults: Defaults): string[] {
@@ -64,10 +74,16 @@ export function changeLines(e: HistoryEntry, defaults: Defaults): string[] {
       return ['Maintenance off'];
     case 'match.abort':
       return [`Match ${e.target} aborted: ${reason}`];
+    case 'league.correct':
+      return [`League points of ${e.target}: ${pointsDelta(Number(e.diff['delta']))} (${reason})`];
     default:
       return [e.action];
   }
 }
+
+// When a change was made, as the History and the corrections show it.
+export const when = (ms: number): string =>
+  new Date(ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 export const commentOf = (e: HistoryEntry): string | null =>
   typeof e.diff['comment'] === 'string' ? e.diff['comment'] : null;

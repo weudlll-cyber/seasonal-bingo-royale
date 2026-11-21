@@ -5,13 +5,14 @@
  *
  * Responsibility: register the match routes, the open sign-ups for the website, "Verify this
  *                 match", the leaderboards and profiles, the admin area (its Overview, its
- *                 settings, History and undo, and its Presets), and in development the demo league and the time
+ *                 settings, History and undo, its Presets and its League), and in development the demo league and the time
  *                 travel, each with what it needs from the app.
  * Depends on:     fastify, ../admin/presets (types), ../admin/settings (types), ../config/*, ../db/pool (types),
  *                 ../dev/*, ../match/runtime (types), ../view/liveViews (types), ./routes/*
  * Used by:        ./app
  * Spec:           docs/spec/05-api-design.md §2; docs/concepts/admin-area.md §9
  */
+import { LEAGUE_DEFAULTS } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import type { Presets } from '../admin/presets.js';
@@ -25,6 +26,7 @@ import type { DevClock } from '../dev/devClock.js';
 import type { MatchRuntime } from '../match/runtime.js';
 import type { LiveViews } from '../view/liveViews.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerAdminLeagueRoutes } from './routes/adminLeague.js';
 import { registerAdminPresetRoutes } from './routes/adminPresets.js';
 import { registerAdminSettingsRoutes } from './routes/adminSettings.js';
 import { registerLeaderboardRoutes } from './routes/leaderboards.js';
@@ -97,10 +99,12 @@ export function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps
         guests: deps.env.SBR_FEATURE_GUESTS,
         emailVerification: deps.env.SBR_FEATURE_EMAIL_VERIFICATION,
       },
+      leaderboard: LEAGUE_DEFAULTS,
     },
   });
   registerAdminPresetRoutes(fastify, { settings: deps.settings, presets: deps.presets });
   registerStartPresetsRoute(fastify, deps.presets);
+  registerAdminLeagueRoutes(fastify, { pool, settings: deps.settings });
   // Development only: ten demo accounts and three counting matches for the boards.
   if (deps.isDev) registerDemoLeague(fastify, { pool, engine: match.engine });
   if (deps.clock !== undefined) {

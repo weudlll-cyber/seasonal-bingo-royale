@@ -118,7 +118,7 @@ function leafAt(root: Root, path: string): { schema: Schema; value: unknown } | 
 }
 
 // What the leaf's schema says: the choices of an enum, the min and max of a number.
-function limitsOf(schema: Schema, kind: PresetField['kind']) {
+export function limitsOf(schema: Schema, kind: PresetField['kind']) {
   const leaf = schema as unknown as {
     minValue?: number | null;
     maxValue?: number | null;
@@ -136,7 +136,7 @@ function limitsOf(schema: Schema, kind: PresetField['kind']) {
   };
 }
 
-const kindOf = (v: unknown, schema: Schema): PresetField['kind'] => {
+export const kindOf = (v: unknown, schema: Schema): PresetField['kind'] => {
   if (typeof v === 'boolean') return 'boolean';
   if (typeof v === 'number') return 'number';
   return Array.isArray((schema as unknown as { options?: unknown }).options) ? 'choice' : 'text';

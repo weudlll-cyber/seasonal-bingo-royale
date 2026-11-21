@@ -1,19 +1,19 @@
 /**
  * @file   apps/web/src/admin/AdminNav.tsx
  * @module web/admin
- * @brief  The admin area's own navigation: Overview, Presets and History.
+ * @brief  The admin area's own navigation: Overview, Presets, League and History.
  *
  * Responsibility: the sections built so far as links under the page title, the current one
  *                 marked (aria-current), wrapping on a phone.
  * Depends on:     react, ../shell/router
- * Used by:        ./AdminOverview, ./AdminPresets, ./AdminHistory
+ * Used by:        ./AdminOverview, ./AdminPresets, ./AdminLeague, ./AdminHistory
  * Spec:           docs/concepts/admin-area.md §4
  */
 import type { ReactElement } from 'react';
 
 import { hrefOf } from '../shell/router.js';
 
-type Section = 'overview' | 'presets' | 'history';
+type Section = 'overview' | 'presets' | 'league' | 'history';
 
 export function AdminNav({ current }: { readonly current: Section }): ReactElement {
   const link = (section: Section, label: string) => (
@@ -29,6 +29,7 @@ export function AdminNav({ current }: { readonly current: Section }): ReactEleme
     <nav className="admin-nav" aria-label="Admin">
       {link('overview', 'Overview')}
       {link('presets', 'Presets')}
+      {link('league', 'League')}
       {link('history', 'History')}
     </nav>
   );

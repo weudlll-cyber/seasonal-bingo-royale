@@ -25,6 +25,7 @@ import {
 import { SEED_BYTES } from '@sbr/domain';
 
 import type { DbPool } from '../db/pool.js';
+import { DEFAULT_LEAGUE_RULES, type LeagueRules } from '../leaderboard/awards.js';
 import { LocalEventBus } from './eventBus.js';
 import { PgMatchStore, type AppendTiming } from './pgMatchStore.js';
 import { PgScheduler } from './pgScheduler.js';
@@ -54,9 +55,9 @@ export function createMatchRuntime(
     readonly onTapBatch?: (batch: TapBatchTiming) => void;
     // Each stored batch's round trips and time (the metrics, 12 §5).
     readonly onAppend?: (timing: AppendTiming) => void;
-    // League points need confirmed e-mail addresses (D59; default yes): asked when a match's
-    // points are awarded, so the admin area's switch applies at once.
-    readonly leagueNeedsVerifiedEmail?: () => boolean;
+    // The league's rules (the League settings; confirmed e-mail addresses, D59; default
+    // today's): asked when a match's points are awarded, so a change applies at once.
+    readonly league?: () => LeagueRules;
   } = {},
 ): MatchRuntime {
   const clock = options.clock ?? SYSTEM_CLOCK;
@@ -65,7 +66,7 @@ export function createMatchRuntime(
     pool,
     seedKey,
     options.onAppend,
-    options.leagueNeedsVerifiedEmail ?? (() => true),
+    options.league ?? (() => DEFAULT_LEAGUE_RULES),
   );
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();

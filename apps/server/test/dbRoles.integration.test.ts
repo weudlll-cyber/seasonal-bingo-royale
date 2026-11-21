@@ -8,7 +8,7 @@
  *                 owner migrates (nothing left on the converted one, all of it on the fresh one)
  *                 and grants the app role (`cli migrate`). The app role then plays a whole
  *                 match through the real app, but is refused UPDATE, DELETE and TRUNCATE on the
- *                 event log, the audit log and the settings versions (by permission, not only
+ *                 event log, the audit log, the settings versions and the league corrections (by permission, not only
  *                 by their triggers),
  *                 turning a trigger off, writing the migration record, creating or dropping
  *                 tables and creating roles; the owner cannot create roles either. The match it plays is finished in the
@@ -146,10 +146,11 @@ describe('an install made before the roles, converted (S1)', () => {
     expect(await playedAs(app, appUrl)).toBe('finished');
   });
 
-  it('refuses the app changing or removing match events, audit entries and settings versions', async () => {
+  it('refuses the app changing or removing match events, audit entries, settings versions and league corrections', async () => {
     await expectAppendOnly(app, 'match_events', 'seq');
     await expectAppendOnly(app, 'audit_log', 'action');
     await expectAppendOnly(app, 'settings_versions', 'comment');
+    await expectAppendOnly(app, 'league_corrections', 'reason');
     expect(await refusal(app, "DELETE FROM sbr.schema_migrations WHERE id = 'x'")).toMatch(
       /permission denied/,
     );

@@ -19,6 +19,16 @@
 export { GameTypeSchema, type GameType } from './config/gameType.js';
 export { ClientLimitsSchema, LIMITS, type ClientLimits } from './config/limits.js';
 export {
+  CorrectionSchema,
+  LEAGUE_CATALOGUE,
+  LEAGUE_DEFAULTS,
+  leagueConfigOf,
+  leagueSettingsOf,
+  LeagueSettingsSchema,
+  type LeagueSettings,
+} from './config/league.js';
+export { settingsFields, type SettingField } from './config/settingsFields.js';
+export {
   OrganizerSchema,
   organizerDefaults,
   speedProblem,
@@ -108,6 +118,7 @@ export type {
   LeagueOutcome,
   PlayerProfile,
   ProfileBadge,
+  ProfileCorrection,
   ProfileMatch,
 } from './http/leaderboard.js';
 export type { MyMatch } from './http/myMatches.js';

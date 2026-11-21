@@ -31,6 +31,7 @@ import { AccountPage } from '../account/AccountPage.js';
 import { AdminHistory } from '../admin/AdminHistory.js';
 import { AdminOverview } from '../admin/AdminOverview.js';
 import { AdminPresets } from '../admin/AdminPresets.js';
+import { AdminLeague } from '../admin/AdminLeague.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
 import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
@@ -269,6 +270,7 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
     case 'admin':
       if (route.section === 'presets') return <AdminPresets />;
+      if (route.section === 'league') return <AdminLeague />;
       return route.section === 'history' ? <AdminHistory /> : <AdminOverview />;
   }
 }

@@ -236,6 +236,8 @@ Built (admin-area §9 piece 3): the values of part A a ruleset of that mode read
 
 ### Leaderboard and league
 
+Built (admin-area §9 piece 5): the `leaderboard.*` rows are the admin area's **League** values (the `leaderboard` settings document over these defaults, `packages/contracts/src/config/league.ts`), read when a match's points are awarded. The `*.countsForLeaderboard` rows are each preset's "Counts for the league" (piece 3). The place bands themselves stay fixed.
+
 | id                                             | file:line                                                           | current value + unit            | what changing it does                                                  | who may change it | min | max   | min/max reason                           | warning                                                                                       | applies          |
 | ---------------------------------------------- | ------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------- | ----------------- | --- | ----- | ---------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------- |
 | `leaderboard.placementPoints.place1`           | packages/contracts/src/config/defaults/leaderboard.ts:35            | 100 league points (place 1)     | League points for winning a match.                                     | admin             | 0   | 1 000 | proposal                                 | yes: "Changes the league standings from now on; running periods keep their own table."        | new matches only |
@@ -377,6 +379,8 @@ Built (admin-area §9 piece 3): the values of part A a ruleset of that mode read
 | seasonComplete.offFallback | packages/application/src/match/rulesets.ts:48 | 0 points, no effect when the ruleset has none              | The Season Complete bonus used when a ruleset has none.   | stays fixed (it means off) | 0   | 0   | proposal       | no      | new matches only |
 
 ### League and badges
+
+Piece 5 leaves `board.seasonLength` and `board.seasonNames` as they are (see docs/MORNING.md, "needs the owner's word"); the other rows stay fixed as proposed.
 
 | id                 | file:line                                               | current value + unit                                                   | what changing it does                               | who may change it          | min | max | min/max reason | warning                                                                                                                           | applies          |
 | ------------------ | ------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------- | -------------------------- | --- | --- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------- |

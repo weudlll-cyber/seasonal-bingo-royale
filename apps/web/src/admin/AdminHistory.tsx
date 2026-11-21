@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import { problemText } from '../game/labels.js';
 import { api, ApiError } from '../shell/http.js';
 import { AdminNav } from './AdminNav.js';
-import { changeLines, commentOf, type Defaults, type HistoryEntry } from './changeText.js';
+import { changeLines, commentOf, when, type Defaults, type HistoryEntry } from './changeText.js';
 import './admin.css';
 
 interface HistoryPage {
@@ -26,9 +26,6 @@ interface HistoryPage {
   readonly more: boolean;
   readonly defaults: Defaults;
 }
-
-const when = (ms: number): string =>
-  new Date(ms).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
 const failure = (e: unknown): string =>
   e instanceof ApiError ? problemText(e.code) : problemText('');

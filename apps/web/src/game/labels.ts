@@ -240,6 +240,10 @@ export const cutOutLine = (count: number): string =>
 
 export const moreLine = (count: number): string => `and ${String(count)} more`;
 
+// "+25 points", "−20 points": a correction of league points (admin-area §4).
+export const pointsDelta = (n: number): string =>
+  `${n > 0 ? '+' : '−'}${String(Math.abs(n))} points`;
+
 // "a", "a and b", "a, b and c".
 export function nameList(names: readonly string[]): string {
   if (names.length <= 1) return names.join('');
