@@ -13,7 +13,7 @@
  *                 interval or outside a minute to a day are not sent, a message says why (D12).
  * Depends on:     react, ../components/DrawModeSwitch, ../game/labels, ../game/socket,
  *                 ../game/useLiveMatch (types), ../playback (types), ../types,
- *                 ../useSecondsUntil, ./AsyncFields (minutesProblem), ./TimingFields
+ *                 ../useSecondsUntil, ./asyncTiming (minutesProblem), ./TimingFields
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13), §7 (D21); docs/spec/06-realtime-architecture.md §4.1
  */
@@ -22,7 +22,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { DrawModeSwitch } from '../components/DrawModeSwitch.js';
 import { intervalText, problemText } from '../game/labels.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
-import { minutesProblem } from './AsyncFields.js';
+import { minutesProblem } from './asyncTiming.js';
 import { intervalProblem } from './TimingFields.js';
 import { intent } from '../game/socket.js';
 import type { LiveState } from '../game/useLiveMatch.js';
@@ -167,9 +167,7 @@ function ModeSwitch(props: ModeSwitchProps): ReactElement {
   // D12: seconds below the shortest interval are not sent, nor minutes outside one minute to
   // a day (01 §5); the message says why.
   const problemOf = (intervalMs: number): string | null =>
-    minutes
-      ? minutesProblem({ kind: 'async', minutes: intervalMs / unitMs, quiet: null })
-      : intervalProblem(intervalMs, shortestMs);
+    minutes ? minutesProblem(intervalMs / unitMs) : intervalProblem(intervalMs, shortestMs);
   const setMode = (mode: 'auto' | 'host', intervalMs?: number): void => {
     const problem = intervalMs === undefined ? null : problemOf(intervalMs);
     if (problem !== null) {

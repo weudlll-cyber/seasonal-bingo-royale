@@ -3,8 +3,9 @@
  * @module web/admin
  * @brief  One preset's values in tabs, each with what it does, its unit, limits and default.
  *
- * Responsibility: the tabs that have values for this preset (a classic preset has no stages
- *                 or jackpot); per value its name (with "Stage 2" / "Spring" where it sits),
+ * Responsibility: the tabs that have values for this preset (first "For the organizer": what
+ *                 the Organizer's page offers, piece 4; a classic preset has no stages or
+ *                 jackpot); per value its name (with "Stage 2" / "Spring" where it sits),
  *                 its warning, the input in the shown unit (seconds for milliseconds), what
  *                 changing it does, the built-in default and the technical limit the server
  *                 sent; a comment for the History and Save, which sends only the changed values
@@ -25,6 +26,7 @@ export interface PresetFieldView extends PresetField {
 }
 
 const TAB_NAMES: readonly [PresetTab, string][] = [
+  ['organizer', 'For the organizer'],
   ['draws', 'Draws and timing'],
   ['marking', 'Marking and speed'],
   ['scoring', 'Scoring and patterns'],
@@ -40,9 +42,14 @@ export function PresetEditor(props: {
   readonly fields: readonly PresetFieldView[];
   readonly busy: boolean;
   readonly onSave: (values: Draft, comment: string) => void;
+  // The tab the page remembers (a save remounts the editor); the first one this preset has
+  // when it has none of that tab.
+  readonly tab: PresetTab | null;
+  readonly onTab: (t: PresetTab) => void;
 }): ReactElement {
   const tabs = TAB_NAMES.filter(([t]) => props.fields.some((f) => f.tab === t));
-  const [tab, setTab] = useState<PresetTab>(tabs[0]?.[0] ?? 'draws');
+  const tab = tabs.find(([t]) => t === props.tab)?.[0] ?? tabs[0]?.[0] ?? 'draws';
+  const setTab = props.onTab;
   const [draft, setDraft] = useState<Draft>(new Map());
   const [comment, setComment] = useState('');
   return (
@@ -117,6 +124,7 @@ function TabBar(props: {
 
 // "Built in: 3 s · technical limit 2 s – 60 s".
 function limitsLine(f: PresetFieldView): string {
+  if (f.kind === 'text') return `At most ${String(f.max ?? 0)} characters`;
   const show = (v: number | undefined) => shownValue(v, f.unit, f.scale);
   const range =
     f.min === undefined && f.max === undefined
@@ -170,6 +178,7 @@ function FieldInput(props: {
         }}
       />
     );
+  if (f.kind === 'text') return <TextInput {...props} />;
   if (f.kind === 'choice')
     return (
       <select
@@ -197,6 +206,26 @@ function FieldInput(props: {
       value={shown}
       onChange={(e) => {
         props.onChange(Math.round(Number(e.target.value) * f.scale * 1000) / 1000);
+      }}
+    />
+  );
+}
+
+// The Organizer's line of what is special: plain text up to the schema's length.
+function TextInput(props: {
+  readonly id: string;
+  readonly field: PresetFieldView;
+  readonly value: unknown;
+  readonly onChange: (v: unknown) => void;
+}): ReactElement {
+  return (
+    <input
+      id={props.id}
+      className="sbr-input"
+      maxLength={props.field.max}
+      value={typeof props.value === 'string' ? props.value : ''}
+      onChange={(e) => {
+        props.onChange(e.target.value);
       }}
     />
   );

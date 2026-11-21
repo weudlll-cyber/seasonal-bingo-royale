@@ -33,6 +33,7 @@ import { registerVerifyRoute } from './routes/matchVerify.js';
 import type { LiveMetrics } from './routes/metrics.js';
 import { registerOpenRounds } from './routes/openRounds.js';
 import { registerProfileRoutes } from './routes/profiles.js';
+import { registerStartPresetsRoute } from './routes/startPresets.js';
 import { registerTimeTravel } from './routes/timeTravel.js';
 
 export interface GameRouteDeps {
@@ -64,8 +65,8 @@ export function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps
     live: deps.live,
     views: deps.views,
     website: deps.env.SBR_AUTH_MODE === 'website',
-    // A match created without a chosen ruleset plays the published preset (§8 (b)).
-    preset: (gameType, mode) => deps.presets.published(gameType, mode),
+    // A new match plays a published preset (§8 (b); the Organizer's choice, §3).
+    presets: deps.presets,
   });
   // The open sign-ups the hosts marked for the website (D50; empty in standalone installs).
   registerOpenRounds(fastify, {
@@ -99,6 +100,7 @@ export function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps
     },
   });
   registerAdminPresetRoutes(fastify, { settings: deps.settings, presets: deps.presets });
+  registerStartPresetsRoute(fastify, deps.presets);
   // Development only: ten demo accounts and three counting matches for the boards.
   if (deps.isDev) registerDemoLeague(fastify, { pool, engine: match.engine });
   if (deps.clock !== undefined) {

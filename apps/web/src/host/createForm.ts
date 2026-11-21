@@ -1,17 +1,18 @@
 /**
  * @file   apps/web/src/host/createForm.ts
  * @module web/host
- * @brief  The create form's values, their defaults, the D12 check and the POST /matches body.
+ * @brief  A live match with every choice spelled out: the Quick Test's values and request body.
  *
- * Responsibility: what the host fills in (title, game type, pace, prizes, draws, missed
- *                 numbers, leaderboard, shown on the website (website mode), max players, royale pause, start rule; in development
- *                 builds only the fast test profile), the starting values, the message for
- *                 seconds below the shortest interval (D12) or minutes out of the async range,
- *                 and the request body (05 §2.3; the server clamps intervals and delays into
- *                 range as well; the form's fields take their bounds from the server's limits).
+ * Responsibility: the choices of a live match without a preset (title, game type, prizes,
+ *                 draws, missed numbers, leaderboard, shown on the website, max players, royale
+ *                 pause, start rule; in development builds only the fast test profile), their
+ *                 starting values, the message for seconds below the shortest interval (D12),
+ *                 and the POST /matches body (05 §2.3; the server clamps intervals and delays
+ *                 into range as well). The Quick Test (development) builds its match with it;
+ *                 the Organizer's page starts from a preset instead (./startForm).
  * Depends on:     @sbr/contracts (prize list), ../components/StartMarkingField, ../drawControl,
- *                 ../types, ./AsyncFields, ./TimingFields
- * Used by:        ./CreateMatch, ../quicktest/testMatchSetup, ../quicktest/TestMatch
+ *                 ../types, ./TimingFields
+ * Used by:        ../quicktest/testMatchSetup, ../quicktest/TestMatch
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §7.1, §11
  */
 import { BUILTIN_PRIZE_KEYS, DEFAULT_PRIZE_SELECTION } from '@sbr/contracts';
@@ -23,7 +24,6 @@ import {
 } from '../components/StartMarkingField.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
 import type { GameType } from '../types.js';
-import { asyncBody, INITIAL_PACE, minutesProblem, type PaceChoice } from './AsyncFields.js';
 import {
   INITIAL_PAUSE,
   intervalProblem,
@@ -38,8 +38,6 @@ import {
 export interface FormValues {
   readonly title: string;
   readonly gameType: GameType;
-  // Live or asynchronous (royale only, 01 §11).
-  readonly pace: PaceChoice;
   readonly prizes: ReadonlySet<string>;
   readonly draw: DrawControl;
   readonly missed: MarkingChoice;
@@ -60,7 +58,6 @@ export interface FormValues {
 export const INITIAL: FormValues = {
   title: 'Bingo night',
   gameType: 'royale',
-  pace: INITIAL_PACE,
   prizes: new Set<string>(DEFAULT_PRIZE_SELECTION),
   draw: INITIAL_CONTROL,
   missed: INITIAL_MARKING,
@@ -71,16 +68,8 @@ export const INITIAL: FormValues = {
   start: { kind: 'host' },
 };
 
-// The pace that applies: asynchronous only for the royale.
-export function paceOf(v: FormValues): PaceChoice {
-  return v.gameType === 'royale' ? v.pace : INITIAL_PACE;
-}
-
-// The seconds between draws below the match's shortest interval (D12), or minutes outside
-// the asynchronous range: the message, else null.
+// The seconds between draws below the match's shortest interval (D12): the message, else null.
 export function intervalMessage(v: FormValues): string | null {
-  const pace = paceOf(v);
-  if (pace.kind === 'async') return minutesProblem(pace);
   const chosen =
     v.draw.intervalSec === null ? rulesetIntervalMs(v.gameType) : v.draw.intervalSec * 1000;
   return intervalProblem(chosen, shortestInterval(v.gameType, toMissedNumbers(v.missed)));
@@ -88,7 +77,6 @@ export function intervalMessage(v: FormValues): string | null {
 
 // The POST /matches body (05 §2.3); the server clamps seconds and delays into range.
 export function createBody(v: FormValues) {
-  const pace = paceOf(v);
   return {
     title: v.title,
     gameType: v.gameType,
@@ -96,7 +84,7 @@ export function createBody(v: FormValues) {
       ? {}
       : { prizes: BUILTIN_PRIZE_KEYS.filter((p) => v.prizes.has(p)) }),
     drawMode: v.draw.mode,
-    ...(pace.kind === 'async' ? asyncBody(pace) : realtimeInterval(v.draw)),
+    ...realtimeInterval(v.draw),
     missedNumbers: toMissedNumbers(v.missed),
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
     ...(v.website ? { showOnWebsite: true } : {}),

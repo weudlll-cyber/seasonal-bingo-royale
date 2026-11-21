@@ -22,7 +22,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { defaultRulesetFor } from '@sbr/application';
-import { presetFields, readPath, writePath } from '@sbr/contracts';
+import { organizerDefaults, presetFields, readPath, writePath } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -38,7 +38,7 @@ export interface AdminPresetsDeps {
 const idParams = z.object({ id: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/) });
 const comment = z.string().trim().max(200).optional();
 const valuesBody = z.strictObject({
-  values: z.record(z.string().max(80), z.union([z.number(), z.boolean(), z.string().max(40)])),
+  values: z.record(z.string().max(80), z.union([z.number(), z.boolean(), z.string().max(120)])),
   comment,
 });
 const duplicateBody = z.strictObject({ name: z.string().trim().min(3).max(60), comment });
@@ -46,20 +46,26 @@ const statusBody = z.strictObject({ status: z.enum(['published', 'retired']), co
 
 // A preset as the page shows it: its facts and its values as form fields.
 function presetView(id: string, p: Preset) {
-  const builtIn = defaultRulesetFor(p.gameType, p.mode);
+  const ruleset = defaultRulesetFor(p.gameType, p.mode);
+  const builtIn = { ruleset, organizer: organizerDefaults(ruleset) };
   return {
     id,
     name: p.name,
     gameType: p.gameType,
     mode: p.mode,
     status: p.status,
-    fields: presetFields(p.ruleset).map((f) => ({
+    fields: presetFields(p.ruleset, p.organizer).map((f) => ({
       ...f,
-      value: readPath(p.ruleset, f.path),
-      default: readPath(builtIn, f.path),
+      value: readPath(p, documentPath(f.path)),
+      default: readPath(builtIn, documentPath(f.path)),
     })),
   };
 }
+
+// Where a field's value sits in the preset: the Organizer's part at the top, the rules in
+// `ruleset`.
+const documentPath = (path: string): string =>
+  path.startsWith('organizer.') ? path : `ruleset.${path}`;
 
 type Edit = (p: Preset) => Preset | 'invalid';
 
@@ -99,17 +105,17 @@ async function changePreset<B>(
   return { preset: presetView(params.data.id, next) };
 }
 
-// The named values set on the preset's ruleset, each one a path its fields offer.
+// The named values set on the preset, each one a path its fields offer.
 const setValues =
   (values: Readonly<Record<string, unknown>>): Edit =>
   (p) => {
-    const offered = new Set(presetFields(p.ruleset).map((f) => f.path));
-    let ruleset: unknown = p.ruleset;
+    const offered = new Set(presetFields(p.ruleset, p.organizer).map((f) => f.path));
+    let next: unknown = p;
     for (const [path, value] of Object.entries(values)) {
       if (!offered.has(path)) return 'invalid';
-      ruleset = writePath(ruleset, path, value);
+      next = writePath(next, documentPath(path), value);
     }
-    return { ...p, ruleset: ruleset as Preset['ruleset'] };
+    return next as Preset;
   };
 
 export function registerAdminPresetRoutes(app: FastifyInstance, deps: AdminPresetsDeps): void {

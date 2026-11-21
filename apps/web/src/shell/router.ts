@@ -14,7 +14,7 @@
  * Depends on:     react
  * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
- *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
+ *                 ../game/HostLink, ../game/Lobby, ../host/StartMatch, ../host/HostConsole,
  *                 ../host/YourMatches, ./DevTools, ../game/VerifyMatch, ../league/LeaderboardPage,
  *                 ../league/ProfilePage, ../league/playerHref, ../account/AccountPage
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/15-implementation-plan.md WP-12, WP-15

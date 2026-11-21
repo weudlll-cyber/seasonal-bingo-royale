@@ -4,7 +4,7 @@
  * @brief  Acceptance play-through of the real game: host and three players, every game type.
  *
  * Responsibility: four contexts (host, players 1–2 at 1280×800, player 3 at 390×844) play each
- *                 match of ./combos to the end: host creates (D12 form message), bots fill to 20,
+ *                 match of ./combos to the end: host creates (API), bots fill to 20,
  *                 players tap, tap late, miss. Each draw: screens match the server's round,
  *                 points and standings, no mark on an undrawn number, missed-number rule, cut
  *                 button fits (D15); host draws count down (D13), short intervals refused (D12),
@@ -34,7 +34,6 @@ import { captureThemes, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
 import {
   checkCutButton,
   checkDrawCountdown,
-  checkShortestIntervalForm,
   checkShortestIntervalLive,
   startNextRoundByHost,
   waitingForHost,
@@ -83,7 +82,6 @@ async function startMatch(
   title: string,
   created: string[],
 ): Promise<string> {
-  await checkShortestIntervalForm(t.host);
   const code = await hostMatch(t.host, { ...combo, title });
   created.push(code);
   for (const p of t.players) await joinFromLobby(p.page, code);

@@ -9,7 +9,8 @@
  *                 live state of one match (the session with the server's form limits); `show`
  *                 renders inside the session provider and lets the first fetches settle,
  *                 `serveWithLimits` / `showWithLimits` serve that session for a form on its own,
- *                 `renderInSession` renders in the provider for tests on fake timers.
+ *                 `renderInSession` renders in the provider for tests on fake timers. Both serve
+ *                 the published presets (`START_PRESETS`) for "Start a match".
  *                 Test support only.
  * Depends on:     @testing-library/react, @sbr/contracts (types), ../game/useLiveMatch (types),
  *                 ./quickTestFixture,
@@ -22,6 +23,7 @@ import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import type { MatchSummary } from '../game/useLiveMatch.js';
+import type { StartPreset } from '../host/startForm.js';
 import { royaleFixture } from './quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 
@@ -62,6 +64,38 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
   };
 }
 
+// The published presets as GET /presets sends them: a live and an asynchronous royale and a
+// classic one (admin-area §3).
+const ROYALE_PRESET: StartPreset = {
+  id: 'royale-realtime',
+  name: 'Battle royale',
+  gameType: 'royale',
+  mode: 'realtime',
+  description: 'About 45 min',
+  players: { min: 4, max: 100, start: 20 },
+  speedsMs: { relaxed: 8_000, normal: 5_000, quick: 4_000 },
+  starts: { now: true, at: true, whenFull: false },
+  countsForLeaderboard: true,
+};
+export const START_PRESETS: readonly StartPreset[] = [
+  ROYALE_PRESET,
+  {
+    ...ROYALE_PRESET,
+    id: 'royale-async',
+    name: 'Asynchronous battle royale',
+    mode: 'async',
+    description: '',
+    speedsMs: { relaxed: 1_800_000, normal: 900_000, quick: 300_000 },
+  },
+  {
+    ...ROYALE_PRESET,
+    id: 'classic-realtime',
+    name: 'Classic',
+    gameType: 'classic',
+    countsForLeaderboard: false,
+  },
+];
+
 // The server's form limits as the session answer carries them (admin-area §8 (m)).
 const HOST_SESSION = {
   signedIn: true,
@@ -84,6 +118,7 @@ export function serveMatch(
     if (url.endsWith('/session')) return HOST_SESSION;
     if (url.endsWith('/matches')) return { matches: [match], mine };
     if (url.endsWith('/away-summary')) return { summary: away };
+    if (url.endsWith('/presets')) return { presets: START_PRESETS };
     return { match, seq: 0, since: 0, me: 'owner-01', view };
   };
   const fetch = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(answer(url)))));
@@ -102,7 +137,9 @@ type Answer = (url: string, init?: RequestInit) => unknown;
 
 // The signed-in host's session with the server's limits; every other request answers
 // `answer(url)` (an empty object unless given). Returns the fetch stub.
-export function serveWithLimits(answer: Answer = () => ({})): ReturnType<typeof vi.fn> {
+export function serveWithLimits(
+  answer: Answer = (url) => (url.endsWith('/presets') ? { presets: START_PRESETS } : {}),
+): ReturnType<typeof vi.fn> {
   const fetch = vi.fn((url: string, init?: RequestInit) =>
     Promise.resolve(
       new Response(JSON.stringify(url.endsWith('/session') ? HOST_SESSION : answer(url, init))),

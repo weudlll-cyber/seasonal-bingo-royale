@@ -11,7 +11,7 @@
  *                 Labels never use the word "auto" alone, so they cannot be confused
  *                 with the draw control.
  * Depends on:     react, ../shell/session, ../types
- * Used by:        ./StartForm; MissedField also by ../host/CreateMatch, ../host/createForm
+ * Used by:        ./StartForm; MissedField also by ../host/ThisMatchFields, ../host/createForm
  * Spec:           docs/spec/01-game-design.md §6, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
@@ -71,7 +71,7 @@ export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): 
   );
 }
 
-// Also used by the host's create form (../host/CreateMatch).
+// Also used by "Start a match" (../host/ThisMatchFields).
 export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactElement | null {
   // The server's range for the delay (admin-area §8 (m)); the browser refuses one outside it.
   const range = useLimits()?.missedDelayMs;

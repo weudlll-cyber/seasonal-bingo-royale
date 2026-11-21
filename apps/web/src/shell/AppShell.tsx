@@ -37,7 +37,7 @@ import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSig
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
-import { CreateMatch } from '../host/CreateMatch.js';
+import { StartMatch } from '../host/StartMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
@@ -222,7 +222,7 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'match':
       return <MatchScreen key={`${route.code}-${who}`} code={route.code} />;
     case 'hostNew':
-      return <CreateMatch />;
+      return <StartMatch />;
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'verify':

@@ -4,13 +4,13 @@
  * @module web/host
  * @brief  The owner's timing rules on screen: D12 (interval), D13 (Draw next lock), D14 and D21 (pause).
  *
- * Responsibility: the create form refuses seconds below 1 s more than the longest tap time
- *                 with a plain message and sends the royale pause choice; the live seconds
- *                 field does not send a too-short interval; Draw next counts down while it
+ * Responsibility: the match body sends the royale pause choice; the live seconds field
+ *                 does not send a too-short interval (the speeds of a new match are checked
+ *                 against D12 with its preset, @sbr/contracts speedProblem); Draw next counts down while it
  *                 is locked; the console offers "Start next round" and players read
  *                 "Waiting for the host to start round N" while the match waits for the host;
  *                 in a timed pause (D21) no Draw next, "Round over" and no newest number.
- * Depends on:     @testing-library/react, ./CreateMatch, ./HostDrawControls,
+ * Depends on:     @testing-library/react, ./HostDrawControls,
  *                 ./HostConsole, ../game/MatchScreen, ../test/matchFixture, ../test/quickTestFixture,
  *                 ../game/useLiveMatch, ./createForm, ../playback
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D13, D14, D21)
@@ -23,7 +23,6 @@ import type { LiveState, MatchSummary } from '../game/useLiveMatch.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
-import { CreateMatch } from './CreateMatch.js';
 import { createBody } from './createForm.js';
 import { HostConsole } from './HostConsole.js';
 import { HostDrawControls } from './HostDrawControls.js';
@@ -66,24 +65,6 @@ function summary(over: Partial<MatchSummary> = {}): MatchSummary {
 const serve = serveMatch;
 
 describe('D12: the shortest timed-draw interval', () => {
-  it('refuses seconds below the longest tap time plus 1 s with a plain message', async () => {
-    const fetch = serve(summary());
-    await show(<CreateMatch />);
-    fireEvent.change(screen.getByTestId('missed-delay'), { target: { value: '5' } });
-    fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '5' } });
-    expect(screen.getByTestId('create-interval-problem').textContent).toContain(
-      'at least 6 seconds',
-    );
-    fireEvent.click(screen.getByTestId('create-submit'));
-    const calls = fetch.mock.calls as [string, RequestInit | undefined][];
-    const posts = calls.filter(
-      ([url, init]) => url.endsWith('/matches') && init?.method === 'POST',
-    );
-    expect(posts).toHaveLength(0);
-    fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '6' } });
-    expect(screen.queryByTestId('create-interval-problem')).toBeNull();
-  });
-
   it('does not send a too-short interval from the live seconds field', () => {
     const live = {
       match: summary({ settings: { ...summary().settings, drawMode: 'auto' } }),
@@ -116,7 +97,6 @@ describe('D14: the pause between royale rounds', () => {
     const body = createBody({
       title: 't',
       gameType: 'royale',
-      pace: { kind: 'realtime' },
       prizes: new Set(),
       draw: { mode: 'host', intervalSec: null, skipped: false },
       missed: { mode: 'manual', missed: 'noAutoMark', delaySec: 3 },
@@ -158,13 +138,6 @@ describe('D21: a 15 s pause the host can end early', () => {
       nextRoundAt: Date.now() + 10_000,
       ...over,
     });
-
-  it('offers 15 seconds as the pause in the create form', async () => {
-    serve(summary());
-    await show(<CreateMatch />);
-    fireEvent.change(screen.getByTestId('create-game-type'), { target: { value: 'royale' } });
-    expect(screen.getByTestId<HTMLInputElement>('create-round-pause-sec').value).toBe('15');
-  });
 
   it('offers the host "Start next round now" and no Draw next during the pause', async () => {
     serve(timed(), inPause);

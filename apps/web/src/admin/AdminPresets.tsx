@@ -14,6 +14,7 @@
  * Used by:        ../shell/AppShell
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §6, §8 (b), §9 piece 3
  */
+import type { PresetTab } from '@sbr/contracts';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 
 import { problemText } from '../game/labels.js';
@@ -78,6 +79,7 @@ function usePresets() {
 
 export function AdminPresets(): ReactElement {
   const { list, current, setChosen, message, busy, version, send } = usePresets();
+  const [tab, setTab] = useState<PresetTab | null>(null);
   const save = (values: Draft, comment: string): void => {
     if (current === null) return;
     send(
@@ -119,6 +121,8 @@ export function AdminPresets(): ReactElement {
             fields={current.fields}
             busy={busy}
             onSave={save}
+            tab={tab}
+            onTab={setTab}
           />
         </>
       )}

@@ -13,12 +13,22 @@
  *                 change never reaches it. `problem` is the one check every write passes: the
  *                 document parses (the full RulesetSchema with its cross-field rules), its
  *                 ruleset keeps the preset's game type and mode, and its game type and mode
- *                 keep at least one published preset.
+ *                 keep at least one published preset; the Organizer's speeds fit its mode. A preset
+ *                 stored before the Organizer's part existed gets `organizerDefaults` on reading.
  * Depends on:     zod, @sbr/contracts, ./settings
  * Used by:        ../http/app, ../http/routes/adminPresets, ../http/routes/adminSettings
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §6, §8 (b), (k), §9 piece 3
  */
-import { DEFAULT_RULESETS, GameTypeSchema, RulesetSchema, type Ruleset } from '@sbr/contracts';
+import {
+  DEFAULT_RULESETS,
+  GameTypeSchema,
+  OrganizerSchema,
+  organizerDefaults,
+  RulesetSchema,
+  speedProblem,
+  type Organizer,
+  type Ruleset,
+} from '@sbr/contracts';
 import { z } from 'zod';
 
 import type { SettingsDocument, SettingsStore } from './settings.js';
@@ -32,8 +42,21 @@ export const PresetSchema = z.strictObject({
   status: z.enum(['draft', 'published', 'retired']),
   publishedAt: z.number().int().nullable(),
   ruleset: RulesetSchema,
+  // The Organizer's part (piece 4); a preset stored before it gets the defaults on reading.
+  organizer: OrganizerSchema.optional(),
 });
-export type Preset = z.infer<typeof PresetSchema>;
+export type Preset = z.infer<typeof PresetSchema> & { readonly organizer: Organizer };
+
+// A stored preset, its Organizer part filled in; null when it does not parse.
+function parsed(document: unknown): Preset | null {
+  const p = PresetSchema.safeParse(document);
+  if (!p.success) return null;
+  return { ...p.data, organizer: p.data.organizer ?? organizerDefaults(p.data.ruleset) };
+}
+
+// The three speeds fit the preset's mode (01 §5, D12).
+const speedsFit = (p: Preset): boolean =>
+  Object.values(p.organizer.speedsMs).every((ms) => speedProblem(p.ruleset, ms) === null);
 
 // The built-in rulesets, one published preset each, under the name a match has frozen with
 // them so far (`matches.ruleset_name`), and a name for the admin area.
@@ -56,6 +79,7 @@ export class Presets {
         status: 'published',
         publishedAt: 0,
         ruleset,
+        organizer: organizerDefaults(ruleset),
       };
       await this.store.seed(`${PRESET_PREFIX}${id}`, preset);
     }
@@ -65,15 +89,30 @@ export class Presets {
     return this.store
       .documents(PRESET_PREFIX)
       .flatMap(([id, doc]) => {
-        const p = PresetSchema.safeParse(doc);
-        return p.success ? [{ id: id.slice(PRESET_PREFIX.length), preset: p.data }] : [];
+        const p = parsed(doc);
+        return p === null ? [] : [{ id: id.slice(PRESET_PREFIX.length), preset: p }];
       })
       .sort((a, b) => a.id.localeCompare(b.id));
   }
 
   get(id: string): Preset | null {
-    const p = PresetSchema.safeParse(this.store.get(`${PRESET_PREFIX}${id}`));
-    return p.success ? p.data : null;
+    return parsed(this.store.get(`${PRESET_PREFIX}${id}`));
+  }
+
+  // Every published preset, for the Organizer's page: live ones first (the page preselects
+  // the first of a game type), then by id.
+  open(): (Preset & { readonly id: string })[] {
+    const live = (p: Preset): number => (p.mode === 'realtime' ? 0 : 1);
+    return this.list()
+      .filter((e) => e.preset.status === 'published')
+      .sort((a, b) => live(a.preset) - live(b.preset))
+      .map((e) => ({ ...e.preset, id: e.id }));
+  }
+
+  // A published preset the Organizer chose (the "Start a match" page); null otherwise.
+  chosen(id: string): (Preset & { readonly id: string }) | null {
+    const p = this.get(id);
+    return p?.status === 'published' ? { ...p, id } : null;
   }
 
   // What a match created without a chosen ruleset is played with, the preset's id as the
@@ -92,9 +131,8 @@ export class Presets {
 
   // What stops `document` from becoming preset `documentId`, or null (see the header).
   problem(documentId: string, document: SettingsDocument): 'invalid' | 'lastPublished' | null {
-    const next = PresetSchema.safeParse(document);
-    if (!next.success) return 'invalid';
-    const p = next.data;
+    const p = parsed(document);
+    if (p === null || !speedsFit(p)) return 'invalid';
     const id = documentId.slice(PRESET_PREFIX.length);
     const before = this.get(id);
     const kept = before === null || (before.gameType === p.gameType && before.mode === p.mode);

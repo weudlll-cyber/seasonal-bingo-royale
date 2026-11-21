@@ -4,14 +4,14 @@
  * @module web/host
  * @brief  How a match starts on screen (01 §7.6, D16): the form, the console's switch and notice.
  *
- * Responsibility: the create form sends a set time with "Start automatically at the start
- *                 time" (off unless ticked) and refuses one less than a minute ahead; the
+ * Responsibility: the match body sends a set time with "Start automatically at the start
+ *                 time" (off unless ticked; the page's checkbox: ./startMatch.test) and refuses one less than a minute ahead; the
  *                 console of a match with a set time offers Start match and the switch,
  *                 which sends the change; it shows "Not enough players at the start time —
  *                 start it yourself or abort" when the automatic start found too few, with
  *                 the line "Waiting for players …" and "Abort match" in the lobby; during
  *                 maintenance Start match is disabled with the reason beside it (D22).
- * Depends on:     @testing-library/react, ./CreateMatch, ./createForm, ./HostConsole,
+ * Depends on:     @testing-library/react, ./createForm, ./HostConsole,
  *                 ./TimingFields, ../test/matchFixture, ../game/useLiveMatch,
  *                 ../shell/useMaintenance
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3
@@ -22,7 +22,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MatchSummary } from '../game/useLiveMatch.js';
 import { MaintenanceContext } from '../shell/useMaintenance.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
-import { CreateMatch } from './CreateMatch.js';
 import { createBody, INITIAL } from './createForm.js';
 import { HostConsole } from './HostConsole.js';
 import { startTimeProblem } from './TimingFields.js';
@@ -57,7 +56,7 @@ function localHourAhead(): string {
 }
 
 describe('the create form (D16)', () => {
-  it('sends a set time with the automatic start off unless ticked', async () => {
+  it('sends a set time with the automatic start off unless ticked', () => {
     const local = localHourAhead();
     const at = new Date(local).getTime();
     const start = { kind: 'at' as const, local, auto: false };
@@ -70,11 +69,6 @@ describe('the create form (D16)', () => {
     expect(startTimeProblem({ kind: 'at', local: '', auto: false }, Date.now())).toBe(
       'Pick a start time at least a minute from now.',
     );
-    serveMatch(matchSummary());
-    await show(<CreateMatch />);
-    expect(screen.queryByTestId('create-start-auto')).toBeNull();
-    fireEvent.change(screen.getByTestId('create-start-rule'), { target: { value: 'at' } });
-    expect(screen.getByTestId<HTMLInputElement>('create-start-auto').checked).toBe(false);
   });
 });
 

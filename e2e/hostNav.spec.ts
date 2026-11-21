@@ -27,10 +27,10 @@ import {
 } from './realGame.js';
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 
-// The create form with the start rules: a start time an hour ahead (local, as the field takes it).
+// "Start a match" with the start rules: a start time an hour ahead (local, as the field takes it).
 async function shootCreateForm(page: Page): Promise<void> {
   await page.goto('/#/host/new');
-  await page.getByTestId('create-title').fill('Friday night bingo');
+  await page.getByTestId('start-title').fill('Friday night bingo');
   await page.getByTestId('create-start-rule').selectOption('at');
   const at = new Date(Date.now() + 3_600_000 - new Date().getTimezoneOffset() * 60_000);
   await page.getByTestId('create-start-at').fill(at.toISOString().slice(0, 16));
@@ -120,11 +120,11 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
     window.scrollTo(0, document.body.scrollHeight);
   });
   // An in-page jump brings the field to the top edge: it must stop below the bar.
-  await page.getByTestId('create-title').evaluate((el) => {
+  await page.getByTestId('start-title').evaluate((el) => {
     el.scrollIntoView({ block: 'start' });
   });
   const barBox = await bar.boundingBox();
-  const fieldBox = await page.getByTestId('create-title').boundingBox();
+  const fieldBox = await page.getByTestId('start-title').boundingBox();
   expect(barBox).not.toBeNull();
   expect(fieldBox?.y ?? 0, 'field below the sticky bar').toBeGreaterThanOrEqual(
     (barBox?.y ?? 0) + (barBox?.height ?? 0),

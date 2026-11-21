@@ -10,7 +10,7 @@
  *                 play. Labels never use the word "auto" alone, so they cannot be
  *                 confused with marking.
  * Depends on:     react, ../drawControl, ../shell/session (the ruleset interval it names)
- * Used by:        ./StartForm, ../host/CreateMatch, ../quicktest/TestMatch
+ * Used by:        ./StartForm, ../quicktest/TestMatch
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';

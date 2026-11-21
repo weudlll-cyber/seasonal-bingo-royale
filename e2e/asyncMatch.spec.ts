@@ -3,13 +3,13 @@
  * @module e2e
  * @brief  Journey 2: an asynchronous match, a day away, "While you were away" (WP-14).
  *
- * Responsibility: the host creates an asynchronous royale from the form (15-minute draws, quiet
+ * Responsibility: the host creates an asynchronous royale (API; 15-minute draws, quiet
  *                 hours around the current hour of the browser's time zone); a player joins and
  *                 the match starts with bots; the player sees the quiet-hours notice, then closes
  *                 the browser; the development time travel moves the match a day ahead; the player
  *                 comes back and the away summary counts exactly the numbers drawn in the
  *                 server's log, and Dismiss removes it. The match is aborted at the end. In
- *                 Chromium the form, the quiet hours and the summary are saved (both sizes and
+ *                 Chromium the quiet hours and the summary are saved (both sizes and
  *                 themes) to reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/12-testing-strategy.md §4 (journey 2); docs/spec/01-game-design.md §5, §11;
@@ -26,19 +26,30 @@ test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
 
-// The host's form: an asynchronous royale, quiet hours from this hour for two hours.
-async function hostAsyncMatch(host: Page, shots: boolean): Promise<string> {
-  await host.goto('/#/host/new');
-  await host.getByTestId('create-title').fill('Slow royale');
-  await host.getByTestId('create-pace').selectOption('async');
-  const hour = await host.evaluate(() => new Date().getHours());
-  await host.getByTestId('create-quiet-start').selectOption(String(hour));
-  await host.getByTestId('create-quiet-end').selectOption(String((hour + 2) % 24));
-  await host.getByTestId('create-max').fill('8');
-  if (shots) await captureLook(host, SHOTS_DIR, 'async-create', host.getByTestId('create-async'));
-  await host.getByTestId('create-submit').click();
+// An asynchronous royale with quiet hours from this hour for two hours, through the API (the
+// Organizer's page takes quiet hours from the preset), then its console.
+async function hostAsyncMatch(host: Page): Promise<string> {
+  const { hour, timeZone } = await host.evaluate(() => ({
+    hour: new Date().getHours(),
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }));
+  const created = await post(host, '/api/v1/matches', {
+    title: 'Slow royale',
+    gameType: 'royale',
+    mode: 'async',
+    quietHours: { startHour: hour, endHour: (hour + 2) % 24 },
+    timeZone,
+    drawMode: 'auto',
+    missedNumbers: { kind: 'noAutoMark' },
+    maxPlayers: 8,
+    roundPause: { kind: 'wait', ms: 15_000 },
+    startRule: { kind: 'host' },
+  });
+  expect(created.status()).toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  await host.goto(`/#/host/${code}`);
   await expect(host.getByTestId('host-console')).toBeVisible();
-  return (await host.getByTestId('host-code').innerText()).trim();
+  return code;
 }
 
 // The numbers drawn in the server's log of the match, as the player's state shows it.
@@ -55,7 +66,7 @@ test('journey 2: a day away from an asynchronous match', async ({ browser }, inf
   const player = await (await browser.newContext()).newPage();
   await signIn(host, 'host');
   await signIn(player, 'player-1');
-  const code = await hostAsyncMatch(host, shots);
+  const code = await hostAsyncMatch(host);
   try {
     await joinFromLobby(player, code);
     await fillAndStart(host, 8);

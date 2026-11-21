@@ -66,6 +66,8 @@ interface RouteCase {
 }
 
 // The admin area's routes: Admins only, in standalone and in website mode.
+const START_PRESETS: RouteCase = { method: 'GET', path: '/api/v1/presets', allow: HOSTS };
+
 const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/admin/overview', allow: ADMINS },
   {
@@ -136,6 +138,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/auth/2fa/verify', body: { code: '000000' }, allow: SESSION },
   { method: 'DELETE', path: '/api/v1/me', body: { password: 'not the password' }, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/matches', body: {}, allow: HOSTS },
+  // The Organizer's presets (admin-area §3): whoever may start a match.
+  START_PRESETS,
   { method: 'POST', path: '/api/v1/matches/:code/join', body: {}, allow: ACCOUNTS },
   {
     method: 'POST',
@@ -346,7 +350,16 @@ async function webSession(app: App, who: keyof typeof WEB_VISITORS | 'guest') {
   return { cookie, csrf: s.csrfToken, accountId: s.account?.id ?? null };
 }
 
-// One admin route under the website's base path, with the session's cookie and token.
+type WebWho = 'anonymous' | 'guest' | 'player' | 'host' | 'admin';
+
+// The routes checked in website mode and who gets through there: the admin area for website
+// admins; the Organizer's presets also for a member the website lets host.
+const WEB_ROUTES: readonly { route: RouteCase; allow: readonly WebWho[] }[] = [
+  ...ADMIN_ROUTES.map((route) => ({ route, allow: ['admin'] as const })),
+  { route: START_PRESETS, allow: ['host', 'admin'] },
+];
+
+// One route under the website's base path, with the session's cookie and token.
 async function webCall(
   app: App,
   s: { cookie: string | null; csrf: string | null } | null,
@@ -363,16 +376,16 @@ async function webCall(
 }
 
 describe('the authorization matrix: the admin area in website mode', () => {
-  it('lets only the website admins through', async () => {
+  it('lets only the website admins through (and hosts to the presets)', async () => {
     const app = await buildOn(kit.harness.pool, kit.harness.container.getConnectionUri(), WEBSITE);
     const made: string[] = [];
     const wrong: string[] = [];
     for (const who of ['anonymous', 'guest', 'player', 'host', 'admin'] as const) {
       const s = who === 'anonymous' ? null : await webSession(app, who);
       if (s?.accountId) made.push(s.accountId);
-      for (const route of ADMIN_ROUTES) {
+      for (const { route, allow } of WEB_ROUTES) {
         const r = await webCall(app, s, route);
-        if (refused(r.status, r.code) === (who === 'admin') || r.status >= 500) {
+        if (refused(r.status, r.code) === allow.includes(who) || r.status >= 500) {
           wrong.push(`${route.method} ${route.path} as ${who}: ${String(r.status)}`);
         }
       }

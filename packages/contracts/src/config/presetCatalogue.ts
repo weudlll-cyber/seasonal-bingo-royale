@@ -20,7 +20,16 @@ export interface Entry {
   readonly warning?: string;
   // Read only by matches of this mode (the other mode's value is left out, §8 (r)).
   readonly mode?: 'realtime' | 'async';
+  // An asynchronous preset shows the value in this unit instead (minutes, not seconds).
+  readonly asyncUnit?: { readonly unit: string; readonly scale: number };
 }
+
+const SPEED = {
+  unit: 's',
+  scale: 1000,
+  asyncUnit: { unit: 'min', scale: 60_000 },
+  warning: 'Must stay inside the draw interval range of the preset’s mode.',
+} as const;
 
 // What each value does, by path pattern (`*` stands for a stage index or a season).
 export const CATALOGUE: Readonly<Record<string, Entry>> = {
@@ -212,5 +221,52 @@ export const CATALOGUE: Readonly<Record<string, Entry>> = {
       'How long an asynchronous match waits for players before it starts or is cancelled.',
     unit: 'h',
     scale: 3_600_000,
+  },
+  // The Organizer's part (./organizer): what the "Start a match" page offers.
+  'organizer.description': {
+    label: 'What is special',
+    description: 'One line under the preset’s name on the Organizer’s page, e.g. “About 45 min”.',
+  },
+  'organizer.players.min': {
+    label: 'Fewest players the Organizer may set',
+    description: 'The lower end of the Organizer’s “up to N players”.',
+    unit: 'players',
+  },
+  'organizer.players.max': {
+    label: 'Most players the Organizer may set',
+    description: 'The upper end of the Organizer’s “up to N players”.',
+    unit: 'players',
+  },
+  'organizer.players.start': {
+    label: 'Players to start with',
+    description: 'Where the Organizer’s “up to N players” starts.',
+    unit: 'players',
+  },
+  'organizer.speedsMs.relaxed': {
+    ...SPEED,
+    label: 'Relaxed',
+    description: 'The time between numbers when the Organizer picks “Relaxed”.',
+  },
+  'organizer.speedsMs.normal': {
+    ...SPEED,
+    label: 'Normal',
+    description: 'The time between numbers when the Organizer picks “Normal”.',
+  },
+  'organizer.speedsMs.quick': {
+    ...SPEED,
+    label: 'Quick',
+    description: 'The time between numbers when the Organizer picks “Quick”.',
+  },
+  'organizer.starts.now': {
+    label: 'Start: now',
+    description: 'The Organizer may open the lobby and start the match from the console.',
+  },
+  'organizer.starts.at': {
+    label: 'Start: at a time',
+    description: 'The Organizer may set a start time.',
+  },
+  'organizer.starts.whenFull': {
+    label: 'Start: when full',
+    description: 'The Organizer may let the match start once it is full.',
   },
 };

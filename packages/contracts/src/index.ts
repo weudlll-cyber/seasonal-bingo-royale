@@ -19,6 +19,14 @@
 export { GameTypeSchema, type GameType } from './config/gameType.js';
 export { ClientLimitsSchema, LIMITS, type ClientLimits } from './config/limits.js';
 export {
+  OrganizerSchema,
+  organizerDefaults,
+  speedProblem,
+  SPEEDS,
+  type Organizer,
+  type Speed,
+} from './config/organizer.js';
+export {
   presetFields,
   presetPathName,
   readPath,

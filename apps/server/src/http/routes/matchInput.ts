@@ -8,8 +8,7 @@
  *                 numbers, leaderboard switch, max players, pause between royale rounds, and
  *                 in development the fast test profile; the bounds from @sbr/contracts LIMITS,
  *                 which the session answer sends to the forms), its mapping to the engine's
- *                 CreateMatchInput (without a chosen ruleset: the published preset, admin-area
- *                 §8 (b)), and the status code for each MatchError (404 unknown
+ *                 CreateMatchInput (the preset's rules: ./startPresets), and the status code for each MatchError (404 unknown
  *                 match, 409 wrong phase or quiet hours, 503 maintenance, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application, @sbr/contracts, ../../dev/fastRulesets
  * Used by:        ./matches, ./matchHost
@@ -22,7 +21,7 @@ import {
   MAX_PRIZES,
   PrizeKeySchema,
   QuietHoursSchema,
-  type Ruleset,
+  SPEEDS,
 } from '@sbr/contracts';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -74,30 +73,19 @@ export const createBody = z.object({
     .optional(),
   // Development only (the route refuses it otherwise): the fast test profile (../../dev).
   testProfile: z.literal('fast').optional(),
+  // The Organizer's page (admin-area §3): a published preset and its speed in words; the
+  // preset then decides the rules and the interval (./startPresets).
+  preset: z
+    .string()
+    .regex(/^[a-zA-Z0-9-]{1,80}$/)
+    .optional(),
+  speed: z.enum(SPEEDS).optional(),
 });
 
 export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
-  const { testProfile, ...input } = body;
+  const { testProfile, preset: _preset, speed: _speed, ...input } = body;
   const fast = testProfile === 'fast' ? fastRuleset(body.gameType) : null;
   return fast === null ? input : { ...input, ruleset: fast };
-}
-
-// The published preset of a game type and mode (../../admin/presets), or null.
-export type PresetLookup = (
-  gameType: CreateMatchInput['gameType'],
-  mode: NonNullable<CreateMatchInput['mode']>,
-) => { readonly name: string; readonly ruleset: Ruleset } | null;
-
-// A match without a chosen ruleset (not the fast test profile) plays the published preset.
-export function withPreset<T extends CreateMatchInput>(
-  lookup: PresetLookup | undefined,
-  input: T,
-): T {
-  if (input.ruleset !== undefined || lookup === undefined) return input;
-  const preset = lookup(input.gameType, input.mode ?? 'realtime');
-  return preset === null
-    ? input
-    : { ...input, ruleset: { name: preset.name, ruleset: preset.ruleset } };
 }
 
 const CONFLICT = new Set([

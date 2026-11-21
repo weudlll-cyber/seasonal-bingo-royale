@@ -74,6 +74,7 @@ test('an admin changes a preset and the next match plays it', async ({ browser }
   try {
     await admin.goto('/#/admin/presets');
     await admin.getByTestId('preset-pick').selectOption('royale-realtime');
+    await admin.getByRole('button', { name: 'Draws and timing' }).click();
     await admin.getByLabel('Time between numbers').fill(String(next / 1000));
     await admin.getByTestId('preset-comment').fill('Slower evenings');
     await admin.getByTestId('preset-save').click();

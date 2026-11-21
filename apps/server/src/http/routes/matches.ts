@@ -34,14 +34,9 @@ import { registerHostRoutes } from './matchHost.js';
 import { myMatches } from './myMatches.js';
 import type { LiveViews } from '../../view/liveViews.js';
 import type { WatchQuery } from '../../view/watchView.js';
-import {
-  createBody,
-  sendEngineError,
-  toCreateInput,
-  withPreset,
-  type PresetLookup,
-} from './matchInput.js';
+import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
+import { presetInput, type PresetSource } from './startPresets.js';
 
 export interface MatchRouteDeps {
   readonly pool: DbPool;
@@ -59,7 +54,7 @@ export interface MatchRouteDeps {
   readonly website: boolean;
   // The published preset a match without a chosen ruleset plays (admin-area §8 (b)); none:
   // the built-in ruleset.
-  readonly preset?: PresetLookup;
+  readonly presets?: PresetSource;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -176,10 +171,13 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     }
     try {
-      const input = withPreset(deps.preset, {
+      const input = presetInput(deps.presets, parsed.data, {
         ...toCreateInput(parsed.data),
         showOnWebsite: website(deps, parsed.data),
       });
+      if (input === 'invalid') return await reply.status(400).send({ code: 'VALIDATION_FAILED' });
+      if (input === 'unavailable')
+        return await reply.status(409).send({ code: 'PRESET_UNAVAILABLE' });
       const record = await deps.engine.create(input, accountId);
       return await reply.status(201).send({ code: record.code, id: record.id });
     } catch (error) {

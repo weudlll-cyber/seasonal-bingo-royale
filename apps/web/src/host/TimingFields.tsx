@@ -1,9 +1,9 @@
 /**
  * @file   apps/web/src/host/TimingFields.tsx
  * @module web/host
- * @brief  The create form's timing rules: start rule, shortest draw interval (D12), round pause (D14).
+ * @brief  Timing choices of a new match: start rule, shortest draw interval (D12), round pause (D14).
  *
- * Responsibility: the start rule (I start it; at a set time at least a minute ahead, with
+ * Responsibility: the start rule, only the starts the preset allows (now: I start it; at a set time at least a minute ahead, with
  *                 "Start automatically at the start time", default off, D16; when every
  *                 place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
  *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
@@ -14,7 +14,8 @@
  *                 limits (admin-area §8 (m)). The server enforces both as well. Every option
  *                 fits a 390 px phone.
  * Depends on:     react, @sbr/contracts, ../game/labels, ../shell/session, ../types
- * Used by:        ./CreateMatch, ./HostDrawControls, ./HostLobby, ./createForm
+ * Used by:        ./ThisMatchFields, ./StartMatch, ./startForm, ./HostDrawControls, ./HostLobby,
+ *                 ./createForm
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D14)
  */
 import {
@@ -171,9 +172,12 @@ export function startTimeProblem(c: StartRuleChoice, now: number): string | null
 export function StartRuleField({
   value,
   onChange,
+  allowed,
 }: {
   readonly value: StartRuleChoice;
   readonly onChange: (next: StartRuleChoice) => void;
+  // The starts the preset allows the Organizer (admin-area §3).
+  readonly allowed: { readonly now: boolean; readonly at: boolean; readonly whenFull: boolean };
 }): ReactElement {
   const limits = useLimits();
   return (
@@ -189,9 +193,9 @@ export function StartRuleField({
           onChange(kind === 'at' ? { kind, local: '', auto: false } : { kind });
         }}
       >
-        <option value="host">I start it from the console</option>
-        <option value="at">At a set time</option>
-        <option value="whenFull">When every place is taken</option>
+        {allowed.now ? <option value="host">Now: I start it from the console</option> : null}
+        {allowed.at ? <option value="at">At a set time</option> : null}
+        {allowed.whenFull ? <option value="whenFull">When every place is taken</option> : null}
       </select>
       {value.kind === 'at' ? (
         <label className="sbr-row">

@@ -6,9 +6,10 @@
  *
  * Responsibility: with a session whose limits differ from today's (a 40-character title, up to
  *                 150 players, a 15-second countdown, a 6 s interval, names of 4 to 20 and
- *                 passwords of 14 to 100 characters), the host form and the register form show
- *                 and check those; the round pause refuses more than its 120 s before sending.
- * Depends on:     @testing-library/react, @sbr/contracts, ./CreateMatch, ../account/Register,
+ *                 passwords of 14 to 100 characters), "Start a match" (title, countdown; players
+ *                 and speed come from the preset) and the register form show and check those;
+ *                 the round pause refuses more than its 120 s before sending.
+ * Depends on:     @testing-library/react, @sbr/contracts, ./StartMatch, ../account/Register,
  *                 ../account/accountText, ../test/matchFixture
  * Spec:           docs/concepts/admin-area.md §8 (m), §9 piece 0
  */
@@ -18,8 +19,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { registerProblem } from '../account/accountText.js';
 import { Register } from '../account/Register.js';
-import { show } from '../test/matchFixture.js';
-import { CreateMatch } from './CreateMatch.js';
+import { show, START_PRESETS } from '../test/matchFixture.js';
+import { StartMatch } from './StartMatch.js';
 
 afterEach(() => {
   cleanup();
@@ -46,7 +47,9 @@ function serveSession(): void {
           csrfToken: 'x',
           limits: SENT,
         }
-      : { matches: [], mine: [] };
+      : url.endsWith('/presets')
+        ? { presets: START_PRESETS }
+        : { matches: [], mine: [] };
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(answer(url))))),
@@ -56,13 +59,10 @@ function serveSession(): void {
 const input = (id: string) => screen.getByTestId<HTMLInputElement>(id);
 
 describe('the server sends the limits; the forms keep no copy (admin-area §8 (m))', () => {
-  it('the host form shows and checks the limits it was sent', async () => {
+  it('"Start a match" shows and checks the limits it was sent', async () => {
     serveSession();
-    await show(<CreateMatch />);
-    expect(input('create-title').maxLength).toBe(40);
-    expect([input('create-max').min, input('create-max').max]).toEqual(['2', '150']);
-    expect(screen.getByText('Max players (2–150)')).toBeTruthy();
-    expect(input('start-draw-interval').placeholder).toBe('6');
+    await show(<StartMatch />);
+    expect(input('start-title').maxLength).toBe(40);
     expect(screen.getByTestId('create-match').textContent).toContain('a 15-second countdown');
     // The round pause: at most 120 s, refused by the form before anything is sent.
     const pause = input('create-round-pause-sec');

@@ -7,7 +7,7 @@
  * Responsibility: `#/admin/presets` is the Presets page; it shows a preset's values in tabs
  *                 with the unit, the built-in default and the technical limit the server sent,
  *                 milliseconds as seconds; Save posts only the changed value in stored units;
- *                 "Retire" posts the status; the server's refusal reads as a sentence. The
+ *                 the chosen tab stays after a save; "Retire" posts the status; the server's refusal reads as a sentence. The
  *                 History names a preset change by its value: "… · Time between numbers: 3 s →
  *                 9 s", a stage's value with its stage.
  * Depends on:     @testing-library/react, ../shell/router, ../shell/session, ./AdminPresets,
@@ -121,6 +121,25 @@ describe('the Presets page (admin-area §4)', () => {
     expect(screen.getByLabelText<HTMLInputElement>('Time between numbers').value).toBe('9');
     fireEvent.click(screen.getByRole('button', { name: 'Stages and cuts' }));
     expect(screen.getByTestId('preset-stages-1-rounds').textContent).toContain('Stage 2 · Rounds');
+  });
+});
+
+describe('the Presets page after a save', () => {
+  it('stays on the tab after a save', async () => {
+    serve();
+    render(
+      <SessionProvider>
+        <AdminPresets />
+      </SessionProvider>,
+    );
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Stages and cuts' }));
+    fireEvent.change(screen.getByLabelText('Stage 2 · Rounds'), { target: { value: '3' } });
+    fireEvent.click(screen.getByTestId('preset-save'));
+    await settle();
+    expect(
+      screen.getByRole('button', { name: 'Stages and cuts' }).getAttribute('aria-pressed'),
+    ).toBe('true');
   });
 
   it('says why retiring the last published preset is refused', async () => {
