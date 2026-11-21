@@ -36,10 +36,15 @@ test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
 
+// The worst case of the match below: a row is certain once all 75 numbers are drawn, one
+// every 4 s, after the 10 s countdown, with half a minute to spare (CI run 44959191596: the
+// first row came with number 44, past a fixed 180 s).
+const TO_THE_END_MS = 10_000 + 75 * 4_000 + 30_000;
+
 test('a played match shows on the profile and gives no league points with bots', async ({
   browser,
 }, info) => {
-  test.setTimeout(5 * 60_000);
+  test.setTimeout(2 * 60_000 + TO_THE_END_MS);
   const shots = info.project.name === 'chromium';
   const host = await (await browser.newContext()).newPage();
   const one = await (await browser.newContext()).newPage();
@@ -65,7 +70,7 @@ test('a played match shows on the profile and gives no league points with bots',
     await joinFromLobby(two, code);
     await host.goto(`/#/host/${code}`);
     await fillAndStart(host, 20);
-    await expect(host.getByTestId('end-actions')).toBeVisible({ timeout: 180_000 });
+    await expect(host.getByTestId('end-actions')).toBeVisible({ timeout: TO_THE_END_MS });
     // The player's final placement: players link to their profiles, bots never.
     const final = one.getByTestId('final-placement');
     await expect(final).toBeVisible({ timeout: 20_000 });
