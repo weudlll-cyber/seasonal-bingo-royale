@@ -4,10 +4,11 @@
  * @brief  The admin area's Players and accounts (standalone only): find, roles, lock, 2FA, sessions.
  *
  * Responsibility: GET /api/v1/admin/accounts?q= (`accounts.manage`): up to 20 accounts whose
- *                 name or e-mail starts with q. POST /api/v1/admin/accounts/:id/role { role:
+ *                 name starts with q (and e-mail, with the addresses, for the owner:
+ *                 `accounts.email`, 2026-11-21). POST /api/v1/admin/accounts/:id/role { role:
  *                 organizer | game_admin, on } (the Admin role needs `admins.manage`, the
- *                 owner's), …/:id/lock { locked }, …/:id/reset-2fa, …/:id/end-sessions
- *                 (`accounts.manage`). Every change: the second step passed within 10 minutes
+ *                 owner's), …/:id/lock { locked }, …/:id/end-sessions (`accounts.manage`),
+ *                 …/:id/reset-2fa (the owner's: `twofactor.reset`). Every change: the second step passed within 10 minutes
  *                 (./adminTechnical recentSecondStep, admin-area §7 row 10), never the caller's
  *                 own account (409 OWN_ACCOUNT), never an owner's account without being an owner
  *                 (403 FORBIDDEN), 404 for no such account; one audit entry; the sessions it
@@ -109,7 +110,8 @@ export function registerAdminAccounts(app: FastifyInstance, deps: AdminAccountsD
     if (requirePermission(request, reply, 'accounts.manage') === null) return reply;
     const query = searchQuery.safeParse(request.query);
     if (!query.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    return { accounts: await findAccounts(deps.pool, query.data.q) };
+    const withEmail = request.session?.permissions.includes('accounts.email') === true;
+    return { accounts: await findAccounts(deps.pool, query.data.q, withEmail) };
   });
   const manage = () => 'accounts.manage';
   change(
@@ -132,7 +134,12 @@ export function registerAdminAccounts(app: FastifyInstance, deps: AdminAccountsD
   change(
     app,
     deps,
-    { path: '/api/v1/admin/accounts/:id/reset-2fa', schema: emptyBody, permission: manage },
+    // The owner's only (2026-11-21).
+    {
+      path: '/api/v1/admin/accounts/:id/reset-2fa',
+      schema: emptyBody,
+      permission: () => 'twofactor.reset',
+    },
     (c) => resetSecondStep(deps.pool, c),
   );
   change(

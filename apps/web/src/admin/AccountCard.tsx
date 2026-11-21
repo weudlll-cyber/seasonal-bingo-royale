@@ -6,7 +6,7 @@
  * Responsibility: the name, e-mail, roles in words, locked or not, whether a second step is set
  *                 up and the last sign-in; the buttons: Organizer on or off, Admin on or off
  *                 (only for the owner, `admins.manage`), lock or unlock, reset the second step
- *                 (when there is one) and end the sessions, each handed to the page as an
+ *                 (when there is one, the owner only: `twofactor.reset`, 2026-11-21) and end the sessions, each handed to the page as an
  *                 action (path, body, words). The server decides what is allowed.
  * Depends on:     react, ./changeText (when)
  * Used by:        ./AdminAccounts
@@ -26,6 +26,12 @@ export interface AccountView {
   readonly lastLoginAt: number | null;
 }
 
+// The owner's powers (admin-area §2, §8 (t)): give and remove Admin, reset a second step.
+export interface OwnerPowers {
+  readonly admins: boolean;
+  readonly resetSecondStep: boolean;
+}
+
 export interface Action {
   readonly accountId: string;
   readonly path: string;
@@ -41,7 +47,7 @@ const ROLE_NAMES: Readonly<Record<string, string>> = {
 };
 
 // The actions this account offers: words on the button, the route, the body, the words after.
-function actionsOf(x: AccountView, admins: boolean): [string, string, object, string][] {
+function actionsOf(x: AccountView, may: OwnerPowers): [string, string, object, string][] {
   const has = (role: string) => x.roles.includes(role);
   const organizer = has('organizer');
   const admin = has('game_admin');
@@ -53,7 +59,7 @@ function actionsOf(x: AccountView, admins: boolean): [string, string, object, st
       { role: 'organizer', on: !organizer },
       organizer ? 'Organizer removed' : 'Organizer given',
     ],
-    ...(admins
+    ...(may.admins
       ? [
           [
             admin ? 'Remove Admin' : 'Make Admin',
@@ -64,7 +70,7 @@ function actionsOf(x: AccountView, admins: boolean): [string, string, object, st
         ]
       : []),
     [locked ? 'Unlock' : 'Lock', 'lock', { locked: !locked }, locked ? 'unlocked' : 'locked'],
-    ...(x.secondStep
+    ...(may.resetSecondStep && x.secondStep
       ? [
           ['Reset second step', 'reset-2fa', {}, 'second step reset'] as [
             string,
@@ -80,7 +86,8 @@ function actionsOf(x: AccountView, admins: boolean): [string, string, object, st
 
 export function AccountCard(props: {
   readonly account: AccountView;
-  readonly admins: boolean;
+  // What only the owner may do (the server checks it too).
+  readonly may: OwnerPowers;
   readonly onAct: (a: Action) => void;
 }): ReactElement {
   const x = props.account;
@@ -97,7 +104,7 @@ export function AccountCard(props: {
         {x.lastLoginAt === null ? 'never signed in' : `last sign-in ${when(x.lastLoginAt)}`}
       </p>
       <div className="admin-actions">
-        {actionsOf(x, props.admins).map(([label, path, body, done]) => (
+        {actionsOf(x, props.may).map(([label, path, body, done]) => (
           <button
             key={label}
             type="button"

@@ -3,8 +3,9 @@
  * @module server/test
  * @brief  Players and accounts: find, Organizer and Admin, lock, second step, sessions (piece 8).
  *
- * Responsibility: an Admin finds an account by the start of its name and makes it an
- *                 Organizer (its session lives on, with the new permission); only the owner
+ * Responsibility: the owner alone sees e-mail addresses and finds by them, and alone resets a
+ *                 second step (2026-11-21); an Admin finds an account by the start of its
+ *                 name and makes it an Organizer (its session lives on, with the new permission); only the owner
  *                 makes it an Admin, which ends its sessions (the next sign-in asks for the
  *                 second step); locking ends its sessions and refuses its sign-in, unlocking
  *                 lets it in again; ending sessions and resetting the second step work and every
@@ -71,8 +72,19 @@ const rolesOf = async () =>
 const path = (what: string) => `/api/v1/admin/accounts/${id}/${what}`;
 
 describe('Players and accounts (admin-area §4)', () => {
+  it('shows e-mail addresses to the owner only, and finds by them only for the owner', async () => {
+    const forAdmin = await admin.get('/api/v1/admin/accounts?q=manag');
+    expect(forAdmin.json<{ accounts: { email: unknown }[] }>().accounts[0]?.email).toBeNull();
+    const byEmail = await admin.get('/api/v1/admin/accounts?q=managed%40');
+    expect(byEmail.json<{ accounts: unknown[] }>().accounts).toEqual([]);
+    const ownerByEmail = await owner.get('/api/v1/admin/accounts?q=managed%40');
+    expect(ownerByEmail.json<{ accounts: { id: string }[] }>().accounts[0]?.id).toBe(id);
+  });
+});
+
+describe('Players and accounts: find and roles (admin-area §4)', () => {
   it('finds an account by the start of its name, with its facts', async () => {
-    const r = await admin.get('/api/v1/admin/accounts?q=manag');
+    const r = await owner.get('/api/v1/admin/accounts?q=manag');
     expect(r.json()).toMatchObject({
       accounts: [
         {
@@ -128,7 +140,9 @@ describe('Players and accounts: sessions, second step, refusals (admin-area §7)
     expect(await liveSessions()).toBe(1);
     expect((await admin.post(path('end-sessions'), {})).statusCode).toBe(204);
     expect(await liveSessions()).toBe(0);
-    expect((await admin.post(path('reset-2fa'), {})).statusCode).toBe(204);
+    // The owner's only (2026-11-21).
+    expect((await admin.post(path('reset-2fa'), {})).statusCode).toBe(403);
+    expect((await owner.post(path('reset-2fa'), {})).statusCode).toBe(204);
   });
 
   it('refuses the own account, an owner for an Admin, an unknown one and a stale second step', async () => {

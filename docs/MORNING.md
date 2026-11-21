@@ -121,6 +121,8 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 
 - A match without a preset: only Admins, the load check and development tools (development builds) create one; an organizer names a published preset (admin-area §8 (s)). Built: the server refuses an organizer's request without a preset (403 `PRESET_REQUIRED`); the development tools mark their requests (`devTools: true`, refused outside development builds); the test helpers and the Quick Test send the mark.
 
+- Players and accounts: every Admin locks and unlocks; only the owner resets a second step and sees e-mail addresses (admin-area §8 (t)). Built: migration `0025_accounts_owner.sql` (`twofactor.reset`, `accounts.email` for super_admin); the 2FA reset route needs `twofactor.reset`; the search returns e-mail addresses and finds by them only with `accounts.email` (finding by e-mail would reveal an address); the page hides the reset button and the e-mail search from an Admin. Authz rows: reset-2fa now the owner's only; in website mode every account route answers every role with 404 or a refusal (new rows).
+
 ## Small faults fixed on 2026-11-21
 
 - The account chip names the highest role — owner, admin, organizer or player — instead of "host" for everyone who may start a match (`highestRole`, `apps/web/src/shell/session.tsx`); the e2e sign-in reads it per identity.
@@ -148,4 +150,3 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 - Technical: not moved — the mail sender (`mail.from`: the mailer is made at start from SBR_SMTP_FROM; it would need the mailer to read the sender per mail), the password's minimum length (a limit the client reads, piece 0), the 2FA drift, issuer name and recovery code count, and the rate limits of anonymous requests, Verify, the open sign-ups, the website sign-in hop and the socket taps. Which of these should move?
 - Technical: website mode keeps members' and guests' sessions at 7 days at most (owner 2026-11-04/09); the section's "Player session, at most" applies to standalone installs only.
 - Settings in general: the server keeps the current settings in memory, read at start and replaced on a change in that process. One server process runs today; a second process would not see another's change until it restarts.
-- Players and accounts: Admins (not only the owner) may lock accounts, reset their second step and end their sessions, and see e-mail addresses in the search; only the owner gives or removes the Admin role. A role change takes effect at once for permissions; a new Organizer keeps their session. Should locking, resetting the second step or seeing e-mail be the owner's only?

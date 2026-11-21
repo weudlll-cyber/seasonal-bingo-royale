@@ -3,8 +3,9 @@
  * @module server/admin
  * @brief  Account administration: find accounts, roles, lock, second step reset, sessions.
  *
- * Responsibility: `findAccounts` — up to 20 accounts whose display name or e-mail starts with
- *                 the search (deleted ones never), with their roles, status, whether they have a
+ * Responsibility: `findAccounts` — up to 20 accounts whose display name (or, for the owner,
+ *                 e-mail) starts with the search (deleted ones never; e-mail addresses for the
+ *                 owner only), with their roles, status, whether they have a
  *                 second step and when they last signed in. Each change runs in one transaction
  *                 with its audit entry (./audit) and ends the sessions it must: giving or
  *                 removing a role (`setRole`; the Admin role ends the account's sessions, so the
@@ -34,7 +35,13 @@ export interface AccountRow {
 
 const LIST = 20;
 
-export async function findAccounts(pool: DbPool, search: string): Promise<AccountRow[]> {
+// `withEmail`: the owner (`accounts.email`) sees e-mail addresses and finds by them; an Admin
+// finds by name only and sees no address (owner decision of 2026-11-21).
+export async function findAccounts(
+  pool: DbPool,
+  search: string,
+  withEmail: boolean,
+): Promise<AccountRow[]> {
   const r = await pool.query<{
     id: string;
     display_name: string;
@@ -50,14 +57,14 @@ export async function findAccounts(pool: DbPool, search: string): Promise<Accoun
             EXISTS (SELECT 1 FROM sbr.totp_factors f WHERE f.account_id = a.id) AS second_step
        FROM sbr.accounts a
       WHERE a.status <> 'deleted'
-        AND (a.display_name_key LIKE $1 OR a.email LIKE $1)
+        AND (a.display_name_key LIKE $1 OR ($2 AND a.email LIKE $1))
       ORDER BY a.display_name_key LIMIT ${String(LIST)}`,
-    [`${search.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`],
+    [`${search.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`, withEmail],
   );
   return r.rows.map((row) => ({
     id: row.id,
     displayName: row.display_name,
-    email: row.email,
+    email: withEmail ? row.email : null,
     roles: row.roles ?? [],
     status: row.status,
     secondStep: row.second_step,

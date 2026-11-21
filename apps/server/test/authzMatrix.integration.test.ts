@@ -75,6 +75,16 @@ const TECHNICAL: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/admin/technical', body: {}, allow: ['superAdmin'] },
 ];
 
+// Players and accounts (standalone only): account `0` is no id, so 400 after the checks.
+// Resetting a second step is the owner's (2026-11-21).
+const ACCOUNT_ROUTES: readonly RouteCase[] = [
+  { method: 'GET', path: '/api/v1/admin/accounts', allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/role', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/lock', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/reset-2fa', body: {}, allow: ['superAdmin'] },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/end-sessions', body: {}, allow: ADMINS },
+];
+
 const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/admin/overview', allow: ADMINS },
   {
@@ -180,12 +190,7 @@ const ROUTES: readonly RouteCase[] = [
   // The admin area (admin-area §9 piece 1); the empty bodies are refused before any change.
   ...ADMIN_ROUTES,
   ...TECHNICAL,
-  // Players and accounts (standalone only): account `0` is no id, so 400 after the checks.
-  { method: 'GET', path: '/api/v1/admin/accounts', allow: ADMINS },
-  { method: 'POST', path: '/api/v1/admin/accounts/:id/role', body: {}, allow: ADMINS },
-  { method: 'POST', path: '/api/v1/admin/accounts/:id/lock', body: {}, allow: ADMINS },
-  { method: 'POST', path: '/api/v1/admin/accounts/:id/reset-2fa', body: {}, allow: ADMINS },
-  { method: 'POST', path: '/api/v1/admin/accounts/:id/end-sessions', body: {}, allow: ADMINS },
+  ...ACCOUNT_ROUTES,
 ];
 
 // Every intent of the gateway (INTENT_TYPES); anonymous sockets are refused at the handshake.
@@ -409,6 +414,13 @@ describe('the authorization matrix: the admin area in website mode', () => {
       for (const { route, allow } of WEB_ROUTES) {
         const r = await webCall(app, s, route);
         if (refused(r.status, r.code) === allow.includes(who) || r.status >= 500) {
+          wrong.push(`${route.method} ${route.path} as ${who}: ${String(r.status)}`);
+        }
+      }
+      // The website decides accounts and roles: no account route exists there for anyone.
+      for (const route of ACCOUNT_ROUTES) {
+        const r = await webCall(app, s, route);
+        if (r.status !== 404 && !refused(r.status, r.code)) {
           wrong.push(`${route.method} ${route.path} as ${who}: ${String(r.status)}`);
         }
       }

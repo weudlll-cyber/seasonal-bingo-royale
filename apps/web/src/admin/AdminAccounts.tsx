@@ -7,7 +7,8 @@
  *                 D46). Standalone: a search by the start of a name or e-mail (GET
  *                 /admin/accounts), each account with its roles, status, second step and last
  *                 sign-in, and its actions: Organizer on or off, Admin on or off (the owner's,
- *                 `admins.manage`), lock or unlock, reset the second step, end the sessions. An
+ *                 `admins.manage`), lock or unlock, reset the second step (the owner's), end the
+ *                 sessions; e-mail addresses and finding by them for the owner only (2026-11-21). An
  *                 action the server answers with STEP_UP_REQUIRED waits for "Confirm it is you"
  *                 (./StepUp) and runs again; the list reloads after each. The server checks
  *                 every permission and refuses one's own account and an owner's for an Admin.
@@ -68,7 +69,12 @@ export function AdminAccounts(): ReactElement {
     <div className="admin-page sbr-stack" data-testid="admin-accounts">
       <h1>Players and accounts</h1>
       <AdminNav current="accounts" />
-      <SearchForm query={a.query} onQuery={a.setQuery} onSearch={a.search} />
+      <SearchForm
+        query={a.query}
+        byEmail={can('accounts.email')}
+        onQuery={a.setQuery}
+        onSearch={a.search}
+      />
       {a.message === null ? null : <p role="status">{a.message}</p>}
       {a.waiting === null ? null : (
         <StepUp
@@ -83,7 +89,12 @@ export function AdminAccounts(): ReactElement {
       ) : (
         <ol className="admin-history">
           {a.found.map((x) => (
-            <AccountCard key={x.id} account={x} admins={can('admins.manage')} onAct={a.act} />
+            <AccountCard
+              key={x.id}
+              account={x}
+              may={{ admins: can('admins.manage'), resetSecondStep: can('twofactor.reset') }}
+              onAct={a.act}
+            />
           ))}
         </ol>
       )}
@@ -107,6 +118,8 @@ function WebsiteNote(): ReactElement {
 
 function SearchForm(props: {
   readonly query: string;
+  // The owner also finds by e-mail (2026-11-21).
+  readonly byEmail: boolean;
   readonly onQuery: (q: string) => void;
   readonly onSearch: (q: string) => void;
 }): ReactElement {
@@ -119,7 +132,7 @@ function SearchForm(props: {
       }}
     >
       <label className="sbr-field">
-        <span>Name or e-mail starts with</span>
+        <span>{props.byEmail ? 'Name or e-mail starts with' : 'Name starts with'}</span>
         <input
           className="sbr-input"
           value={props.query}

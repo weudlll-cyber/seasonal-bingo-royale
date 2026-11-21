@@ -7,7 +7,8 @@
  * Responsibility: `#/admin/accounts` is the page; in website mode it only says that accounts and
  *                 roles come from the website; standalone it finds accounts by the start of a
  *                 name and shows their facts; "Make Admin" only for the owner; an action the
- *                 server answers with STEP_UP_REQUIRED runs again after "Confirm it is you".
+ *                 server answers with STEP_UP_REQUIRED runs again after "Confirm it is you";
+ *                 resetting a second step and finding by e-mail are the owner's (2026-11-21).
  * Depends on:     @testing-library/react, ../shell/router, ../shell/session, ./AdminAccounts
  * Spec:           docs/concepts/admin-area.md §2, §4 (Players and accounts), §7, §9 piece 8
  */
@@ -24,7 +25,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const ACCOUNT = {
+// Mutable: one test gives the account a second step.
+const ACCOUNT: { secondStep: boolean } & Record<string, unknown> = {
   id: 'a1',
   displayName: 'managed1',
   email: 'managed@example.com',
@@ -108,6 +110,27 @@ describe('Players and accounts (admin-area §4)', () => {
     expect(sent.filter((s) => s === lock)).toHaveLength(2);
     expect(sent).toContain('GET /api/v1/admin/accounts?q=manag ');
     expect(screen.getByRole('status').textContent).toBe('Done: locked (managed1).');
+  });
+});
+
+describe('Players and accounts: what only the owner may do (2026-11-21)', () => {
+  it('offers resetting a second step and finding by e-mail to the owner only (2026-11-21)', async () => {
+    ACCOUNT.secondStep = true;
+    serve(['admin.view', 'accounts.manage']);
+    await showIn(<AdminAccounts />);
+    expect(screen.getByText('Name starts with')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Find accounts' }));
+    await settle();
+    expect(screen.queryByRole('button', { name: 'Reset second step' })).toBeNull();
+    cleanup();
+    serve(['admin.view', 'accounts.manage', 'twofactor.reset', 'accounts.email', 'admins.manage']);
+    await showIn(<AdminAccounts />);
+    expect(screen.getByText('Name or e-mail starts with')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Find accounts' }));
+    await settle();
+    expect(screen.getByRole('button', { name: 'Reset second step' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Make Admin' })).toBeTruthy();
+    ACCOUNT.secondStep = false;
   });
 
   it('names each account change in the History', () => {

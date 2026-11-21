@@ -136,6 +136,7 @@ The file references for (m)–(r) are in [admin-values.md](admin-values.md) §"O
 ### Decided (owner decision of 2026-11-21)
 
 - **(s) A match without a preset:** only an Admin, the load check and the development tools (Quick Test, the tests; development builds only) create one. An organizer's request names a published preset and stays inside its bounds; the server refuses anything else (403 `PRESET_REQUIRED`).
+- **(t) Players and accounts:** every Admin finds accounts by name, gives and removes the Organizer role, locks and unlocks and ends sessions; only the owner (`super_admin`) resets a second step (`twofactor.reset`), sees e-mail addresses and finds by them (`accounts.email`), and gives or removes the Admin role. The server checks each; the page offers only what the role may do.
 
 ## 9. Build order
 
