@@ -11,15 +11,18 @@
  *                 changed (old and new) and its comment; settings changes can be undone. POST
  *                 /api/v1/admin/history/:id/undo (`settings.edit`): undoes that settings change
  *                 as a new version (admin-area §6, §8 (k)); 404 for no such change, 409 when
- *                 nothing is left to undo. The server checks every permission; input through
+ *                 nothing is left to undo or the undo would leave a preset invalid or no preset
+ *                 of its kind published. The server checks every permission; input through
  *                 zod; the session plugin's limit and CSRF apply; every change is audited.
- * Depends on:     fastify, zod, ../../admin/settings, ../../db/pool, ./matches (requirePermission)
+ * Depends on:     fastify, zod, ../../admin/presets, ../../admin/settings, ../../db/pool,
+ *                 ./matches (requirePermission)
  * Used by:        ../app
  * Spec:           docs/concepts/admin-area.md §4 (Overview, History), §6, §8 (k), (p), §9 piece 2
  */
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
+import { PRESET_PREFIX, type Presets } from '../../admin/presets.js';
 import type { SettingsStore } from '../../admin/settings.js';
 import type { DbPool } from '../../db/pool.js';
 import { requirePermission } from './matches.js';
@@ -27,6 +30,7 @@ import { requirePermission } from './matches.js';
 export interface AdminSettingsDeps {
   readonly pool: DbPool;
   readonly settings: SettingsStore;
+  readonly presets: Presets;
   // Per document, what the environment gives the values a version leaves out (§8 (p)), so
   // the History can name the value in effect before a first change.
   readonly defaults: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -61,7 +65,7 @@ interface HistoryRow {
 
 // "features@3": the settings document and version a settings change wrote.
 function settingsTarget(row: { target_type: string; target_id: string }) {
-  const m = /^([a-z_]+)@(\d+)$/.exec(row.target_id);
+  const m = /^([a-zA-Z0-9_:-]+)@(\d+)$/.exec(row.target_id);
   if (row.target_type !== 'settings' || m === null) return null;
   return { documentId: m[1] ?? '', version: Number(m[2]) };
 }
@@ -103,19 +107,38 @@ export function registerAdminSettingsRoutes(app: FastifyInstance, deps: AdminSet
     };
   });
 
-  app.post<{ Params: { id: string } }>('/api/v1/admin/history/:id/undo', async (request, reply) => {
-    const actor = requirePermission(request, reply, 'settings.edit');
-    if (actor === null) return reply;
-    const params = undoParams.safeParse(request.params);
-    if (!params.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    const row = await deps.pool.query<{ target_type: string; target_id: string }>(
-      'SELECT target_type, target_id FROM sbr.audit_log WHERE id = $1',
-      [params.data.id],
-    );
-    const target = row.rows[0] === undefined ? null : settingsTarget(row.rows[0]);
-    if (target === null) return reply.status(404).send({ code: 'NOT_FOUND' });
-    const version = await deps.settings.undo(target.documentId, target.version, actor, request.id);
-    if (version === null) return reply.status(409).send({ code: 'NOTHING_TO_UNDO' });
-    return { version };
+  app.post<{ Params: { id: string } }>('/api/v1/admin/history/:id/undo', (request, reply) =>
+    undoChange(request, reply, deps),
+  );
+}
+
+// Undo of one settings change, as a new version (see the header).
+async function undoChange(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply,
+  deps: AdminSettingsDeps,
+) {
+  const actor = requirePermission(request, reply, 'settings.edit');
+  if (actor === null) return reply;
+  const params = undoParams.safeParse(request.params);
+  if (!params.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
+  const row = await deps.pool.query<{ target_type: string; target_id: string }>(
+    'SELECT target_type, target_id FROM sbr.audit_log WHERE id = $1',
+    [params.data.id],
+  );
+  const target = row.rows[0] === undefined ? null : settingsTarget(row.rows[0]);
+  if (target === null) return reply.status(404).send({ code: 'NOT_FOUND' });
+  const { documentId } = target;
+  const version = await deps.settings.undo({
+    documentId,
+    undone: target.version,
+    actorAccountId: actor,
+    requestId: request.id,
+    // A preset must stay a valid one with a published preset left (../../admin/presets).
+    accept: (doc) =>
+      !documentId.startsWith(PRESET_PREFIX) || deps.presets.problem(documentId, doc) === null,
   });
+  if (version === 'nothing') return reply.status(409).send({ code: 'NOTHING_TO_UNDO' });
+  if (version === 'refused') return reply.status(409).send({ code: 'UNDO_REFUSED' });
+  return { version };
 }

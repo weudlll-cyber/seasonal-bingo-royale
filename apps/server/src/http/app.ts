@@ -10,12 +10,12 @@
  *                 the live match engine and the game's routes (./gameRoutes: matches, Verify,
  *                 boards and profiles, the admin area; in development the demo league and the
  *                 time travel on the time-travel clock), with the admin area's settings loaded
- *                 at start (../admin/settings), onto a fresh Fastify instance, under the base
+ *                 and the built-in presets seeded at start (../admin/settings, ../admin/presets), onto a fresh Fastify instance, under the base
  *                 path and behind the trusted proxies; first of all, refuse a seed key that does
  *                 not open the stored match secrets. The caller owns the lifecycle (listen,
  *                 scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
- *                 ../admin/settings, ../auth/sessionEnds, ../auth/sessionPlugin,
+ *                 ../admin/presets, ../admin/settings, ../auth/sessionEnds, ../auth/sessionPlugin,
  *                 ../website/accountFeed, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ./plugins/problem,
  *                 ./plugins/securityHeaders, ./gameRoutes, ./signIn, ./routes/health,
@@ -27,6 +27,7 @@
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
+import { Presets } from '../admin/presets.js';
 import { SettingsStore } from '../admin/settings.js';
 import { SessionEnds } from '../auth/sessionEnds.js';
 import { SocketLimits } from '../realtime/socketLimits.js';
@@ -123,12 +124,15 @@ const runtimeOptions = (
   leagueNeedsVerifiedEmail: () => env.SBR_AUTH_MODE === 'website' || switches().emailVerification,
 });
 
-// The admin area's settings, read by the server at runtime (../admin/settings), and the
-// switches read from them.
+// The admin area's settings, read by the server at runtime (../admin/settings), the presets
+// and the switches read from them.
 async function loadSettings(pool: DbPool, env: Env) {
   const settings = new SettingsStore(pool);
   await settings.load();
-  return { settings, switches: liveSwitches(env, settings) };
+  // The built-in presets, unless an earlier start seeded them (../admin/presets).
+  const presets = new Presets(settings);
+  await presets.seed();
+  return { settings, presets, switches: liveSwitches(env, settings) };
 }
 
 // The meters, health, the client (or the placeholder) and in development the Quick Test.
@@ -147,7 +151,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
-  const { settings, switches } = await loadSettings(deps.pool, deps.env);
+  const { settings, presets, switches } = await loadSettings(deps.pool, deps.env);
   const options = runtimeOptions(deps.env, metrics, clock, switches);
   const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
@@ -186,6 +190,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     live: metrics.live,
     views,
     settings,
+    presets,
     switches,
   });
   const live = registerGateway(fastify, deps.env, metrics, {

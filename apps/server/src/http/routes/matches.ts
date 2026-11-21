@@ -6,7 +6,8 @@
  * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
  *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
  *                 503 MAINTENANCE while `sbr maintenance on`, except for the load check's host,
- *                 12 §5), GET /matches/:code, GET
+ *                 12 §5; without a chosen ruleset the published preset, admin-area §8 (b)), GET
+ *                 /matches/:code, GET
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
  *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
@@ -33,7 +34,13 @@ import { registerHostRoutes } from './matchHost.js';
 import { myMatches } from './myMatches.js';
 import type { LiveViews } from '../../view/liveViews.js';
 import type { WatchQuery } from '../../view/watchView.js';
-import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
+import {
+  createBody,
+  sendEngineError,
+  toCreateInput,
+  withPreset,
+  type PresetLookup,
+} from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
 
 export interface MatchRouteDeps {
@@ -50,6 +57,9 @@ export interface MatchRouteDeps {
   readonly views: LiveViews;
   // Website mode: matches may be shown on the website (D50); standalone never.
   readonly website: boolean;
+  // The published preset a match without a chosen ruleset plays (admin-area §8 (b)); none:
+  // the built-in ruleset.
+  readonly preset?: PresetLookup;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -166,7 +176,10 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
       return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     }
     try {
-      const input = { ...toCreateInput(parsed.data), showOnWebsite: website(deps, parsed.data) };
+      const input = withPreset(deps.preset, {
+        ...toCreateInput(parsed.data),
+        showOnWebsite: website(deps, parsed.data),
+      });
       const record = await deps.engine.create(input, accountId);
       return await reply.status(201).send({ code: record.code, id: record.id });
     } catch (error) {

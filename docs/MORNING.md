@@ -42,14 +42,25 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - Tests that failed first: `dbRoles.integration` (settings_versions writable by the app), `adminSettings.integration` with its routes unregistered (3 failed), `apps/web/src/admin/adminHistory.test.tsx` (no page). Also in the authz matrix. e2e `adminHistory.spec` (serial: switches guests off, the server refuses a guest, the History shows it, undo brings it back; fit at 1280×720 and 390×844 at 100/125/150 %).
   - Reused: `requirePermission`, the audit chain, `SessionProvider`, `problemText`, the panel/chip/field tokens; e2e `signIn`, `post`, `captureLook`, `fitProbe`.
   - Review shots: `admin-2-switches-*`, `admin-2-history-*`.
+  - Commit `c559d8f`; CI and CodeQL green (run 44868036339).
+- Piece 3 — the Presets:
+  - No migration: each preset is a settings document `preset:<id>` (§6) with name, game type, mode, status (draft, published, retired), when it was last published, and the full ruleset. At start the server seeds one published preset per built-in ruleset unless it exists (`apps/server/src/admin/presets.ts`); its id is the ruleset's name so far (`royale-realtime`, `royale-async`, `classic-seasons-realtime`, `classic-realtime`), which a new match freezes as its ruleset name as before — never the admin's preset name, since the website's open sign-ups filter on that name (`-test`).
+  - Value forms generated from the schema: `presetFields(ruleset)` in @sbr/contracts (`config/presetFields.ts`, the texts in `config/presetCatalogue.ts`) lists each value with its tab, name, what changing it does, unit (milliseconds shown as seconds, minutes or hours), kind, the min and max read from `RulesetSchema` itself (zod's `minValue`/`maxValue`; shown as "technical limit") and a warning where needed; the server adds the current value and the built-in default. Values the game does not read (§8 (r)) and values the preset's mode does not read are left out.
+  - New matches take the published preset (§8 (b)): a match created without a chosen ruleset (the host form, the API; not the fast test profile) plays the most recently published preset of its game type and mode and freezes that copy; running and older matches keep their own.
+  - New endpoints (`apps/server/src/http/routes/adminPresets.ts`; checked on the server, zod-validated, rate-limited and CSRF-checked by the session plugin, every change a new version with its audit entry): `GET /api/v1/admin/presets` (`admin.view`), `POST /api/v1/admin/presets/:id { values, comment? }` (`settings.edit`; only paths the preset's fields offer; the result must pass the full `RulesetSchema`), `POST /api/v1/admin/presets/:id/duplicate { name, comment? }` (`settings.edit`; a draft), `POST /api/v1/admin/presets/:id/status { status, comment? }` (`settings.edit`; publish or retire; 409 `LAST_PUBLISHED` for the last published preset of a kind). Authz rows: allowed for Admin and owner; refused for signed out, guest, player, another host, the match's host; website mode allowed for the website admin only.
+  - Undo now works value by value inside a document (a preset's other rules stay), and is refused (409 `UNDO_REFUSED`) when it would leave a preset invalid or no preset of its kind published.
+  - Client: `#/admin/presets` (`admin/AdminPresets.tsx`, `PresetEditor.tsx`, `presetText.ts`): pick a preset; Publish or Retire; Duplicate under a new name; the rules in seven tabs (only tabs with values: a classic preset has no stages or jackpot), each value with its name ("Stage 2 · Rounds", "Spring · Points"), warning, input in the shown unit, what it does, "Built in: … · technical limit …"; a comment and "Save the rules", which sends only the changed values. The History names a preset change by value ("Battle royale · Time between numbers: 5 s → 7 s").
+  - Tests that failed first: `packages/contracts/src/config/presetFields.test.ts` (no module; later the mode filter: 1 failed), `apps/server/test/adminPresets.integration.test.ts` with its routes unregistered (5 failed), `authzMatrix.integration` without the four rows (2 failed), `apps/web/src/admin/adminPresets.test.tsx` (no page). e2e `adminPresets.spec` (serial: the admin changes "Time between numbers", the host starts a match the old way with the interval left empty and it runs on the new interval, the History shows it; fit at 1280×720 and 390×844 at 100/125/150 %).
+  - Reused: `SettingsStore` (new `seed`, `create`, `documents`), the audit chain, `requirePermission`, `defaultRulesetFor`, `DEFAULT_RULESETS`, `RulesetSchema`, `gameTypeName`, `problemText`, `AdminNav`, the panel/chip/field tokens; e2e `signIn`, `hostMatch`, `stopMatch`, `post`, `captureLook`, `fitProbe`.
+  - Review shots: `admin-3-presets-*` (the rules panel with the changed value).
 
 ## Running
 
-- Piece 2's checks and CI.
+- Piece 3's checks and CI.
 
 ## Open
 
-- Pieces 3, 4, 5, 6, 7, 8 of admin-area.md §9.
+- Pieces 4, 5, 6, 7, 8 of admin-area.md §9.
 
 ## Reverted
 
@@ -61,3 +72,8 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 - Undo reverts only the values the undone change touched (a new version); the concept's wording ("a new version whose content is an older version's") would also undo every later change to other values of the same document. When nothing changed after it, both are the same.
 - The e-mail switch is shown in both modes; in website mode the website decides who is confirmed, so it changes nothing there but is harmless. Hide it in website mode?
 - The audit log stores no IP address: docs/spec/04 lists `ip inet` for `audit_log`, but the game stores no IP address (migration 0018, docs/PRIVACY-DATA.md). Which should win?
+- Presets: the structure is not editable — effect types per season, the stage list and kinds, round-end kinds, cut kinds and timing, score carry kinds, pattern lists, prize points and the Season Complete effect (§8 (j) left out the pattern editor; changing structure changes how a match is played beyond §9). Values only.
+- Presets: a match without a chosen ruleset takes the most recently published preset of its kind when several are published. Piece 4 lets the Organizer pick one.
+- Presets: the host form still shows the built-in interval as its placeholder and checks the shortest interval against the built-in speed window (client copies of the built-in ruleset in `host/TimingFields.tsx`); the server uses the preset. Piece 4 (the Organizer's page reads the preset) replaces them.
+- Presets: a preset's name cannot be changed after Duplicate (no rename in §9 piece 3); the built-in presets on a database seeded before this commit keep their first names. On this machine's local test database an earlier build of this piece seeded them named by id ("royale-realtime") plus a `classicSeasons-realtime` preset with the same rules as `classic-seasons-realtime`; left as it is (an admin can retire it on the Presets page). Fresh installs and CI get "Battle royale" etc.
+- Presets: `stages.*.cut.value` has no schema maximum (it is a share, a number of players or a score, by the cut's kind); the form shows no technical limit for it.

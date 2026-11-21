@@ -12,11 +12,13 @@
  *                 stay. The server keeps the current documents in memory, loaded at start and
  *                 replaced on every change, so a change applies at once without a restart.
  *                 Values a document leaves out come from the environment (§8 (p): it is only
- *                 the first default).
- * Depends on:     ../db/pool (types), ./audit
- * Used by:        ../http/app, ../http/routes/settings, ../config/features
+ *                 the first default). Built-in documents (the presets, ./presets) are seeded as
+ *                 version 1; a duplicated preset is a new document, audited.
+ * Depends on:     @sbr/contracts (readPath, writePath), ../db/pool (types), ./audit
+ * Used by:        ../http/app, ../http/routes/adminSettings, ./presets, ../config/features
  * Spec:           docs/concepts/admin-area.md §6, §8 (k), (p); docs/spec/04-database-design.md §3.2
  */
+import { readPath, writePath } from '@sbr/contracts';
 import type pg from 'pg';
 
 import type { DbPool } from '../db/pool.js';
@@ -30,6 +32,23 @@ export interface SettingsChange {
   readonly actorAccountId: string;
   readonly comment: string | null;
   readonly requestId: string | null;
+}
+
+export interface SettingsUndo {
+  readonly documentId: string;
+  readonly undone: number;
+  readonly actorAccountId: string;
+  readonly requestId: string | null;
+  // A last check of the document the undo would write (a preset must stay a valid one).
+  readonly accept?: (document: SettingsDocument) => boolean;
+}
+
+// Every path to a value that is not an object or array ("ruleset.stages.0.rounds").
+function leafPaths(value: unknown, prefix = ''): string[] {
+  if (value === null || typeof value !== 'object') return prefix === '' ? [] : [prefix];
+  return Object.entries(value).flatMap(([key, v]) =>
+    leafPaths(v, prefix === '' ? key : `${prefix}.${key}`),
+  );
 }
 
 // The documents the server reads at runtime, in memory: loaded at start, replaced on change.
@@ -70,40 +89,77 @@ export class SettingsStore {
     return version;
   }
 
-  // Undo of version N: a new version in which each value version N changed is back to what it
-  // was before N; values changed later by other versions stay (never a delete). Null when
-  // there is no such version or nothing is left to undo.
-  async undo(
-    documentId: string,
-    undone: number,
-    actorAccountId: string,
-    requestId: string | null,
-  ): Promise<number | null> {
+  // Undo of version N: a new version in which each value version N changed (nested values
+  // one by one, so a preset's other rules stay) is back to what it was before N; values changed
+  // later by other versions stay (never a delete). 'nothing' when there is no such version or
+  // nothing is left to undo; 'refused' when `accept` turns the result down.
+  async undo(u: SettingsUndo): Promise<number | 'nothing' | 'refused'> {
     const pair = await this.pool.query<{ version: number; document: SettingsDocument }>(
       `SELECT version, document FROM sbr.settings_versions
         WHERE document_id = $1 AND version IN ($2, $2 - 1)`,
-      [documentId, undone],
+      [u.documentId, u.undone],
     );
-    const before = pair.rows.find((r) => r.version === undone - 1)?.document;
-    const after = pair.rows.find((r) => r.version === undone)?.document;
-    if (before === undefined || after === undefined) return null;
-    const next = new Map(Object.entries(this.get(documentId)));
-    let changed = false;
-    for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
-      if (JSON.stringify(before[key]) === JSON.stringify(after[key])) continue;
-      if (JSON.stringify(next.get(key)) === JSON.stringify(before[key])) continue;
-      changed = true;
-      if (before[key] === undefined) next.delete(key);
-      else next.set(key, before[key]);
+    const before = pair.rows.find((r) => r.version === u.undone - 1)?.document;
+    const after = pair.rows.find((r) => r.version === u.undone)?.document;
+    if (before === undefined || after === undefined) return 'nothing';
+    let next: unknown = this.get(u.documentId);
+    for (const path of new Set([...leafPaths(before), ...leafPaths(after)])) {
+      const was = JSON.stringify(readPath(before, path));
+      if (was === JSON.stringify(readPath(after, path))) continue;
+      if (JSON.stringify(readPath(next, path)) === was) continue;
+      next = writePath(next, path, readPath(before, path));
     }
-    if (!changed) return null;
+    if (next === this.get(u.documentId)) return 'nothing';
+    // Through JSON, so a value back to "left out" is gone rather than undefined.
+    const document = JSON.parse(JSON.stringify(next)) as SettingsDocument;
+    if (u.accept !== undefined && !u.accept(document)) return 'refused';
     return this.change({
-      documentId,
-      next: Object.fromEntries(next),
-      actorAccountId,
-      comment: `Undo of version ${String(undone)}`,
-      requestId,
+      documentId: u.documentId,
+      next: document,
+      actorAccountId: u.actorAccountId,
+      comment: `Undo of version ${String(u.undone)}`,
+      requestId: u.requestId,
     });
+  }
+
+  // The current documents whose id starts with `prefix` (the presets: `preset:`).
+  documents(prefix: string): [string, SettingsDocument][] {
+    return [...this.current].filter(([id]) => id.startsWith(prefix));
+  }
+
+  // A document the server ships (a built-in preset): written as version 1 unless it exists;
+  // not an admin's change, so no audit entry.
+  async seed(documentId: string, document: SettingsDocument): Promise<void> {
+    await this.inTransaction(async (client) => {
+      const made = await client.query(
+        'INSERT INTO sbr.settings_documents (id) VALUES ($1) ON CONFLICT DO NOTHING',
+        [documentId],
+      );
+      if (made.rowCount === 0) return;
+      await client.query(
+        `INSERT INTO sbr.settings_versions (document_id, version, document, comment)
+         VALUES ($1, 1, $2, 'Built in')`,
+        [documentId, JSON.stringify(document)],
+      );
+      this.current.set(documentId, document);
+    });
+  }
+
+  // A new document (a duplicated preset): version 1, audited like a change from nothing.
+  async create(c: SettingsChange): Promise<void> {
+    await this.inTransaction(async (client) => {
+      await client.query('INSERT INTO sbr.settings_documents (id) VALUES ($1)', [c.documentId]);
+      await insertVersion(client, { ...c, version: 1 });
+      await appendAudit(client, {
+        actorAccountId: c.actorAccountId,
+        action: 'settings.change',
+        targetType: 'settings',
+        targetId: `${c.documentId}@1`,
+        diff: { from: {}, to: c.next, comment: c.comment },
+        requestId: c.requestId,
+      });
+    });
+    this.current.set(c.documentId, c.next);
   }
 
   private async inTransaction<T>(run: (client: pg.PoolClient) => Promise<T>): Promise<T> {

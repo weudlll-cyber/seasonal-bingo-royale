@@ -79,6 +79,11 @@ const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/admin/history', allow: ADMINS },
   // No entry 0: refused before, 400 after the permission check.
   { method: 'POST', path: '/api/v1/admin/history/:id/undo', body: {}, allow: ADMINS },
+  // Preset `0` does not exist: refused before, 400 or 404 after the permission check.
+  { method: 'GET', path: '/api/v1/admin/presets', allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/presets/:id', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/presets/:id/duplicate', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/presets/:id/status', body: {}, allow: ADMINS },
 ];
 
 // `:code` is the host's match. Every route the server registers is listed here.

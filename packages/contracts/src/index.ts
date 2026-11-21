@@ -16,8 +16,16 @@
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 
-export { type GameType } from './config/gameType.js';
+export { GameTypeSchema, type GameType } from './config/gameType.js';
 export { ClientLimitsSchema, LIMITS, type ClientLimits } from './config/limits.js';
+export {
+  presetFields,
+  presetPathName,
+  readPath,
+  writePath,
+  type PresetField,
+  type PresetTab,
+} from './config/presetFields.js';
 export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,

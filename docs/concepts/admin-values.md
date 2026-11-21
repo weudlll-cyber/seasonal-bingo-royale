@@ -50,6 +50,8 @@ Each with the proposal and the alternative as listed; the owner decided all of t
 
 ## A. Rulesets and contracts
 
+Built (admin-area §9 piece 3): the values of part A a ruleset of that mode reads are in the admin area's **Presets**, one preset per ruleset (`preset:royale-realtime`, `preset:royale-async`, `preset:classic-seasons-realtime`, `preset:classic-realtime`), with the schema's technical min and max; the names, units and warnings are in `packages/contracts/src/config/presetCatalogue.ts`. Not offered there: values the game does not read (§8 (r)) or the preset's mode does not read (a realtime preset's `intervalMsAsync`, `quietHours` and `openMsAsync`; an asynchronous preset's `intervalMsRealtime`), and the structure (effect types, the stage list and kinds, round-end kinds, cut kinds, cut timing, score-carry kinds, pattern lists, prize points, `seasonComplete.effect`). The rows below still name where each built-in value is set.
+
 ### Draws and timing
 
 | id                                                 | file:line                                                                                  | current value + unit          | what changing it does                                                                                          | who may change it   | min          | max                        | min/max reason                                                                                                         | warning                                                                                 | applies          |

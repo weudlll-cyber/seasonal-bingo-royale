@@ -30,6 +30,7 @@ import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { AdminHistory } from '../admin/AdminHistory.js';
 import { AdminOverview } from '../admin/AdminOverview.js';
+import { AdminPresets } from '../admin/AdminPresets.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
 import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
@@ -267,6 +268,7 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
     case 'admin':
+      if (route.section === 'presets') return <AdminPresets />;
       return route.section === 'history' ? <AdminHistory /> : <AdminOverview />;
   }
 }

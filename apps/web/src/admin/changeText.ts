@@ -5,12 +5,14 @@
  *
  * Responsibility: the names of the switches (also the Overview's labels), a settings change as
  *                 one line per value that changed (a value the version leaves out reads as the
- *                 default the server named), maintenance switched on or off, and a match
- *                 aborted with its reason. Unknown actions read as their name.
- * Depends on:     nothing
+ *                 default the server named; a preset's values through ./presetText),
+ *                 maintenance switched on or off, and a match aborted with its reason. Unknown
+ *                 actions read as their name.
+ * Depends on:     ./presetText
  * Used by:        ./AdminHistory, ./AdminSwitches
  * Spec:           docs/concepts/admin-area.md §4 (History), §6
  */
+import { presetLines } from './presetText.js';
 
 export interface HistoryEntry {
   readonly id: number;
@@ -39,6 +41,8 @@ const record = (v: unknown): Readonly<Record<string, unknown>> =>
 // "Guests may watch: on → off", one line per value the change touched.
 function settingsLines(e: HistoryEntry, defaults: Defaults): string[] {
   const documentId = e.target.split('@')[0] ?? '';
+  if (documentId.startsWith('preset:'))
+    return presetLines(record(e.diff['from']), record(e.diff['to']));
   const base = defaults[documentId] ?? {};
   const from = { ...base, ...record(e.diff['from']) };
   const to = { ...base, ...record(e.diff['to']) };

@@ -6,10 +6,11 @@
  * Responsibility: the Overview and the History in one column of panels with the admin
  *                 area's navigation as chips; each open match (and each History entry) a row
  *                 whose head wraps on a phone, its facts below; the switches with their
- *                 descriptions.
+ *                 descriptions; a preset's values with their input, unit, warning and limits.
  *                 Sizes from the @sbr/ui tokens (no text below the small size, fit audit);
  *                 colours from the tokens only.
- * Used by:        ./AdminOverview, ./AdminHistory, ./AdminNav, ./AdminSwitches
+ * Used by:        ./AdminOverview, ./AdminHistory, ./AdminNav, ./AdminSwitches, ./AdminPresets,
+ *                 ./PresetEditor
  * Spec:           docs/concepts/admin-area.md §4; docs/concepts/fit-audit.md §6
  */
 
@@ -53,7 +54,8 @@
   font-size: var(--font-size-small);
 }
 
-/* The admin area's own navigation (./AdminNav): its sections as chips, the current one solid */
+/* The admin area's own navigation (./AdminNav) and a preset's tabs (./PresetEditor): chips,
+   the current one solid */
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
@@ -64,7 +66,8 @@
   text-decoration: none;
 }
 
-.admin-nav a[aria-current='page'] {
+.admin-nav a[aria-current='page'],
+.admin-nav button[aria-pressed='true'] {
   background: var(--color-solid);
   color: var(--color-on-solid);
 }
@@ -95,4 +98,36 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* A preset's value (./PresetEditor): its name and warning, the input with its unit, then
+   what it does and its limits */
+.admin-field {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+
+.admin-field-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.admin-field-input .sbr-input,
+.admin-field-input .sbr-select {
+  max-width: 12rem;
+}
+
+.admin-field-input input[type='checkbox'] {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.admin-warning {
+  padding: var(--space-1);
+  border-radius: var(--radius);
+  background: var(--color-warning-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-small);
 }

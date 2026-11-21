@@ -1,20 +1,22 @@
 /**
  * @file   apps/web/src/admin/AdminNav.tsx
  * @module web/admin
- * @brief  The admin area's own navigation: Overview and History.
+ * @brief  The admin area's own navigation: Overview, Presets and History.
  *
  * Responsibility: the sections built so far as links under the page title, the current one
  *                 marked (aria-current), wrapping on a phone.
  * Depends on:     react, ../shell/router
- * Used by:        ./AdminOverview, ./AdminHistory
+ * Used by:        ./AdminOverview, ./AdminPresets, ./AdminHistory
  * Spec:           docs/concepts/admin-area.md §4
  */
 import type { ReactElement } from 'react';
 
 import { hrefOf } from '../shell/router.js';
 
-export function AdminNav({ current }: { readonly current: 'overview' | 'history' }): ReactElement {
-  const link = (section: 'overview' | 'history', label: string) => (
+type Section = 'overview' | 'presets' | 'history';
+
+export function AdminNav({ current }: { readonly current: Section }): ReactElement {
+  const link = (section: Section, label: string) => (
     <a
       className="sbr-chip"
       href={hrefOf(section === 'overview' ? { name: 'admin' } : { name: 'admin', section })}
@@ -26,6 +28,7 @@ export function AdminNav({ current }: { readonly current: 'overview' | 'history'
   return (
     <nav className="admin-nav" aria-label="Admin">
       {link('overview', 'Overview')}
+      {link('presets', 'Presets')}
       {link('history', 'History')}
     </nav>
   );

@@ -211,6 +211,9 @@ export function problemText(code: string, reason: string | null = null): string 
     VALIDATION_FAILED: 'Please check the form.',
     QUIET_HOURS: 'Quiet hours — no numbers are drawn until they end.',
     ASYNC_ROYALE_ONLY: 'Only a battle royale can be played asynchronously.',
+    LAST_PUBLISHED: 'Publish another preset of this kind first — one must stay published.',
+    NOTHING_TO_UNDO: 'Nothing is left to undo: the values are already back.',
+    UNDO_REFUSED: 'This undo would leave the preset invalid or none of its kind published.',
   };
   return texts[code] ?? 'Something went wrong — please try again.';
 }

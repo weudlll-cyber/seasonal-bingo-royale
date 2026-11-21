@@ -9,7 +9,8 @@
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
  *                 profile (the display name URL-encoded) and the admin area's Overview
- *                 (`#/admin`) and History (`#/admin/history`) are routes too.
+ *                 (`#/admin`), Presets (`#/admin/presets`) and History (`#/admin/history`) are
+ *                 routes too.
  * Depends on:     react
  * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
@@ -37,8 +38,8 @@ export type Route =
   | { readonly name: 'account' }
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
   | { readonly name: 'player'; readonly displayName: string }
-  // The admin area (admin-area §8 (a)): the Overview, or the History of every change.
-  | { readonly name: 'admin'; readonly section?: 'history' };
+  // The admin area (admin-area §8 (a)): the Overview, the Presets, or the History.
+  | { readonly name: 'admin'; readonly section?: 'presets' | 'history' };
 
 // Routes without a parameter (a trailing segment is ignored).
 const PLAIN: Readonly<Record<string, Route>> = {
@@ -79,7 +80,9 @@ function withParameter(first: string, second: string): Route | null {
     case 'players':
       return playerRoute(second);
     case 'admin':
-      return second === 'history' ? { name: 'admin', section: 'history' } : { name: 'admin' };
+      return second === 'history' || second === 'presets'
+        ? { name: 'admin', section: second }
+        : { name: 'admin' };
     default:
       return null;
   }
