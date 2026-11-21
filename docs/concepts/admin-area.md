@@ -137,6 +137,13 @@ The file references for (m)–(r) are in [admin-values.md](admin-values.md) §"O
 
 - **(s) A match without a preset:** only an Admin, the load check and the development tools (Quick Test, the tests; development builds only) create one. An organizer's request names a published preset and stays inside its bounds; the server refuses anything else (403 `PRESET_REQUIRED`).
 - **(t) Players and accounts:** every Admin finds accounts by name, gives and removes the Organizer role, locks and unlocks and ends sessions; only the owner (`super_admin`) resets a second step (`twofactor.reset`), sees e-mail addresses and finds by them (`accounts.email`), and gives or removes the Admin role. The server checks each; the page offers only what the role may do.
+- **(u) An Admin's abort:** players read that the match was cancelled by the system, with the reason.
+- **(v) The audit log stores no IP address** (as the game stores none elsewhere, docs/PRIVACY-DATA.md); docs/spec/04-database-design.md follows.
+- **(w) Presets:** the admin area changes a preset's values, not its structure (effect types, stages, round ends, cuts, patterns, prizes); an asynchronous match takes its quiet hours from its preset; the built-in speeds relaxed, normal and quick stay as derived from today's interval.
+- **(x) "Start a match":** no estimated length, no stage line and no button fixed to the bottom of the window.
+- **(y) League:** a changed league value applies to matches that finish afterwards; the season length and the season names stay out of the admin area.
+- **(z) Values not in the admin area yet** (the recap's name counts, the default theme, the chat dock, the mail sender, the password's minimum length, the second step's settings and some rate limits): they stay as they are for now (docs/BACKLOG.md Part one).
+- **(aa) Settings in memory:** the server keeps the current settings in memory per process; the game runs as one process (docs/operator-guide.md §9).
 
 ## 9. Build order
 
