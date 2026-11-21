@@ -3,7 +3,7 @@
  * @module server/http
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
- * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the
+ * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the form limits, the
  *                 sign-in mode; in website mode the website's chat room, 07 §6), POST
  *                 /auth/register and /auth/login (local mode only; in website mode players
  *                 sign in through the website, D37), /auth/logout, /auth/guest, DELETE /me
@@ -14,10 +14,11 @@
  *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
  *                 verification and 2FA are behind feature flags that are off by default;
  *                 when verification is on, unverified accounts cannot sign in.
- * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ../../config/features
+ * Depends on:     fastify, zod, @sbr/contracts (LIMITS), ../../auth/*, ../../db/pool, ../../config/features
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
+import { LIMITS, TECHNICAL_DEFAULTS, type ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -28,8 +29,9 @@ import {
   recordLogin,
   registerAccount,
 } from '../../auth/accounts.js';
+import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
-import { RATE_RULES, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
 import {
   clearSessionCookie,
   setSessionCookie,
@@ -44,12 +46,18 @@ import {
 } from '../../auth/sessions.js';
 import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
+import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
 
 interface AuthDeps {
   readonly pool: DbPool;
   readonly cookie: CookieConfig;
-  readonly features: Features;
+  // The switches as they are now (../../config/features liveFeatures).
+  readonly features: () => Features;
+  // The screen values the client reads at page load (admin-area §8 (i)), as they are now.
+  readonly screens: () => ClientScreens;
+  // The Technical settings as they are now: rate limits, session lengths (admin-area §9 piece 7).
+  readonly technical: LiveTechnical;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
   // The live views name a deleted account as such at once (../../view/liveViews, audit S10).
@@ -64,22 +72,23 @@ interface AuthDeps {
 
 const registerBody = z.object({
   email: z.email().max(254),
-  displayName: z
-    .string()
-    .trim()
-    .regex(/^[\p{L}\p{N}_.-]{3,24}$/u),
+  displayName: z.string().trim().regex(DISPLAY_NAME),
   password: z.string(),
 });
-const loginBody = z.object({ email: z.email().max(254), password: z.string().max(128) });
+const loginBody = z.object({
+  email: z.email().max(254),
+  password: z.string().max(LIMITS.password.max),
+});
 
 const LOGIN_FAILED = { code: 'LOGIN_FAILED', message: 'Invalid e-mail or password.' };
 
 export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
+  const live = liveLimits(deps.technical);
   const limits = {
-    register: new RateLimiter(RATE_RULES.register),
-    loginIp: new RateLimiter(RATE_RULES.loginIp),
-    loginAccountIp: new RateLimiter(RATE_RULES.loginAccountIp),
-    guest: new RateLimiter(RATE_RULES.guest),
+    register: new RateLimiter(liveRule('register', live)),
+    loginIp: new RateLimiter(liveRule('loginIp', live)),
+    loginAccountIp: new RateLimiter(liveRule('loginAccountIp', live)),
+    guest: new RateLimiter(liveRule('guest', live)),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps));
   if (deps.mode === 'local') registerLocalSignIn(app, deps, limits);
@@ -93,7 +102,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   });
   app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
   app.post('/api/v1/auth/guest', async (request, reply) => {
-    if (!deps.features.guests) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!deps.features().guests) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!limits.guest.take(request.ip).allowed) return tooMany(reply);
     // Website mode: as long as a member's session from the website sign-in (the same lengths in
     // every game, 2026-11-09); standalone the player default.
@@ -102,7 +111,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       deps.pool,
       null,
       request.headers['user-agent'] ?? null,
-      days,
+      sessionLengthsOf(deps.technical(), days),
     );
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(201).send({ kind: 'guest' });
@@ -146,7 +155,11 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
-    features: deps.features,
+    features: deps.features(),
+    // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
+    limits: LIMITS,
+    // What players see that is not a rule (admin-area §8 (i)): applied at the next page load.
+    screens: deps.screens(),
     authMode: deps.mode,
     ...websiteParts(deps),
   };
@@ -183,7 +196,7 @@ async function login(
   const encoded = account?.passwordHash ?? (await dummyPasswordHash());
   const valid = await verifyPassword(encoded, body.password);
   if (account === null || !valid) return reply.status(401).send(LOGIN_FAILED);
-  if (deps.features.emailVerification && !account.emailVerified) {
+  if (deps.features().emailVerification && !account.emailVerified) {
     return reply.status(403).send({ code: 'EMAIL_NOT_VERIFIED' });
   }
   await recordLogin(deps.pool, account.id);
@@ -195,8 +208,12 @@ async function login(
 export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  // playerDays: a member's or guest's absolute lifetime (7 days in website mode, else 30).
-  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & { readonly playerDays?: number },
+  // playerDays: a member's or guest's absolute lifetime in website mode (7 days); else the
+  // Technical section's (30 unless changed).
+  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & {
+    readonly playerDays?: number;
+    readonly technical?: LiveTechnical;
+  },
   accountId: string,
 ): Promise<void> {
   if (request.session !== null) {
@@ -207,7 +224,7 @@ export async function openSession(
     deps.pool,
     accountId,
     request.headers['user-agent'] ?? null,
-    deps.playerDays,
+    sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays),
   );
   setSessionCookie(reply, deps.cookie, token);
 }

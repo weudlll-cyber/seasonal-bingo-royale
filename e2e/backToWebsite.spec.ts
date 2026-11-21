@@ -166,7 +166,7 @@ test('every main screen shows the way back at the top left (screenshots for the 
   await signIn(page, 'w-51', '#/');
   const shots: [string, string, string][] = [
     ['lobby', '#/', 'lobby-match-' + code],
-    ['host-new', '#/host/new', 'create-title'],
+    ['host-new', '#/host/new', 'start-title'],
     ['host', `#/host/${code}`, 'host-console'],
     ['leaderboard', '#/leaderboard', 'leaderboard-page'],
     ['profile', '#/players/Back_Host', 'profile-page'],

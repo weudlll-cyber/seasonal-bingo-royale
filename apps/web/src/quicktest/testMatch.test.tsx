@@ -16,6 +16,7 @@
  *                 ../shell/useMaintenance
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22); docs/spec/05-api-design.md §2.3
  */
+import { LIMITS } from '@sbr/contracts';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -58,6 +59,7 @@ function serve(permissions: readonly string[]): ReturnType<typeof vi.fn> {
           account: { id: 'h', displayName: 'dev-host' },
           permissions,
           csrfToken: 'x',
+          limits: LIMITS,
         }
       : init?.method === 'POST'
         ? { code: 'TEST01' }
@@ -91,26 +93,38 @@ async function showSection(maintenance: MaintenanceState | null = null): Promise
 describe('the test match request', () => {
   it('starts in one minute by itself, or now through the host', () => {
     const now = 1_000_000;
-    const inOne = testMatchBody(INITIAL_TEST_MATCH, now);
+    const inOne = testMatchBody(INITIAL_TEST_MATCH, now, LIMITS.players);
     expect(inOne.startRule).toEqual({ kind: 'at', at: now + 62_000, auto: true });
     expect(inOne).toMatchObject({ gameType: 'royale', drawMode: 'auto', maxPlayers: 11 });
-    const inFive = testMatchBody({ ...INITIAL_TEST_MATCH, start: { kind: 'in', minutes: 5 } }, now);
+    const inFive = testMatchBody(
+      { ...INITIAL_TEST_MATCH, start: { kind: 'in', minutes: 5 } },
+      now,
+      LIMITS.players,
+    );
     expect(inFive.startRule).toEqual({ kind: 'at', at: now + 302_000, auto: true });
-    const rightNow = testMatchBody({ ...INITIAL_TEST_MATCH, start: { kind: 'now' } }, now);
+    const rightNow = testMatchBody(
+      { ...INITIAL_TEST_MATCH, start: { kind: 'now' } },
+      now,
+      LIMITS.players,
+    );
     expect(rightNow.startRule).toEqual({ kind: 'host' });
   });
 
   it('keeps the bots inside the largest match, with or without the owner', () => {
-    expect(botLimits(true)).toEqual({ min: 1, max: 199 });
-    expect(botLimits(false)).toEqual({ min: 2, max: 200 });
-    const many = testMatchBody({ ...INITIAL_TEST_MATCH, bots: 500 }, 0);
+    expect(botLimits(true, LIMITS.players)).toEqual({ min: 1, max: 199 });
+    expect(botLimits(false, LIMITS.players)).toEqual({ min: 2, max: 200 });
+    const many = testMatchBody({ ...INITIAL_TEST_MATCH, bots: 500 }, 0, LIMITS.players);
     expect(many.maxPlayers).toBe(200);
   });
 
   it('creates, joins the owner, fills bots and starts "Now" in this order', async () => {
     const fetch = serve(HOST);
     const created = vi.fn();
-    await createTestMatch({ ...INITIAL_TEST_MATCH, start: { kind: 'now' } }, created);
+    await createTestMatch(
+      { ...INITIAL_TEST_MATCH, start: { kind: 'now' } },
+      LIMITS.players,
+      created,
+    );
     const sent = posts(fetch);
     expect(sent[0]).toMatch(/^\/matches \{/);
     expect(sent.slice(1)).toEqual([
@@ -123,7 +137,7 @@ describe('the test match request', () => {
 
   it('neither joins nor starts when the owner watches and the match starts later', async () => {
     const fetch = serve(HOST);
-    await createTestMatch({ ...INITIAL_TEST_MATCH, playAlong: false }, vi.fn());
+    await createTestMatch({ ...INITIAL_TEST_MATCH, playAlong: false }, LIMITS.players, vi.fn());
     expect(posts(fetch).slice(1)).toEqual(['/matches/TEST01/bots {"upTo":7}']);
   });
 });
@@ -138,7 +152,13 @@ function serveSlowBots(refuse: boolean): () => void {
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/session')) {
-        const session = { signedIn: true, account: null, permissions: HOST, csrfToken: 'x' };
+        const session = {
+          signedIn: true,
+          account: null,
+          permissions: HOST,
+          csrfToken: 'x',
+          limits: LIMITS,
+        };
         return new Response(JSON.stringify(session));
       }
       if (url.endsWith('/bots')) {

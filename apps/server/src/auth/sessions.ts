@@ -24,6 +24,7 @@ import type { DbPool } from '../db/pool.js';
 
 // Accounts with any of these roles get admin sessions: idle 30 minutes, absolute 8 hours
 // (03 §3); players and guests idle 7 days, absolute 30 days (website mode: 7, WEBSITE_SESSION_DAYS).
+// The admin area's Technical section changes these lengths at runtime (SessionLengths).
 const ADMIN_ROLES = ['super_admin', 'security_admin', 'game_admin', 'moderator'];
 
 // Website mode: a member's or guest's game session lasts at most this long (the same session
@@ -31,6 +32,22 @@ const ADMIN_ROLES = ['super_admin', 'security_admin', 'game_admin', 'moderator']
 export const WEBSITE_SESSION_DAYS = 7;
 
 type SessionKind = 'player' | 'admin' | 'guest';
+
+// How long sessions last (the Technical section, admin-area §9 piece 7), read when a session
+// is made or used, so a change applies at once.
+export interface SessionLengths {
+  readonly playerIdleDays: number;
+  readonly playerAbsoluteDays: number;
+  readonly adminIdleMinutes: number;
+  readonly adminAbsoluteHours: number;
+}
+
+export const DEFAULT_SESSION_LENGTHS: SessionLengths = {
+  playerIdleDays: 7,
+  playerAbsoluteDays: 30,
+  adminIdleMinutes: 30,
+  adminAbsoluteHours: 8,
+};
 
 export interface Session {
   readonly id: string;
@@ -41,34 +58,48 @@ export interface Session {
   readonly permissions: readonly string[];
   // A local admin account's session before its second step (TOTP, D60): no permissions yet.
   readonly twoFactorPending: boolean;
+  // When the session last passed the second step (epoch ms), or null: the Technical section
+  // and the account actions ask for it again after 10 minutes (admin-area §9 pieces 7, 8).
+  readonly secondStepAt: number | null;
 }
 
 function tokenHash(token: string): Buffer {
   return createHash('sha256').update(token).digest();
 }
 
-// A player or guest session's absolute lifetime: 30 days; in website mode 7 days for members
-// (website sign-in, 2026-11-04) and guests (2026-11-09), as in every game; admin sessions keep
+// A player or guest session's absolute lifetime: 30 days unless the Technical section says
+// otherwise; in website mode 7 days for members (website sign-in, 2026-11-04) and guests
+// (2026-11-09), as in every game (the caller passes WEBSITE_SESSION_DAYS); admin sessions
 // 8 hours either way.
 export async function createSession(
   pool: DbPool,
   accountId: string | null,
   userAgent: string | null,
-  playerDays = 30,
+  lengths: SessionLengths = DEFAULT_SESSION_LENGTHS,
 ): Promise<{ readonly token: string; readonly csrfToken: string }> {
   const token = randomBytes(32).toString('base64url');
   const csrfToken = randomBytes(32).toString('base64url');
   await pool.query(
     `INSERT INTO sbr.sessions (account_id, token_hash, csrf_token, kind, expires_at, idle_expires_at, user_agent)
      SELECT $1, $2, $3, k.kind,
-       now() + CASE k.kind WHEN 'admin' THEN interval '8 hours' ELSE make_interval(days => $6) END,
-       now() + CASE k.kind WHEN 'admin' THEN interval '30 minutes' ELSE interval '7 days' END, $4
+       now() + CASE k.kind WHEN 'admin' THEN make_interval(hours => $7) ELSE make_interval(days => $6) END,
+       now() + CASE k.kind WHEN 'admin' THEN make_interval(mins => $8) ELSE make_interval(days => $9) END, $4
      FROM (SELECT CASE
        WHEN $1::uuid IS NULL THEN 'guest'
        WHEN EXISTS (SELECT 1 FROM sbr.role_assignments ra
                      WHERE ra.account_id = $1::uuid AND ra.role_id = ANY($5)) THEN 'admin'
        ELSE 'player' END AS kind) k`,
-    [accountId, tokenHash(token), csrfToken, userAgent, ADMIN_ROLES, playerDays],
+    [
+      accountId,
+      tokenHash(token),
+      csrfToken,
+      userAgent,
+      ADMIN_ROLES,
+      lengths.playerAbsoluteDays,
+      lengths.adminAbsoluteHours,
+      lengths.adminIdleMinutes,
+      lengths.playerIdleDays,
+    ],
   );
   return { token, csrfToken };
 }
@@ -81,6 +112,7 @@ interface SessionRow {
   display_name: string | null;
   permissions: string[] | null;
   two_factor_pending: boolean;
+  last_2fa_at: Date | null;
 }
 
 // A session token as createSession makes it: 32 random bytes in base64url (43 characters).
@@ -88,28 +120,37 @@ const TOKEN_FORMAT = /^[A-Za-z0-9_-]{43}$/;
 
 // Loads a live session and slides its idle expiry. Unknown or dead tokens give null; a cookie
 // that cannot be a token gives null before any database work (audit-3 S5).
-export async function findSession(pool: DbPool, token: string): Promise<Session | null> {
+export async function findSession(
+  pool: DbPool,
+  token: string,
+  lengths: SessionLengths = DEFAULT_SESSION_LENGTHS,
+): Promise<Session | null> {
   if (!TOKEN_FORMAT.test(token)) return null;
-  return liveSession(pool, 's.token_hash', tokenHash(token));
+  return liveSession(pool, 's.token_hash', tokenHash(token), lengths);
 }
 
 // The same checks by session id, for a socket that holds a session loaded at connect: a
 // host intent re-reads it, so an expired or revoked session or a lost role counts at once.
-export async function refreshSession(pool: DbPool, sessionId: string): Promise<Session | null> {
-  return liveSession(pool, 's.id', sessionId);
+export async function refreshSession(
+  pool: DbPool,
+  sessionId: string,
+  lengths: SessionLengths = DEFAULT_SESSION_LENGTHS,
+): Promise<Session | null> {
+  return liveSession(pool, 's.id', sessionId, lengths);
 }
 
 async function liveSession(
   pool: DbPool,
   by: 's.token_hash' | 's.id',
   key: Buffer | string,
+  lengths: SessionLengths,
 ): Promise<Session | null> {
   const result = await pool.query<SessionRow>(
     `UPDATE sbr.sessions s SET last_seen_at = now(),
-       idle_expires_at = now() + CASE s.kind WHEN 'admin' THEN interval '30 minutes' ELSE interval '7 days' END
+       idle_expires_at = now() + CASE s.kind WHEN 'admin' THEN make_interval(mins => $2) ELSE make_interval(days => $3) END
        WHERE ${by} = $1 AND s.revoked_at IS NULL
          AND s.expires_at > now() AND s.idle_expires_at > now()
-     RETURNING s.id, s.account_id, s.kind, s.csrf_token,
+     RETURNING s.id, s.account_id, s.kind, s.csrf_token, s.last_2fa_at,
        (SELECT a.display_name FROM sbr.accounts a WHERE a.id = s.account_id AND a.status = 'active') AS display_name,
        (SELECT array_agg(DISTINCT rp.permission) FROM sbr.role_permissions rp
           WHERE rp.role_id = 'guest' AND s.account_id IS NULL
@@ -119,7 +160,7 @@ async function liveSession(
        -- waits for its second step (D60).
        (s.kind = 'admin' AND s.last_2fa_at IS NULL AND EXISTS (SELECT 1 FROM sbr.accounts p
           WHERE p.id = s.account_id AND p.password_hash IS NOT NULL)) AS two_factor_pending`,
-    [key],
+    [key, lengths.adminIdleMinutes, lengths.playerIdleDays],
   );
   const row = result.rows[0];
   if (row === undefined) return null;
@@ -133,6 +174,7 @@ async function liveSession(
     displayName: row.display_name,
     permissions: row.two_factor_pending ? [] : (row.permissions ?? []),
     twoFactorPending: row.two_factor_pending,
+    secondStepAt: row.last_2fa_at?.getTime() ?? null,
   };
 }
 

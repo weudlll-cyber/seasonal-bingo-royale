@@ -36,13 +36,22 @@ import { identityFrom, trustedPeers } from '../../auth/websiteIdentity.js';
 import type { Env } from '../../config/env.js';
 import type { DbPool } from '../../db/pool.js';
 import { openSession } from './auth.js';
+import { sessionLengthsOf, type LiveTechnical } from '../../config/technical.js';
 
 interface WebsiteSignInDeps {
   readonly env: Env;
   readonly pool: DbPool;
   readonly cookie: CookieConfig;
   readonly sessionEnds: SessionEnds;
+  // The Technical section's session lengths (members and guests keep 7 days at most here).
+  readonly technical?: LiveTechnical;
 }
+
+// A member's session lengths here: the Technical section's, at most 7 days (2026-11-04).
+const lengthsOf = (deps: WebsiteSignInDeps) =>
+  deps.technical === undefined
+    ? undefined
+    : sessionLengthsOf(deps.technical(), WEBSITE_SESSION_DAYS);
 
 // Where to go after signing in: a path under the base path (the client's page, its hash
 // included, percent-encoded), never another site: printable ASCII only, no "//", no backslash.
@@ -109,7 +118,8 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       // This route is outside /api, where the session hook does not look: find the browser's
       // session here, so the new one replaces it (03 §3; audit-3 S2).
       const token = request.cookies[deps.cookie.name];
-      request.session = token === undefined ? null : await findSession(deps.pool, token);
+      request.session =
+        token === undefined ? null : await findSession(deps.pool, token, lengthsOf(deps));
       // In website mode a game session lives at most 7 days (2026-11-04).
       await openSession(request, reply, { ...deps, playerDays: WEBSITE_SESSION_DAYS }, accountId);
       return reply.redirect(safeNext(request.query.next, base), 302);

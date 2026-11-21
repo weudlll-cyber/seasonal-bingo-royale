@@ -5,16 +5,18 @@
  *
  * Responsibility: under "Marking", "I tap the numbers" or "Mark for me"; when the owner
  *                 taps, a second choice under "Missed numbers": "Mark for me after N seconds"
- *                 (default 3) or "Leave open (tap later, no bonus)". The options leave out
+ *                 (default 3, within the server's range from the session's limits) or "Leave
+ *                 open (tap later, no bonus)". The options leave out
  *                 what their legend says, so they fit a 390 px phone.
  *                 Labels never use the word "auto" alone, so they cannot be confused
  *                 with the draw control.
- * Depends on:     react, ../types
- * Used by:        ./StartForm; MissedField also by ../host/CreateMatch, ../host/createForm
+ * Depends on:     react, ../shell/session, ../types
+ * Used by:        ./StartForm; MissedField also by ../host/ThisMatchFields, ../host/createForm
  * Spec:           docs/spec/01-game-design.md §6, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
 
+import { useLimits } from '../shell/session.js';
 import type { MarkingMode, MissedNumbers } from '../types.js';
 
 export interface MarkingChoice {
@@ -30,14 +32,12 @@ export const INITIAL_MARKING: MarkingChoice = {
   delaySec: 3,
 };
 
-// The request value; the server raises a delay below the speed window to the window.
+// The request value: the field keeps the server's range; the server raises a delay below the
+// speed window to the window.
 export function toMissedNumbers(choice: MarkingChoice): MissedNumbers {
   if (choice.missed === 'noAutoMark') return { kind: 'noAutoMark' };
   const seconds = Number.isFinite(choice.delaySec) ? choice.delaySec : INITIAL_MARKING.delaySec;
-  return {
-    kind: 'autoMarkAfter',
-    delayMs: Math.min(60_000, Math.max(0, Math.round(seconds * 1000))),
-  };
+  return { kind: 'autoMarkAfter', delayMs: Math.round(seconds * 1000) };
 }
 
 interface StartMarkingFieldProps {
@@ -71,8 +71,11 @@ export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): 
   );
 }
 
-// Also used by the host's create form (../host/CreateMatch).
-export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactElement {
+// Also used by "Start a match" (../host/ThisMatchFields).
+export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactElement | null {
+  // The server's range for the delay (admin-area §8 (m)); the browser refuses one outside it.
+  const range = useLimits()?.missedDelayMs;
+  if (range === undefined) return null;
   return (
     <>
       <select
@@ -94,7 +97,8 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
             className="sbr-input"
             type="number"
             data-testid="missed-delay"
-            min={0}
+            min={range.min / 1000}
+            max={range.max / 1000}
             step={0.5}
             value={value.delaySec}
             onChange={(e) => {

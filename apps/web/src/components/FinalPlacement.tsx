@@ -4,14 +4,15 @@
  * @brief  The final placement: the owner's place stated big, a podium for 1–3, then the list.
  *
  * Responsibility: "You finished #9 of 20" for the owner, places 1–3 as a podium in season
- *                 colours, then places from 4 as ranked rows (top 20 plus the owner's own
+ *                 colours, then places from 4 as ranked rows (the top rows, 20 unless changed in "Screens and texts", plus the owner's own
  *                 row): royale shows points and seasons, eliminated players dimmed with
  *                 "out" below a divider, ranked by when they went out, each with the cut and
  *                 the points at that moment (01 §7.5, D23); classic
  *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
  *                 states how places are decided. Names link to profiles when the screen
  *                 passes `profileHref` (the live match screen).
- * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback, ../types
+ * Depends on:     react, ./Podium, ./RankRow, ./Playback (props), ../game/labels, ../playback,
+ *                 ../shell/session (useScreens), ../types
  * Used by:        ./Playback, ../game/ArenaNotice, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
  */
@@ -23,6 +24,7 @@ import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
 import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
+import { useScreens } from '../shell/session.js';
 
 type Placed = QuickTestResult['players'][number];
 
@@ -31,11 +33,12 @@ export function FinalPlacement({
   view,
   profileHref,
 }: PlaybackProps & { readonly profileHref?: ProfileHref | undefined }): ReactElement {
+  const rows = useScreens().finalPlacementRows;
   const byId = new Map(view.standings.map((p) => [p.accountId, p]));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
   const owner = sorted.find((p) => p.isOwner);
   const podium = sorted.filter((p) => p.place <= 3);
-  const rest = sorted.filter((p, i) => p.place > 3 && (i < 20 || p.isOwner));
+  const rest = sorted.filter((p, i) => p.place > 3 && (i < rows || p.isOwner));
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   const row = (p: Placed) => ({
     ...rowFacts(result, view, byId.get(p.accountId), p),

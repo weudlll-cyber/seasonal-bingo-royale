@@ -3,25 +3,24 @@
  * @module web/shell
  * @brief  Whether the server is in maintenance (`sbr maintenance on`), and the reason given.
  *
- * Responsibility: ask GET /api/v1/maintenance when the client starts and every 30 seconds,
+ * Responsibility: ask GET /api/v1/maintenance when the client starts and every 30 seconds (unless changed ("Screens and texts", admin-area §8 (i))),
  *                 so the maintenance page and the host's banner appear and go without a
  *                 reload. Null until the first answer (and after a failed one): nothing is
  *                 blocked on a guess. ./AppShell shares the answer as `MaintenanceContext`;
  *                 screens read it with `useMaintenanceState`.
- * Depends on:     react, ./http
+ * Depends on:     react, ./http, ./session (useScreens)
  * Used by:        ./AppShell, ./Maintenance, ../host/HostLobby, ../quicktest/TestMatch
  * Spec:           docs/spec/09-deployment-architecture.md §4; docs/spec/01-game-design.md §13
  */
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { api } from './http.js';
+import { useScreens } from './session.js';
 
 export interface MaintenanceState {
   readonly on: boolean;
   readonly reason: string | null;
 }
-
-const EVERY_MS = 30_000;
 
 // The state ./AppShell asks for once, handed to the screens below it that need it (the
 // host's Start match, the test page) without asking the server again.
@@ -33,6 +32,8 @@ export function useMaintenanceState(): MaintenanceState | null {
 
 export function useMaintenance(): MaintenanceState | null {
   const [state, setState] = useState<MaintenanceState | null>(null);
+  // How often to ask ("Screens and texts", admin-area §8 (i)).
+  const everyMs = useScreens().maintenancePollMs;
   useEffect(() => {
     let live = true;
     const ask = (): void => {
@@ -46,11 +47,11 @@ export function useMaintenance(): MaintenanceState | null {
       );
     };
     ask();
-    const id = window.setInterval(ask, EVERY_MS);
+    const id = window.setInterval(ask, everyMs);
     return () => {
       live = false;
       window.clearInterval(id);
     };
-  }, []);
+  }, [everyMs]);
   return state;
 }

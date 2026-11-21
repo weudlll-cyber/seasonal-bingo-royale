@@ -9,8 +9,8 @@
  *                 bar never covers a field at the top edge on a wide screen and scrolls away on a
  *                 phone; on a phone (360 and 390 px, and at a 150 % font) the bar is one row and
  *                 one Menu button opens the links and the account, by keyboard too, the chip
- *                 not cut and nothing wider than the window. The lobby console shows the open-match notice with the code. Chromium
- *                 saves the create form ("At a set time"), lobby console, lobby and waiting room
+ *                 not cut and nothing of the bar or its menu past the window's edge. The lobby
+ *                 console shows the open-match notice with the code. Chromium saves the create form ("At a set time"), lobby console, lobby and waiting room
  *                 at desktop and phone size, light and dark, to reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
@@ -27,10 +27,10 @@ import {
 } from './realGame.js';
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 
-// The create form with the start rules: a start time an hour ahead (local, as the field takes it).
+// "Start a match" with the start rules: a start time an hour ahead (local, as the field takes it).
 async function shootCreateForm(page: Page): Promise<void> {
   await page.goto('/#/host/new');
-  await page.getByTestId('create-title').fill('Friday night bingo');
+  await page.getByTestId('start-title').fill('Friday night bingo');
   await page.getByTestId('create-start-rule').selectOption('at');
   const at = new Date(Date.now() + 3_600_000 - new Date().getTimezoneOffset() * 60_000);
   await page.getByTestId('create-start-at').fill(at.toISOString().slice(0, 16));
@@ -78,15 +78,15 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     await expect(page.getByTestId('host-console')).toBeVisible();
     await fillAndStart(page, 6);
 
-    // The match screen; Open host console opens the console in a new tab and the player
-    // screen stays (D25).
+    // The match screen; Open host console opens the console in a new tab (a first load: 20 s,
+    // like the suite's others) and the player screen stays (D25).
     await page.goto(`/#/match/${code}`);
     await expect(page.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
     const [consoleTab] = await Promise.all([
       page.context().waitForEvent('page'),
       page.getByTestId('open-host-console').click(),
     ]);
-    await expect(consoleTab.getByTestId('host-console')).toBeVisible();
+    await expect(consoleTab.getByTestId('host-console')).toBeVisible({ timeout: 20_000 });
     await expect(consoleTab.getByTestId('host-draw-next')).toBeVisible();
     await expect(page.getByTestId('arena')).toBeVisible();
     await consoleTab.close();
@@ -120,11 +120,11 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
     window.scrollTo(0, document.body.scrollHeight);
   });
   // An in-page jump brings the field to the top edge: it must stop below the bar.
-  await page.getByTestId('create-title').evaluate((el) => {
+  await page.getByTestId('start-title').evaluate((el) => {
     el.scrollIntoView({ block: 'start' });
   });
   const barBox = await bar.boundingBox();
-  const fieldBox = await page.getByTestId('create-title').boundingBox();
+  const fieldBox = await page.getByTestId('start-title').boundingBox();
   expect(barBox).not.toBeNull();
   expect(fieldBox?.y ?? 0, 'field below the sticky bar').toBeGreaterThanOrEqual(
     (barBox?.y ?? 0) + (barBox?.height ?? 0),
@@ -163,14 +163,19 @@ function barRow(): { height: number; toggle: number; menu: number } {
   };
 }
 
-// In the page, with the menu open: the chip whole, every link inside the window, no overflow.
+// In the page, with the menu open: the chip whole, every link inside the window, nothing of the
+// bar or the menu past its right edge.
 function openMenuFacts(): { chipCut: boolean; linksIn: boolean; wider: boolean } {
   const chip = document.querySelector<HTMLElement>('[data-testid="signed-in-as"]');
   const links = [...document.querySelectorAll<HTMLElement>('.shell-nav a')];
   return {
     chipCut: chip === null ? true : chip.scrollWidth > chip.clientWidth,
     linksIn: links.every((a) => a.getBoundingClientRect().right <= window.innerWidth),
-    wider: document.documentElement.scrollWidth > window.innerWidth,
+    // The bar and its open menu, not the page below (the lobby lists whatever other tests
+    // created at the time).
+    wider: [...document.querySelectorAll('.shell-bar *')].some(
+      (el) => el.getBoundingClientRect().right > window.innerWidth + 0.5,
+    ),
   };
 }
 

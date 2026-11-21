@@ -19,13 +19,15 @@
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./MenuFold, ./Maintenance,
  *                 ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
- *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
+ *                 development only), ../admin/AdminArea, ../game/*, ../host/*, ../account/*,
+ *                 ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
 import { lazy, Suspense, type ReactElement } from 'react';
 
+import { AdminArea } from '../admin/AdminArea.js';
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
@@ -34,7 +36,7 @@ import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSig
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
-import { CreateMatch } from '../host/CreateMatch.js';
+import { StartMatch } from '../host/StartMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
@@ -137,6 +139,8 @@ function Nav({ route, dev, chat }: NavProps): ReactElement {
         'Leaderboard',
         route.name === 'leaderboard' || route.name === 'player',
       )}
+      {/* The admin area, for Admins only (admin-area §8 (a)); the server checks every call. */}
+      {can('admin.view') ? link({ name: 'admin' }, 'Admin', route.name === 'admin') : null}
       {dev && QuickTestLink !== null ? (
         <Suspense fallback={null}>
           <QuickTestLink active={route.name === 'quicktest'} />
@@ -217,7 +221,7 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'match':
       return <MatchScreen key={`${route.code}-${who}`} code={route.code} />;
     case 'hostNew':
-      return <CreateMatch />;
+      return <StartMatch />;
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'verify':
@@ -239,11 +243,13 @@ type AccountRoute = Extract<
       | 'resetPassword'
       | 'account'
       | 'leaderboard'
-      | 'player';
+      | 'player'
+      | 'admin';
   }
 >;
 
-// The screens around the player: sign-in, register, account, leaderboard and profiles.
+// The screens around the player: sign-in, register, account, leaderboard and profiles; the
+// admin area's Overview.
 function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElement {
   switch (route.name) {
     case 'signIn':
@@ -260,6 +266,8 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
       return <LeaderboardPage periodId={route.periodId} />;
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
+    case 'admin':
+      return <AdminArea section={route.section} />;
   }
 }
 

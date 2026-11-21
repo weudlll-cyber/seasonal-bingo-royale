@@ -1,15 +1,16 @@
 /**
  * @file   apps/web/src/host/host.css
  * @module web/host
- * @brief  The host's screens: console grid, Draw next, the create form.
+ * @brief  The host's screens: console grid, Draw next, "Start a match".
  *
  * Responsibility: the host console in three columns from 960 px (filling the window while
  *                 the match runs, so the page does not scroll), the open-match
  *                 notice, the big Draw next (readable when disabled: muted text on surface-2,
- *                 4.5:1 in both themes), and the create form with its prize grid (the rows of
- *                 the host's matches above it: ../game/game.css own-matches). Colours and sizes
- *                 from @sbr/ui tokens.
- * Used by:        ./HostConsole, ./CreateMatch
+ *                 4.5:1 in both themes), and "Start a match": its numbered steps, tiles for the
+ *                 game type and the preset (wrapping on a phone), the speed's three buttons,
+ *                 "More choices" and the summary with "Open the lobby" (the rows of the host's
+ *                 matches above: ../game/game.css own-matches). Colours and sizes from @sbr/ui tokens.
+ * Used by:        ./HostConsole, ./StartMatch, ./StartSteps, ./ThisMatchFields, ../quicktest
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/11-admin-panel.md §3.2
  */
 
@@ -99,6 +100,18 @@
   color: var(--color-text-muted);
 }
 
+/* The match's rules line: under the title on desktop, below the console on a phone, so the
+   ball, the numbers and Draw next stay in a small window (as the player's .arena-rules) */
+.host-rules {
+  margin: 0;
+}
+
+@media (max-width: 959px) {
+  .host-console > .host-rules {
+    order: 1;
+  }
+}
+
 /* The create form */
 .create-form {
   display: grid;
@@ -133,4 +146,114 @@
   display: grid;
   gap: var(--space-3);
   max-width: 40rem;
+}
+
+/* "Start a match" (./StartMatch): three numbered steps */
+.start-step {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.start-step h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.start-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-solid);
+  color: var(--color-on-solid);
+  font-size: var(--font-size-small);
+}
+
+/* Game type and preset (./StartSteps): tiles that wrap on a phone, the chosen one outlined */
+.start-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-1);
+}
+
+.start-tile,
+.start-one {
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  margin: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+
+.start-tile {
+  cursor: pointer;
+}
+
+.start-tile:has(input:checked) {
+  border-color: var(--color-solid);
+  box-shadow: inset 0 0 0 1px var(--color-solid);
+}
+
+.start-tile:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.start-tile input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+.start-tile .sbr-chip,
+.start-one .sbr-chip {
+  justify-self: start;
+}
+
+/* Players and speed (./ThisMatchFields) */
+.start-range {
+  width: 100%;
+  min-height: var(--hit-target);
+}
+
+.start-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.start-segmented .sbr-btn[aria-pressed='true'] {
+  background: var(--color-solid);
+  color: var(--color-on-solid);
+}
+
+.start-more {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.start-more summary {
+  min-height: var(--hit-target);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: var(--font-weight-strong);
+}
+
+/* The summary and Open the lobby under the steps */
+.start-submit {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.start-summary {
+  margin: 0;
+  overflow-wrap: anywhere;
 }

@@ -8,11 +8,14 @@
  *                 hash changes. Hash routing keeps every screen reachable from the dev
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
- *                 profile (the display name URL-encoded) are routes too.
+ *                 profile (the display name URL-encoded) and the admin area's Overview
+ *                 (`#/admin`), Presets (`#/admin/presets`), League (`#/admin/league`), Players and accounts (`#/admin/accounts`), Screens and texts (`#/admin/screens`), Technical (`#/admin/technical`) and History
+ *                 (`#/admin/history`) are
+ *                 routes too.
  * Depends on:     react
  * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
- *                 ../game/HostLink, ../game/Lobby, ../host/CreateMatch, ../host/HostConsole,
+ *                 ../game/HostLink, ../game/Lobby, ../host/StartMatch, ../host/HostConsole,
  *                 ../host/YourMatches, ./DevTools, ../game/VerifyMatch, ../league/LeaderboardPage,
  *                 ../league/ProfilePage, ../league/playerHref, ../account/AccountPage
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/15-implementation-plan.md WP-12, WP-15
@@ -21,6 +24,22 @@ import { useEffect, useState } from 'react';
 
 // The test page's chooser (no view), a test match to play, or the seed check.
 export type QuickTestView = 'play' | 'seed';
+
+// The admin area's sections after the Overview (admin-area §4).
+const ADMIN_SECTIONS = [
+  'presets',
+  'league',
+  'accounts',
+  'screens',
+  'technical',
+  'history',
+] as const;
+export type AdminSection = (typeof ADMIN_SECTIONS)[number];
+
+const adminSection = (second: string | undefined): Route => {
+  const section = ADMIN_SECTIONS.find((s) => s === second);
+  return section === undefined ? { name: 'admin' } : { name: 'admin', section };
+};
 
 export type Route =
   | { readonly name: 'lobby' }
@@ -35,7 +54,9 @@ export type Route =
   | { readonly name: 'resetPassword' }
   | { readonly name: 'account' }
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
-  | { readonly name: 'player'; readonly displayName: string };
+  | { readonly name: 'player'; readonly displayName: string }
+  // The admin area (admin-area §8 (a)): the Overview, the Presets, or the History.
+  | { readonly name: 'admin'; readonly section?: AdminSection };
 
 // Routes without a parameter (a trailing segment is ignored).
 const PLAIN: Readonly<Record<string, Route>> = {
@@ -47,6 +68,7 @@ const PLAIN: Readonly<Record<string, Route>> = {
   'reset-password': { name: 'resetPassword' },
   account: { name: 'account' },
   leaderboard: { name: 'leaderboard', periodId: null },
+  admin: { name: 'admin' },
 };
 
 export function parseRoute(hash: string): Route {
@@ -74,6 +96,8 @@ function withParameter(first: string, second: string): Route | null {
       return { name: 'leaderboard', periodId: second };
     case 'players':
       return playerRoute(second);
+    case 'admin':
+      return adminSection(second);
     default:
       return null;
   }
@@ -123,6 +147,8 @@ export function hrefOf(route: Route): string {
       return route.periodId === null ? '#/leaderboard' : `#/leaderboard/${route.periodId}`;
     case 'player':
       return `#/players/${encodeURIComponent(route.displayName)}`;
+    case 'admin':
+      return route.section === undefined ? '#/admin' : `#/admin/${route.section}`;
     default:
       return PLAIN_HREFS[route.name];
   }

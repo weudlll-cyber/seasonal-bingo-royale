@@ -1,31 +1,35 @@
 /**
  * @file   apps/web/src/host/TimingFields.tsx
  * @module web/host
- * @brief  The create form's timing rules: start rule, shortest draw interval (D12), round pause (D14).
+ * @brief  Timing choices of a new match: start rule, shortest draw interval (D12), round pause (D14).
  *
- * Responsibility: the start rule (I start it; at a set time at least a minute ahead, with
+ * Responsibility: the start rule, only the starts the preset allows (now: I start it; at a set time at least a minute ahead, with
  *                 "Start automatically at the start time", default off, D16; when every
  *                 place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
  *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
  *                 longest tap time) and the plain message when the seconds are below it;
- *                 the royale pause choice "Wait a few seconds" (N, at least 3) or "I start
- *                 each round myself". The server enforces both as well. Every option fits a
- *                 390 px phone.
- * Depends on:     react, @sbr/contracts, ../types
- * Used by:        ./CreateMatch, ./HostDrawControls, ./HostLobby, ./createForm
+ *                 the royale pause choice "Wait a few seconds" (N, within the server's range:
+ *                 3 to 120 s today) or "I start each round myself"; the start countdown named
+ *                 as the server sends it. Ranges and the countdown come from the session's
+ *                 limits (admin-area §8 (m)). The server enforces both as well. Every option
+ *                 fits a 390 px phone.
+ * Depends on:     react, @sbr/contracts, ../game/labels, ../shell/session, ../types
+ * Used by:        ./ThisMatchFields, ./StartMatch, ./startForm, ./HostDrawControls, ./HostLobby,
+ *                 ./createForm
  * Spec:           docs/spec/01-game-design.md §5, §7.1 (D12, D14)
  */
 import {
   classicRealtimeDefault,
   classicSeasonsRealtimeDefault,
   DEFAULT_ROUND_PAUSE_MS,
-  MIN_ROUND_PAUSE_MS,
   MIN_START_AHEAD_MS,
   royaleRealtimeDefault,
   shortestDrawIntervalMs,
 } from '@sbr/contracts';
 import type { ReactElement } from 'react';
 
+import { countdownName } from '../game/labels.js';
+import { useLimits } from '../shell/session.js';
 import type { GameType, MissedNumbers } from '../types.js';
 
 const RULESETS = {
@@ -60,11 +64,12 @@ export type RoundPauseChoice =
 
 export const INITIAL_PAUSE: RoundPauseChoice = { kind: 'wait', sec: DEFAULT_ROUND_PAUSE_MS / 1000 };
 
-// The request field (D14); the server keeps a wait at its minimum as well.
+// The request field (D14): the field keeps the server's range, and the server keeps a wait
+// at its minimum as well.
 export function toRoundPause(p: RoundPauseChoice) {
   return p.kind === 'host'
     ? { kind: 'host' as const }
-    : { kind: 'wait' as const, ms: Math.max(MIN_ROUND_PAUSE_MS, Math.round(p.sec * 1000)) };
+    : { kind: 'wait' as const, ms: Math.round(p.sec * 1000) };
 }
 
 export function RoundPauseField({
@@ -73,7 +78,11 @@ export function RoundPauseField({
 }: {
   readonly value: RoundPauseChoice;
   readonly onChange: (next: RoundPauseChoice) => void;
-}): ReactElement {
+}): ReactElement | null {
+  // The server's range (admin-area §8 (m)): the browser refuses a value outside it before
+  // the form is sent.
+  const range = useLimits()?.roundPauseMs;
+  if (range === undefined) return null;
   return (
     <fieldset>
       <legend>Between rounds</legend>
@@ -96,7 +105,8 @@ export function RoundPauseField({
             className="sbr-input"
             style={{ width: '6rem' }}
             type="number"
-            min={MIN_ROUND_PAUSE_MS / 1000}
+            min={range.min / 1000}
+            max={range.max / 1000}
             step={1}
             value={value.sec}
             data-testid="create-round-pause-sec"
@@ -162,10 +172,14 @@ export function startTimeProblem(c: StartRuleChoice, now: number): string | null
 export function StartRuleField({
   value,
   onChange,
+  allowed,
 }: {
   readonly value: StartRuleChoice;
   readonly onChange: (next: StartRuleChoice) => void;
+  // The starts the preset allows the Organizer (admin-area §3).
+  readonly allowed: { readonly now: boolean; readonly at: boolean; readonly whenFull: boolean };
 }): ReactElement {
+  const limits = useLimits();
   return (
     <fieldset>
       <legend>Start</legend>
@@ -179,9 +193,9 @@ export function StartRuleField({
           onChange(kind === 'at' ? { kind, local: '', auto: false } : { kind });
         }}
       >
-        <option value="host">I start it from the console</option>
-        <option value="at">At a set time</option>
-        <option value="whenFull">When every place is taken</option>
+        {allowed.now ? <option value="host">Now: I start it from the console</option> : null}
+        {allowed.at ? <option value="at">At a set time</option> : null}
+        {allowed.whenFull ? <option value="whenFull">When every place is taken</option> : null}
       </select>
       {value.kind === 'at' ? (
         <label className="sbr-row">
@@ -207,7 +221,11 @@ export function StartRuleField({
           }}
         />
       ) : null}
-      <small className="sbr-muted">Players see a 10-second countdown before the first round.</small>
+      {limits === null ? null : (
+        <small className="sbr-muted">
+          Players see a {countdownName(limits.startCountdownMs)} before the first round.
+        </small>
+      )}
     </fieldset>
   );
 }

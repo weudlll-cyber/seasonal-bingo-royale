@@ -6,7 +6,8 @@
  * Responsibility: on `matchFinished`: the Season Complete badge for every human who completed
  *                 all four seasons in a match without bots (D29); then, when the match counts
  *                 (@sbr/application leagueAwards: flag on, no bots, enough humans — verified ones in website
- *                 mode or with SBR_FEATURE_EMAIL_VERIFICATION on, D59),
+ *                 mode or with the e-mail switch on, D59) under the League settings in force when
+ *                 the match finishes (admin-area §4 "League"),
  *                 one award per player in the season period of the finish time (created when
  *                 first needed, older seasons closed) and in the all-time period. Awards are
  *                 inserted with ON CONFLICT DO NOTHING and only the rows actually inserted add
@@ -17,7 +18,7 @@
  *                 docs/spec/04-database-design.md §3.4
  */
 import { leagueAwards, seasonPeriodOf, type LeagueEntryInput } from '@sbr/application';
-import { LEADERBOARD_DEFAULTS } from '@sbr/contracts';
+import { LEADERBOARD_DEFAULTS, type LeaderboardConfig } from '@sbr/contracts';
 import type { MatchState } from '@sbr/domain';
 import type { PoolClient } from 'pg';
 
@@ -35,11 +36,24 @@ interface EntryRow {
   readonly verified: boolean;
 }
 
-// needsVerifiedEmail: website mode, or standalone with SBR_FEATURE_EMAIL_VERIFICATION on (D59).
+// The league's rules when a match's points are awarded: the admin area's League settings
+// (the table, bonuses, fewest players), and whether confirmed e-mail addresses are needed at
+// all (website mode, or standalone with the e-mail switch on, D59).
+export interface LeagueRules {
+  readonly config: LeaderboardConfig;
+  readonly needsVerifiedEmail: boolean;
+}
+
+// Today's rules: the defaults, confirmed e-mail addresses needed.
+export const DEFAULT_LEAGUE_RULES: LeagueRules = {
+  config: LEADERBOARD_DEFAULTS,
+  needsVerifiedEmail: true,
+};
+
 export async function awardFinishedMatch(
   client: PoolClient,
   m: FinishedMatch,
-  needsVerifiedEmail: boolean,
+  league: LeagueRules,
 ): Promise<void> {
   const entries = await leagueEntriesOf(client, m);
   await awardSeasonCompletes(client, m.matchId, entries);
@@ -50,12 +64,13 @@ export async function awardFinishedMatch(
   const awards = leagueAwards(
     { countsForLeaderboard: flag.rows[0]?.counts_for_leaderboard === true, entries },
     {
-      ...LEADERBOARD_DEFAULTS,
-      requireVerifiedPlayers: LEADERBOARD_DEFAULTS.requireVerifiedPlayers && needsVerifiedEmail,
+      ...league.config,
+      requireVerifiedPlayers: league.config.requireVerifiedPlayers && league.needsVerifiedEmail,
     },
   );
   if (awards.length === 0) return;
-  for (const periodId of await periodsFor(client, m.at)) {
+  const periods = await periodsFor(client, m.at, league.config);
+  for (const periodId of [periods.season, periods.allTime]) {
     await client.query(
       `WITH u AS (
          SELECT * FROM unnest($3::uuid[], $4::int[], $5::int[], $6::boolean[])
@@ -130,23 +145,34 @@ async function awardSeasonCompletes(
 
 // The season period of the finish time (created on first use, older seasons closed) and
 // the all-time period.
-async function periodsFor(client: PoolClient, at: number): Promise<readonly string[]> {
+// The season period of `at` (created with the league table in force when first needed, older
+// seasons closed) and the all-time period; also where a correction goes (./corrections).
+export async function periodsFor(
+  client: PoolClient,
+  at: number,
+  config: LeaderboardConfig,
+): Promise<{ readonly season: string; readonly allTime: string }> {
   const season = seasonPeriodOf(at);
   await client.query(
     `INSERT INTO sbr.leaderboard_periods (kind, name, starts_at, ends_at, config)
      VALUES ('season', $1, to_timestamp($2 / 1000.0), to_timestamp($3 / 1000.0), $4)
      ON CONFLICT (kind, starts_at) DO NOTHING`,
-    [season.name, season.startsAt, season.endsAt, JSON.stringify(LEADERBOARD_DEFAULTS)],
+    [season.name, season.startsAt, season.endsAt, JSON.stringify(config)],
   );
   await client.query(
     `UPDATE sbr.leaderboard_periods SET status = 'closed'
       WHERE kind = 'season' AND status = 'active' AND starts_at < to_timestamp($1 / 1000.0)`,
     [season.startsAt],
   );
-  const ids = await client.query<{ id: string }>(
-    `SELECT id FROM sbr.leaderboard_periods
+  const ids = await client.query<{ id: string; kind: string }>(
+    `SELECT id, kind FROM sbr.leaderboard_periods
       WHERE (kind = 'season' AND starts_at = to_timestamp($1 / 1000.0)) OR kind = 'all_time'`,
     [season.startsAt],
   );
-  return ids.rows.map((r) => r.id);
+  const idOf = (kind: string): string => {
+    const row = ids.rows.find((r) => r.kind === kind);
+    if (row === undefined) throw new Error(`no ${kind} period`);
+    return row.id;
+  };
+  return { season: idOf('season'), allTime: idOf('all_time') };
 }

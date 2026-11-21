@@ -4,7 +4,8 @@
  * @brief  Page helpers for the real game: quick sign-in, host a match, join, read the arena.
  *
  * Responsibility: one way for every real-game spec to sign in with the development quick
- *                 sign-in, create a match from the host's form, join from the lobby, start
+ *                 sign-in, create a match with every choice spelled out (API) and open its
+ *                 console, join from the lobby, start
  *                 it with bots, press Draw next once its window allows, read the current
  *                 number and the standings from a screen, post as the signed-in account (with
  *                 its CSRF token), stop a match in teardown and close the test's contexts.
@@ -16,7 +17,7 @@ import { expect, type APIResponse, type Browser, type Page } from '@playwright/t
 
 import { openMenu } from './menu.js';
 
-export type Who = 'host' | 'player-1' | 'player-2' | 'player-3';
+export type Who = 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player-3';
 
 // The first page of a run is slow (the dev server compiles on demand): the page must have
 // its session (signed in or not) before the quick sign-in is used, and gets 20 s for it.
@@ -31,7 +32,8 @@ export async function signIn(page: Page, who: Who): Promise<void> {
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
   await expect(page.getByTestId('signed-in-as')).toContainText(
-    who === 'host' ? 'dev-host (host)' : `dev-${who} (player)`,
+    // The host and the admin may create matches: the chip names them "host".
+    who.startsWith('player') ? `dev-${who} (player)` : `dev-${who} (host)`,
     { timeout: SETTLE_MS },
   );
 }
@@ -53,29 +55,35 @@ export interface NewMatch {
   readonly leaderboard?: boolean;
 }
 
-// Creates the match from the host's form and returns its code (the console shows it).
+// Creates the match through the API with every choice spelled out (the Organizer's page
+// takes them from a preset: ./startMatch.spec) and opens its console; returns its code.
 export async function hostMatch(page: Page, m: NewMatch): Promise<string> {
-  await page.goto('/#/host/new');
-  await page.getByTestId('create-title').fill(m.title);
-  await page.getByTestId('create-game-type').selectOption(m.gameType);
-  if (m.prizes !== undefined) {
-    for (const box of await page.locator('[data-testid^="prize-"]').all()) await box.uncheck();
-    for (const p of m.prizes) await page.getByTestId(`prize-${p}`).check();
-  }
-  await page.getByTestId('start-draw-mode').selectOption(m.drawMode);
-  if (m.intervalSec !== undefined)
-    await page.getByTestId('start-draw-interval').fill(String(m.intervalSec));
-  await page.getByTestId('missed-numbers').selectOption(m.missed);
-  if (m.leaderboard !== undefined)
-    await page.getByTestId('create-leaderboard').setChecked(m.leaderboard);
-  await page.getByTestId('create-max').fill(String(m.maxPlayers ?? 20));
-  if (m.pause === 'host') await page.getByTestId('create-round-pause').selectOption('host');
-  if (typeof m.pause === 'number')
-    await page.getByTestId('create-round-pause-sec').fill(String(m.pause));
-  if (m.fast === true) await page.getByTestId('create-fast').check();
-  await page.getByTestId('create-submit').click();
+  const created = await post(page, '/api/v1/matches', {
+    title: m.title,
+    gameType: m.gameType,
+    ...(m.prizes === undefined ? {} : { prizes: m.prizes }),
+    drawMode: m.drawMode,
+    ...(m.intervalSec === undefined ? {} : { drawIntervalMs: m.intervalSec * 1000 }),
+    missedNumbers:
+      m.missed === 'autoMarkAfter'
+        ? { kind: 'autoMarkAfter', delayMs: 3_000 }
+        : { kind: 'noAutoMark' },
+    countsForLeaderboard: m.leaderboard ?? m.gameType === 'royale',
+    maxPlayers: m.maxPlayers ?? 20,
+    ...(m.gameType === 'royale' ? { roundPause: roundPauseOf(m.pause) } : {}),
+    ...(m.fast === true ? { testProfile: 'fast' } : {}),
+    startRule: { kind: 'host' },
+  });
+  expect(created.status(), 'create the match').toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  await page.goto(`/#/host/${code}`);
   await expect(page.getByTestId('host-console')).toBeVisible();
-  return (await page.getByTestId('host-code').innerText()).trim();
+  return code;
+}
+
+// The royale pause as the API takes it: the host starts each round, or a wait (15 s unless given).
+function roundPauseOf(pause: NewMatch['pause']) {
+  return pause === 'host' ? { kind: 'host' } : { kind: 'wait', ms: (pause ?? 15) * 1000 };
 }
 
 export async function joinFromLobby(page: Page, code: string): Promise<void> {

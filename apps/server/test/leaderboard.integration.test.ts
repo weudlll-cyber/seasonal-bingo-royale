@@ -19,7 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
 import { createSession } from '../src/auth/sessions.js';
-import { awardFinishedMatch } from '../src/leaderboard/awards.js';
+import { awardFinishedMatch, DEFAULT_LEAGUE_RULES } from '../src/leaderboard/awards.js';
 import { buildOn, startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
 import { playToEnd } from './playToEnd.js';
 import { signIn, type Client } from './session.js';
@@ -109,7 +109,11 @@ async function projectFinishAgain(matchId: string, app = harness.built): Promise
   const client = await harness.pool.connect();
   try {
     await client.query('BEGIN');
-    await awardFinishedMatch(client, { matchId, at: Date.now(), state: loaded.state }, true);
+    await awardFinishedMatch(
+      client,
+      { matchId, at: Date.now(), state: loaded.state },
+      DEFAULT_LEAGUE_RULES,
+    );
     await client.query('COMMIT');
   } finally {
     client.release();
@@ -128,7 +132,7 @@ async function projectSeasonComplete(matchId: string, who: string): Promise<void
   const client = await harness.pool.connect();
   try {
     await client.query('BEGIN');
-    await awardFinishedMatch(client, { matchId, at: Date.now(), state }, true);
+    await awardFinishedMatch(client, { matchId, at: Date.now(), state }, DEFAULT_LEAGUE_RULES);
     await client.query('COMMIT');
   } finally {
     client.release();

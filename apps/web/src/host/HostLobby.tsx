@@ -5,13 +5,14 @@
  *
  * Responsibility: the notice "Your match is open — players can join now from the lobby (code …)"
  *                 with the registration status (../game/Registration); the joined players; "Fill
- *                 with N bots" (dev only); for a set start time the switch "Start automatically
+ *                 with N bots" (dev only, N within the server's player range); for a set start time the switch "Start automatically
  *                 at the start time" (until the countdown runs) and the notice when the automatic
  *                 start found too few players; Start match (disabled with the reason while
  *                 maintenance is on, D22) or the running countdown; "Abort match" with a reason
  *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).
  * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback,
- *                 ../shell/http, ../shell/useMaintenance, ./TimingFields, ./AbortMatch
+ *                 ../shell/http, ../shell/session, ../shell/useMaintenance, ./TimingFields,
+ *                 ./AbortMatch
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3, §3
  */
@@ -22,7 +23,7 @@ import { RegistrationStatus } from '../game/Registration.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import { api, ApiError } from '../shell/http.js';
-import { useSession } from '../shell/session.js';
+import { useLimits, useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
 import { AbortMatch } from './AbortMatch.js';
 import { AutoStartBox } from './TimingFields.js';
@@ -169,6 +170,8 @@ function OpenNotice({ match }: { readonly match: LiveState['match'] }): ReactEle
 // Development only: fill the lobby with bots that mark automatically.
 function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): ReactElement {
   const [bots, setBots] = useState(20);
+  // The server's player range (admin-area §8 (m)).
+  const players = useLimits()?.players;
   return (
     <div className="sbr-row">
       <label className="sbr-row">
@@ -177,8 +180,8 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
           className="sbr-input"
           style={{ width: '6rem' }}
           type="number"
-          min={2}
-          max={200}
+          min={players?.min}
+          max={players?.max}
           value={bots}
           data-testid="bots-up-to"
           onChange={(e) => {

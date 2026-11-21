@@ -44,6 +44,7 @@ import {
   SEED_COLUMN_VERSION,
   type SeedColumn,
 } from './codec.js';
+import { DEFAULT_LEAGUE_RULES, type LeagueRules } from '../leaderboard/awards.js';
 import { appendBatch } from './appendBatch.js';
 import { recordFrom, type MatchRow } from './records.js';
 
@@ -71,9 +72,9 @@ export class PgMatchStore implements MatchStore {
     private readonly pool: DbPool,
     private readonly seedKey: Buffer,
     private readonly onAppend: (timing: AppendTiming) => void = () => undefined,
-    // League points need confirmed e-mail addresses: website mode, or standalone with
-    // SBR_FEATURE_EMAIL_VERIFICATION on (D59).
-    private readonly needsVerifiedEmail = true,
+    // The league's rules (the League settings, whether confirmed e-mail addresses are needed,
+    // D59), asked when a match's points are awarded, so a change applies at once.
+    private readonly league: () => LeagueRules = () => DEFAULT_LEAGUE_RULES,
   ) {}
 
   // At startup: the key must open what is stored (the newest sealed seed), so a wrong key
@@ -209,7 +210,7 @@ export class PgMatchStore implements MatchStore {
       stored,
       payloads: stored.map((s) => encode(s.event)),
       snapshot: due ? encode(input.stateAfter) : null,
-      needsVerifiedEmail: this.needsVerifiedEmail,
+      league: this.league(),
     });
     if (due) this.snapshotAt.set(input.matchId, lastSeq);
     this.onAppend({ roundTrips, ms: Date.now() - started, taps: input.mark?.source === 'manual' });

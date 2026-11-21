@@ -40,6 +40,7 @@ Owner decision of 2026-11-06: spend fewer tokens without testing or checking les
 - Test runs print failures only: `pnpm test:quiet`, `pnpm verify:quiet`, `pnpm e2e:quiet` (dot reporters, failures in full); never read a passing run's full output.
 - Long logs (install/Ubuntu tests, the real-site rehearsal, loadcheck, CI job logs) go to a file under `reports/logs/` (git-ignored); read only the failing part (grep/tail), never the whole log.
 - Screenshots are taken for the owner, not for checking: check with assertions; open an image yourself only when an assertion cannot decide it.
+- Screenshots and other check images are never committed (`reports/screens/` and `reports/logs/` are git-ignored) and are deleted once checked; only the final review set of a piece stays in `reports/screens/latest/` (owner decision of 2026-11-21).
 - Wait for CI with one blocking command (`gh run watch <id> --exit-status`, output to a file), not by polling.
 - Read large files by searching first and reading only the lines needed.
 - A flaky test is fixed at its cause the first time it flakes, not re-run.

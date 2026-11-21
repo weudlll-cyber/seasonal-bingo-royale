@@ -9,25 +9,26 @@
  *                 the allowed range by ../drawControl). The host can change both during
  *                 play. Labels never use the word "auto" alone, so they cannot be
  *                 confused with marking.
- * Depends on:     react, ../drawControl
- * Used by:        ./StartForm, ../host/CreateMatch, ../quicktest/TestMatch
+ * Depends on:     react, ../drawControl, ../shell/session (the ruleset interval it names)
+ * Used by:        ./StartForm, ../quicktest/TestMatch
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import type { ReactElement } from 'react';
 
 import type { DrawControl, DrawMode } from '../drawControl.js';
-
-// The realtime rulesets draw every 5 s (packages/contracts/src/config/defaults); the
-// label names it while the field is empty and the ruleset interval applies.
-const RULESET_INTERVAL_SEC = 5;
+import { useLimits } from '../shell/session.js';
 
 interface StartDrawFieldProps {
   readonly value: DrawControl;
   readonly onChange: (next: DrawControl) => void;
 }
 
-export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactElement {
-  const seconds = value.intervalSec ?? RULESET_INTERVAL_SEC;
+export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactElement | null {
+  // The realtime rulesets' interval as the server sends it: the label names it while the
+  // field is empty and that interval applies (admin-area §8 (m)).
+  const rulesetMs = useLimits()?.drawIntervalMs;
+  if (rulesetMs === undefined) return null;
+  const seconds = value.intervalSec ?? rulesetMs / 1000;
   return (
     <fieldset>
       <legend>Draws</legend>
@@ -51,7 +52,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
           data-testid="start-draw-interval"
           min={1}
           step={0.5}
-          placeholder={String(RULESET_INTERVAL_SEC)}
+          placeholder={String(rulesetMs / 1000)}
           value={value.intervalSec ?? ''}
           onChange={(e) => {
             const next = Number(e.target.value);

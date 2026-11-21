@@ -21,8 +21,6 @@ import type { Mailer } from './mailer.js';
 import { hashPassword, passwordProblem, type PasswordProblem } from './password.js';
 import { accountSessionIds, revokeSession } from './sessions.js';
 
-const VALID_MS = 60 * 60_000;
-
 const hashOf = (token: string): Buffer => createHash('sha256').update(token).digest();
 
 interface ResetDeps {
@@ -30,6 +28,8 @@ interface ResetDeps {
   readonly mailer: Mailer;
   // Where the link points: the game's public address (its #/reset-password page).
   readonly pageUrl: string;
+  // How long the link works (the Technical section, 60 unless changed).
+  readonly validMinutes: number;
 }
 
 // The account that may reset its password by this e-mail, or null.
@@ -42,21 +42,25 @@ async function resettable(pool: DbPool, email: string): Promise<{ id: string } |
   return r.rows[0] ?? null;
 }
 
+// "one hour", "90 minutes": how long the link works, in the e-mail's words.
+const validFor = (minutes: number): string =>
+  minutes === 60 ? 'one hour' : `${String(minutes)} minutes`;
+
 export async function requestReset(deps: ResetDeps, email: string): Promise<void> {
   const account = await resettable(deps.pool, email);
   if (account === null) return;
   const token = randomBytes(32).toString('base64url');
   await deps.pool.query(
     `INSERT INTO sbr.password_reset_tokens (token_hash, account_id, expires_at)
-     VALUES ($1, $2, now() + make_interval(secs => $3))`,
-    [hashOf(token), account.id, VALID_MS / 1000],
+     VALUES ($1, $2, now() + make_interval(mins => $3))`,
+    [hashOf(token), account.id, deps.validMinutes],
   );
   const link = `${deps.pageUrl}#/reset-password?token=${token}`;
   await deps.mailer.send(
     email,
     'Reset your Seasonal Bingo Royale password',
     `Someone asked to reset the password of your Seasonal Bingo Royale account.\n\n` +
-      `To choose a new password, open this link within one hour:\n${link}\n\n` +
+      `To choose a new password, open this link within ${validFor(deps.validMinutes)}:\n${link}\n\n` +
       `If it was not you, ignore this e-mail; your password stays as it is.\n`,
   );
 }

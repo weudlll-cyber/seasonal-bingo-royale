@@ -1,11 +1,12 @@
 /**
  * @file   apps/server/src/http/routes/devSignIn.ts
  * @module server/http
- * @brief  Development-only quick sign-in: host and three players without a password.
+ * @brief  Development-only quick sign-in: host, admin and three players without a password.
  *
- * Responsibility: POST /api/v1/dev/sign-in { as: 'host' | 'player-1' | 'player-2' |
+ * Responsibility: POST /api/v1/dev/sign-in { as: 'host' | 'admin' | 'player-1' | 'player-2' |
  *                 'player-3' } creates on first use, or reuses, the account `dev-host`
- *                 (role organizer) or `dev-player-N` and starts a session for it (./auth
+ *                 (role organizer), `dev-admin` (role game_admin, the admin area's Admin) or
+ *                 `dev-player-N` and starts a session for it (./auth
  *                 openSession, the old session ended), so the owner can try host and players
  *                 alone in several browser windows. The load check signs in `load-001` …
  *                 `load-200` the same way (`dev-load-NNN`, players) and removes them with
@@ -27,6 +28,10 @@ import { openSession } from './auth.js';
 
 const DEV_ACCOUNTS = {
   host: { displayName: 'dev-host', roles: ['organizer'] },
+  // The admin area's Admin (game_admin, admin-area §2.2); the sign-in marks its second step.
+  admin: { displayName: 'dev-admin', roles: ['game_admin'] },
+  // The owner (super_admin): the Technical section (admin-area §9 piece 7).
+  owner: { displayName: 'dev-owner', roles: ['super_admin'] },
   'player-1': { displayName: 'dev-player-1', roles: [] },
   'player-2': { displayName: 'dev-player-2', roles: [] },
   'player-3': { displayName: 'dev-player-3', roles: [] },
@@ -35,7 +40,10 @@ const DEV_ACCOUNTS = {
 // The load check (load/) signs in numbered players: `load-001` … `load-200`.
 const LOAD = /^load-\d{3}$/;
 const body = z.object({
-  as: z.union([z.enum(['host', 'player-1', 'player-2', 'player-3']), z.string().regex(LOAD)]),
+  as: z.union([
+    z.enum(['host', 'admin', 'owner', 'player-1', 'player-2', 'player-3']),
+    z.string().regex(LOAD),
+  ]),
 });
 
 function devAccount(as: string): {
@@ -58,6 +66,14 @@ export function registerDevSignIn(
     const who = devAccount(parsed.data.as);
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
     await openSession(request, reply, deps, accountId);
+    // Nobody knows a development account's password or TOTP: its admin sessions count the
+    // second step (D60) as done, so `dev-admin` and `dev-owner` can try the admin area locally.
+    if (who.roles.includes('game_admin') || who.roles.includes('super_admin')) {
+      await deps.pool.query(
+        'UPDATE sbr.sessions SET last_2fa_at = now() WHERE account_id = $1 AND last_2fa_at IS NULL',
+        [accountId],
+      );
+    }
     return reply.status(200).send({ accountId, displayName: who.displayName });
   });
   // The load check removes its accounts afterwards (their sessions and roles go with them).

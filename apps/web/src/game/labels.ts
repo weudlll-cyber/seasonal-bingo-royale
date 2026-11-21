@@ -211,6 +211,11 @@ export function problemText(code: string, reason: string | null = null): string 
     VALIDATION_FAILED: 'Please check the form.',
     QUIET_HOURS: 'Quiet hours — no numbers are drawn until they end.',
     ASYNC_ROYALE_ONLY: 'Only a battle royale can be played asynchronously.',
+    LAST_PUBLISHED: 'Publish another preset of this kind first — one must stay published.',
+    NOTHING_TO_UNDO: 'Nothing is left to undo: the values are already back.',
+    STEP_UP_REQUIRED: 'Confirm it is you with your second step first.',
+    TWO_FACTOR_FAILED: 'That code did not work. Try the newest code or a recovery code.',
+    UNDO_REFUSED: 'This undo would leave the preset invalid or none of its kind published.',
   };
   return texts[code] ?? 'Something went wrong — please try again.';
 }
@@ -237,6 +242,10 @@ export const cutOutLine = (count: number): string =>
 
 export const moreLine = (count: number): string => `and ${String(count)} more`;
 
+// "+25 points", "−20 points": a correction of league points (admin-area §4).
+export const pointsDelta = (n: number): string =>
+  `${n > 0 ? '+' : '−'}${String(Math.abs(n))} points`;
+
 // "a", "a and b", "a, b and c".
 export function nameList(names: readonly string[]): string {
   if (names.length <= 1) return names.join('');
@@ -256,3 +265,6 @@ export function factsLine(numbersDrawn: number, playersLeft: number): string {
 }
 
 export const nextRoundLine = (left: number): string => `Next round in ${String(left)} s`;
+
+// "10-second countdown": the start countdown the server sends with its limits.
+export const countdownName = (ms: number): string => `${String(ms / 1000)}-second countdown`;

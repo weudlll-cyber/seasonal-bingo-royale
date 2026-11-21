@@ -1,10 +1,10 @@
 /**
  * @file   e2e/createFormPhone.spec.ts
  * @module e2e
- * @brief  On a 390 px phone every option of the create form's dropdowns is fully readable.
+ * @brief  On a 390 px phone every option of "Start a match"'s dropdowns is fully readable.
  *
- * Responsibility: with every dropdown of the create form showing ("At a set time" chosen,
- *                 royale, so the pause choice shows too), each option's text, measured in
+ * Responsibility: with every dropdown of "Start a match" showing ("At a set time" chosen,
+ *                 the royale preset, "More choices" open so the pause and missed numbers show), each option's text, measured in
  *                 the dropdown's own font, fits the room inside the closed dropdown (its
  *                 width less padding and 24 px for the arrow). Nothing is cut off.
  * Depends on:     @playwright/test, ./realGame, ./screens
@@ -28,6 +28,8 @@ test('every create-form option fits its dropdown on a 390 px phone', async ({ br
   await signIn(page, 'host');
   await page.goto('/#/host/new');
   await page.getByTestId('create-start-rule').selectOption('at');
+  // "More choices" open, so its dropdowns have their width.
+  await page.getByTestId('start-more').click();
   const cut = await page.evaluate((arrow) => {
     const ctx = document.createElement('canvas').getContext('2d');
     const out: string[] = [];

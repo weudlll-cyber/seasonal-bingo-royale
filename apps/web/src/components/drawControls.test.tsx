@@ -7,7 +7,8 @@
  * Responsibility: Draw next works only in `host` mode and while draws remain; the mode
  *                 switch, the interval field and skip report the new control; the start
  *                 form passes mode and interval (empty = ruleset interval).
- * Depends on:     @testing-library/react, ./DrawControls, ./StartDrawField, ../drawControl
+ * Depends on:     @testing-library/react, ./DrawControls, ./StartDrawField, ../drawControl,
+ *                 ../test/matchFixture
  * Spec:           docs/spec/01-game-design.md §5, docs/spec/11-admin-panel.md §3.2
  */
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
@@ -16,8 +17,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DrawControls } from './DrawControls.js';
 import { StartDrawField } from './StartDrawField.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
+import { showWithLimits } from '../test/matchFixture.js';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 function controls(control: DrawControl, canDraw = true) {
   const onChange = vi.fn<(next: DrawControl) => void>();
@@ -61,9 +66,12 @@ describe('DrawControls', () => {
 });
 
 describe('StartDrawField', () => {
-  it('passes the mode and the interval; an empty interval means the ruleset interval', () => {
+  it('passes the mode and the interval; an empty interval means the ruleset interval', async () => {
     const onChange = vi.fn<(next: DrawControl) => void>();
-    render(<StartDrawField value={{ ...INITIAL_CONTROL, intervalSec: 3 }} onChange={onChange} />);
+    // The ruleset interval it names comes from the server's limits (the session answer).
+    await showWithLimits(
+      <StartDrawField value={{ ...INITIAL_CONTROL, intervalSec: 3 }} onChange={onChange} />,
+    );
     fireEvent.change(screen.getByTestId('start-draw-mode'), { target: { value: 'host' } });
     fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '' } });
     expect(onChange.mock.calls.map(([c]) => c)).toEqual([

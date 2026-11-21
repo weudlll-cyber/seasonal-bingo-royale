@@ -20,7 +20,7 @@
 import { matchIdByCode } from '../../match/records.js';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { MatchNotFound } from '@sbr/application';
-import { ASYNC_DRAW_INTERVAL_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
+import { ASYNC_DRAW_INTERVAL_MS, LIMITS, START_COUNTDOWN_MS } from '@sbr/contracts';
 import { z } from 'zod';
 
 import { maintenanceExempt, requirePermission, type MatchRouteDeps } from './matches.js';
@@ -36,7 +36,9 @@ const drawModeBody = z.object({
 const abortBody = z.object({ reason: z.string().trim().min(3).max(200) });
 const autoStartBody = z.object({ auto: z.boolean() });
 const websiteBody = z.object({ show: z.boolean() });
-const botsBody = z.object({ upTo: z.number().int().min(2).max(200) });
+const botsBody = z.object({
+  upTo: z.number().int().min(LIMITS.players.min).max(LIMITS.players.max),
+});
 const markBody = z.object({
   cardIndex: z.number().int().min(0).max(3),
   cell: z.number().int().min(0).max(24),

@@ -6,13 +6,14 @@
  * Responsibility: `AccountField` — label, input, optional hint; `useAccountSubmit` — runs the
  *                 server call once (busy while it runs), shows the refusal as a sentence
  *                 (./accountText) and goes to the lobby when it succeeds; `FormError`.
- * Depends on:     react, ../shell/router, ./accountText
+ * Depends on:     react, ../shell/router, ../shell/session, ./accountText
  * Used by:        ./SignIn, ./Register, ./AccountPage
  * Spec:           docs/spec/05-api-design.md §2.1
  */
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { navigate } from '../shell/router.js';
+import { useLimits } from '../shell/session.js';
 import { accountError } from './accountText.js';
 
 interface AccountFieldProps {
@@ -55,6 +56,7 @@ export function useAccountSubmit(
 } {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const limits = useLimits();
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
     const problem = check();
@@ -66,7 +68,7 @@ export function useAccountSubmit(
         navigate({ name: 'lobby' });
       })
       .catch((e: unknown) => {
-        setError(accountError(e));
+        setError(accountError(e, limits));
         setBusy(false);
       });
   };

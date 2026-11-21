@@ -8,13 +8,60 @@
  *                 catalogue, the leaderboard defaults, the view the player client folds
  *                 (Quick Test and live match), the "While you were away" summary, the
  *                 async catch-up defaults, the leaderboard, profile and export
- *                 answers and the player's own matches (D39); later WPs add WS envelopes and other config documents.
+ *                 answers and the player's own matches (D39), the limits the server enforces on
+ *                 forms and sends with the session (admin-area §8 (m)); later WPs add WS
+ *                 envelopes and other config documents.
  * Depends on:     ./config/*, ./config/defaults/*, ./view/*, ./http/*
  * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 
-export { type GameType } from './config/gameType.js';
+export { GameTypeSchema, type GameType } from './config/gameType.js';
+export { ClientLimitsSchema, LIMITS, type ClientLimits } from './config/limits.js';
+export {
+  CorrectionSchema,
+  LEAGUE_CATALOGUE,
+  LEAGUE_DEFAULTS,
+  leagueConfigOf,
+  leagueSettingsOf,
+  LeagueSettingsSchema,
+  type LeagueSettings,
+} from './config/league.js';
+export { settingsFields, type SettingField } from './config/settingsFields.js';
+export type { Entry as CatalogueEntry } from './config/presetCatalogue.js';
+export {
+  TECHNICAL_CATALOGUE,
+  TECHNICAL_DEFAULTS,
+  technicalSettingsOf,
+  TechnicalSettingsSchema,
+  type TechnicalSettings,
+} from './config/technical.js';
+export {
+  CLIENT_SCREEN_KEYS,
+  clientScreensOf,
+  SCREEN_CATALOGUE,
+  SCREEN_DEFAULTS,
+  screenSettingsOf,
+  ScreenSettingsSchema,
+  type ClientScreens,
+  type ScreenSettings,
+} from './config/screens.js';
+export {
+  OrganizerSchema,
+  organizerDefaults,
+  speedProblem,
+  SPEEDS,
+  type Organizer,
+  type Speed,
+} from './config/organizer.js';
+export {
+  presetFields,
+  presetPathName,
+  readPath,
+  writePath,
+  type PresetField,
+  type PresetTab,
+} from './config/presetFields.js';
 export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,
@@ -89,6 +136,7 @@ export type {
   LeagueOutcome,
   PlayerProfile,
   ProfileBadge,
+  ProfileCorrection,
   ProfileMatch,
 } from './http/leaderboard.js';
 export type { MyMatch } from './http/myMatches.js';

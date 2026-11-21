@@ -11,17 +11,15 @@
  * Depends on:     @testing-library/react, ./Simulation, ../test/quickTestFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08; docs/spec/01-game-design.md §5
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { renderInSession, serveWithLimits } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { Simulation } from './Simulation.js';
 
 beforeEach(() => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(royaleFixture('manual'))))),
-  );
+  serveWithLimits(() => royaleFixture('manual'));
 });
 afterEach(() => {
   cleanup();
@@ -39,7 +37,7 @@ function visibleDrawControls(): string[] {
 
 describe('the seed simulation', () => {
   it('folds the form after a run and shows exactly one draw control', async () => {
-    render(<Simulation />);
+    await renderInSession(<Simulation />);
     expect(visibleDrawControls()).toEqual(['form']);
     fireEvent.click(screen.getByTestId('start-run'));
     await act(async () => {

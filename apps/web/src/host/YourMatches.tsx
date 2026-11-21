@@ -7,7 +7,7 @@
  *                 (`youHost`) that are still open or running, so a host who left the console
  *                 finds it again. Hidden while there are none.
  * Depends on:     react, ../game/Lobby (match list, manageable), ../game/labels, ../shell/router
- * Used by:        ./CreateMatch
+ * Used by:        ./StartMatch
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';

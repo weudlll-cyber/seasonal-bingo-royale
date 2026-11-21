@@ -20,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Simulation } from '../quicktest/Simulation.js';
 import type { StartQuickTestInput } from '../api.js';
 import { INITIAL_CONTROL, type DrawControl } from '../drawControl.js';
+import { renderInSession, serveWithLimits, showWithLimits } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import type { MissedNumbers } from '../types.js';
 import { DrawControls } from './DrawControls.js';
@@ -35,15 +36,17 @@ afterEach(() => {
 const optionTexts = (testId: string): string[] =>
   [...screen.getByTestId(testId).querySelectorAll('option')].map((o) => o.textContent);
 
-function renderForm() {
+// The form inside the session that sends the server's limits (the ruleset interval it names).
+async function renderForm() {
   const onStart = vi.fn<(input: StartQuickTestInput, draw: DrawControl) => void>();
-  render(<StartForm onStart={onStart} busy={false} />);
+  await showWithLimits(<StartForm onStart={onStart} busy={false} />);
   return onStart;
 }
 
 describe('start form labels', () => {
-  it('names marking, missed numbers and draws without the word auto', () => {
-    const { container } = render(<StartForm onStart={vi.fn()} busy={false} />);
+  it('names marking, missed numbers and draws without the word auto', async () => {
+    await renderForm();
+    const container = document.body;
     expect(optionTexts('marking-mode')).toEqual(['I tap the numbers', 'Mark for me']);
     expect(optionTexts('missed-numbers')).toEqual([
       'Mark for me after 3 seconds',
@@ -57,8 +60,8 @@ describe('start form labels', () => {
     expect(container.textContent).not.toMatch(/\bauto\b/i);
   });
 
-  it('names the chosen seconds and hides missed numbers when marking for the owner', () => {
-    renderForm();
+  it('names the chosen seconds and hides missed numbers when marking for the owner', async () => {
+    await renderForm();
     fireEvent.change(screen.getByTestId('missed-delay'), { target: { value: '5' } });
     fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '8' } });
     expect(optionTexts('missed-numbers')[0]).toBe('Mark for me after 5 seconds');
@@ -67,8 +70,8 @@ describe('start form labels', () => {
     expect(screen.queryByTestId('missed-numbers')).toBeNull();
   });
 
-  it('sends the missed-number rule and the timed-draw gap', () => {
-    const onStart = renderForm();
+  it('sends the missed-number rule and the timed-draw gap', async () => {
+    const onStart = await renderForm();
     fireEvent.change(screen.getByTestId('missed-delay'), { target: { value: '5' } });
     fireEvent.change(screen.getByTestId('start-draw-interval'), { target: { value: '8' } });
     fireEvent.click(screen.getByTestId('start-run'));
@@ -107,11 +110,8 @@ describe('live draw controls', () => {
 async function startHostRun(missed: MissedNumbers): Promise<void> {
   vi.useFakeTimers();
   const result = royaleFixture('manual', missed);
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(result)))),
-  );
-  render(<Simulation />);
+  serveWithLimits(() => result);
+  await renderInSession(<Simulation />);
   fireEvent.change(screen.getByTestId('start-draw-mode'), { target: { value: 'host' } });
   fireEvent.click(screen.getByTestId('start-run'));
   await act(async () => {
