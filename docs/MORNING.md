@@ -101,10 +101,13 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - Tests that failed first: `apps/server/test/adminAccounts.integration.test.ts` with the routes unregistered (5 failed: find; Organizer at once, Admin by the owner only and its sessions ended; lock refuses the sign-in, unlock lets it in, audited; end sessions, reset the second step; own account, owner, unknown, stale second step refused), `authzMatrix.integration` without the routes (3 failed), `apps/web/src/admin/adminAccounts.test.tsx` (no page; the History lines: 1 failed). e2e `adminAccounts.spec` (the Admin finds a registered account, makes it an Organizer, locks it — its sign-in refused —, unlocks it; fit at 1280×720 and 390×844 at 100/125/150 %; the account deleted at the end, unlocked first if a step failed).
   - Reused: `recentSecondStep` (piece 7), `appendAudit`, `requirePermission`, `sessionEnds`, `StepUp`, `when`; e2e `signIn`, `post`, `captureLook`, `fitProbe`. Noticed, left alone: `resetTwoFactor` of `sbr admin reset-2fa` (by name, without an audit entry) deletes the same rows as the new `resetSecondStep` (by id, audited); the CLI could use the new one.
   - Review shots: `admin-8-accounts-*`.
+  - Commit `d2a061c`; CI and CodeQL green (run 44888741091).
+- The night's one full-length realtime royale (CLAUDE.md, a task that changes rules and screens): the acceptance play-through `royale-timed` (host and three players, bots to 20, real rules from the published preset, draw mode switched mid-match) passed in 7.6 minutes. A first attempt failed in its teardown only, because the dev server it shares (3900/5390) was restarted under it; nothing in the game failed.
+- At the end: the dev server runs this branch (standalone, 3900/5390, migrations 0020–0024 applied); `reports/screens/latest/` holds only the review set (`admin-m1-*`, `admin-1-*` … `admin-8-*`, 51 pictures). On this machine's databases the built-in presets carry the names of the first seed (e.g. "royale-realtime"); fresh installs show "Battle royale".
 
 ## Running
 
-- Piece 8's checks and CI.
+- Nothing. PR #56 is open and not merged.
 
 ## Open
 
