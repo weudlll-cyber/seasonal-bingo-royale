@@ -92,6 +92,8 @@ test('the chat panel beside the lobby, console and match on a wide screen', asyn
   const created = await post(page, '/matches', {
     title: 'Chat match',
     gameType: 'royale',
+    // An organizer names a published preset (2026-11-21).
+    preset: 'royale-realtime',
     drawMode: 'host',
     missedNumbers: { kind: 'noAutoMark' },
     maxPlayers: 10,

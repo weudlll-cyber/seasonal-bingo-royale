@@ -25,6 +25,7 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+import { openMenu } from './menu.js';
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 
 // "Start a match" with the start rules: a start time an hour ahead (local, as the field takes it).
@@ -71,6 +72,8 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     if (shots) await captureLook(player, SHOTS_DIR, 'waiting-room');
 
     // To the lobby, and back to the console via Manage.
+    // The bar folds into the menu whenever its items do not fit on one row.
+    await openMenu(page);
     await page.getByRole('link', { name: 'Play', exact: true }).click();
     await expect(page.getByTestId(`manage-${code}`)).toBeVisible();
     if (shots) await captureLook(page, SHOTS_DIR, 'lobby');

@@ -9,7 +9,8 @@
  *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
  *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
  *                 "Register" (../account; in website mode one "Sign in" to the website, D37);
- *                 below 960 px links and account fold into one menu button (./MenuFold).
+ *                 links and account fold into one menu button whenever they do not fit on one
+ *                 row (./MenuFold).
  *                 Below the bar the current route's screen (boards and
  *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
  *                 the lobby and create form show the maintenance page, the host console a banner
@@ -89,7 +90,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         </a>
         {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
         <ThemeToggle />
-        {/* Below 960 px the navigation and the account fold into one menu button; it closes
+        {/* When they do not fit on one row the navigation and the account fold into one menu
+            button (always below 960 px); it closes
             on a new route, another sign-in, or when the chat opens from it. */}
         <MenuFold
           where={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)}`}
