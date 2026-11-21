@@ -14,7 +14,7 @@
  *                 ../http/app
  * Spec:           docs/spec/09-deployment-architecture.md §4
  */
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 export interface Maintenance {
@@ -51,7 +51,11 @@ export function maintenanceFlag(dataDir: string, now: () => number = Date.now): 
 export function setMaintenance(dataDir: string, reason: string | null): void {
   const file = path.join(dataDir, 'maintenance');
   if (reason === null) rmSync(file, { force: true });
-  else writeFileSync(file, reason.slice(0, MAX_REASON));
+  else {
+    // A fresh install's data directory may not be there before its first flag.
+    mkdirSync(dataDir, { recursive: true });
+    writeFileSync(file, reason.slice(0, MAX_REASON));
+  }
   forgets.get(file)?.();
 }
 

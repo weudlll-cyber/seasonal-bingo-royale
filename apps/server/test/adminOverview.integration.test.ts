@@ -27,7 +27,9 @@ let h: Harness;
 let admin: Client;
 let host: Client;
 let code = '';
-const dataDir = mkdtempSync(path.join(tmpdir(), 'sbr-admin-'));
+// Not there yet, as on a fresh install's first switch (CI found it): the switch makes it.
+const tmp = mkdtempSync(path.join(tmpdir(), 'sbr-admin-'));
+const dataDir = path.join(tmp, 'data');
 
 beforeAll(async () => {
   h = await startHarness({ SBR_DATA_DIR: dataDir, SBR_VERSION: 'test-1.2.3' });
@@ -45,7 +47,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await stopHarness(h);
-  rmSync(dataDir, { recursive: true, force: true });
+  rmSync(tmp, { recursive: true, force: true });
 }, SUITE_TIMEOUT_MS);
 
 interface AuditRow {
