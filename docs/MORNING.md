@@ -1,37 +1,28 @@
 # Morning sheet
 
-What the fit fixes (branch `docs/fit-audit`, PR #55) did, what runs, what is open and what needs the owner's word. Regenerated after every finished piece. Source: [docs/concepts/fit-audit.md](concepts/fit-audit.md) §3 and §5; the result in its §6. Owner decisions of 2026-11-20: no text below 14 px at the default font; card numbers never below 16 px; on phones the top bar folds its items into one menu button.
+The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is done, running, open, reverted and what needs the owner's word. Regenerated after every piece. Source: [docs/concepts/admin-area.md](concepts/admin-area.md) §9 and [admin-values.md](concepts/admin-values.md).
 
 ## Done
 
-- Piece 1 — small text and overflow (F1–F4, F9–F11):
-  - the brand subline, the LIVE badge, the development badge and every `<small>` hint at the small size (14 px); a unit test reads every stylesheet and component;
-  - the arena's phone column never grows past the window; the seasons line wraps between seasons;
-  - "Verify this match": the rounds table scrolls inside its own box;
-  - a narrow leaderboard shows the figures under the name;
-  - on phones at a large font the page margin and the panel padding stop growing (unchanged at the default font).
-- Piece 2 — cards (F5, F6, F8, F12, F15):
-  - card numbers never below 16 px on the own card and the watched cards;
-  - cells grow with the font; where the cards no longer fit, their box scrolls instead of the numbers shrinking;
-  - the own card never wider than a phone; no page scroll on a desktop round at 150 %.
-- Piece 3 — names and the phone header (F7, F13, F14, O1, O2):
-  - names are never cut (rows move seasons and points to a second line; a narrow podium shows rows);
-  - below 960 px the top bar is one row (brand, theme toggle, Menu); the menu holds the links and the account, keyboard usable; desktop unchanged; "← Seasonal Entertainment" stays top left;
-  - the arena's title line wraps LIVE and the host button; ball, numbers and the whole card fit a 360×640 phone at the default font.
-- Piece 4 — keep it so: a test in e2e/playerFit.spec.ts (Chromium, about 40 s in CI) at 360×640, 390×844 and 1280×720, 100 / 125 / 150 %, the console on phones included.
-- After the fixes (fit-audit.md §6): 588 combinations measured again; with a finding 30 instead of 504, none at the default font (164 before). Small text, card numbers, cut text, overflow and desktop page scroll: 0.
-- Played: one full-length realtime royale (19.7 min) and one with the fast rules, on a 390×844 phone and at 1280×720; no finding. Screenshots `reports/screens/latest/fitfix-*` (lobby, player, spectator, interlude, results, leaderboard, the phone menu closed and open; before: `fit-*`).
-- BACKLOG: the fit item moved to Part two.
-- Two last fixes: a podium name is never broken inside ("dev-player-2" whole; the podium shows rows below 46rem); watched cards side by side line up their grids beside a long heading.
+- Setup `5ce2041`: `reports/screens/` and `reports/logs/` git-ignored as a whole, their old contents deleted; CLAUDE.md says screenshots are never committed and deleted once checked.
+- Piece -1, self-check of the owner's local test (no code change):
+  - (a) PASS — the "new" marker in My matches: an asynchronous match, the player has seen it; a day later (development time travel, 68 numbers drawn) the lobby shows "• new"; after "Open" and back it is gone. Note: during the match's quiet hours (default 00:00–07:00) nothing is drawn, so nothing is new — a test at night sees no marker for that reason. Shot `admin-m1-marker-desktop-light.jpg`.
+  - (b) PASS — the website chat room `bingo` (website stack of e2e/chatEmbed.spec.ts): desktop side panel and phone drawer show `/embed/chat?room=bingo` in the game's theme; on a phone Chat is in the menu. Shots `admin-m1-chat-desktop-light.jpg`, `admin-m1-chat-phone-light.jpg`.
+
+- Piece 0b — the flaky live-match test (`e2e/realGame.spec.ts`): fixed at its cause. CI run 44647390930 (webkit-mobile) failed at "a drawn number on the card to tap": its trace, rebuilt, shows 20 distinct draws with a single card number (18, already marked) — the host drew a fixed 15 numbers after the reconnect, so the step depended on what the draws brought. Now the host draws until a card number is open, bounded by the 51 numbers a card does not hold (the 52nd draw must hit it), the test's timeout sized for that worst case. No engine fault: no number was drawn twice. Chromium run passes; CI below.
 
 ## Running
 
-- Nothing. PR #55 is merged into master (owner's approval of 2026-11-20); the dev server runs on master (standalone, 3900/5390).
+- Piece 0 — limits from the server.
 
 ## Open
 
-- Building the admin area, piece by piece in the order of admin-area.md §9; piece 0 first.
+- Pieces 1, 2, 3, 4, 5, 6, 7, 8 of admin-area.md §9.
+
+## Reverted
+
+- Nothing.
 
 ## Needs the owner's word
 
-- Nothing. Decided 2026-11-20 (fit-audit.md §6.3): on phones at 125 % / 150 % the page scrolls to the cards and Draw next (nothing shrinks or hides); the menu folds below 960 px, tablets included; Chat is a folded menu item on phones.
+- Nothing yet.

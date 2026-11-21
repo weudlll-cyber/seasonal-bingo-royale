@@ -8,9 +8,10 @@
  *                 waits; the host fills with bots and starts; after the countdown both screens
  *                 show the same number per Draw next and the player sees the arena with
  *                 standings; the player taps drawn numbers, goes offline for two draws, catches
- *                 up on reconnect with marks kept, and taps again (one repeat, refused): the
- *                 server holds one mark per tapped cell, as the screen shows. Teardown stops the
- *                 match, also when a step fails.
+ *                 up on reconnect with marks kept; the host draws until a card number is open
+ *                 (never a fixed few draws: at most 51 can miss the card) and the player taps it
+ *                 (one repeat, refused): the server holds one mark per tapped cell, as the
+ *                 screen shows. Teardown stops the match, also when a step fails.
  * Depends on:     @playwright/test, ./realGame
  * Spec:           docs/spec/12-testing-strategy.md §4 (journey 1, draft); docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -26,6 +27,9 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+
+// The numbers of a 75-ball draw that a 24-number card does not hold.
+const NOT_ON_CARD = 75 - 24;
 
 // The player's cells holding a drawn number not marked yet ("leave open": still tappable).
 const openDrawn = (page: Page): Promise<string[]> =>
@@ -66,7 +70,8 @@ test.afterEach(async ({ browser }) => {
 });
 
 test('host and player share one live match', async ({ browser }) => {
-  test.setTimeout(240_000);
+  // Room for the worst case of the reconnect step: every number not on the card drawn first.
+  test.setTimeout(240_000 + NOT_ON_CARD * 6_000);
   const host = await (await browser.newContext()).newPage();
   const player = await (await browser.newContext()).newPage();
   await signIn(host, 'host');
@@ -130,8 +135,10 @@ async function reconnectAndTap(host: Page, player: Page, code: string): Promise<
   // Taps after the reconnect: until one of the card's numbers is drawn, the host draws on;
   // a second tap on a marked cell must not add a mark (12 §4 journey 8).
   // Each draw is looked for on the player's screen only once it shows the host's numbers.
+  // Never a fixed few draws: a card holds 24 of the 75 numbers, so at most 51 draws miss it
+  // and the 52nd brings one (CI once drew 20 with a single card number among them).
   const playerTicker = () => player.getByTestId('draw-ticker').locator(':scope > *').count();
-  for (let i = 0; i < 15 && (await openDrawn(player)).length === 0; i += 1) {
+  for (let i = 0; i < NOT_ON_CARD && (await openDrawn(player)).length === 0; i += 1) {
     await drawNext(host);
     const drawn = await hostTicker();
     await expect
