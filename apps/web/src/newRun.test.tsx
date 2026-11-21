@@ -11,19 +11,17 @@
  * Depends on:     @testing-library/react, ./quicktest/Simulation, ./test/quickTestFixture
  * Spec:           docs/spec/15-implementation-plan.md WP-08
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Simulation } from './quicktest/Simulation.js';
+import { renderInSession, serveWithLimits } from './test/matchFixture.js';
 import { royaleFixture } from './test/quickTestFixture.js';
 
 beforeEach(() => {
   vi.useFakeTimers();
   // Every press of Run Quick Test gets a fresh result object, as from the server.
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(royaleFixture('manual'))))),
-  );
+  serveWithLimits(() => royaleFixture('manual'));
 });
 afterEach(() => {
   cleanup();
@@ -58,7 +56,7 @@ async function closeWindow(): Promise<void> {
 
 describe('a new run', () => {
   it('starts the owner card from the new run only, even in the same round', async () => {
-    render(<Simulation />);
+    await renderInSession(<Simulation />);
     await startRun();
     await nextDraw(); // draw 1: number 1, on the owner card at cell 0
     fireEvent.click(screen.getByTestId('owner-cell-0'));
@@ -80,7 +78,7 @@ describe('a new run', () => {
   });
 
   it("shows the next run's first cut screen after the last run's was closed", async () => {
-    render(<Simulation />);
+    await renderInSession(<Simulation />);
     await startRun();
     await nextDraw();
     await nextDraw(); // draw 2, the round's last

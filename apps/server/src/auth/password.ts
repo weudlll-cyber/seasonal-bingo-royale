@@ -7,11 +7,12 @@
  *                 encoded hash, so they can be raised later); verify in constant time;
  *                 check length 12–128 and a small bundled list of common passwords. No
  *                 composition rules. The full offline top-100k breached list is backlog.
- * Depends on:     @node-rs/argon2
+ * Depends on:     @node-rs/argon2, @sbr/contracts (LIMITS: the password lengths)
  * Used by:        ./accounts, ../http/routes/auth, ../cli
  * Spec:           docs/spec/03-security-architecture.md §2.1
  */
 import { hash, verify } from '@node-rs/argon2';
+import { LIMITS } from '@sbr/contracts';
 
 const ARGON2ID = {
   algorithm: 2, // Algorithm.Argon2id (an ambient const enum, not importable as a value)
@@ -38,8 +39,8 @@ const COMMON = new Set([
 export type PasswordProblem = 'tooShort' | 'tooLong' | 'tooCommon';
 
 export function passwordProblem(password: string): PasswordProblem | null {
-  if (password.length < 12) return 'tooShort';
-  if (password.length > 128) return 'tooLong';
+  if (password.length < LIMITS.password.min) return 'tooShort';
+  if (password.length > LIMITS.password.max) return 'tooLong';
   if (COMMON.has(password.toLowerCase())) return 'tooCommon';
   return null;
 }

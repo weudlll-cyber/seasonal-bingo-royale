@@ -10,7 +10,8 @@
  *                 the account was ended, sign in again), a weak password, or a link that is
  *                 used or expired. Standalone installs with mail only (the sign-in page shows
  *                 the link when the server says so).
- * Depends on:     react, ../shell/http, ../shell/router, ./accountText, ./formParts
+ * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./accountText,
+ *                 ./formParts
  * Used by:        ../shell/AppShell, ./SignIn
  * Spec:           docs/spec/03-security-architecture.md §1; docs/spec/05-api-design.md §2.1
  */
@@ -18,6 +19,7 @@ import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { api } from '../shell/http.js';
 import { hrefOf } from '../shell/router.js';
+import { useLimits } from '../shell/session.js';
 import { accountError } from './accountText.js';
 import { AccountField, FormError } from './formParts.js';
 import './account.css';
@@ -27,6 +29,7 @@ function useSend(action: () => Promise<string>) {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const limits = useLimits();
   const submit = (event: SyntheticEvent): void => {
     event.preventDefault();
     setBusy(true);
@@ -34,7 +37,7 @@ function useSend(action: () => Promise<string>) {
     action()
       .then(setDone)
       .catch((e: unknown) => {
-        setError(accountError(e));
+        setError(accountError(e, limits));
       })
       .finally(() => {
         setBusy(false);

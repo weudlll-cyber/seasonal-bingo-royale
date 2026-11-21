@@ -8,13 +8,16 @@
  *                 catalogue, the leaderboard defaults, the view the player client folds
  *                 (Quick Test and live match), the "While you were away" summary, the
  *                 async catch-up defaults, the leaderboard, profile and export
- *                 answers and the player's own matches (D39); later WPs add WS envelopes and other config documents.
+ *                 answers and the player's own matches (D39), the limits the server enforces on
+ *                 forms and sends with the session (admin-area §8 (m)); later WPs add WS
+ *                 envelopes and other config documents.
  * Depends on:     ./config/*, ./config/defaults/*, ./view/*, ./http/*
  * Used by:        apps/server, apps/web, packages/application, e2e/quickTest
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/01-game-design.md §3a, §4–§9
  */
 
 export { type GameType } from './config/gameType.js';
+export { ClientLimitsSchema, LIMITS, type ClientLimits } from './config/limits.js';
 export {
   BUILTIN_PRIZE_KEYS,
   BUILTIN_PRIZE_POINTS,

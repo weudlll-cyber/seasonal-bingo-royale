@@ -10,11 +10,12 @@
  *                 the leaderboard switch (on for royale, off for classic), max players, the
  *                 royale round pause (D14) and the start rule (01 §7.6). Intervals out of range
  *                 (D12; async minutes) show a plain message and block sending. POST /matches,
- *                 then the console.
+ *                 then the console. Title, game type and players are ./BasicsFields.
  * Depends on:     react, ../components/StartDrawField, ../components/StartMarkingField,
- *                 ../shell/http, ../shell/router, @sbr/contracts (prize list), ../game/labels,
+ *                 ../shell/http, ../shell/router, ../shell/session, @sbr/contracts (prize list),
+ *                 ../game/labels, ./BasicsFields,
  *                 ./createForm (values, defaults, interval checks, request body), ./TimingFields,
- *                 ./AsyncFields, ../game/game.css, ./host.css, ./YourMatches, ../types
+ *                 ./AsyncFields, ../game/game.css, ./host.css, ./YourMatches
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/11-admin-panel.md §3.2; docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §11
  */
@@ -23,17 +24,17 @@ import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
 import { MissedField } from '../components/StartMarkingField.js';
-import { GAME_TYPES, gameTypeName, prizeName, problemText } from '../game/labels.js';
+import { prizeName, problemText } from '../game/labels.js';
 import '../game/game.css';
 import './host.css';
 import { api, ApiError } from '../shell/http.js';
 import { navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { AsyncFields, PaceField } from './AsyncFields.js';
+import { BasicsFields } from './BasicsFields.js';
 import { createBody, INITIAL, intervalMessage, paceOf, type FormValues } from './createForm.js';
 import { RoundPauseField, StartRuleField, startTimeProblem } from './TimingFields.js';
 import { YourMatches } from './YourMatches.js';
-import type { GameType } from '../types.js';
 
 export function CreateMatch(): ReactElement {
   const [values, setValues] = useState<FormValues>(INITIAL);
@@ -94,59 +95,9 @@ export function CreateMatch(): ReactElement {
   );
 }
 
-interface FieldsProps {
+export interface FieldsProps {
   readonly values: FormValues;
   readonly set: <K extends keyof FormValues>(key: K, value: FormValues[K]) => void;
-}
-
-function BasicsFields({ values, set }: FieldsProps): ReactElement {
-  return (
-    <>
-      <label className="sbr-field">
-        <span>Title</span>
-        <input
-          className="sbr-input"
-          data-testid="create-title"
-          value={values.title}
-          maxLength={60}
-          onChange={(e) => {
-            set('title', e.target.value);
-          }}
-        />
-      </label>
-      <label className="sbr-field">
-        <span>Game type</span>
-        <select
-          className="sbr-select"
-          data-testid="create-game-type"
-          value={values.gameType}
-          onChange={(e) => {
-            set('gameType', e.target.value as GameType);
-          }}
-        >
-          {GAME_TYPES.map((g) => (
-            <option key={g} value={g}>
-              {gameTypeName(g)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="sbr-field">
-        <span>Max players (2–200)</span>
-        <input
-          className="sbr-input"
-          type="number"
-          min={2}
-          max={200}
-          data-testid="create-max"
-          value={values.maxPlayers}
-          onChange={(e) => {
-            set('maxPlayers', Number(e.target.value));
-          }}
-        />
-      </label>
-    </>
-  );
 }
 
 function PrizeField({

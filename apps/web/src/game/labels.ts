@@ -256,3 +256,6 @@ export function factsLine(numbersDrawn: number, playersLeft: number): string {
 }
 
 export const nextRoundLine = (left: number): string => `Next round in ${String(left)} s`;
+
+// "10-second countdown": the start countdown the server sends with its limits.
+export const countdownName = (ms: number): string => `${String(ms / 1000)}-second countdown`;

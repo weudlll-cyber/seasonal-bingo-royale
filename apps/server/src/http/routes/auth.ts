@@ -3,7 +3,7 @@
  * @module server/http
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
- * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the
+ * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the form limits, the
  *                 sign-in mode; in website mode the website's chat room, 07 §6), POST
  *                 /auth/register and /auth/login (local mode only; in website mode players
  *                 sign in through the website, D37), /auth/logout, /auth/guest, DELETE /me
@@ -14,10 +14,11 @@
  *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
  *                 verification and 2FA are behind feature flags that are off by default;
  *                 when verification is on, unverified accounts cannot sign in.
- * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ../../config/features
+ * Depends on:     fastify, zod, @sbr/contracts (LIMITS), ../../auth/*, ../../db/pool, ../../config/features
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
+import { LIMITS } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -28,6 +29,7 @@ import {
   recordLogin,
   registerAccount,
 } from '../../auth/accounts.js';
+import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
 import { RATE_RULES, RateLimiter } from '../../auth/rateLimit.js';
 import {
@@ -64,13 +66,13 @@ interface AuthDeps {
 
 const registerBody = z.object({
   email: z.email().max(254),
-  displayName: z
-    .string()
-    .trim()
-    .regex(/^[\p{L}\p{N}_.-]{3,24}$/u),
+  displayName: z.string().trim().regex(DISPLAY_NAME),
   password: z.string(),
 });
-const loginBody = z.object({ email: z.email().max(254), password: z.string().max(128) });
+const loginBody = z.object({
+  email: z.email().max(254),
+  password: z.string().max(LIMITS.password.max),
+});
 
 const LOGIN_FAILED = { code: 'LOGIN_FAILED', message: 'Invalid e-mail or password.' };
 
@@ -147,6 +149,8 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
     features: deps.features,
+    // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
+    limits: LIMITS,
     authMode: deps.mode,
     ...websiteParts(deps),
   };

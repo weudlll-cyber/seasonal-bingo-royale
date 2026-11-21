@@ -14,6 +14,7 @@
  * Depends on:     ./harness, fastify, ../src/auth/accounts
  * Spec:           docs/spec/03-security-architecture.md §2.1, §2.3, §3, §8, §13; docs/spec/05-api-design.md §2.1
  */
+import { LIMITS } from '@sbr/contracts';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -219,6 +220,11 @@ describe('guests and the dev quick sign-in', () => {
     expect(s.kind).toBe('guest');
     expect(s.signedIn).toBe(false);
     expect(s.permissions).toEqual(['match.watch']);
+  });
+
+  it('sends the limits the server checks forms with, to everyone (admin-area §8 (m))', async () => {
+    const r = await app().inject({ method: 'GET', url: '/api/v1/session' });
+    expect(r.json<{ limits: unknown }>().limits).toEqual(LIMITS);
   });
 
   it('signs in as dev-host (organizer) and reuses the same account next time', async () => {

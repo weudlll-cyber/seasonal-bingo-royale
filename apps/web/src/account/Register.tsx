@@ -4,7 +4,8 @@
  * @brief  Create an account: display name, e-mail, password; then signed in, in the lobby.
  *
  * Responsibility: the register form with the spec's rules shown and checked before sending
- *                 (./accountText), the server's refusal in plain words, then the lobby
+ *                 (./accountText; the lengths from the server's limits, admin-area §8 (m)),
+ *                 the server's refusal in plain words, then the lobby
  *                 (the server signs the new account in). E-mail verification stays behind
  *                 its feature flag. A link leads to Sign in.
  * Depends on:     react, ../shell/session, ../shell/router, ./accountText, ./formParts,
@@ -15,21 +16,24 @@
 import { useState, type ReactElement } from 'react';
 
 import { hrefOf } from '../shell/router.js';
-import { useSession } from '../shell/session.js';
-import { registerProblem, type RegisterValues } from './accountText.js';
+import { useLimits, useSession } from '../shell/session.js';
+import { nameRange, registerProblem, type RegisterValues } from './accountText.js';
 import { AccountField, FormError, useAccountSubmit } from './formParts.js';
 import './account.css';
 
-export function Register(): ReactElement {
+export function Register(): ReactElement | null {
   const { register } = useSession();
+  // The lengths the server checks (admin-area §8 (m)); the form keeps no copy.
+  const limits = useLimits();
   const [v, setV] = useState<RegisterValues>({ displayName: '', email: '', password: '' });
   const set = (key: keyof RegisterValues) => (value: string) => {
     setV((old) => ({ ...old, [key]: value }));
   };
   const { error, busy, submit } = useAccountSubmit(
     () => register({ ...v, displayName: v.displayName.trim(), email: v.email.trim() }),
-    () => registerProblem(v),
+    () => (limits === null ? null : registerProblem(v, limits)),
   );
+  if (limits === null) return null;
   return (
     <form className="sbr-panel account-form" onSubmit={submit} data-testid="register-form">
       <h1>Register</h1>
@@ -39,7 +43,7 @@ export function Register(): ReactElement {
         autoComplete="nickname"
         value={v.displayName}
         testId="register-displayName"
-        hint="3 to 24 letters or digits; shown to other players"
+        hint={`${nameRange(limits)} letters or digits; shown to other players`}
         onChange={set('displayName')}
       />
       <AccountField
@@ -57,7 +61,7 @@ export function Register(): ReactElement {
         autoComplete="new-password"
         value={v.password}
         testId="register-password"
-        hint="At least 12 characters"
+        hint={`At least ${String(limits.password.min)} characters`}
         onChange={set('password')}
       />
       <FormError text={error} testId="register-error" />

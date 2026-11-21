@@ -13,6 +13,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { LIMITS } from '@sbr/contracts';
+
 import { ApiError } from '../shell/http.js';
 import { accountError, registerProblem } from './accountText.js';
 
@@ -20,11 +22,13 @@ const ok = { displayName: 'anna_k', email: 'anna@example.com', password: 'correc
 
 describe('register checks', () => {
   it('accepts a valid form and names the first problem otherwise', () => {
-    expect(registerProblem(ok)).toBeNull();
-    expect(registerProblem({ ...ok, displayName: 'an' })).toMatch(/3 to 24/);
-    expect(registerProblem({ ...ok, displayName: 'anna k' })).toMatch(/no spaces/);
-    expect(registerProblem({ ...ok, email: 'anna' })).toBe('Please enter an e-mail address.');
-    expect(registerProblem({ ...ok, password: 'short' })).toBe(
+    expect(registerProblem(ok, LIMITS)).toBeNull();
+    expect(registerProblem({ ...ok, displayName: 'an' }, LIMITS)).toMatch(/3 to 24/);
+    expect(registerProblem({ ...ok, displayName: 'anna k' }, LIMITS)).toMatch(/no spaces/);
+    expect(registerProblem({ ...ok, email: 'anna' }, LIMITS)).toBe(
+      'Please enter an e-mail address.',
+    );
+    expect(registerProblem({ ...ok, password: 'short' }, LIMITS)).toBe(
       'The password needs at least 12 characters.',
     );
   });

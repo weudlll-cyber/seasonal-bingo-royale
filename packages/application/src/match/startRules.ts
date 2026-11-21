@@ -12,13 +12,19 @@
  *                 maintenance is on neither starts by itself: the start is held and checked
  *                 again every 5 s (D22). An asynchronous lobby is open until its announced
  *                 start time, else for the ruleset's window (24 h); then it starts with enough
- *                 players or the system cancels it (D31, D33), held by maintenance like every
+ *                 players or the system cancels it with a reason naming that window (D31, D33,
+ *                 admin-area §8 (n)), held by maintenance like every
  *                 automatic start. Every start runs the same countdown.
  * Depends on:     @sbr/contracts, ./flow (stopMatch), ./ports
  * Used by:        ./engine, ./flow, apps/server (summary), ../index
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22, D31, D33); docs/spec/05-api-design.md §2.3
  */
-import { MAX_START_AHEAD_MS, MIN_START_AHEAD_MS, START_COUNTDOWN_MS } from '@sbr/contracts';
+import {
+  MAX_START_AHEAD_MS,
+  MIN_START_AHEAD_MS,
+  START_COUNTDOWN_MS,
+  type Ruleset,
+} from '@sbr/contracts';
 
 import { stopMatch, type FlowDeps } from './flow.js';
 import type { ActionKind, LoadedMatch, StartRule } from './ports.js';
@@ -74,9 +80,15 @@ async function heldByMaintenance(
 }
 
 // D31, D33: the system's reasons when an asynchronous lobby closes with too few players,
-// after its 24 hours or at its announced start time.
-const LOBBY_TOO_FEW = 'Too few players joined within 24 hours';
+// after its window (the frozen ruleset's lobby.openMsAsync, admin-area §8 (n)) or at its
+// announced start time.
 const LOBBY_TOO_FEW_BY_START = 'Too few players joined by the start time';
+
+export function lobbyTooFewReason(ruleset: Ruleset): string {
+  const ms = ruleset.lobby.openMsAsync;
+  const [n, unit] = ms % 3_600_000 === 0 ? [ms / 3_600_000, 'hour'] : [ms / 60_000, 'minute'];
+  return `Too few players joined within ${String(n)} ${unit}${n === 1 ? '' : 's'}`;
+}
 
 // An asynchronous match's lobby closes at the record's lobbyClosesAt (./create: the announced
 // start time, else 24 h after creation), through the persistent scheduler, so a restart keeps
@@ -98,7 +110,8 @@ export async function closeLobby(deps: FlowDeps, matchId: string): Promise<void>
     return;
   }
   const announced = m.record.settings.startRule.kind === 'at';
-  await stopMatch(deps, matchId, announced ? LOBBY_TOO_FEW_BY_START : LOBBY_TOO_FEW, 'system');
+  const reason = announced ? LOBBY_TOO_FEW_BY_START : lobbyTooFewReason(m.record.ruleset);
+  await stopMatch(deps, matchId, reason, 'system');
 }
 
 // Schedules (or drops) the automatic start at the set time; when that has passed (the host

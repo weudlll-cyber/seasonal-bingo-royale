@@ -7,7 +7,7 @@
  *                 an unknown or impossible name); the signed-in caller's own data as a JSON
  *                 download (03 §19; 401 SIGN_IN_REQUIRED without an account), never cached.
  *                 DELETE /me lives with the other account routes (./auth).
- * Depends on:     fastify, @sbr/contracts (types), ../../db/pool, ../../leaderboard/profiles,
+ * Depends on:     fastify, @sbr/contracts (types), ../../auth/displayName, ../../db/pool, ../../leaderboard/profiles,
  *                 ../../leaderboard/accountExport
  * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/03-security-architecture.md §19
@@ -15,12 +15,12 @@
 import type { PlayerProfile } from '@sbr/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
+import { DISPLAY_NAME } from '../../auth/displayName.js';
 import type { DbPool } from '../../db/pool.js';
 import { accountExport } from '../../leaderboard/accountExport.js';
 import { playerProfile } from '../../leaderboard/profiles.js';
 
 // A display name as registration allows it (./auth registerBody).
-const DISPLAY_NAME = /^[\p{L}\p{N}_.-]{3,24}$/u;
 
 export function registerProfileRoutes(app: FastifyInstance, deps: { pool: DbPool }): void {
   app.get(

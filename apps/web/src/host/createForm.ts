@@ -8,7 +8,7 @@
  *                 builds only the fast test profile), the starting values, the message for
  *                 seconds below the shortest interval (D12) or minutes out of the async range,
  *                 and the request body (05 §2.3; the server clamps intervals and delays into
- *                 range as well).
+ *                 range as well; the form's fields take their bounds from the server's limits).
  * Depends on:     @sbr/contracts (prize list), ../components/StartMarkingField, ../drawControl,
  *                 ../types, ./AsyncFields, ./TimingFields
  * Used by:        ./CreateMatch, ../quicktest/testMatchSetup, ../quicktest/TestMatch
@@ -34,9 +34,6 @@ import {
   type RoundPauseChoice,
   type StartRuleChoice,
 } from './TimingFields.js';
-
-// The most players a match can have (05 §2.3; the server checks it as well).
-export const MAX_PLAYERS = 200;
 
 export interface FormValues {
   readonly title: string;
@@ -103,7 +100,8 @@ export function createBody(v: FormValues) {
     missedNumbers: toMissedNumbers(v.missed),
     countsForLeaderboard: v.leaderboard ?? v.gameType === 'royale',
     ...(v.website ? { showOnWebsite: true } : {}),
-    maxPlayers: Math.min(MAX_PLAYERS, Math.max(2, v.maxPlayers)),
+    // In the server's range: the field takes its bounds from the server's limits.
+    maxPlayers: v.maxPlayers,
     ...(v.gameType === 'royale' ? { roundPause: toRoundPause(v.pause) } : {}),
     // Vite makes DEV false in a production build, which then drops this line.
     ...(import.meta.env.DEV && v.fast === true ? { testProfile: 'fast' as const } : {}),

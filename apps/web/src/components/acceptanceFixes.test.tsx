@@ -10,10 +10,11 @@
  * Depends on:     @testing-library/react, ../quicktest/Simulation, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §6, §7, §13; docs/spec/12-testing-strategy.md §8
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Simulation } from '../quicktest/Simulation.js';
+import { renderInSession, serveWithLimits } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 
 afterEach(() => {
@@ -31,11 +32,8 @@ const wait = (ms: number) =>
 async function startHostRun(marking: 'auto' | 'manual'): Promise<void> {
   vi.useFakeTimers();
   const result = royaleFixture(marking, { kind: 'autoMarkAfter', delayMs: 3000 });
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(result)))),
-  );
-  render(<Simulation />);
+  serveWithLimits(() => result);
+  await renderInSession(<Simulation />);
   if (marking === 'auto') {
     fireEvent.change(screen.getByTestId('marking-mode'), { target: { value: 'auto' } });
   }
