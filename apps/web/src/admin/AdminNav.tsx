@@ -6,7 +6,8 @@
  * Responsibility: the sections built so far as links under the page title, the current one
  *                 marked (aria-current), wrapping on a phone.
  * Depends on:     react, ../shell/router, ../shell/session
- * Used by:        ./AdminOverview, ./AdminPresets, ./AdminLeague, ./AdminScreens, ./AdminTechnical,
+ * Used by:        ./AdminOverview, ./AdminPresets, ./AdminLeague, ./AdminAccounts, ./AdminScreens,
+ *                 ./AdminTechnical,
  *                 ./AdminHistory
  * Spec:           docs/concepts/admin-area.md §4
  */
@@ -37,6 +38,7 @@ export function AdminNav({ current }: { readonly current: Section }): ReactEleme
       {link('overview', 'Overview')}
       {link('presets', 'Presets')}
       {link('league', 'League')}
+      {can('accounts.manage') ? link('accounts', 'Players and accounts') : null}
       {link('screens', 'Screens and texts')}
       {technical ? link('technical', 'Technical') : null}
       {link('history', 'History')}

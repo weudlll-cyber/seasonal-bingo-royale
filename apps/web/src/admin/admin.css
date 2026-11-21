@@ -10,7 +10,7 @@
  *                 Sizes from the @sbr/ui tokens (no text below the small size, fit audit);
  *                 colours from the tokens only.
  * Used by:        ./AdminOverview, ./AdminHistory, ./AdminNav, ./AdminSwitches, ./AdminPresets,
- *                 ./PresetEditor
+ *                 ./PresetEditor, ./AccountCard
  * Spec:           docs/concepts/admin-area.md §4; docs/concepts/fit-audit.md §6
  */
 
@@ -130,4 +130,11 @@
   background: var(--color-warning-surface);
   color: var(--color-text);
   font-size: var(--font-size-small);
+}
+
+/* An account's actions (./AccountCard): buttons that wrap on a phone */
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
 }

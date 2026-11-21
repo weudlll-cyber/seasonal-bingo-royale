@@ -7,7 +7,8 @@
  *                 one line per value that changed (a value the version leaves out reads as the
  *                 default the server named; a preset's values through ./presetText),
  *                 maintenance switched on or off, a match aborted with its reason, and a
- *                 correction of a player's league points with its reason. Unknown
+ *                 correction of a player's league points with its reason, and an account's role,
+ *                 lock, second step or sessions changed. Unknown
  *                 actions read as their name.
  * Depends on:     @sbr/contracts (the League's, screen and Technical catalogues), ../game/labels,
  *                 ./presetText
@@ -66,6 +67,18 @@ function settingsLines(e: HistoryEntry, defaults: Defaults): string[] {
     .map((key) => `${nameOf(key)}: ${valueText(from[key])} → ${valueText(to[key])}`);
 }
 
+const roleName = (role: unknown): string => (role === 'game_admin' ? 'Admin' : 'Organizer');
+
+// Players and accounts (admin-area §4): an account change by the account's name.
+const ACCOUNT_LINES: Readonly<Record<string, (who: string, role: string) => string>> = {
+  'account.role.give': (who, role) => `${who} made an ${role}`,
+  'account.role.remove': (who, role) => `${who} is no longer an ${role}`,
+  'account.lock': (who) => `${who} locked`,
+  'account.unlock': (who) => `${who} unlocked`,
+  'account.reset2fa': (who) => `Second step of ${who} reset`,
+  'account.endSessions': (who) => `Sessions of ${who} ended`,
+};
+
 export function changeLines(e: HistoryEntry, defaults: Defaults): string[] {
   const reason = typeof e.diff['reason'] === 'string' ? e.diff['reason'] : '';
   switch (e.action) {
@@ -82,7 +95,7 @@ export function changeLines(e: HistoryEntry, defaults: Defaults): string[] {
     case 'league.correct':
       return [`League points of ${e.target}: ${pointsDelta(Number(e.diff['delta']))} (${reason})`];
     default:
-      return [e.action];
+      return [ACCOUNT_LINES[e.action]?.(e.target, roleName(e.diff['role'])) ?? e.action];
   }
 }
 

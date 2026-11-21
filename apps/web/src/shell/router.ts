@@ -9,7 +9,7 @@
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
  *                 profile (the display name URL-encoded) and the admin area's Overview
- *                 (`#/admin`), Presets (`#/admin/presets`), League (`#/admin/league`), Screens and texts (`#/admin/screens`), Technical (`#/admin/technical`) and History
+ *                 (`#/admin`), Presets (`#/admin/presets`), League (`#/admin/league`), Players and accounts (`#/admin/accounts`), Screens and texts (`#/admin/screens`), Technical (`#/admin/technical`) and History
  *                 (`#/admin/history`) are
  *                 routes too.
  * Depends on:     react
@@ -26,7 +26,14 @@ import { useEffect, useState } from 'react';
 export type QuickTestView = 'play' | 'seed';
 
 // The admin area's sections after the Overview (admin-area §4).
-const ADMIN_SECTIONS = ['presets', 'league', 'screens', 'technical', 'history'] as const;
+const ADMIN_SECTIONS = [
+  'presets',
+  'league',
+  'accounts',
+  'screens',
+  'technical',
+  'history',
+] as const;
 export type AdminSection = (typeof ADMIN_SECTIONS)[number];
 
 const adminSection = (second: string | undefined): Route => {

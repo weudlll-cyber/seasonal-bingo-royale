@@ -12,7 +12,7 @@
  *                 /auth/2fa/step-up) and saves again. The server decides who may see and change
  *                 the section (the owner; website admins in website mode).
  * Depends on:     react, ../game/labels, ../shell/http, ./AdminNav, ./PresetEditor (Draft),
- *                 ./SettingsValues, ./ValueField (types), ./admin.css
+ *                 ./SettingsValues, ./StepUp, ./ValueField (types), ./admin.css
  * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (Technical), §7, §8 (c), (e), §9 piece 7
  */
@@ -23,6 +23,7 @@ import { api, ApiError } from '../shell/http.js';
 import { AdminNav } from './AdminNav.js';
 import type { Draft } from './PresetEditor.js';
 import { SettingsValues } from './SettingsValues.js';
+import { StepUp } from './StepUp.js';
 import type { ValueFieldView } from './ValueField.js';
 import './admin.css';
 
@@ -102,51 +103,5 @@ export function AdminTechnical(): ReactElement {
         />
       )}
     </div>
-  );
-}
-
-// The second step again: a code from the authenticator app (or a recovery code).
-function StepUp(props: {
-  readonly onPassed: () => void;
-  readonly onFailed: (message: string) => void;
-}): ReactElement {
-  const [code, setCode] = useState('');
-  const send = (): void => {
-    const answer = code.trim();
-    const body = /^\d{6}$/.test(answer) ? { code: answer } : { recoveryCode: answer };
-    api('/auth/2fa/step-up', { method: 'POST', body })
-      .then(props.onPassed)
-      .catch((e: unknown) => {
-        props.onFailed(failure(e));
-      });
-  };
-  return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="step-up-title" data-testid="step-up">
-      <h2 id="step-up-title">Confirm it is you</h2>
-      <p>
-        Your last confirmation is more than 10 minutes old. Enter the code from your authenticator
-        app, or a recovery code.
-      </p>
-      <label className="sbr-field">
-        <span>Code</span>
-        <input
-          className="sbr-input"
-          autoComplete="one-time-code"
-          value={code}
-          data-testid="step-up-code"
-          onChange={(e) => {
-            setCode(e.target.value);
-          }}
-        />
-      </label>
-      <button
-        type="button"
-        className="sbr-btn sbr-btn--primary"
-        disabled={code.trim() === ''}
-        onClick={send}
-      >
-        Confirm and save
-      </button>
-    </section>
   );
 }

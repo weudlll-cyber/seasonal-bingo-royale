@@ -92,14 +92,23 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - Tests that failed first: `apps/server/src/auth/rateLimit.test.ts` (a live rule; on the old limiter), `apps/server/test/adminTechnical.integration.test.ts` with the route unregistered (5 failed: owner only, a lower sign-in limit refuses the next try at once, a shorter player session makes the next guest session 3 days, limits, the second step after 10 minutes), `authzMatrix.integration` without the routes (4 failed), `apps/web/src/admin/adminTechnical.test.tsx` (no page). e2e `adminTechnical.spec` (serial: the Admin has no Technical link; the owner sets 6 sign-in tries, the server refuses within seven tries, the History shows 20 → 6; fit at 1280×720 and 390×844 at 100/125/150 %; the value put back).
   - Reused: `registerFlatSettings`, `SettingsValues`, `ValueField`, `verify` and `markSession` of the sign-in's second step, `RATE_RULES`' windows, `requirePermission`; e2e `signIn`, `post`, `captureLook`, `fitProbe`.
   - Review shots: `admin-7-technical-*`.
+  - Commit `94954fd`; CI and CodeQL green (run 44886274097).
+- Piece 8 — Players and accounts (standalone only):
+  - Migration `0024_accounts_admin.sql`: `accounts.manage` for game_admin and super_admin, `admins.manage` for super_admin (only the owner makes and unmakes Admins, admin-area §2).
+  - `apps/server/src/admin/accounts.ts`: find up to 20 accounts whose name or e-mail starts with the search (never deleted ones; roles, status, whether a second step is set up, last sign-in); each change in one transaction with its audit entry: give or remove Organizer or Admin (the Admin role ends the account's sessions — an existing player session would otherwise hold admin permissions without the second step, D60), lock (status suspended, sessions ended) or unlock, reset the second step (factor and recovery codes gone, sessions ended), end the sessions; the ended sessions' sockets close at once.
+  - New endpoints (`apps/server/src/http/routes/adminAccounts.ts`, registered in standalone installs only): `GET /api/v1/admin/accounts?q=` (`accounts.manage`), `POST /api/v1/admin/accounts/:id/role { role, on }` (`accounts.manage`; the Admin role `admins.manage`), `…/:id/lock { locked }`, `…/:id/reset-2fa`, `…/:id/end-sessions` (`accounts.manage`). Every change needs the second step passed within the last 10 minutes (403 `STEP_UP_REQUIRED`, the Technical section's check), refuses one's own account (409 `OWN_ACCOUNT`), an owner's account for an Admin (403) and an unknown one (404). Authz rows: allowed for Admin and owner; refused for signed out, guest, player, another host, the match's host. Website mode: the routes do not exist.
+  - Client: `#/admin/accounts` (`admin/AdminAccounts.tsx`, `AccountCard.tsx`): the search, each account's facts and its buttons (Make/Remove Organizer; Make/Remove Admin for the owner only; Lock/Unlock; Reset second step when there is one; End sessions); "Confirm it is you" (now shared, `admin/StepUp.tsx`) when the server asks; in website mode only the note. The navigation shows it to holders of `accounts.manage`. The History names each account change ("managed1 made an Organizer", "managed1 locked").
+  - Tests that failed first: `apps/server/test/adminAccounts.integration.test.ts` with the routes unregistered (5 failed: find; Organizer at once, Admin by the owner only and its sessions ended; lock refuses the sign-in, unlock lets it in, audited; end sessions, reset the second step; own account, owner, unknown, stale second step refused), `authzMatrix.integration` without the routes (3 failed), `apps/web/src/admin/adminAccounts.test.tsx` (no page; the History lines: 1 failed). e2e `adminAccounts.spec` (the Admin finds a registered account, makes it an Organizer, locks it — its sign-in refused —, unlocks it; fit at 1280×720 and 390×844 at 100/125/150 %; the account deleted at the end, unlocked first if a step failed).
+  - Reused: `recentSecondStep` (piece 7), `appendAudit`, `requirePermission`, `sessionEnds`, `StepUp`, `when`; e2e `signIn`, `post`, `captureLook`, `fitProbe`. Noticed, left alone: `resetTwoFactor` of `sbr admin reset-2fa` (by name, without an audit entry) deletes the same rows as the new `resetSecondStep` (by id, audited); the CLI could use the new one.
+  - Review shots: `admin-8-accounts-*`.
 
 ## Running
 
-- Piece 7's checks and CI.
+- Piece 8's checks and CI.
 
 ## Open
 
-- Piece 8 of admin-area.md §9.
+- Nothing of admin-area.md §9: pieces -1 to 8 are built.
 
 ## Reverted
 
@@ -128,3 +137,4 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 - Technical: not moved — the mail sender (`mail.from`: the mailer is made at start from SBR_SMTP_FROM; it would need the mailer to read the sender per mail), the password's minimum length (a limit the client reads, piece 0), the 2FA drift, issuer name and recovery code count, and the rate limits of anonymous requests, Verify, the open sign-ups, the website sign-in hop and the socket taps. Which of these should move?
 - Technical: website mode keeps members' and guests' sessions at 7 days at most (owner 2026-11-04/09); the section's "Player session, at most" applies to standalone installs only.
 - Settings in general: the server keeps the current settings in memory, read at start and replaced on a change in that process. One server process runs today; a second process would not see another's change until it restarts.
+- Players and accounts: Admins (not only the owner) may lock accounts, reset their second step and end their sessions, and see e-mail addresses in the search; only the owner gives or removes the Admin role. A role change takes effect at once for permissions; a new Organizer keeps their session. Should locking, resetting the second step or seeing e-mail be the owner's only?

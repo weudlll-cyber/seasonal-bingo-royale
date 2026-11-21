@@ -200,8 +200,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, {
-    env: deps.env,
-    pool: deps.pool,
+    ...deps,
     isDev,
     maintenance,
     seedKey,
@@ -209,6 +208,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     clock,
     live: metrics.live,
     views,
+    sessionEnds,
     ...loaded,
   });
   const live = registerGateway(fastify, deps.env, metrics, {

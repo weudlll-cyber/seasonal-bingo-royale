@@ -180,6 +180,12 @@ const ROUTES: readonly RouteCase[] = [
   // The admin area (admin-area §9 piece 1); the empty bodies are refused before any change.
   ...ADMIN_ROUTES,
   ...TECHNICAL,
+  // Players and accounts (standalone only): account `0` is no id, so 400 after the checks.
+  { method: 'GET', path: '/api/v1/admin/accounts', allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/role', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/lock', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/reset-2fa', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/accounts/:id/end-sessions', body: {}, allow: ADMINS },
 ];
 
 // Every intent of the gateway (INTENT_TYPES); anonymous sockets are refused at the handshake.

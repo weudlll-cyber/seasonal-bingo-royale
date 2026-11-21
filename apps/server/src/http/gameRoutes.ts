@@ -23,6 +23,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import type { Presets } from '../admin/presets.js';
+import type { SessionEnds } from '../auth/sessionEnds.js';
 import type { SettingsStore } from '../admin/settings.js';
 import type { Env } from '../config/env.js';
 import type { Switches } from '../config/features.js';
@@ -34,6 +35,7 @@ import type { DevClock } from '../dev/devClock.js';
 import type { MatchRuntime } from '../match/runtime.js';
 import type { LiveViews } from '../view/liveViews.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerAdminAccounts } from './routes/adminAccounts.js';
 import { registerFlatSettings, type FlatPage } from './routes/adminFlatSettings.js';
 import { registerAdminLeagueRoutes } from './routes/adminLeague.js';
 import { registerAdminTechnical } from './routes/adminTechnical.js';
@@ -77,6 +79,8 @@ export interface GameRouteDeps {
   readonly switches: () => Switches;
   // The Technical section's values as they are now (../config/technical).
   readonly technical: LiveTechnical;
+  // Ended sessions lose their sockets (Players and accounts).
+  readonly sessionEnds: SessionEnds;
 }
 
 // The matches, Verify, the leaderboards and profiles; in development the time travel.
@@ -120,7 +124,7 @@ export function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps
 }
 
 // The admin area: its Overview, settings and History, Presets, League, Screens and texts,
-// Technical.
+// Technical, Players and accounts.
 function registerAdminArea(fastify: FastifyInstance, deps: GameRouteDeps): void {
   // The admin area's Overview: open matches, abort, maintenance, the health line.
   registerAdminRoutes(fastify, {
@@ -157,4 +161,7 @@ function registerAdminArea(fastify: FastifyInstance, deps: GameRouteDeps): void 
     technical: deps.technical,
     seedKey: deps.seedKey,
   });
+  // Players and accounts: standalone only; the website decides accounts and roles (D41, D46).
+  if (deps.env.SBR_AUTH_MODE === 'local')
+    registerAdminAccounts(fastify, { pool: deps.pool, sessionEnds: deps.sessionEnds });
 }

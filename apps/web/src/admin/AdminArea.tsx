@@ -4,9 +4,10 @@
  * @brief  The admin area's page for a route: the Overview, or one of its sections.
  *
  * Responsibility: `#/admin` is the Overview; `#/admin/<section>` the Presets, the League,
+ *                 Players and accounts,
  *                 "Screens and texts", Technical or the History (admin-area §4). Who may see them is the
  *                 server's to decide on every request; the menu shows "Admin" only to admins.
- * Depends on:     react, ../shell/router (types), ./AdminHistory, ./AdminLeague,
+ * Depends on:     react, ../shell/router (types), ./AdminAccounts, ./AdminHistory, ./AdminLeague,
  *                 ./AdminOverview, ./AdminPresets, ./AdminScreens, ./AdminTechnical
  * Used by:        ../shell/AppShell
  * Spec:           docs/concepts/admin-area.md §4, §8 (a)
@@ -14,6 +15,7 @@
 import type { ReactElement } from 'react';
 
 import type { AdminSection } from '../shell/router.js';
+import { AdminAccounts } from './AdminAccounts.js';
 import { AdminHistory } from './AdminHistory.js';
 import { AdminLeague } from './AdminLeague.js';
 import { AdminOverview } from './AdminOverview.js';
@@ -24,6 +26,7 @@ import { AdminTechnical } from './AdminTechnical.js';
 const PAGES: Readonly<Record<AdminSection, () => ReactElement>> = {
   presets: AdminPresets,
   league: AdminLeague,
+  accounts: AdminAccounts,
   screens: AdminScreens,
   technical: AdminTechnical,
   history: AdminHistory,
