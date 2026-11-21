@@ -30,6 +30,13 @@ export {
 export { settingsFields, type SettingField } from './config/settingsFields.js';
 export type { Entry as CatalogueEntry } from './config/presetCatalogue.js';
 export {
+  TECHNICAL_CATALOGUE,
+  TECHNICAL_DEFAULTS,
+  technicalSettingsOf,
+  TechnicalSettingsSchema,
+  type TechnicalSettings,
+} from './config/technical.js';
+export {
   CLIENT_SCREEN_KEYS,
   clientScreensOf,
   SCREEN_CATALOGUE,

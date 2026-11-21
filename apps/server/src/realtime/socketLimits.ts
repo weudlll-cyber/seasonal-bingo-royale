@@ -29,8 +29,9 @@ export class SocketLimits {
   private readonly bySession = new Map<string, number>();
   private readonly logged = new Map<string, number>();
 
+  // `caps` may be a function, read on every connect (the Technical section, admin-area §9 piece 7).
   constructor(
-    private readonly caps: SocketCaps,
+    private readonly capsNow: SocketCaps | (() => SocketCaps),
     // Counts the refusal and, at most once per address a minute, logs it.
     private readonly refused: (reason: Refusal, address: string, log: boolean) => void,
   ) {}
@@ -46,10 +47,11 @@ export class SocketLimits {
   admit(address: string, sessionId: string, perAddressExempt: boolean): Refusal | null {
     const here = this.byAddress.get(address) ?? 0;
     const mine = this.bySession.get(sessionId) ?? 0;
+    const caps = typeof this.capsNow === 'function' ? this.capsNow() : this.capsNow;
     const refusal =
-      mine >= this.caps.perSession
+      mine >= caps.perSession
         ? 'session'
-        : !perAddressExempt && here >= this.caps.perAddress
+        : !perAddressExempt && here >= caps.perAddress
           ? 'address'
           : null;
     if (refusal !== null) {

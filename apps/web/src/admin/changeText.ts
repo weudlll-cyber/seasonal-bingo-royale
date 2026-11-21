@@ -9,12 +9,12 @@
  *                 maintenance switched on or off, a match aborted with its reason, and a
  *                 correction of a player's league points with its reason. Unknown
  *                 actions read as their name.
- * Depends on:     @sbr/contracts (LEAGUE_CATALOGUE, SCREEN_CATALOGUE), ../game/labels,
+ * Depends on:     @sbr/contracts (the League's, screen and Technical catalogues), ../game/labels,
  *                 ./presetText
  * Used by:        ./AdminHistory, ./AdminSwitches, ./LeagueCorrections
  * Spec:           docs/concepts/admin-area.md §4 (History), §6
  */
-import { LEAGUE_CATALOGUE, SCREEN_CATALOGUE } from '@sbr/contracts';
+import { LEAGUE_CATALOGUE, SCREEN_CATALOGUE, TECHNICAL_CATALOGUE } from '@sbr/contracts';
 
 import { pointsDelta } from '../game/labels.js';
 import { presetLines } from './presetText.js';
@@ -37,10 +37,11 @@ export const SWITCH_NAMES: Readonly<Record<string, string>> = {
   emailVerification: 'Players must confirm their e-mail',
 };
 
-// The names of the League's values and of the screen values.
+// The names of the League's, the screen and the Technical values.
 const CATALOGUES: Readonly<Record<string, { readonly label: string } | undefined>> = {
   ...LEAGUE_CATALOGUE,
   ...SCREEN_CATALOGUE,
+  ...TECHNICAL_CATALOGUE,
 };
 
 // A switch's or a page value's name; else the key.

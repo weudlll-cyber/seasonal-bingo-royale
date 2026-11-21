@@ -68,6 +68,13 @@ interface RouteCase {
 // The admin area's routes: Admins only, in standalone and in website mode.
 const START_PRESETS: RouteCase = { method: 'GET', path: '/api/v1/presets', allow: HOSTS };
 
+// The Technical section (admin-area §8 (c), (e), (f)): the owner standalone, website admins there.
+const TECHNICAL: readonly RouteCase[] = [
+  { method: 'GET', path: '/api/v1/admin/technical', allow: ['superAdmin'] },
+  // An empty body: refused before, 400 after the permission and the second-step check.
+  { method: 'POST', path: '/api/v1/admin/technical', body: {}, allow: ['superAdmin'] },
+];
+
 const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/admin/overview', allow: ADMINS },
   {
@@ -142,6 +149,8 @@ const ROUTES: readonly RouteCase[] = [
   { method: 'POST', path: '/api/v1/auth/2fa/enrol', body: {}, allow: SESSION },
   { method: 'POST', path: '/api/v1/auth/2fa/confirm', body: { code: '000000' }, allow: SESSION },
   { method: 'POST', path: '/api/v1/auth/2fa/verify', body: { code: '000000' }, allow: SESSION },
+  // The second step again before a Technical change (409 for a session that has none).
+  { method: 'POST', path: '/api/v1/auth/2fa/step-up', body: { code: '000000' }, allow: SESSION },
   { method: 'DELETE', path: '/api/v1/me', body: { password: 'not the password' }, allow: ACCOUNTS },
   { method: 'POST', path: '/api/v1/matches', body: {}, allow: HOSTS },
   // The Organizer's presets (admin-area §3): whoever may start a match.
@@ -170,6 +179,7 @@ const ROUTES: readonly RouteCase[] = [
   },
   // The admin area (admin-area §9 piece 1); the empty bodies are refused before any change.
   ...ADMIN_ROUTES,
+  ...TECHNICAL,
 ];
 
 // Every intent of the gateway (INTENT_TYPES); anonymous sockets are refused at the handshake.
@@ -363,6 +373,7 @@ type WebWho = 'anonymous' | 'guest' | 'player' | 'host' | 'admin';
 const WEB_ROUTES: readonly { route: RouteCase; allow: readonly WebWho[] }[] = [
   ...ADMIN_ROUTES.map((route) => ({ route, allow: ['admin'] as const })),
   { route: START_PRESETS, allow: ['host', 'admin'] },
+  ...TECHNICAL.map((route) => ({ route, allow: ['admin'] as const })),
 ];
 
 // One route under the website's base path, with the session's cookie and token.

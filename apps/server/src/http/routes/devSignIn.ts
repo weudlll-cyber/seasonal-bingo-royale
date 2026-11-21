@@ -30,6 +30,8 @@ const DEV_ACCOUNTS = {
   host: { displayName: 'dev-host', roles: ['organizer'] },
   // The admin area's Admin (game_admin, admin-area §2.2); the sign-in marks its second step.
   admin: { displayName: 'dev-admin', roles: ['game_admin'] },
+  // The owner (super_admin): the Technical section (admin-area §9 piece 7).
+  owner: { displayName: 'dev-owner', roles: ['super_admin'] },
   'player-1': { displayName: 'dev-player-1', roles: [] },
   'player-2': { displayName: 'dev-player-2', roles: [] },
   'player-3': { displayName: 'dev-player-3', roles: [] },
@@ -39,7 +41,7 @@ const DEV_ACCOUNTS = {
 const LOAD = /^load-\d{3}$/;
 const body = z.object({
   as: z.union([
-    z.enum(['host', 'admin', 'player-1', 'player-2', 'player-3']),
+    z.enum(['host', 'admin', 'owner', 'player-1', 'player-2', 'player-3']),
     z.string().regex(LOAD),
   ]),
 });
@@ -65,8 +67,8 @@ export function registerDevSignIn(
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
     await openSession(request, reply, deps, accountId);
     // Nobody knows a development account's password or TOTP: its admin sessions count the
-    // second step (D60) as done, so `dev-admin` can try the admin area locally.
-    if (who.roles.includes('game_admin')) {
+    // second step (D60) as done, so `dev-admin` and `dev-owner` can try the admin area locally.
+    if (who.roles.includes('game_admin') || who.roles.includes('super_admin')) {
       await deps.pool.query(
         'UPDATE sbr.sessions SET last_2fa_at = now() WHERE account_id = $1 AND last_2fa_at IS NULL',
         [accountId],

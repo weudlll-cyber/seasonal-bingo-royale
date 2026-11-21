@@ -26,6 +26,7 @@ import type { Presets } from '../admin/presets.js';
 import type { SettingsStore } from '../admin/settings.js';
 import type { Env } from '../config/env.js';
 import type { Switches } from '../config/features.js';
+import { technicalDefaults, type LiveTechnical } from '../config/technical.js';
 import type { MaintenanceCheck } from '../config/maintenance.js';
 import type { DbPool } from '../db/pool.js';
 import { registerDemoLeague } from '../dev/demoLeague.js';
@@ -35,6 +36,7 @@ import type { LiveViews } from '../view/liveViews.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerFlatSettings, type FlatPage } from './routes/adminFlatSettings.js';
 import { registerAdminLeagueRoutes } from './routes/adminLeague.js';
+import { registerAdminTechnical } from './routes/adminTechnical.js';
 import { registerAdminPresetRoutes } from './routes/adminPresets.js';
 import { registerAdminSettingsRoutes } from './routes/adminSettings.js';
 import { registerLeaderboardRoutes } from './routes/leaderboards.js';
@@ -73,6 +75,8 @@ export interface GameRouteDeps {
   readonly settings: SettingsStore;
   readonly presets: Presets;
   readonly switches: () => Switches;
+  // The Technical section's values as they are now (../config/technical).
+  readonly technical: LiveTechnical;
 }
 
 // The matches, Verify, the leaderboards and profiles; in development the time travel.
@@ -115,7 +119,8 @@ export function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps
   }
 }
 
-// The admin area: its Overview, settings and History, Presets, League, Screens and texts.
+// The admin area: its Overview, settings and History, Presets, League, Screens and texts,
+// Technical.
 function registerAdminArea(fastify: FastifyInstance, deps: GameRouteDeps): void {
   // The admin area's Overview: open matches, abort, maintenance, the health line.
   registerAdminRoutes(fastify, {
@@ -138,9 +143,18 @@ function registerAdminArea(fastify: FastifyInstance, deps: GameRouteDeps): void 
       },
       leaderboard: LEAGUE_DEFAULTS,
       screens: SCREEN_DEFAULTS,
+      technical: technicalDefaults(deps.env),
     },
   });
   registerAdminPresetRoutes(fastify, { settings: deps.settings, presets: deps.presets });
   registerAdminLeagueRoutes(fastify, { pool: deps.pool, settings: deps.settings });
   registerFlatSettings(fastify, deps.settings, SCREENS_PAGE);
+  registerAdminTechnical(fastify, {
+    pool: deps.pool,
+    settings: deps.settings,
+    website: deps.env.SBR_AUTH_MODE === 'website',
+    defaults: technicalDefaults(deps.env),
+    technical: deps.technical,
+    seedKey: deps.seedKey,
+  });
 }

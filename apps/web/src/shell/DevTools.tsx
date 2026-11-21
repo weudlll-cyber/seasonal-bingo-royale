@@ -20,12 +20,14 @@ import { api } from './http.js';
 import { hrefOf } from './router.js';
 import { useSession } from './session.js';
 
-type DevIdentity = 'host' | 'admin' | 'player-1' | 'player-2' | 'player-3';
+type DevIdentity = 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player-3';
 
 const DEV_IDENTITIES: readonly { readonly as: DevIdentity; readonly label: string }[] = [
   { as: 'host', label: 'Sign in as host' },
   // The admin area's Admin (dev-admin, game_admin).
   { as: 'admin', label: 'Sign in as admin' },
+  // The owner (dev-owner, super_admin): the Technical section.
+  { as: 'owner', label: 'Sign in as owner' },
   { as: 'player-1', label: 'Sign in as player 1' },
   { as: 'player-2', label: 'Sign in as player 2' },
   { as: 'player-3', label: 'Sign in as player 3' },

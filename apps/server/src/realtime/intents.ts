@@ -197,7 +197,11 @@ async function mark(ctx: IntentContext, body: z.infer<typeof markData>): Promise
 // the connect answers UNAUTHORIZED (the gateway then closes the socket); a lost role or
 // permission counts at once.
 async function hostedMatch(ctx: IntentContext, code: string): Promise<string> {
-  const session = await refreshSession(ctx.deps.pool, ctx.data.session.id);
+  const session = await refreshSession(
+    ctx.deps.pool,
+    ctx.data.session.id,
+    ctx.deps.sessionLengths?.(),
+  );
   if (session === null) throw new MatchError(SESSION_ENDED);
   ctx.data.session = session;
   allowed(ctx, 'match.manage');

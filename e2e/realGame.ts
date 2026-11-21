@@ -17,7 +17,7 @@ import { expect, type APIResponse, type Browser, type Page } from '@playwright/t
 
 import { openMenu } from './menu.js';
 
-export type Who = 'host' | 'admin' | 'player-1' | 'player-2' | 'player-3';
+export type Who = 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player-3';
 
 // The first page of a run is slow (the dev server compiles on demand): the page must have
 // its session (signed in or not) before the quick sign-in is used, and gets 20 s for it.

@@ -213,6 +213,8 @@ export function problemText(code: string, reason: string | null = null): string 
     ASYNC_ROYALE_ONLY: 'Only a battle royale can be played asynchronously.',
     LAST_PUBLISHED: 'Publish another preset of this kind first — one must stay published.',
     NOTHING_TO_UNDO: 'Nothing is left to undo: the values are already back.',
+    STEP_UP_REQUIRED: 'Confirm it is you with your second step first.',
+    TWO_FACTOR_FAILED: 'That code did not work. Try the newest code or a recovery code.',
     UNDO_REFUSED: 'This undo would leave the preset invalid or none of its kind published.',
   };
   return texts[code] ?? 'Something went wrong — please try again.';

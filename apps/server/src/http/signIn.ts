@@ -21,6 +21,7 @@ import { mailerFrom, type Mailer } from '../auth/mailer.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import type { CookieConfig } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
+import type { LiveTechnical } from '../config/technical.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { Switches } from '../config/features.js';
 import type { DbPool } from '../db/pool.js';
@@ -46,6 +47,8 @@ export function registerSignIn(
     switches: () => Switches;
     // The screen values for the session answer (admin-area §8 (i)).
     screens: () => ClientScreens;
+    // The Technical settings (session lengths, rate limits), read on every use.
+    technical: LiveTechnical;
     mailer?: Mailer | null | undefined;
   },
 ): AccountFeed | null {

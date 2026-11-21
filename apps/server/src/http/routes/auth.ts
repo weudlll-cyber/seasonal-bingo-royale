@@ -18,7 +18,7 @@
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
-import { LIMITS, type ClientScreens } from '@sbr/contracts';
+import { LIMITS, TECHNICAL_DEFAULTS, type ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -31,7 +31,7 @@ import {
 } from '../../auth/accounts.js';
 import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
-import { RATE_RULES, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
 import {
   clearSessionCookie,
   setSessionCookie,
@@ -46,6 +46,7 @@ import {
 } from '../../auth/sessions.js';
 import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
+import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
 
 interface AuthDeps {
@@ -55,6 +56,8 @@ interface AuthDeps {
   readonly features: () => Features;
   // The screen values the client reads at page load (admin-area §8 (i)), as they are now.
   readonly screens: () => ClientScreens;
+  // The Technical settings as they are now: rate limits, session lengths (admin-area §9 piece 7).
+  readonly technical: LiveTechnical;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
   // The live views name a deleted account as such at once (../../view/liveViews, audit S10).
@@ -80,11 +83,12 @@ const loginBody = z.object({
 const LOGIN_FAILED = { code: 'LOGIN_FAILED', message: 'Invalid e-mail or password.' };
 
 export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
+  const live = liveLimits(deps.technical);
   const limits = {
-    register: new RateLimiter(RATE_RULES.register),
-    loginIp: new RateLimiter(RATE_RULES.loginIp),
-    loginAccountIp: new RateLimiter(RATE_RULES.loginAccountIp),
-    guest: new RateLimiter(RATE_RULES.guest),
+    register: new RateLimiter(liveRule('register', live)),
+    loginIp: new RateLimiter(liveRule('loginIp', live)),
+    loginAccountIp: new RateLimiter(liveRule('loginAccountIp', live)),
+    guest: new RateLimiter(liveRule('guest', live)),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps));
   if (deps.mode === 'local') registerLocalSignIn(app, deps, limits);
@@ -107,7 +111,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       deps.pool,
       null,
       request.headers['user-agent'] ?? null,
-      days,
+      sessionLengthsOf(deps.technical(), days),
     );
     setSessionCookie(reply, deps.cookie, token);
     return reply.status(201).send({ kind: 'guest' });
@@ -204,8 +208,12 @@ async function login(
 export async function openSession(
   request: FastifyRequest,
   reply: FastifyReply,
-  // playerDays: a member's or guest's absolute lifetime (7 days in website mode, else 30).
-  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & { readonly playerDays?: number },
+  // playerDays: a member's or guest's absolute lifetime in website mode (7 days); else the
+  // Technical section's (30 unless changed).
+  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & {
+    readonly playerDays?: number;
+    readonly technical?: LiveTechnical;
+  },
   accountId: string,
 ): Promise<void> {
   if (request.session !== null) {
@@ -216,7 +224,7 @@ export async function openSession(
     deps.pool,
     accountId,
     request.headers['user-agent'] ?? null,
-    deps.playerDays,
+    sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays),
   );
   setSessionCookie(reply, deps.cookie, token);
 }

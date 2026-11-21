@@ -44,6 +44,7 @@ import type { Mailer } from '../auth/mailer.js';
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { liveSwitches, type Switches } from '../config/features.js';
+import { liveTechnical, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
 import { maintenanceFlag } from '../config/maintenance.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
@@ -143,7 +144,14 @@ async function loadSettings(pool: DbPool, env: Env) {
   await presets.seed();
   // The screen values the session answer sends (admin-area §8 (i)), as they are now.
   const screens = () => clientScreensOf(screenSettingsOf(settings.get('screens')));
-  return { settings, presets, screens, switches: liveSwitches(env, settings) };
+  return {
+    settings,
+    presets,
+    screens,
+    switches: liveSwitches(env, settings),
+    // The Technical section's values, read on every use (../config/technical).
+    technical: liveTechnical(env, settings),
+  };
 }
 
 // The meters, health, the client (or the placeholder) and in development the Quick Test.
@@ -177,7 +185,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   registerBasics(fastify, deps, metrics);
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
-  await registerSessions(fastify, deps.pool, cookie);
+  await registerSessions(fastify, deps.pool, cookie, loaded.technical);
   // One replay per live match, for the state fetches and the live frames alike.
   const views = liveViewsOn(deps.pool, match.store);
   const accountDeleted = (id: string): void => {
@@ -210,6 +218,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     cookieName: cookie.name,
     sessionEnds,
     views,
+    technical: loaded.technical,
   });
   return { fastify, metrics, match, feed, live };
 }
@@ -220,9 +229,15 @@ function registerGateway(
   fastify: FastifyInstance,
   env: Env,
   metrics: MetricsHandle,
-  deps: Pick<GatewayDeps, 'pool' | 'engine' | 'bus' | 'cookieName' | 'sessionEnds' | 'views'>,
+  deps: Pick<GatewayDeps, 'pool' | 'engine' | 'bus' | 'cookieName' | 'sessionEnds' | 'views'> & {
+    readonly technical: LiveTechnical;
+  },
 ): App['live'] {
-  const caps = { perAddress: env.SBR_SOCKETS_PER_ADDRESS, perSession: env.SBR_SOCKETS_PER_SESSION };
+  // The Technical section's caps (the environment their first default), read on every connect.
+  const caps = () => {
+    const t = deps.technical();
+    return { perAddress: t.socketsPerAddress, perSession: t.socketsPerSession };
+  };
   const limits = new SocketLimits(caps, (reason, address, log) => {
     metrics.socketsRefused.inc({ reason });
     if (log) fastify.log.warn({ reason, address }, 'game socket refused');
@@ -232,6 +247,7 @@ function registerGateway(
   });
   const { io, steps } = attachGateway(fastify.server, {
     ...deps,
+    sessionLengths: () => sessionLengthsOf(deps.technical()),
     allowedOrigins: allowedOrigins(env),
     path: `${env.SBR_BASE_PATH}ws`,
     taps: metrics.taps,

@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { RateLimiter } from './rateLimit.js';
+import { liveRule, RateLimiter, RATE_RULES } from './rateLimit.js';
 
 describe('RateLimiter', () => {
   it('lets the limit pass, then refuses with the delay until a token is back', () => {
@@ -33,4 +33,27 @@ describe('RateLimiter', () => {
     limiter.take('new');
     expect(limiter.size).toBe(1);
   });
+
+  it('reads a live rule on every request, so a changed limit applies at once (piece 7)', () => {
+    let limit = 1;
+    const limits = () => ({ ...TODAY, loginIp: limit });
+    const limiter = new RateLimiter(liveRule('loginIp', limits), () => 0);
+    expect(limiter.take('a').allowed).toBe(true);
+    expect(limiter.take('a').allowed).toBe(false);
+    limit = 3;
+    expect(limiter.take('b').allowed).toBe(true);
+    expect(limiter.take('b').allowed).toBe(true);
+    expect(liveRule('loginIp')).toBe(RATE_RULES.loginIp);
+  });
 });
+
+const TODAY = {
+  loginAccountIp: 5,
+  loginIp: 20,
+  register: 5,
+  api: 120,
+  guest: 10,
+  resetIp: 10,
+  resetAccount: 3,
+  twoFactor: 5,
+};

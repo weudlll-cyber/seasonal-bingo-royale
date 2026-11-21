@@ -14,11 +14,11 @@
  *                 and CSRF apply.
  * Depends on:     fastify, zod, @sbr/contracts (settingsFields, types), ../../admin/settings
  *                 (types), ./matches (requirePermission)
- * Used by:        ./adminLeague, ../gameRoutes (Screens and texts)
+ * Used by:        ./adminLeague, ./adminTechnical, ../gameRoutes (Screens and texts)
  * Spec:           docs/concepts/admin-area.md §4, §6, §9 pieces 5 to 7
  */
 import { settingsFields, type CatalogueEntry } from '@sbr/contracts';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import type { SettingsStore } from '../../admin/settings.js';
@@ -34,6 +34,8 @@ export interface FlatPage<T extends Record<string, unknown>> {
   readonly current: (document: Readonly<Record<string, unknown>>) => T;
   readonly view: string;
   readonly edit: string;
+  // A last check before a change (the Technical section's second step); it sends the refusal.
+  readonly beforeSave?: (request: FastifyRequest, reply: FastifyReply) => boolean;
 }
 
 const valuesBody = z.strictObject({
@@ -57,6 +59,7 @@ export function registerFlatSave<T extends Record<string, unknown>>(
   app.post(page.path, async (request, reply) => {
     const actor = requirePermission(request, reply, page.edit);
     if (actor === null) return reply;
+    if (page.beforeSave !== undefined && !page.beforeSave(request, reply)) return reply;
     const body = valuesBody.safeParse(request.body);
     const keys = Object.keys(body.data?.values ?? {});
     const next = page.schema.safeParse({
