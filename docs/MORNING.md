@@ -126,6 +126,7 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 ## Small faults fixed on 2026-11-21
 
 - The account chip names the highest role — owner, admin, organizer or player — instead of "host" for everyone who may start a match (`highestRole`, `apps/web/src/shell/session.tsx`); the e2e sign-in reads it per identity.
+- Built-in presets still named by their key on an existing database ("royale-realtime") get the names of a new install ("Battle royale", …) through migration `0026_preset_names.sql`: a new version, only while the name still equals the key, never for a preset an admin renamed; idempotent. The leftover `classicSeasons-realtime` preset of an early build on this machine is not a built-in key and keeps its name.
 - Units read in the singular for one ("1 day", "1 try", "+1 point"): `unitFor` (`apps/web/src/game/labels.ts`) in the admin area's values, limits, History lines and league corrections.
 
 ## Needs the owner's word
