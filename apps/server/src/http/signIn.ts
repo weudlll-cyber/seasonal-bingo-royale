@@ -20,8 +20,8 @@ import { mailerFrom, type Mailer } from '../auth/mailer.js';
 import type { SessionEnds } from '../auth/sessionEnds.js';
 import type { CookieConfig } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
-import { featuresFrom } from '../config/features.js';
 import { seedKeyFrom } from '../config/seedKey.js';
+import type { Switches } from '../config/features.js';
 import type { DbPool } from '../db/pool.js';
 import { AccountFeed } from '../website/accountFeed.js';
 import { registerAuthRoutes } from './routes/auth.js';
@@ -41,6 +41,8 @@ export function registerSignIn(
     cookie: CookieConfig;
     sessionEnds: SessionEnds;
     accountDeleted: (accountId: string) => void;
+    // The admin area's switches (guests, e-mail verification), read on every use.
+    switches: () => Switches;
     mailer?: Mailer | null | undefined;
   },
 ): AccountFeed | null {
@@ -58,7 +60,7 @@ export function registerSignIn(
     registerTwoFactor(fastify, { ...deps, seedKey: seedKeyFrom(env) });
   registerAuthRoutes(fastify, {
     ...deps,
-    features: { ...featuresFrom(env), passwordReset: mailer !== null },
+    features: () => ({ ...deps.switches(), passwordReset: mailer !== null }),
     mode: env.SBR_AUTH_MODE,
     basePath: env.SBR_BASE_PATH,
     chat: { path: env.SBR_CHAT_PATH, room: env.SBR_CHAT_ROOM },

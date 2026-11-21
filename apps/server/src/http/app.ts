@@ -7,62 +7,51 @@
  *                 built client (image) or the placeholder page (development), sessions and
  *                 sign-in (local accounts, or in website mode the website's proxy headers, D37,
  *                 and its account-changes feed, ../website/accountFeed, polled from main),
- *                 the live match engine and its routes (in development on the time-travel
- *                 clock, with its route), the leaderboards and profiles (in development also the
- *                 demo league), the admin area's Overview (./routes/admin) onto a fresh Fastify
- *                 instance, under the base path and behind the
- *                 trusted proxies; first of all, refuse a seed key that does not open the stored
- *                 match secrets. The caller owns the lifecycle (listen, scheduler, close, pool).
+ *                 the live match engine and the game's routes (./gameRoutes: matches, Verify,
+ *                 boards and profiles, the admin area; in development the demo league and the
+ *                 time travel on the time-travel clock), with the admin area's settings loaded
+ *                 at start (../admin/settings), onto a fresh Fastify instance, under the base
+ *                 path and behind the trusted proxies; first of all, refuse a seed key that does
+ *                 not open the stored match secrets. The caller owns the lifecycle (listen,
+ *                 scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
- *                 ../auth/sessionEnds, ../auth/sessionPlugin, ../website/accountFeed, ../config/env, ../config/features,
- *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ../dev/demoLeague,
- *                 ./plugins/problem, ./plugins/securityHeaders, ./routes/auth, ./routes/devSignIn,
- *                 ./routes/admin, ./routes/health, ./routes/leaderboards, ./routes/maintenance, ./routes/matches,
- *                 ./routes/matchVerify, ./routes/metrics, ./routes/placeholder, ./routes/profiles,
- *                 ./routes/quicktest, ./routes/timeTravel, ./routes/webClient, ./routes/websiteSignIn,
- *                 ../match/runtime,
- *                 ../realtime/gateway
+ *                 ../admin/settings, ../auth/sessionEnds, ../auth/sessionPlugin,
+ *                 ../website/accountFeed, ../config/env, ../config/features,
+ *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ./plugins/problem,
+ *                 ./plugins/securityHeaders, ./gameRoutes, ./signIn, ./routes/health,
+ *                 ./routes/maintenance, ./routes/metrics, ./routes/placeholder,
+ *                 ./routes/quicktest, ./routes/webClient, ../match/runtime, ../realtime/gateway
  * Used by:        ../main.ts, test/*, ../index
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
+import { SettingsStore } from '../admin/settings.js';
 import { SessionEnds } from '../auth/sessionEnds.js';
 import { SocketLimits } from '../realtime/socketLimits.js';
-import { registerOpenRounds } from './routes/openRounds.js';
+import { registerGameRoutes } from './gameRoutes.js';
 import { registerSignIn } from './signIn.js';
 import type { AccountFeed } from '../website/accountFeed.js';
 import type { Mailer } from '../auth/mailer.js';
 import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
-import { maintenanceFlag, type MaintenanceCheck } from '../config/maintenance.js';
+import { liveSwitches, type Switches } from '../config/features.js';
+import { maintenanceFlag } from '../config/maintenance.js';
 import { seedKeyFrom } from '../config/seedKey.js';
 import type { DbPool } from '../db/pool.js';
 import { DevClock } from '../dev/devClock.js';
-import { registerDemoLeague } from '../dev/demoLeague.js';
 import { createMatchRuntime, type MatchRuntime } from '../match/runtime.js';
 import { attachGateway, type GatewayDeps } from '../realtime/gateway.js';
 import { SeenLive } from '../realtime/seenLive.js';
-import { liveViewsOn, type LiveViews } from '../view/liveViews.js';
+import { liveViewsOn } from '../view/liveViews.js';
 import { registerProblemDetails } from './plugins/problem.js';
 import { registerSecurityHeaders } from './plugins/securityHeaders.js';
-import { registerAdminRoutes } from './routes/admin.js';
 import { registerHealth } from './routes/health.js';
-import { registerLeaderboardRoutes } from './routes/leaderboards.js';
 import { registerMaintenance } from './routes/maintenance.js';
-import { registerMatchRoutes } from './routes/matches.js';
-import { registerVerifyRoute } from './routes/matchVerify.js';
-import {
-  createMetrics,
-  registerMetrics,
-  type LiveMetrics,
-  type MetricsHandle,
-} from './routes/metrics.js';
+import { createMetrics, registerMetrics, type MetricsHandle } from './routes/metrics.js';
 import { registerPlaceholder } from './routes/placeholder.js';
-import { registerProfileRoutes } from './routes/profiles.js';
 import { registerQuickTest } from './routes/quicktest.js';
-import { registerTimeTravel } from './routes/timeTravel.js';
 import { registerWebClient } from './routes/webClient.js';
 
 interface AppDeps {
@@ -119,67 +108,36 @@ async function registerRouteLimits(fastify: FastifyInstance): Promise<void> {
   });
 }
 
-interface GameRouteDeps {
-  readonly env: Env;
-  readonly pool: DbPool;
-  readonly isDev: boolean;
-  readonly maintenance: MaintenanceCheck;
-  readonly seedKey: Buffer;
-  readonly match: MatchRuntime;
-  // Development only: the time-travel clock the match runtime runs on.
-  readonly clock: DevClock | undefined;
-  readonly live: LiveMetrics;
-  readonly views: LiveViews;
-}
-
-// The matches, Verify, the leaderboards and profiles; in development the time travel.
-function registerGameRoutes(fastify: FastifyInstance, deps: GameRouteDeps): void {
-  const { pool, match } = deps;
-  registerMatchRoutes(fastify, {
-    pool,
-    engine: match.engine,
-    store: match.store,
-    dev: deps.isDev,
-    maintenance: deps.maintenance,
-    live: deps.live,
-    views: deps.views,
-    website: deps.env.SBR_AUTH_MODE === 'website',
-  });
-  // The open sign-ups the hosts marked for the website (D50; empty in standalone installs).
-  registerOpenRounds(fastify, {
-    pool,
-    publicUrl: deps.env.SBR_PUBLIC_URL ?? null,
-    basePath: deps.env.SBR_BASE_PATH,
-  });
-  // "Verify this match": the seed, sealed with this key, opens once a match is over.
-  registerVerifyRoute(fastify, { pool, store: match.store, seedKey: deps.seedKey });
-  registerLeaderboardRoutes(fastify, { pool });
-  registerProfileRoutes(fastify, { pool });
-  // The admin area's Overview: open matches, abort, maintenance, the health line.
-  registerAdminRoutes(fastify, {
-    pool,
-    engine: match.engine,
-    maintenance: deps.maintenance,
-    dataDir: deps.env.SBR_DATA_DIR,
-    version: deps.env.SBR_VERSION,
-    startedAt: Date.now(),
-  });
-  // Development only: ten demo accounts and three counting matches for the boards.
-  if (deps.isDev) registerDemoLeague(fastify, { pool, engine: match.engine });
-  if (deps.clock !== undefined) {
-    const clock = deps.clock;
-    registerTimeTravel(fastify, { pool, engine: match.engine, scheduler: match.scheduler, clock });
-  }
-}
-
 // The match runtime's clock and meters; league points need confirmed e-mail addresses in
-// website mode, and in a standalone install only with SBR_FEATURE_EMAIL_VERIFICATION on (D59).
-const runtimeOptions = (env: Env, metrics: MetricsHandle, clock: DevClock | undefined) => ({
+// website mode, and in a standalone install only with the e-mail switch on (D59; the admin
+// area's switch, read when a match's points are awarded).
+const runtimeOptions = (
+  env: Env,
+  metrics: MetricsHandle,
+  clock: DevClock | undefined,
+  switches: () => Switches,
+) => ({
   clock,
   onTapBatch: metrics.taps.batch,
   onAppend: metrics.taps.appended,
-  leagueNeedsVerifiedEmail: env.SBR_AUTH_MODE === 'website' || env.SBR_FEATURE_EMAIL_VERIFICATION,
+  leagueNeedsVerifiedEmail: () => env.SBR_AUTH_MODE === 'website' || switches().emailVerification,
 });
+
+// The admin area's settings, read by the server at runtime (../admin/settings), and the
+// switches read from them.
+async function loadSettings(pool: DbPool, env: Env) {
+  const settings = new SettingsStore(pool);
+  await settings.load();
+  return { settings, switches: liveSwitches(env, settings) };
+}
+
+// The meters, health, the client (or the placeholder) and in development the Quick Test.
+function registerBasics(fastify: FastifyInstance, deps: AppDeps, metrics: MetricsHandle): void {
+  registerMetrics(fastify, metrics);
+  registerHealth(fastify, deps.pool);
+  registerClient(fastify, deps.env);
+  if (deps.env.SBR_DEV) registerQuickTest(fastify);
+}
 
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
@@ -189,7 +147,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
-  const options = runtimeOptions(deps.env, metrics, clock);
+  const { settings, switches } = await loadSettings(deps.pool, deps.env);
+  const options = runtimeOptions(deps.env, metrics, clock, switches);
   const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
@@ -199,10 +158,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await registerSecurityHeaders(fastify, { devPage: deps.env.SBR_WEB_DIR === undefined });
   registerProblemDetails(fastify);
   await registerRouteLimits(fastify);
-  registerMetrics(fastify, metrics);
-  registerHealth(fastify, deps.pool);
-  registerClient(fastify, deps.env);
-  if (isDev) registerQuickTest(fastify);
+  registerBasics(fastify, deps, metrics);
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
   const sessionEnds = new SessionEnds();
   await registerSessions(fastify, deps.pool, cookie);
@@ -211,7 +167,13 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   const accountDeleted = (id: string): void => {
     views.accountGone(id);
   };
-  const feed = registerSignIn(fastify, { ...deps, cookie, sessionEnds, accountDeleted });
+  const feed = registerSignIn(fastify, {
+    ...deps,
+    cookie,
+    sessionEnds,
+    accountDeleted,
+    switches,
+  });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, {
     env: deps.env,
@@ -223,6 +185,8 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     clock,
     live: metrics.live,
     views,
+    settings,
+    switches,
   });
   const live = registerGateway(fastify, deps.env, metrics, {
     pool: deps.pool,

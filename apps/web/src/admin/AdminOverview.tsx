@@ -6,11 +6,13 @@
  * Responsibility: what GET /admin/overview answers (Admins only; anyone else reads that the
  *                 page is for Admins): the version and how long the server runs; maintenance
  *                 with its state, a reason for players and one button to switch it (the flag
- *                 `sbr maintenance` sets); every match in its lobby or running, newest first,
+ *                 `sbr maintenance` sets); the switches (./AdminSwitches); every match in its
+ *                 lobby or running, newest first,
  *                 with type, state, players and host, and Abort with a reason shown to players
  *                 (../host/AbortMatch on the admin route), after which the list reloads. The
  *                 server checks every permission and writes the audit log.
- * Depends on:     react, ../game/labels, ../host/AbortMatch, ../shell/http, ../types, ./admin.css
+ * Depends on:     react, ../game/labels, ../host/AbortMatch, ../shell/http, ../types, ./AdminNav,
+ *                 ./AdminSwitches, ./admin.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/concepts/admin-area.md §4 (Overview), §9 piece 1
  */
@@ -20,6 +22,8 @@ import { gameTypeName, problemText } from '../game/labels.js';
 import { AbortMatch } from '../host/AbortMatch.js';
 import { api, ApiError } from '../shell/http.js';
 import type { GameType } from '../types.js';
+import { AdminNav } from './AdminNav.js';
+import { AdminSwitches, type Switches } from './AdminSwitches.js';
 import './admin.css';
 
 interface OpenMatch {
@@ -41,6 +45,7 @@ interface Maintenance {
 interface Overview {
   readonly matches: readonly OpenMatch[];
   readonly maintenance: Maintenance;
+  readonly switches: Switches;
   readonly health: { readonly version: string; readonly startedAt: number };
 }
 
@@ -78,14 +83,16 @@ export function AdminOverview(): ReactElement {
       </p>
     );
   }
-  const { matches, maintenance, health } = load.value;
+  const { matches, maintenance, switches, health } = load.value;
   return (
     <div className="admin-page sbr-stack" data-testid="admin-overview">
       <h1>Overview</h1>
+      <AdminNav current="overview" />
       <p className="sbr-muted" data-testid="admin-health">
         Version {health.version} · running for {uptimeText(Date.now() - health.startedAt)}
       </p>
       <MaintenancePanel value={maintenance} />
+      <AdminSwitches value={switches} />
       <section className="sbr-panel sbr-stack" aria-labelledby="admin-matches-title">
         <h2 id="admin-matches-title">Open and running matches</h2>
         {matches.length === 0 ? <p className="sbr-muted">No match is open or running.</p> : null}

@@ -40,6 +40,7 @@ const OVERVIEW = {
     },
   ],
   maintenance: { on: false, reason: null },
+  switches: { guests: true, emailVerification: false },
   health: { version: 'main (abc123def456)', startedAt: Date.now() - 3 * 3_600_000 },
 };
 

@@ -3,11 +3,13 @@
  * @module web/admin
  * @brief  The admin area's pages: a reading column of panels, the list of open matches.
  *
- * Responsibility: the Overview in one column of panels; each open match a row whose head
- *                 (title and state) wraps on a phone, its facts below and Abort under them.
+ * Responsibility: the Overview and the History in one column of panels with the admin
+ *                 area's navigation as chips; each open match (and each History entry) a row
+ *                 whose head wraps on a phone, its facts below; the switches with their
+ *                 descriptions.
  *                 Sizes from the @sbr/ui tokens (no text below the small size, fit audit);
  *                 colours from the tokens only.
- * Used by:        ./AdminOverview
+ * Used by:        ./AdminOverview, ./AdminHistory, ./AdminNav, ./AdminSwitches
  * Spec:           docs/concepts/admin-area.md §4; docs/concepts/fit-audit.md §6
  */
 
@@ -49,4 +51,48 @@
 .admin-match-facts {
   margin: 0;
   font-size: var(--font-size-small);
+}
+
+/* The admin area's own navigation (./AdminNav): its sections as chips, the current one solid */
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.admin-nav a {
+  text-decoration: none;
+}
+
+.admin-nav a[aria-current='page'] {
+  background: var(--color-solid);
+  color: var(--color-on-solid);
+}
+
+/* A switch (./AdminSwitches): the box, then its name and what changing it does */
+.admin-switch {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.admin-switch input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.15rem;
+}
+
+.admin-switch-what {
+  display: block;
+  font-size: var(--font-size-small);
+}
+
+/* The History (./AdminHistory): one entry per change, newest first */
+.admin-history {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }

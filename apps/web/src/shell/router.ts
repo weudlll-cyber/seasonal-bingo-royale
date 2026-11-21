@@ -9,7 +9,7 @@
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
  *                 profile (the display name URL-encoded) and the admin area's Overview
- *                 (`#/admin`) are routes too.
+ *                 (`#/admin`) and History (`#/admin/history`) are routes too.
  * Depends on:     react
  * Used by:        ./AppShell, the screens that link to each other, ../App, ../quicktest/*, ../account/Register,
  *                 ../account/SignIn, ../account/formParts, ../game/EndActions,
@@ -37,8 +37,8 @@ export type Route =
   | { readonly name: 'account' }
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
   | { readonly name: 'player'; readonly displayName: string }
-  // The admin area (admin-area §8 (a)): the Overview.
-  | { readonly name: 'admin' };
+  // The admin area (admin-area §8 (a)): the Overview, or the History of every change.
+  | { readonly name: 'admin'; readonly section?: 'history' };
 
 // Routes without a parameter (a trailing segment is ignored).
 const PLAIN: Readonly<Record<string, Route>> = {
@@ -78,6 +78,8 @@ function withParameter(first: string, second: string): Route | null {
       return { name: 'leaderboard', periodId: second };
     case 'players':
       return playerRoute(second);
+    case 'admin':
+      return second === 'history' ? { name: 'admin', section: 'history' } : { name: 'admin' };
     default:
       return null;
   }
@@ -100,14 +102,7 @@ function playerRoute(encoded: string): Route | null {
 // The address of every route without a parameter.
 const PLAIN_HREFS: Readonly<
   Record<
-    | 'lobby'
-    | 'hostNew'
-    | 'signIn'
-    | 'register'
-    | 'forgotPassword'
-    | 'resetPassword'
-    | 'account'
-    | 'admin',
+    'lobby' | 'hostNew' | 'signIn' | 'register' | 'forgotPassword' | 'resetPassword' | 'account',
     string
   >
 > = {
@@ -118,7 +113,6 @@ const PLAIN_HREFS: Readonly<
   forgotPassword: '#/forgot-password',
   resetPassword: '#/reset-password',
   account: '#/account',
-  admin: '#/admin',
 };
 
 export function hrefOf(route: Route): string {
@@ -135,6 +129,8 @@ export function hrefOf(route: Route): string {
       return route.periodId === null ? '#/leaderboard' : `#/leaderboard/${route.periodId}`;
     case 'player':
       return `#/players/${encodeURIComponent(route.displayName)}`;
+    case 'admin':
+      return route.section === undefined ? '#/admin' : `#/admin/${route.section}`;
     default:
       return PLAIN_HREFS[route.name];
   }

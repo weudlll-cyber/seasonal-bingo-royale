@@ -75,6 +75,10 @@ const ADMIN_ROUTES: readonly RouteCase[] = [
     allow: ADMINS,
   },
   { method: 'POST', path: '/api/v1/admin/maintenance', body: {}, allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/switches', body: {}, allow: ADMINS },
+  { method: 'GET', path: '/api/v1/admin/history', allow: ADMINS },
+  // No entry 0: refused before, 400 after the permission check.
+  { method: 'POST', path: '/api/v1/admin/history/:id/undo', body: {}, allow: ADMINS },
 ];
 
 // `:code` is the host's match. Every route the server registers is listed here.
@@ -236,7 +240,7 @@ async function call(
   address += 1;
   const options: InjectOptions = {
     method: route.method,
-    url: route.path.replace(':code', code).replace('*', 'index.html'),
+    url: route.path.replace(':code', code).replace(':id', '0').replace('*', 'index.html'),
     // One address per call: the per-address limits stay out of the way.
     remoteAddress: `10.30.${String(Math.floor(address / 250))}.${String(address % 250)}`,
     headers: s === null ? {} : { cookie: s.cookie, 'x-csrf-token': s.csrf },
@@ -345,7 +349,7 @@ async function webCall(
 ): Promise<{ status: number; code: unknown }> {
   const r = await app.fastify.inject({
     method: route.method,
-    url: `${BASE}${route.path.slice(1).replace(':code', code)}`,
+    url: `${BASE}${route.path.slice(1).replace(':code', code).replace(':id', '0')}`,
     headers: s === null ? {} : { cookie: s.cookie ?? '', 'x-csrf-token': s.csrf ?? '' },
     ...(route.body === undefined ? {} : { payload: route.body }),
   });

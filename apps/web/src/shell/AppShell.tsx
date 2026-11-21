@@ -28,6 +28,7 @@ import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
+import { AdminHistory } from '../admin/AdminHistory.js';
 import { AdminOverview } from '../admin/AdminOverview.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
@@ -266,7 +267,7 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
     case 'admin':
-      return <AdminOverview />;
+      return route.section === 'history' ? <AdminHistory /> : <AdminOverview />;
   }
 }
 

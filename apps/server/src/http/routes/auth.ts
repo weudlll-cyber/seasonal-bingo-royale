@@ -51,7 +51,8 @@ import type { DbPool } from '../../db/pool.js';
 interface AuthDeps {
   readonly pool: DbPool;
   readonly cookie: CookieConfig;
-  readonly features: Features;
+  // The switches as they are now (../../config/features liveFeatures).
+  readonly features: () => Features;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
   // The live views name a deleted account as such at once (../../view/liveViews, audit S10).
@@ -95,7 +96,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   });
   app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
   app.post('/api/v1/auth/guest', async (request, reply) => {
-    if (!deps.features.guests) return reply.status(404).send({ code: 'NOT_FOUND' });
+    if (!deps.features().guests) return reply.status(404).send({ code: 'NOT_FOUND' });
     if (!limits.guest.take(request.ip).allowed) return tooMany(reply);
     // Website mode: as long as a member's session from the website sign-in (the same lengths in
     // every game, 2026-11-09); standalone the player default.
@@ -148,7 +149,7 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
-    features: deps.features,
+    features: deps.features(),
     // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
     limits: LIMITS,
     authMode: deps.mode,
@@ -187,7 +188,7 @@ async function login(
   const encoded = account?.passwordHash ?? (await dummyPasswordHash());
   const valid = await verifyPassword(encoded, body.password);
   if (account === null || !valid) return reply.status(401).send(LOGIN_FAILED);
-  if (deps.features.emailVerification && !account.emailVerified) {
+  if (deps.features().emailVerification && !account.emailVerified) {
     return reply.status(403).send({ code: 'EMAIL_NOT_VERIFIED' });
   }
   await recordLogin(deps.pool, account.id);

@@ -30,14 +30,26 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - Tests that failed first: `dbRoles.integration` (audit_log did not exist), `adminOverview.integration` (no module), `authzMatrix.integration` with the routes unregistered (4 failed), `apps/web/src/admin/adminOverview.test.tsx` (no page). e2e: `adminOverview.spec` (Overview, abort, fit at 1280×720 and 390×844 at 100/125/150 % with `acceptance/fitProbe`), `adminMaintenance.spec` (serial, with the maintenance spec).
   - Reused: `requirePermission`, `matchIdByCode`, `sendEngineError`, the maintenance flag, `AbortMatch`, `gameTypeName`/`problemText`, the panel/chip/field tokens; e2e `signIn`, `hostMatch`, `stopMatch`, `post`, `captureLook`, `openMenu`, `fitProbe`.
   - Review shots: `admin-1-overview-*`, `admin-1-maintenance-*` (desktop and phone, light and dark).
+  - Commit `a69b101`: CI red in one spec on all three browsers (`adminMaintenance.spec`: a fresh checkout has no data directory before its first maintenance flag, so the switch answered 500; `sbr maintenance` and local development always had one). Fixed in `416da6b`: the switch creates the directory; the integration test starts without one (it failed first with the 500). CodeQL green.
+- Piece 2 — the settings store and the History:
+  - Migration `0021_settings_store.sql`: permission `settings.edit` for game_admin and super_admin; `sbr.settings_versions` append-only (triggers refuse UPDATE, DELETE, TRUNCATE; the app role may only INSERT and SELECT, `db/roles.ts`).
+  - `apps/server/src/admin/settings.ts` (`SettingsStore`): each change writes a new version with who, when and the comment, moves `current_version` and writes its audit entry in the same transaction (`appendAudit`, split out of `recordAudit`); the server keeps the current documents in memory (loaded at start, replaced on change), so a change applies at once.
+  - First document `features`: the Overview's switches guests and e-mail confirmation (`config/features.ts` `liveSwitches`; the environment is only their first default, §8 (p)). Read on every use: the session answer, guest sign-in, the login's e-mail check, and the league's e-mail rule when a match's points are awarded (the match store now asks a function).
+  - New endpoints (`apps/server/src/http/routes/adminSettings.ts`; checked on the server, zod-validated, rate-limited and CSRF-checked by the session plugin, every change audited): `POST /api/v1/admin/switches` (`settings.edit`), `GET /api/v1/admin/history?before=` (`admin.view`, 50 at a time, with each document's defaults), `POST /api/v1/admin/history/:id/undo` (`settings.edit`; 404 for no such change, 409 when nothing is left to undo). The Overview's answer carries the switches. Authz rows: allowed for Admin and owner, refused for signed out, guest, player, another host, the match's host; website mode allowed for the website admin only.
+  - Undo: a new version in which the values the undone change touched are back as before; later changes to other values stay (see "needs the owner's word").
+  - Client: the admin area's navigation (Overview, History; `admin/AdminNav.tsx`), the switches on the Overview with what each does and a comment (`AdminSwitches.tsx`), the History page `#/admin/history` (`AdminHistory.tsx`, `changeText.ts`): when, who, old → new, comment, "Undo this change", "Show older".
+  - `apps/server/src/http/app.ts` stayed under 300 lines by moving the game routes into `http/gameRoutes.ts`.
+  - Tests that failed first: `dbRoles.integration` (settings_versions writable by the app), `adminSettings.integration` with its routes unregistered (3 failed), `apps/web/src/admin/adminHistory.test.tsx` (no page). Also in the authz matrix. e2e `adminHistory.spec` (serial: switches guests off, the server refuses a guest, the History shows it, undo brings it back; fit at 1280×720 and 390×844 at 100/125/150 %).
+  - Reused: `requirePermission`, the audit chain, `SessionProvider`, `problemText`, the panel/chip/field tokens; e2e `signIn`, `post`, `captureLook`, `fitProbe`.
+  - Review shots: `admin-2-switches-*`, `admin-2-history-*`.
 
 ## Running
 
-- Piece 1's CI run.
+- Piece 2's checks and CI.
 
 ## Open
 
-- Pieces 2, 3, 4, 5, 6, 7, 8 of admin-area.md §9.
+- Pieces 3, 4, 5, 6, 7, 8 of admin-area.md §9.
 
 ## Reverted
 
@@ -46,4 +58,6 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 ## Needs the owner's word
 
 - An Admin's abort reads "This match was cancelled by the system" with the reason. "by an admin" would need a new value in the abort event and new wording for players; left as is.
+- Undo reverts only the values the undone change touched (a new version); the concept's wording ("a new version whose content is an older version's") would also undo every later change to other values of the same document. When nothing changed after it, both are the same.
+- The e-mail switch is shown in both modes; in website mode the website decides who is confirmed, so it changes nothing there but is harmless. Hide it in website mode?
 - The audit log stores no IP address: docs/spec/04 lists `ip inet` for `audit_log`, but the game stores no IP address (migration 0018, docs/PRIVACY-DATA.md). Which should win?

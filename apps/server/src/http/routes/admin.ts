@@ -5,7 +5,8 @@
  *
  * Responsibility: GET /api/v1/admin/overview (`admin.view`): the matches in their lobby or
  *                 running, newest first, with their host and players; whether maintenance is on
- *                 and why; the version and how long the server runs. POST
+ *                 and why; the switches (guests, e-mail verification); the version and how long
+ *                 the server runs. POST
  *                 /api/v1/admin/matches/:code/abort { reason } (`match.abort`): any match not
  *                 over, stopped as the system does it (players read the reason). POST
  *                 /api/v1/admin/maintenance { on, reason } (`maintenance.manage`): the same flag
@@ -22,6 +23,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { recordAudit } from '../../admin/audit.js';
+import type { Switches } from '../../config/features.js';
 import { setMaintenance, type MaintenanceCheck } from '../../config/maintenance.js';
 import type { DbPool } from '../../db/pool.js';
 import { matchIdByCode } from '../../match/records.js';
@@ -36,6 +38,8 @@ export interface AdminDeps {
   // The installed version (SBR_VERSION, set when the image is built), and when the server began.
   readonly version: string;
   readonly startedAt: number;
+  // The switches as they are now (guests, e-mail verification; ./adminSettings changes them).
+  readonly switches: () => Switches;
 }
 
 const abortBody = z.object({ reason: z.string().trim().min(3).max(200) });
@@ -82,6 +86,7 @@ async function overview(deps: AdminDeps) {
       startsAt: r.starts_at?.getTime() ?? null,
     })),
     maintenance: { on: now !== null, reason: now?.reason ?? null },
+    switches: deps.switches(),
     health: { version: deps.version, startedAt: deps.startedAt },
   };
 }

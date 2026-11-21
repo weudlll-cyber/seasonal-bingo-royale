@@ -54,8 +54,9 @@ export function createMatchRuntime(
     readonly onTapBatch?: (batch: TapBatchTiming) => void;
     // Each stored batch's round trips and time (the metrics, 12 §5).
     readonly onAppend?: (timing: AppendTiming) => void;
-    // League points need confirmed e-mail addresses (D59; default true).
-    readonly leagueNeedsVerifiedEmail?: boolean;
+    // League points need confirmed e-mail addresses (D59; default yes): asked when a match's
+    // points are awarded, so the admin area's switch applies at once.
+    readonly leagueNeedsVerifiedEmail?: () => boolean;
   } = {},
 ): MatchRuntime {
   const clock = options.clock ?? SYSTEM_CLOCK;
@@ -64,7 +65,7 @@ export function createMatchRuntime(
     pool,
     seedKey,
     options.onAppend,
-    options.leagueNeedsVerifiedEmail ?? true,
+    options.leagueNeedsVerifiedEmail ?? (() => true),
   );
   const scheduler = new PgScheduler(pool);
   const bus = new LocalEventBus();
