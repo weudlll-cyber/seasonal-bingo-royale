@@ -40,6 +40,12 @@ async function shootCreateForm(page: Page): Promise<void> {
   await page.getByTestId('create-start-rule').selectOption('host');
 }
 
+// "Play" in the bar; the bar folds into the menu whenever its items do not fit on one row.
+async function toLobby(page: Page): Promise<void> {
+  await openMenu(page);
+  await page.getByRole('link', { name: 'Play', exact: true }).click();
+}
+
 // Contexts this spec opens are closed after every test (see closeContexts).
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
@@ -72,9 +78,7 @@ test('the host returns via Manage and Open host console; a player sees no Manage
     if (shots) await captureLook(player, SHOTS_DIR, 'waiting-room');
 
     // To the lobby, and back to the console via Manage.
-    // The bar folds into the menu whenever its items do not fit on one row.
-    await openMenu(page);
-    await page.getByRole('link', { name: 'Play', exact: true }).click();
+    await toLobby(page);
     await expect(page.getByTestId(`manage-${code}`)).toBeVisible();
     if (shots) await captureLook(page, SHOTS_DIR, 'lobby');
     await page.getByTestId(`manage-${code}`).click();
