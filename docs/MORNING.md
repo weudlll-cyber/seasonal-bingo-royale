@@ -72,14 +72,23 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
   - Tests that failed first: `packages/contracts/src/config/league.test.ts` (no module), `apps/server/test/adminLeague.integration.test.ts` with its routes unregistered (6 failed: a match finished after the change is awarded 150 + 2 for 1st place; a correction moves the season and all-time points, shows on the profile and in the History; refusals; never changed; goes with the account), `dbRoles.integration` and `authzMatrix.integration` without the revoke and the routes (5 failed), `apps/web/src/admin/adminLeague.test.tsx` (no page). e2e `adminLeague.spec` (serial: the admin changes 1st place, corrects a player the spec registers, the League page and the profile show it, the History too; fit at 1280×720 and 390×844 at 100/125/150 %; the value put back and the account deleted with its correction).
   - Reused: `SettingsStore.change`, `appendAudit`, `periodsFor` (now returning the season and the all-time period and storing the table in force), `requirePermission`, the field generator's `kindOf`/`limitsOf`, `ValueField`, `when` (now shared from `changeText`), `problemText`; e2e `signIn`, `post`, `captureLook`, `fitProbe`.
   - Review shots: `admin-5-league-*` (the corrections with the new one), `admin-5-profile-*` (the profile with the correction).
+  - Commit `a521c38`; CI and CodeQL green (run 44880684561).
+- Piece 6 — "Screens and texts":
+  - The `screens` settings document (`packages/contracts/src/config/screens.ts`, bounds from admin-values.md parts C and D): the player client's values — standings rows (20), final placement rows (20), recent-event lines (3), the final notice's numbers (3), a recap card's time (5 s), the lobby refresh (3 s), the maintenance check (30 s) — go out in the session answer as `screens` and the client reads them with `useScreens()` (`shell/session.tsx`; today's values until the session answers), so they apply at the players' next page load (§8 (i)). The server's list sizes — matches in the lobby (50), a leaderboard page (50) and the rows around a player (5), a profile's recent matches (10), the open sign-ups for the website (20) — are read on every request and apply at once.
+  - A section's settings document that no migration made is created empty on its first change (`SettingsStore.change`), so new sections need no migration.
+  - New endpoints: `GET /api/v1/admin/screens` (`admin.view`) and `POST /api/v1/admin/screens { values, comment? }` (`settings.edit`), through the new shared `registerFlatSettings` (`apps/server/src/http/routes/adminFlatSettings.ts`; only the document's own keys, the whole document must pass its schema, a new version with its audit entry), which the League's values now use too. Authz rows: allowed for Admin and owner; refused for signed out, guest, player, another host, the match's host; website mode allowed for the website admin only.
+  - Client: `#/admin/screens` (`admin/AdminScreens.tsx`) with the League's values panel made shared (`admin/SettingsValues.tsx`); the admin pages are chosen in `admin/AdminArea.tsx` (AppShell stays under 300 lines; the router's sections in one list). The History names screen values ("Standings rows: 20 → 30").
+  - Tests that failed first: `packages/contracts/src/config/screens.test.ts` (no module), `apps/server/test/adminScreens.integration.test.ts` with the route unregistered (4 failed; it then found the missing document — 500 — fixed by creating it on the first change), `authzMatrix.integration` without the routes (4 failed), `apps/web/src/admin/adminScreens.test.tsx` (no page). e2e `adminScreens.spec` (serial: "Standings rows" 5, a match with 10 players, after a reload the host's standings show 5; fit at 1280×720 and 390×844 at 100/125/150 %; the value put back and the match aborted).
+  - Reused: `settingsFields`, `ValueField`, `SettingsValues`, `SettingsStore`, `requirePermission`, `useLimits`' pattern for `useScreens`, `problemText`; e2e `hostMatch`, `fillAndStart`, `stopMatch`, `post`, `captureLook`, `fitProbe`.
+  - Review shots: `admin-6-screens-*`.
 
 ## Running
 
-- Piece 5's checks and CI.
+- Piece 6's checks and CI.
 
 ## Open
 
-- Pieces 6, 7, 8 of admin-area.md §9.
+- Pieces 7, 8 of admin-area.md §9.
 
 ## Reverted
 
@@ -104,3 +113,4 @@ The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is d
 - League: a changed league value applies to matches that finish afterwards, not to matches created afterwards (§8 (b) speaks of rules; league points are given at the finish, and a running match keeps its rules either way). Freeze the league table per match instead?
 - League: the season length and the season names (admin-values `board.seasonLength`, `board.seasonNames`, "admin") are not in the League section: changing them mid-season would reshape the periods that already have points. Which rule for the running season?
 - League: a correction goes into the current season and the all-time board; there is no choice of an older season.
+- Screens and texts: left out for now — the recap's name counts (top scorers 3, cut names 8, fastest after 5 taps) and the watching screen's top count (4): the server builds them inside the shared replay views, and changing them while a recap is on screen would change it for viewers mid-pause. The default theme (follow the device) and the chat dock's screens and default (the website's chat, D55) are not in the section either. Which of these should move?

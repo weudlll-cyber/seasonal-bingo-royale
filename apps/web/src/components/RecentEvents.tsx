@@ -1,9 +1,9 @@
 /**
  * @file   apps/web/src/components/RecentEvents.tsx
  * @module web
- * @brief  The newest 3 event lines below the drawn numbers, the whole match log one click away.
+ * @brief  The newest event lines below the drawn numbers, the whole match log one click away.
  *
- * Responsibility: the 3 newest lines of the match (patterns, seasons, Season Complete, shield
+ * Responsibility: the newest lines of the match (3 unless changed ("Screens and texts", admin-area §8 (i))) (patterns, seasons, Season Complete, shield
  *                 saves, cuts …), newest first, always in view, the newest fading in; when the
  *                 newest line belongs to a newer round than lines below it, a thin separator
  *                 naming that round ("Round 2") sits above its lines and the earlier round's
@@ -11,7 +11,8 @@
  *                 lines under a separator naming it once there is more than one round) in a
  *                 closed disclosure that scrolls inside itself when opened, so it never pushes
  *                 the page. Hidden while there is no line yet (01 §13).
- * Depends on:     react, ../playback, ../useReducedMotion, ./matchSide.css
+ * Depends on:     react, ../playback, ../shell/session (useScreens), ../useReducedMotion,
+ *                 ./matchSide.css
  * Used by:        ../game/MatchScreen, ./Playback
  * Spec:           docs/spec/01-game-design.md §13
  */
@@ -20,8 +21,7 @@ import type { ReactElement } from 'react';
 import type { Banner } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
 import './matchSide.css';
-
-const SHOWN = 3;
+import { useScreens } from '../shell/session.js';
 
 export function RecentEvents({
   banners,
@@ -29,8 +29,9 @@ export function RecentEvents({
   readonly banners: readonly Banner[];
 }): ReactElement | null {
   const reduced = useReducedMotion();
+  const shown = useScreens().recentEventLines;
   const newest = [...banners].reverse();
-  const top = newest.slice(0, SHOWN);
+  const top = newest.slice(0, shown);
   const latest = top[0]?.round;
   if (latest === undefined) return null;
   const mixed = top.some((b) => b.round !== latest);

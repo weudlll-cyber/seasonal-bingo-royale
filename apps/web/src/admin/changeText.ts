@@ -9,11 +9,12 @@
  *                 maintenance switched on or off, a match aborted with its reason, and a
  *                 correction of a player's league points with its reason. Unknown
  *                 actions read as their name.
- * Depends on:     @sbr/contracts (LEAGUE_CATALOGUE), ../game/labels, ./presetText
+ * Depends on:     @sbr/contracts (LEAGUE_CATALOGUE, SCREEN_CATALOGUE), ../game/labels,
+ *                 ./presetText
  * Used by:        ./AdminHistory, ./AdminSwitches, ./LeagueCorrections
  * Spec:           docs/concepts/admin-area.md §4 (History), §6
  */
-import { LEAGUE_CATALOGUE } from '@sbr/contracts';
+import { LEAGUE_CATALOGUE, SCREEN_CATALOGUE } from '@sbr/contracts';
 
 import { pointsDelta } from '../game/labels.js';
 import { presetLines } from './presetText.js';
@@ -36,11 +37,14 @@ export const SWITCH_NAMES: Readonly<Record<string, string>> = {
   emailVerification: 'Players must confirm their e-mail',
 };
 
-// A switch's or a League value's name; else the key.
-const nameOf = (key: string): string =>
-  SWITCH_NAMES[key] ??
-  (LEAGUE_CATALOGUE as Readonly<Record<string, { label: string }>>)[key]?.label ??
-  key;
+// The names of the League's values and of the screen values.
+const CATALOGUES: Readonly<Record<string, { readonly label: string } | undefined>> = {
+  ...LEAGUE_CATALOGUE,
+  ...SCREEN_CATALOGUE,
+};
+
+// A switch's or a page value's name; else the key.
+const nameOf = (key: string): string => SWITCH_NAMES[key] ?? CATALOGUES[key]?.label ?? key;
 
 const valueText = (v: unknown): string =>
   typeof v === 'boolean' ? (v ? 'on' : 'off') : JSON.stringify(v);

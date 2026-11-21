@@ -13,7 +13,7 @@
  *                 server checks every permission and writes the audit log.
  * Depends on:     react, ../game/labels, ../host/AbortMatch, ../shell/http, ../types, ./AdminNav,
  *                 ./AdminSwitches, ./admin.css
- * Used by:        ../shell/AppShell
+ * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (Overview), §9 piece 1
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';

@@ -18,7 +18,7 @@
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
-import { LIMITS } from '@sbr/contracts';
+import { LIMITS, type ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -53,6 +53,8 @@ interface AuthDeps {
   readonly cookie: CookieConfig;
   // The switches as they are now (../../config/features liveFeatures).
   readonly features: () => Features;
+  // The screen values the client reads at page load (admin-area §8 (i)), as they are now.
+  readonly screens: () => ClientScreens;
   // Ended sessions: the gateway closes their sockets (audit S4).
   readonly sessionEnds: SessionEnds;
   // The live views name a deleted account as such at once (../../view/liveViews, audit S10).
@@ -152,6 +154,8 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     features: deps.features(),
     // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
     limits: LIMITS,
+    // What players see that is not a rule (admin-area §8 (i)): applied at the next page load.
+    screens: deps.screens(),
     authMode: deps.mode,
     ...websiteParts(deps),
   };

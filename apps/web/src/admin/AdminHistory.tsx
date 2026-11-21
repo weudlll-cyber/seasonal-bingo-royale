@@ -10,7 +10,7 @@
  *                 list. The server checks every permission and refuses an undo with nothing
  *                 left to undo, which the page says.
  * Depends on:     react, ../game/labels, ../shell/http, ./AdminNav, ./changeText, ./admin.css
- * Used by:        ../shell/AppShell
+ * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (History), §6, §8 (k), §9 piece 2
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';

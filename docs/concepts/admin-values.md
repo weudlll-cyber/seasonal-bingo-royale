@@ -536,6 +536,8 @@ Piece 5 leaves `board.seasonLength` and `board.seasonNames` as they are (see doc
 
 ### Lists and page sizes
 
+Built (admin-area §9 piece 6): `lists.matchList`, `lists.leaderboardPage`, `lists.leaderboardAround`, `lists.profileRecentMatches` and `lists.openRounds` are in **Screens and texts** and apply at once; `recap.*` and `watch.topCount` stay as listed for now (see docs/MORNING.md).
+
 | id                          | file:line                                      | current value                    | what changing it does                                                  | who         | min | max  | min/max reason                                         | warning                                     | applies          |
 | --------------------------- | ---------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------- | ----------- | --- | ---- | ------------------------------------------------------ | ------------------------------------------- | ---------------- |
 | lists.matchList             | apps/server/src/http/routes/matches.ts:84      | 50 matches                       | How many matches the match list shows at most.                         | admin       | 10  | 200  | proposal                                               | yes: "Longer lists load slower on phones."  | immediately      |
@@ -705,6 +707,8 @@ Built (admin-area §9 piece 4): the host form these rows describe (`apps/web/src
 
 ### Live match screen
 
+Built (admin-area §9 piece 6): the rows marked "admin" with a number are in **Screens and texts** (`packages/contracts/src/config/screens.ts`); the client reads them from the session answer at the next page load. The rest stays as listed (see docs/MORNING.md).
+
 | id                                   | file:line                                     | current value + unit                                                  | what changing it does                                                                                  | who may change it                                    | min     | max      | min/max reason | warning                                                            | applies        |
 | ------------------------------------ | --------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ------- | -------- | -------------- | ------------------------------------------------------------------ | -------------- |
 | live.standings.rowsShown             | apps/web/src/components/Standings.tsx:40      | 20 rows (+ the player's own row)                                      | Sets how many players the live standings list shows.                                                   | admin                                                | 5       | 200      | proposal       | yes: "Long lists get slow on phones in 200-player matches."        | next page load |
@@ -718,6 +722,8 @@ Built (admin-area §9 piece 4): the host form these rows describe (`apps/web/src
 | live.registration.relativeTimeFormat | apps/web/src/game/Registration.tsx:29-39      | seconds under 60 s, minutes under 60 min, hours under 24 h, then days | Sets when "starts in …" switches between seconds, minutes, hours and days.                             | stays fixed (wording rule, not a game rule)          | —       | —        | —              | no                                                                 | next page load |
 
 ### Timers and refresh
+
+Built (admin-area §9 piece 6): the rows marked "admin" with a number are in **Screens and texts** (`packages/contracts/src/config/screens.ts`); the client reads them from the session answer at the next page load. The rest stays as listed (see docs/MORNING.md).
 
 | id                           | file:line                               | current value + unit         | what changing it does                                                                                                 | who may change it                              | min     | max       | min/max reason | warning                                                                                                  | applies        |
 | ---------------------------- | --------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------- | --------- | -------------- | -------------------------------------------------------------------------------------------------------- | -------------- |

@@ -19,19 +19,17 @@
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./MenuFold, ./Maintenance,
  *                 ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
- *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
+ *                 development only), ../admin/AdminArea, ../game/*, ../host/*, ../account/*,
+ *                 ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
 import { lazy, Suspense, type ReactElement } from 'react';
 
+import { AdminArea } from '../admin/AdminArea.js';
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
-import { AdminHistory } from '../admin/AdminHistory.js';
-import { AdminOverview } from '../admin/AdminOverview.js';
-import { AdminPresets } from '../admin/AdminPresets.js';
-import { AdminLeague } from '../admin/AdminLeague.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
 import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
@@ -269,9 +267,7 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
     case 'admin':
-      if (route.section === 'presets') return <AdminPresets />;
-      if (route.section === 'league') return <AdminLeague />;
-      return route.section === 'history' ? <AdminHistory /> : <AdminOverview />;
+      return <AdminArea section={route.section} />;
   }
 }
 

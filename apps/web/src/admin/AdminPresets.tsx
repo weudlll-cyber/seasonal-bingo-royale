@@ -11,7 +11,7 @@
  *                 preset the server answered, or the refusal as a sentence.
  * Depends on:     react, ../game/labels, ../shell/http, ./AdminNav, ./PresetEditor,
  *                 ./presetText, ./admin.css
- * Used by:        ../shell/AppShell
+ * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §6, §8 (b), §9 piece 3
  */
 import type { PresetTab } from '@sbr/contracts';

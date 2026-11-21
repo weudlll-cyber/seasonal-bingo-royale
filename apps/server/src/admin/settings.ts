@@ -13,7 +13,8 @@
  *                 replaced on every change, so a change applies at once without a restart.
  *                 Values a document leaves out come from the environment (§8 (p): it is only
  *                 the first default). Built-in documents (the presets, ./presets) are seeded as
- *                 version 1; a duplicated preset is a new document, audited.
+ *                 version 1; a duplicated preset is a new document, audited; a section's
+ *                 document no migration made starts empty (version 1) on its first change.
  * Depends on:     @sbr/contracts (readPath, writePath), ../db/pool (types), ./audit
  * Used by:        ../http/app, ../http/routes/adminSettings, ./presets, ../config/features
  * Spec:           docs/concepts/admin-area.md §6, §8 (k), (p); docs/spec/04-database-design.md §3.2
@@ -71,6 +72,8 @@ export class SettingsStore {
 
   // A new version with `next` as its content; the old and new values go to the audit log.
   async change(c: SettingsChange): Promise<number> {
+    // A document no migration made (a section added later) starts empty, as version 1.
+    await this.seed(c.documentId, {});
     const version = await this.inTransaction(async (client) => {
       const before = await currentOf(client, c.documentId);
       const v = before.version + 1;

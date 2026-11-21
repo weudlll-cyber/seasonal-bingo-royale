@@ -5,7 +5,7 @@
  *
  * Responsibility: by display name (case-insensitive): matches played, wins and best placement
  *                 over the finished matches without bots the account played (D29), Season
- *                 Completes and the badges (given by such matches only), and the last 10
+ *                 Completes and the badges (given by such matches only), and the last 10 (unless "Screens and texts" says otherwise)
  *                 finished matches, those with bots too, with their place, player count and
  *                 whether they gave league points or why not, and the corrections of the
  *                 player's league points with their reasons (admin-area §4). Computed on read; no e-mail,
@@ -25,8 +25,6 @@ import type {
 import type { DbPool } from '../db/pool.js';
 import { correctionsOf, publicCorrection } from './corrections.js';
 
-const RECENT = 10;
-
 // A bot played in match `m`.
 const WITH_BOTS = 'EXISTS (SELECT 1 FROM sbr.match_entries b WHERE b.match_id = m.id AND b.is_bot)';
 
@@ -39,9 +37,11 @@ const LEAGUE_OUTCOME = `CASE
   WHEN EXISTS (SELECT 1 FROM sbr.league_awards la WHERE la.match_id = m.id) THEN 'notVerified'
   ELSE 'tooFewPlayers' END`;
 
+// `recent`: how many finished matches to list ("Screens and texts", admin-area §4).
 export async function playerProfile(
   pool: DbPool,
   displayName: string,
+  recent: number,
 ): Promise<PlayerProfile | null> {
   const found = await pool.query<{ id: string; display_name: string; steps: Step[] }>(
     'SELECT id, display_name, steps FROM sbr.accounts WHERE display_name_key = $1',
@@ -67,7 +67,7 @@ export async function playerProfile(
     bestPlacement: t?.best ?? null,
     seasonCompletes: badges.find((b) => b.id === 'season-complete')?.count ?? 0,
     badges,
-    recentMatches: await recentMatches(pool, account.id),
+    recentMatches: await recentMatches(pool, account.id, recent),
     ...(corrections.length === 0 ? {} : { corrections }),
   };
 }
@@ -82,7 +82,11 @@ async function badgesOf(pool: DbPool, accountId: string): Promise<ProfileBadge[]
   return r.rows;
 }
 
-async function recentMatches(pool: DbPool, accountId: string): Promise<ProfileMatch[]> {
+async function recentMatches(
+  pool: DbPool,
+  accountId: string,
+  recent: number,
+): Promise<ProfileMatch[]> {
   const r = await pool.query<{
     code: string;
     title: string;
@@ -97,7 +101,7 @@ async function recentMatches(pool: DbPool, accountId: string): Promise<ProfileMa
        FROM sbr.match_entries e JOIN sbr.matches m ON m.id = e.match_id
       WHERE e.account_id = $1 AND m.status = 'finished'
       ORDER BY m.finished_at DESC NULLS LAST LIMIT $2`,
-    [accountId, RECENT],
+    [accountId, recent],
   );
   return r.rows.map((row) => ({
     code: row.code,

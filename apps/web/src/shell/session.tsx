@@ -9,7 +9,8 @@
  *                 in ./DevTools, outside the production bundle, and calls `refresh`).
  *                 Only the newest refresh sets the session (an older answer arriving late
  *                 never undoes a sign-in). Screens read it through `useSession`, forms the
- *                 server's limits through `useLimits` (admin-area §8 (m)).
+ *                 server's limits through `useLimits` (admin-area §8 (m)) and the screen values
+ *                 through `useScreens` (§8 (i)).
  * Depends on:     react, @sbr/contracts (types), ./http, ../game/socket
  * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn,
  *                 ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture,
@@ -28,7 +29,12 @@ import {
   type ReactNode,
 } from 'react';
 
-import type { ClientLimits } from '@sbr/contracts';
+import {
+  clientScreensOf,
+  SCREEN_DEFAULTS,
+  type ClientLimits,
+  type ClientScreens,
+} from '@sbr/contracts';
 
 import { resetSocket } from '../game/socket.js';
 import { api, setCsrfToken } from './http.js';
@@ -51,6 +57,8 @@ interface SessionInfo {
   // The limits the server checks forms with; forms read them here and keep no copy
   // (admin-area §8 (m)).
   readonly limits?: ClientLimits;
+  // What players see that is not a rule (admin-area §8 (i)), read at page load.
+  readonly screens?: ClientScreens;
 }
 
 interface SessionContextValue {
@@ -143,4 +151,12 @@ export function useSession(): SessionContextValue {
 // The server's form limits, or null until the session has answered.
 export function useLimits(): ClientLimits | null {
   return useContext(SessionContext)?.session?.limits ?? null;
+}
+
+const TODAY_SCREENS = clientScreensOf(SCREEN_DEFAULTS);
+
+// The screen values ("Screens and texts", admin-area §8 (i)): the server's, today's until the
+// session has answered.
+export function useScreens(): ClientScreens {
+  return useContext(SessionContext)?.session?.screens ?? TODAY_SCREENS;
 }

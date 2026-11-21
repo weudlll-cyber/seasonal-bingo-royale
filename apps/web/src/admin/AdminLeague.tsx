@@ -4,14 +4,14 @@
  * @brief  The admin area's League: the league values, and corrections of a player's points.
  *
  * Responsibility: what GET /admin/league answers: the league values as generated fields
- *                 (./ValueField: name, what it does, unit, built-in value, technical limit), a
+ *                 (./SettingsValues, ./ValueField: name, what it does, unit, built-in value, technical limit), a
  *                 comment and Save, which sends only the changed values (POST /admin/league)
  *                 and applies to matches whose points are awarded afterwards; below, the
  *                 corrections (./LeagueCorrections). The server checks every value and
  *                 permission; the page shows what it answered or why it refused.
  * Depends on:     react, ../game/labels, ../shell/http, ./AdminNav, ./LeagueCorrections,
- *                 ./PresetEditor (Draft), ./ValueField, ./admin.css
- * Used by:        ../shell/AppShell
+ *                 ./PresetEditor (Draft), ./SettingsValues, ./ValueField (types), ./admin.css
+ * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (League), §6, §9 piece 5
  */
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
@@ -21,7 +21,8 @@ import { api, ApiError } from '../shell/http.js';
 import { AdminNav } from './AdminNav.js';
 import { LeagueCorrections, type CorrectionView } from './LeagueCorrections.js';
 import type { Draft } from './PresetEditor.js';
-import { ValueField, type ValueFieldView } from './ValueField.js';
+import { SettingsValues } from './SettingsValues.js';
+import type { ValueFieldView } from './ValueField.js';
 import './admin.css';
 
 interface LeagueView {
@@ -65,60 +66,18 @@ export function AdminLeague(): ReactElement {
       {message === null ? null : <p role="status">{message}</p>}
       {view === null ? null : (
         <>
-          <LeagueValues key={version} fields={view.fields} onSave={save} />
+          <SettingsValues
+            key={version}
+            title="League points"
+            intro="A change applies to matches that finish afterwards; points already given stay."
+            idPrefix="league"
+            saveLabel="Save the league points"
+            fields={view.fields}
+            onSave={save}
+          />
           <LeagueCorrections corrections={view.corrections} onAdded={reload} />
         </>
       )}
     </div>
-  );
-}
-
-// The league values, a comment for the History and Save (only the changed values).
-function LeagueValues(props: {
-  readonly fields: readonly ValueFieldView[];
-  readonly onSave: (values: Draft, comment: string) => void;
-}): ReactElement {
-  const [draft, setDraft] = useState<Draft>(new Map());
-  const [comment, setComment] = useState('');
-  return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="league-values-title">
-      <h2 id="league-values-title">League points</h2>
-      <p className="sbr-muted">
-        A change applies to matches that finish afterwards; points already given stay.
-      </p>
-      {props.fields.map((f) => (
-        <ValueField
-          key={f.path}
-          idPrefix="league"
-          field={f}
-          value={draft.has(f.path) ? draft.get(f.path) : f.value}
-          onChange={(v) => {
-            setDraft(new Map(draft).set(f.path, v));
-          }}
-        />
-      ))}
-      <label className="sbr-field">
-        <span>Comment for the History (optional)</span>
-        <input
-          className="sbr-input"
-          value={comment}
-          data-testid="league-comment"
-          onChange={(e) => {
-            setComment(e.target.value);
-          }}
-        />
-      </label>
-      <button
-        type="button"
-        className="sbr-btn sbr-btn--primary"
-        disabled={draft.size === 0}
-        data-testid="league-save"
-        onClick={() => {
-          props.onSave(draft, comment);
-        }}
-      >
-        Save the league points
-      </button>
-    </section>
   );
 }

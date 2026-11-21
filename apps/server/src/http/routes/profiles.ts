@@ -12,7 +12,7 @@
  * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/03-security-architecture.md §19
  */
-import type { PlayerProfile } from '@sbr/contracts';
+import type { PlayerProfile, ScreenSettings } from '@sbr/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
 import { DISPLAY_NAME } from '../../auth/displayName.js';
@@ -22,12 +22,17 @@ import { playerProfile } from '../../leaderboard/profiles.js';
 
 // A display name as registration allows it (./auth registerBody).
 
-export function registerProfileRoutes(app: FastifyInstance, deps: { pool: DbPool }): void {
+export function registerProfileRoutes(
+  app: FastifyInstance,
+  deps: { readonly pool: DbPool; readonly screens: () => ScreenSettings },
+): void {
   app.get(
     '/api/v1/players/:displayName',
     async (request: FastifyRequest<{ Params: { displayName: string } }>, reply) => {
       const name = request.params.displayName;
-      const profile = DISPLAY_NAME.test(name) ? await playerProfile(deps.pool, name) : null;
+      const profile = DISPLAY_NAME.test(name)
+        ? await playerProfile(deps.pool, name, deps.screens().profileRecentMatches)
+        : null;
       if (profile === null) return reply.status(404).send({ code: 'NOT_FOUND' });
       return profile satisfies PlayerProfile;
     },

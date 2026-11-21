@@ -25,6 +25,7 @@ import { matchIdByCode } from '../../match/records.js';
 import type { MaintenanceCheck } from '../../config/maintenance.js';
 import type { LiveMetrics } from './metrics.js';
 import type { MatchEngine } from '@sbr/application';
+import { SCREEN_DEFAULTS, type ScreenSettings } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
@@ -55,6 +56,8 @@ export interface MatchRouteDeps {
   // The published preset a match without a chosen ruleset plays (admin-area §8 (b)); none:
   // the built-in ruleset.
   readonly presets?: PresetSource;
+  // List sizes of "Screens and texts" (admin-area §4), read on every request; today's if none.
+  readonly screens?: () => ScreenSettings;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -86,7 +89,8 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     const rows = await deps.pool.query<{ id: string }>(
       `SELECT id FROM sbr.matches WHERE status IN ('lobby', 'running')
           OR (status IN ('finished', 'aborted') AND finished_at > now() - interval '1 day')
-       ORDER BY created_at DESC LIMIT 50`,
+       ORDER BY created_at DESC LIMIT $1`,
+      [deps.screens?.().matchList ?? SCREEN_DEFAULTS.matchList],
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;

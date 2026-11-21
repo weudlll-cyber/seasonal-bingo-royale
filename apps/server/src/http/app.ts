@@ -25,7 +25,12 @@
  * Spec:           docs/spec/02-software-architecture.md §3, docs/spec/05-api-design.md §1
  */
 import rateLimit from '@fastify/rate-limit';
-import { leagueConfigOf, leagueSettingsOf } from '@sbr/contracts';
+import {
+  clientScreensOf,
+  leagueConfigOf,
+  leagueSettingsOf,
+  screenSettingsOf,
+} from '@sbr/contracts';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { Presets } from '../admin/presets.js';
@@ -136,7 +141,9 @@ async function loadSettings(pool: DbPool, env: Env) {
   // The built-in presets, unless an earlier start seeded them (../admin/presets).
   const presets = new Presets(settings);
   await presets.seed();
-  return { settings, presets, switches: liveSwitches(env, settings) };
+  // The screen values the session answer sends (admin-area §8 (i)), as they are now.
+  const screens = () => clientScreensOf(screenSettingsOf(settings.get('screens')));
+  return { settings, presets, screens, switches: liveSwitches(env, settings) };
 }
 
 // The meters, health, the client (or the placeholder) and in development the Quick Test.
@@ -155,8 +162,9 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   // Development builds run matches on a clock the time travel can move ahead (WP-14).
   const clock = isDev ? new DevClock() : undefined;
   const metrics = createMetrics();
-  const { settings, presets, switches } = await loadSettings(deps.pool, deps.env);
-  const options = runtimeOptions(deps.env, metrics, clock, { settings, switches });
+  // The admin area's settings, presets, screen values and switches (../admin/settings).
+  const loaded = await loadSettings(deps.pool, deps.env);
+  const options = runtimeOptions(deps.env, metrics, clock, loaded);
   const match = createMatchRuntime(deps.pool, seedKey, maintenance, options);
   // A wrong seed key stops the server before anything is built, not at the first match it
   // loads (the stored match secrets are sealed with it, 03 §9).
@@ -180,7 +188,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     cookie,
     sessionEnds,
     accountDeleted,
-    switches,
+    ...loaded,
   });
   registerMaintenance(fastify, maintenance);
   registerGameRoutes(fastify, {
@@ -193,9 +201,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
     clock,
     live: metrics.live,
     views,
-    settings,
-    presets,
-    switches,
+    ...loaded,
   });
   const live = registerGateway(fastify, deps.env, metrics, {
     pool: deps.pool,

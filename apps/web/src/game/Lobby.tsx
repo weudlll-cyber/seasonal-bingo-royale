@@ -4,7 +4,7 @@
  * @brief  The lobby: open, running and just-finished matches, to join or watch (WP-12).
  *                 Cancelled matches open their end page (D17).
  *
- * Responsibility: list GET /matches (refreshed every 3 seconds) as cards with title, game
+ * Responsibility: list GET /matches (refreshed every 3 seconds unless changed ("Screens and texts", admin-area §8 (i))) as cards with title, game
  *                 type, status, code, players, draw mode and missed-number rule, and for an
  *                 open match its registration status (./Registration); "Manage"
  *                 for the match's host (the server says who that is) while it is open or
@@ -24,7 +24,7 @@ import { useEffect, useState, type ReactElement } from 'react';
 import { useSignInToPlay } from '../account/WebsiteSignIn.js';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
-import { useSession } from '../shell/session.js';
+import { useScreens, useSession } from '../shell/session.js';
 import { gameTypeName, problemText, rulesLine, runningBadge, statusName } from './labels.js';
 import { MyMatches } from './MyMatches.js';
 import { RegistrationStatus } from './Registration.js';
@@ -45,6 +45,8 @@ export function useMatchList(): {
 } {
   const [list, setList] = useState<MatchList | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // How often the lobby asks again ("Screens and texts", admin-area §8 (i)).
+  const everyMs = useScreens().lobbyRefreshMs;
   useEffect(() => {
     let alive = true;
     const load = (): void => {
@@ -57,12 +59,12 @@ export function useMatchList(): {
         });
     };
     load();
-    const timer = window.setInterval(load, 3_000);
+    const timer = window.setInterval(load, everyMs);
     return () => {
       alive = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [everyMs]);
   return { matches: list?.matches ?? null, mine: list?.mine ?? [], error };
 }
 

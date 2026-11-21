@@ -1,7 +1,7 @@
 /**
  * @file   apps/web/src/components/Standings.tsx
  * @module web
- * @brief  Live standings: top 20 plus the owner's own rows, grouped (WP-08, D23).
+ * @brief  Live standings: the top rows (20 unless changed) plus the owner's own, grouped (WP-08, D23).
  *
  * Responsibility: show the current ranking (players still in first, ./standingsOrder) as
  *                 ranked rows: rank, name, the season icons (royale), points; the owner's
@@ -14,7 +14,8 @@
  *                 order and the placement rule are unchanged (01 §7.5). With `onFollow` (a
  *                 player out or a spectator, D24) the names of players still in are buttons;
  *                 otherwise names link to profiles when the screen passes `profileHref`.
- * Depends on:     react, ./RankRow, ../playback, ../types, ./matchSide.css
+ * Depends on:     react, ./RankRow, ../playback, ../shell/session (useScreens), ../types,
+ *                 ./matchSide.css
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §7.5, §13 (D23, D24), docs/spec/15-implementation-plan.md WP-08
  */
@@ -24,6 +25,7 @@ import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 import './matchSide.css';
+import { useScreens } from '../shell/session.js';
 
 interface StandingsProps {
   readonly result: QuickTestResult;
@@ -37,7 +39,8 @@ interface StandingsProps {
 export function Standings({ result, view, onFollow, profileHref }: StandingsProps): ReactElement {
   const royale = result.gameType === 'royale';
   const final = royale && result.stagePlan[view.currentStage]?.kind === 'final';
-  const shown = view.standings.filter((p, i) => i < 20 || p.isOwner);
+  const rows = useScreens().standingsRows;
+  const shown = view.standings.filter((p, i) => i < rows || p.isOwner);
   const firstOut = shown.findIndex((p) => p.eliminated);
   const own = shown.find((p) => p.isOwner);
   const { list, pinned } = useOwnRowOutOfView();

@@ -90,6 +90,8 @@ const ADMIN_ROUTES: readonly RouteCase[] = [
   { method: 'GET', path: '/api/v1/admin/league', allow: ADMINS },
   { method: 'POST', path: '/api/v1/admin/league', body: {}, allow: ADMINS },
   { method: 'POST', path: '/api/v1/admin/league/corrections', body: {}, allow: ADMINS },
+  { method: 'GET', path: '/api/v1/admin/screens', allow: ADMINS },
+  { method: 'POST', path: '/api/v1/admin/screens', body: {}, allow: ADMINS },
 ];
 
 // `:code` is the host's match. Every route the server registers is listed here.

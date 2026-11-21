@@ -14,6 +14,7 @@
  * Used by:        ./app
  * Spec:           docs/spec/07-integration-architecture.md §2; docs/spec/03-security-architecture.md §1
  */
+import type { ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import { mailerFrom, type Mailer } from '../auth/mailer.js';
@@ -43,6 +44,8 @@ export function registerSignIn(
     accountDeleted: (accountId: string) => void;
     // The admin area's switches (guests, e-mail verification), read on every use.
     switches: () => Switches;
+    // The screen values for the session answer (admin-area §8 (i)).
+    screens: () => ClientScreens;
     mailer?: Mailer | null | undefined;
   },
 ): AccountFeed | null {

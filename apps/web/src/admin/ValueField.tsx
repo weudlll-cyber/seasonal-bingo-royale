@@ -9,7 +9,7 @@
  *                 for milliseconds —, a yes/no box, a choice or a line of text), what changing
  *                 it does, and "Built in: … · technical limit …". The server checks and stores.
  * Depends on:     react, @sbr/contracts (types), ./presetText
- * Used by:        ./PresetEditor, ./AdminLeague
+ * Used by:        ./PresetEditor, ./SettingsValues
  * Spec:           docs/concepts/admin-area.md §4, §9 pieces 3 and 5
  */
 import type { SettingField } from '@sbr/contracts';

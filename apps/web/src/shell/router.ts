@@ -9,7 +9,7 @@
  *                 server and from a static host without server rewrites. Sign-in, register,
  *                 the account page, the leaderboard (optionally one period) and a player's
  *                 profile (the display name URL-encoded) and the admin area's Overview
- *                 (`#/admin`), Presets (`#/admin/presets`), League (`#/admin/league`) and History
+ *                 (`#/admin`), Presets (`#/admin/presets`), League (`#/admin/league`), Screens and texts (`#/admin/screens`) and History
  *                 (`#/admin/history`) are
  *                 routes too.
  * Depends on:     react
@@ -24,6 +24,15 @@ import { useEffect, useState } from 'react';
 
 // The test page's chooser (no view), a test match to play, or the seed check.
 export type QuickTestView = 'play' | 'seed';
+
+// The admin area's sections after the Overview (admin-area §4).
+const ADMIN_SECTIONS = ['presets', 'league', 'screens', 'history'] as const;
+export type AdminSection = (typeof ADMIN_SECTIONS)[number];
+
+const adminSection = (second: string | undefined): Route => {
+  const section = ADMIN_SECTIONS.find((s) => s === second);
+  return section === undefined ? { name: 'admin' } : { name: 'admin', section };
+};
 
 export type Route =
   | { readonly name: 'lobby' }
@@ -40,7 +49,7 @@ export type Route =
   | { readonly name: 'leaderboard'; readonly periodId: string | null }
   | { readonly name: 'player'; readonly displayName: string }
   // The admin area (admin-area §8 (a)): the Overview, the Presets, or the History.
-  | { readonly name: 'admin'; readonly section?: 'presets' | 'league' | 'history' };
+  | { readonly name: 'admin'; readonly section?: AdminSection };
 
 // Routes without a parameter (a trailing segment is ignored).
 const PLAIN: Readonly<Record<string, Route>> = {
@@ -81,9 +90,7 @@ function withParameter(first: string, second: string): Route | null {
     case 'players':
       return playerRoute(second);
     case 'admin':
-      return second === 'history' || second === 'presets' || second === 'league'
-        ? { name: 'admin', section: second }
-        : { name: 'admin' };
+      return adminSection(second);
     default:
       return null;
   }
