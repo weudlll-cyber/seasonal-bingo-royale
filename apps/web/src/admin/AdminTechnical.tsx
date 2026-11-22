@@ -12,11 +12,11 @@
  *                 /auth/2fa/step-up) and saves again. The server decides who may see and change
  *                 the section (the owner; website admins in website mode).
  * Depends on:     react, ../game/labels, ../shell/http, ./AdminNav, ./PresetEditor (Draft),
- *                 ./SettingsValues, ./StepUp, ./ValueField (types), ./admin.css
+ *                 ./SettingsValues, ./StepUp, ./ValueField (types), ./useAdminLoad, ./admin.css
  * Used by:        ./AdminArea
  * Spec:           docs/concepts/admin-area.md §4 (Technical), §7, §8 (c), (e), §9 piece 7
  */
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useState, type ReactElement } from 'react';
 
 import { problemText } from '../game/labels.js';
 import { api, ApiError } from '../shell/http.js';
@@ -24,6 +24,7 @@ import { AdminNav } from './AdminNav.js';
 import type { Draft } from './PresetEditor.js';
 import { SettingsValues } from './SettingsValues.js';
 import { StepUp } from './StepUp.js';
+import { useAdminLoad } from './useAdminLoad.js';
 import type { ValueFieldView } from './ValueField.js';
 import './admin.css';
 
@@ -37,21 +38,14 @@ interface Change {
 
 // The values, saving, and a change waiting for the second step.
 function useTechnical() {
-  const [fields, setFields] = useState<readonly ValueFieldView[] | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<Change | null>(null);
-  const [version, setVersion] = useState(0);
-  const reload = useCallback(() => {
-    api<{ fields: ValueFieldView[] }>('/admin/technical')
-      .then((r) => {
-        setFields(r.fields);
-        setVersion((n) => n + 1);
-      })
-      .catch((e: unknown) => {
-        setMessage(failure(e));
-      });
+  const failed = useCallback((e: unknown) => {
+    setMessage(failure(e));
   }, []);
-  useEffect(reload, [reload]);
+  const loaded = useAdminLoad<{ fields: readonly ValueFieldView[] }>('/admin/technical', failed);
+  const { version, reload } = loaded;
+  const fields = loaded.data?.fields ?? null;
   const save = (c: Change): void => {
     setMessage(null);
     const body = { values: Object.fromEntries(c.values), comment: c.comment };
