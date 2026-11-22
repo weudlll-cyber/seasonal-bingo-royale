@@ -25,6 +25,8 @@ export const SUITE_TIMEOUT_MS = 180_000;
 // One seed key for every app on a suite's database, development and production builds
 // alike: the stored match secrets are sealed with it, and another key refuses to start.
 export const TEST_SEED_KEY = 'ab'.repeat(32);
+// The recovery codes' key (K20), apart from the seed key as in an install.
+const TEST_RECOVERY_KEY = 'cd'.repeat(32);
 
 export interface Harness {
   readonly container: StartedPostgreSqlContainer;
@@ -49,6 +51,7 @@ export async function buildOn(
     SBR_LOG_LEVEL: 'warn',
     DATABASE_URL: url,
     SBR_SEED_KEY: TEST_SEED_KEY,
+    SBR_RECOVERY_KEY: TEST_RECOVERY_KEY,
     ...overrides,
   });
   const built = await buildApp({ env, pool, ...(mailer === undefined ? {} : { mailer }) });

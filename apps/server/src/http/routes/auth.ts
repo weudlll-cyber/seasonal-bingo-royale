@@ -37,7 +37,7 @@ import {
   setSessionCookie,
   type CookieConfig,
 } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '../../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import {
   accountSessionIds,
   createSession,
@@ -95,7 +95,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   app.post('/api/v1/auth/logout', async (request, reply) => {
     if (request.session !== null) {
       await revokeSession(deps.pool, request.session.id);
-      deps.sessionEnds.end([request.session.id]);
+      await deps.sessionEnds.end([request.session.id]);
     }
     clearSessionCookie(reply, deps.cookie);
     return reply.status(204).send();
@@ -218,7 +218,7 @@ export async function openSession(
 ): Promise<void> {
   if (request.session !== null) {
     await revokeSession(deps.pool, request.session.id);
-    deps.sessionEnds.end([request.session.id]);
+    await deps.sessionEnds.end([request.session.id]);
   }
   const { token } = await createSession(
     deps.pool,
@@ -266,7 +266,7 @@ async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: Auth
   const sessions = await accountSessionIds(deps.pool, accountId);
   await deleteAccount(deps.pool, accountId);
   deps.accountDeleted?.(accountId);
-  deps.sessionEnds.end(sessions);
+  await deps.sessionEnds.end(sessions);
   clearSessionCookie(reply, deps.cookie);
   return reply.status(204).send();
 }

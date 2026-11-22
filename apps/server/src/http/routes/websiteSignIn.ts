@@ -19,7 +19,7 @@
  *                 SBR_WEBSITE_LOGIN_PATH with the sign-in route and `next` as return path (D43;
  *                 the kit's websiteLoginLocation).
  * Depends on:     fastify, @seasonal/kit/server, ../../auth/websiteAccounts, ./auth,
- *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types), ../../auth/sessions,
+ *                 ../../auth/sessionPlugin (types), @seasonal/kit/server (SessionEnds, types), ../../auth/sessions,
  *                 ../../auth/rateLimit, ../../config/env (types), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2;
@@ -35,7 +35,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { openRouteLimit } from '../../auth/rateLimit.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '../../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import { findSession, WEBSITE_SESSION_DAYS } from '../../auth/sessions.js';
 import { websiteAccount } from '../../auth/websiteAccounts.js';
 import type { Env } from '../../config/env.js';

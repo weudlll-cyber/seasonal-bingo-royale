@@ -18,7 +18,7 @@ import type { ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import { mailerFrom, type Mailer } from '../auth/mailer.js';
-import type { SessionEnds } from '../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import type { CookieConfig } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
 import type { LiveTechnical } from '../config/technical.js';

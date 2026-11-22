@@ -21,7 +21,7 @@ import { z } from 'zod';
 
 import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '../../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import { accountSessionIds } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
 import { openSession } from './auth.js';
@@ -87,7 +87,7 @@ export function registerDevSignIn(
     for (const { id } of rows.rows) {
       const sessions = await accountSessionIds(deps.pool, id);
       await deleteAccount(deps.pool, id);
-      deps.sessionEnds.end(sessions);
+      await deps.sessionEnds.end(sessions);
     }
     return reply.status(200).send({ deleted: rows.rows.length });
   });

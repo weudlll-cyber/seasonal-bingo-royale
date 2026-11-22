@@ -23,7 +23,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 
 import type { Presets } from '../admin/presets.js';
-import type { SessionEnds } from '../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import type { SettingsStore } from '../admin/settings.js';
 import type { Env } from '../config/env.js';
 import type { Switches } from '../config/features.js';
