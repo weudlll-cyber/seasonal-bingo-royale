@@ -263,7 +263,7 @@ test('P6 the website admin: the Overview, maintenance on and off, both in the Hi
   try {
     // Website mode at 1280 px: the back link folds the bar, Admin sits in the menu.
     await openMenu(admin);
-    await admin.getByRole('link', { name: 'Admin' }).click();
+    await admin.getByRole('link', { name: 'Admin', exact: true }).click();
     await expect(admin.getByRole('heading', { name: 'Overview' })).toBeVisible();
     await expect(admin.getByTestId('admin-maintenance-state')).toHaveText('Maintenance is off');
     await admin.getByTestId('admin-maintenance-reason').fill(reason);

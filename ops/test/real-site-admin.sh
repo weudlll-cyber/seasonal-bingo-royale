@@ -8,7 +8,8 @@
 #                 the website's own API (its pre-login, login and registration with the key
 #                 the site derives from a password, computed in the site container; the test
 #                 admin's 2FA set up on its first login, as the website's own checks do in its
-#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("can start games",
+#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("may start games"
+#                 for the game `bingo`, the website's per-game grant /game-host;
 #                 lock, unlock, delete), and the game under /games/bingo/ with a member's game
 #                 session (signed in through the website's sign-in route): create, join, start,
 #                 draw a host-drawn match to its end, abort; a jar as a browser's storage state
@@ -176,7 +177,7 @@ case $command in
   admin-login) admin_login && game_signin admin ;;
   register) register "$1" "$2" ;;
   signin) login "$1" "$2" && game_signin "$1" ;;
-  grant) admin_action "$1" POST /can-start-games "{\"value\":$2}" ;;
+  grant) admin_action "$1" POST /game-host "{\"game\":\"bingo\",\"value\":$2}" ;;
   lock) admin_action "$1" POST /lock "{\"locked\":$2}" ;;
   delete) admin_action "$1" DELETE '' ;;
   create) game "$1" POST /matches "$2" | json code ;;

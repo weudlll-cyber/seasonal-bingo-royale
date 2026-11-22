@@ -86,13 +86,13 @@ phases() {
   admin join "${WATCHERS[0]}" "$(state_value play)" >/dev/null
   admin start admin "$(state_value play)" >/dev/null
   probe ok "the member's match was played to its end" test "$(admin draw-to-end admin "$(state_value play)")" = finished
-  admin grant "$(state_value member)" true
+  probe ok "the website admin gave the member \"may start games\" for bingo" admin grant "$(state_value member)" true
   probe browser P2
-  admin lock "$(state_value member)" true
+  probe ok "the website admin locked the member" admin lock "$(state_value member)" true
   probe browser P3
-  admin lock "$(state_value member)" false
+  probe ok "the website admin unlocked the member" admin lock "$(state_value member)" false
   probe browser P4
-  admin delete "$(state_value member)"
+  probe ok "the website admin deleted the member" admin delete "$(state_value member)"
   probe browser P5
   # The website admin's sessions (website and game, signed in again) for the admin phase.
   admin admin-login
