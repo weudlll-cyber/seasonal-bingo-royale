@@ -12,9 +12,11 @@
 #                 ./real-site.exp with its checks (no other question; domain and mode from
 #                 /etc/seasonal/install.conf; route file applied and reloaded; `sbr status`),
 #                 the browser phases (./realSite.spec.ts in a Playwright container on the test
-#                 network) and the in-server helper ./real-site-admin.sh.
+#                 network) and the in-server helper ./real-site-admin.sh. The install's output is
+#                 read without a pipe (said_since): the harness's `tail | grep -q` under pipefail
+#                 fails when grep stops early and tail is cut off (SIGPIPE) on a long output.
 # Depends on:     docker, git, tar, ./real-site.exp, ./real-site-admin.sh, ./realSite.spec.ts,
-#                 ./playwright.real-site.config.ts
+#                 ./playwright.real-site.config.ts, ../../e2e/menu.ts (mounted for the spec)
 # Used by:        ./real-site.sh
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2
 
@@ -58,15 +60,19 @@ route_file() {
   if [[ $MODE == nginx ]]; then echo /etc/seasonal/routes/bingo.conf; else echo /opt/seasonal-entertainment/deploy/site/routes/bingo.caddy; fi
 }
 
+# said_since LINE TEXT: TEXT in the results from LINE on (one awk, no pipe to cut off).
+said_since() { awk -v from="$1" -v text="$2" 'NR >= from && index($0, text) { found = 1 } END { exit !found }' "$RESULTS"; }
+unsaid_since() { ! said_since "$@"; }
+
 bingo_install() {
   local age from
   age=$(on_server age-keygen -y /etc/seasonal-test/age-key.txt)
   from=$(($(wc -l <"$RESULTS") + 1))
   say "--- the bingo install: the one documented command, three answers"
   on_server env AGE_KEY="$age" /etc/seasonal-test/sbr-install.exp 2>&1 | tr -d '\r' | sed 's/^/    /' | tee -a "$RESULTS" || true
-  ok "no other question than environment, e-mail and age key" output_lacks "$from" 'UNEXPECTED QUESTION'
-  ok "the install finished" output_has "$from" "checked through the website's proxy"
-  ok "the domain came from the website's record" output_has "$from" 'example.org'
+  ok "no other question than environment, e-mail and age key" unsaid_since "$from" 'UNEXPECTED QUESTION'
+  ok "the install finished" said_since "$from" "checked through the website's proxy"
+  ok "the domain came from the website's record" said_since "$from" 'example.org'
   ok "the route file was applied" on_server test -s "$(route_file)"
   # Its own answer (the website's pages answer 200 for any path too).
   ok "the game answers through the website (HTTPS, Pebble)" test "$(on_server curl -fsS \
@@ -98,6 +104,7 @@ browser() {
   docker run --rm --label "$LABEL" --network "$NET" --dns 10.77.0.53 --ipc host -e PHASE="$1" \
     -v "$(host_path "$STATE"):/state" \
     -v "$(host_path "$SBR/ops/test/realSite.spec.ts"):/work/realSite.spec.ts:ro" \
+    -v "$(host_path "$SBR/e2e/menu.ts"):/e2e/menu.ts:ro" \
     -v "$(host_path "$SBR/ops/test/playwright.real-site.config.ts"):/work/playwright.config.ts:ro" \
     "$BROWSER_IMAGE" npx playwright test --grep "$1 " 2>&1 | tr -d '\r' | sed 's/^/    /' | tee -a "$RESULTS"
   local code=${PIPESTATUS[0]}

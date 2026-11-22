@@ -10,7 +10,8 @@
  *                 button is hidden and this does nothing. The menu closes by itself on a new route or another sign-in.
  * Depends on:     @playwright/test
  * Used by:        ./realGame, ./account.spec, ./leaderboard.spec, ./passwordReset.spec,
- *                 ./chatEmbed.spec, ./hostNav.spec
+ *                 ./chatEmbed.spec, ./hostNav.spec, ops/test/realSite.spec (mounted read-only in the
+ *                 rehearsal's browser container as /e2e/menu.ts)
  * Spec:           docs/concepts/fit-audit.md §5 item 7
  */
 import type { Page } from '@playwright/test';

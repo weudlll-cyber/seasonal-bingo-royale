@@ -8,11 +8,13 @@
 #                 the website's own API (its pre-login, login and registration with the key
 #                 the site derives from a password, computed in the site container; the test
 #                 admin's 2FA set up on its first login, as the website's own checks do in its
-#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("can start games",
+#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("may start games"
+#                 for the game `bingo`, the website's per-game grant /game-host;
 #                 lock, unlock, delete), and the game under /games/bingo/ with a member's game
 #                 session (signed in through the website's sign-in route): create, join, start,
-#                 draw a host-drawn match to its end, abort. Cookie jars and the admin's TOTP
-#                 secret stay in /etc/seasonal-test/sbr (mode 700). Test only.
+#                 draw a host-drawn match to its end, abort; a jar as a browser's storage state
+#                 (the website admin's sessions for the browser's admin phase). Cookie jars and
+#                 the admin's TOTP secret stay in /etc/seasonal-test/sbr (mode 700). Test only.
 # Depends on:     curl, python3, docker (the site container seasonal-site-site-1)
 # Used by:        ./real-site.sh (copied into the server as /etc/seasonal-test/sbr-admin.sh)
 # Spec:           docs/spec/07-integration-architecture.md §2; the website's docs/AUTH.md
@@ -125,6 +127,24 @@ game_signin() {
     "$GAME/auth/website?next=%2Fgames%2Fbingo%2F"
 }
 
+# storage NAME: NAME's cookie jar (curl's Netscape format) as a Playwright storage state.
+storage() {
+  python3 -I -c '
+import json, sys
+cookies = []
+for line in open(sys.argv[1]):
+    http_only = line.startswith("#HttpOnly_")
+    if http_only:
+        line = line[len("#HttpOnly_"):]
+    elif line.startswith("#") or not line.strip():
+        continue
+    domain, _, path, secure, expires, name, value = line.rstrip("\r\n").split("\t")
+    cookies.append({"name": name, "value": value, "domain": domain, "path": path,
+                    "expires": int(expires) or -1, "httpOnly": http_only,
+                    "secure": secure == "TRUE", "sameSite": "Lax"})
+print(json.dumps({"cookies": cookies, "origins": []}))' "$DIR/$1.jar"
+}
+
 # wait_running NAME CODE: through the start's 10-second countdown; prints the status then.
 wait_running() {
   local status
@@ -157,7 +177,7 @@ case $command in
   admin-login) admin_login && game_signin admin ;;
   register) register "$1" "$2" ;;
   signin) login "$1" "$2" && game_signin "$1" ;;
-  grant) admin_action "$1" POST /can-start-games "{\"value\":$2}" ;;
+  grant) admin_action "$1" POST /game-host "{\"game\":\"bingo\",\"value\":$2}" ;;
   lock) admin_action "$1" POST /lock "{\"locked\":$2}" ;;
   delete) admin_action "$1" DELETE '' ;;
   create) game "$1" POST /matches "$2" | json code ;;
@@ -167,5 +187,6 @@ case $command in
   wait-running) wait_running "$1" "$2" ;;
   draw-to-end) draw_to_end "$1" "$2" ;;
   session) game "$1" GET /session ;;
+  storage) storage "$1" ;;
   *) echo "unknown command $command" >&2; exit 2 ;;
 esac
