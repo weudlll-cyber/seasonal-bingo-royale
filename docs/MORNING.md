@@ -35,11 +35,19 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 
 ### Open
 
-- B7, the docked layout (K18), only after B1–B6 are green and the sweep passes.
+- Nothing of the night's list besides B7 (dropped).
 
 ### Reverted
 
 - Nothing.
+
+### Review screenshots
+
+- `reports/screens/latest/kit-<piece>-<before|after>-<screen>-<size>-<light|dark>.jpg`, 96 pictures: b1 (final placement, Admin Overview, sign-in), b2 (website account, leaderboard), b3 (the open website chat), b4 (website account), b6 (leaderboard with "Dev sign-in"); at 1280×720, 959×700 and 390×844. "before" is the state before that piece's first screen change (standalone before B1, website account and leaderboard before B2, chat before B3); every pair is pixel for pixel the same.
+
+### Dropped
+
+- **B7, the docked layout (K18)**, under the rule to drop B7 first when time runs short: its first step needs a website-mode sweep of every match screen with axe at ten sizes, light and dark (a new extension of the fit audit and a new development dependency), and likely fit work where the chat strip narrows the board (1280×720, 1366×768); estimated 5–7 hours on this machine, too close to the end of the night with the final checks. What it needs: docs/concepts/kit-adoption.md §5 "B7".
 
 ### Needs the owner's word
 
