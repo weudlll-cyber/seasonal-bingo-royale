@@ -116,24 +116,21 @@ async function checkPhone(page: Page, screen: 'player' | 'spectator', label: str
 }
 
 // The viewer's status as the server sends it, with the Summer boost and the Spring growth
-// active, a Winter shield charge and two seasons collected: the fullest side column.
+// active, a Winter shield charge and two seasons collected: the fullest side column. Every
+// answer carries it for the viewer (`me`) as the one entry from step 0: a delta answer
+// (since > 0) leaves out the player list and brings its own status, which once replaced an
+// injection keyed by the player list (master CI run 45041420629, webkit-mobile).
 async function withEffects(page: Page): Promise<void> {
   await page.route('**/api/v1/matches/*/state*', async (route) => {
     const response = await route.fetch();
     const body = (await response.json()) as {
-      view: {
-        events: unknown[];
-        players?: { accountId: string; isOwner: boolean }[];
-        ownerStatus: Record<string, unknown[]>;
-      };
+      me: string | null;
+      view: { ownerStatus: Record<string, unknown[]> };
     };
-    const { view } = body;
-    for (const owner of (view.players ?? []).filter((p) => p.isOwner)) {
-      const list = view.ownerStatus[owner.accountId] ?? [];
-      view.ownerStatus[owner.accountId] = [
-        ...list,
+    if (body.me !== null) {
+      body.view.ownerStatus[body.me] = [
         {
-          step: view.events.length,
+          step: 0,
           multiplier: { factor: 1.5, remainingDraws: 5 },
           growth: { pointsPerMark: 2, remainingDraws: 4 },
           shieldCharges: 1,
