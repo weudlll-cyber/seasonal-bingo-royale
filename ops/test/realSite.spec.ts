@@ -11,18 +11,27 @@
  *                 website's login, "Register" there (the ?next round trip) and back to the game
  *                 signed in; the Chat button opens the website's room "bingo", a guest reads what
  *                 the member writes, the frame follows the game's theme; the member plays and
- *                 cannot host. P2 after the admin gave "can start games": the game session ends
- *                 within one poll, signed in again the member hosts a match shown on the website
- *                 (listed at /games/bingo/api/public/open-rounds). P3 locked: the session ends
- *                 and signing in leaves a guest. P4 unlocked: signs in again. P5 deleted: past
- *                 results name a "deleted player", the leaderboard does not have the member, and
- *                 the website login refuses the name.
+ *                 cannot host (no "Host a match", the server refuses a match from a preset).
+ *                 P2 after the admin gave "can start games": the game session ends within one
+ *                 poll, signed in again the member opens "Start a match", picks the battle
+ *                 royale preset and opens the lobby of a match shown on the website (listed at
+ *                 /games/bingo/api/public/open-rounds). P3 locked: the session ends and signing
+ *                 in leaves a guest. P4 unlocked: signs in again. P5 deleted: past results name
+ *                 a "deleted player", the leaderboard does not have the member, and the website
+ *                 login refuses the name. P6 the website admin (its game session from
+ *                 /state/admin.storage.json, ./real-site-admin.sh storage) sees "Admin", opens
+ *                 the Overview, turns maintenance on with a reason and off again, and the
+ *                 History lists both; maintenance is off at the end, also on failure.
  * Depends on:     @playwright/test
- * Spec:           docs/spec/07-integration-architecture.md §2, §6; docs/spec/12-testing-strategy.md §4
+ * Spec:           docs/spec/07-integration-architecture.md §2, §6; docs/spec/12-testing-strategy.md §4;
+ *                 docs/concepts/admin-area.md §3, §4 (Overview, History)
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
+
+// Mounted as /e2e/menu.ts in the browser container (./real-site-bingo.sh), so the path holds there.
+import { openMenu } from '../../e2e/menu.js';
 
 const STATE = '/state/state.json';
 const GAME = '/games/bingo/';
@@ -55,7 +64,17 @@ const sessionOf = async (page: Page) =>
     signedIn: boolean;
     permissions: string[];
     account: { displayName: string } | null;
+    csrfToken: string;
   };
+
+// A write to the game's API as the page's session (its CSRF token, the site's origin).
+async function gamePost(page: Page, path: string, data: object) {
+  const { csrfToken } = await sessionOf(page);
+  return page.request.post(`${GAME}api/v1${path}`, {
+    data,
+    headers: { 'x-csrf-token': csrfToken, origin: new URL(page.url()).origin },
+  });
+}
 
 // The website's login page (Username, Password, Log in) as a member types it.
 async function websiteLogin(page: Page, name: string, password: string): Promise<void> {
@@ -95,6 +114,8 @@ test('P1 guest, join through the website, chat, a member plays and cannot host',
   await member.getByTestId(`sign-in-to-join-${s.play}`).click();
   await expect(member).toHaveURL(/\/login\?next=/);
   await member.getByRole('link', { name: 'Register' }).click();
+  // The login page has a Username field too: fill only once the register form is there.
+  await expect(member.getByRole('heading', { name: 'Register', level: 1 })).toBeVisible();
   await member.getByLabel('Username').fill(s.member);
   await member.getByLabel('Email').fill(`${s.member}@example.org`);
   await member.getByLabel('Password', { exact: true }).fill(s.password);
@@ -114,6 +135,14 @@ test('P1 guest, join through the website, chat, a member plays and cannot host',
   await expect(member.getByTestId('waiting-room')).toBeVisible();
   await expect(member.getByRole('link', { name: 'Host a match' })).toHaveCount(0);
   expect((await sessionOf(member)).permissions).not.toContain('match.create');
+  const refused = await gamePost(member, '/matches', {
+    preset: 'royale-realtime',
+    title: 'Not mine',
+  });
+  expect([refused.status(), ((await refused.json()) as { code: string }).code]).toEqual([
+    403,
+    'FORBIDDEN',
+  ]);
   await chat(guest, member);
   await keep(memberContext, 'member');
 });
@@ -154,9 +183,14 @@ test('P2 the right to start games: the session ends, signed in again the member 
     .toBe(false);
   await member.reload();
   await signInAgain(member, s);
+  // Website mode at 1280 px: the organizer's bar folds too, Host a match sits in the menu.
+  await openMenu(member);
   await member.getByRole('link', { name: 'Host a match' }).click();
+  await expect(member.getByRole('heading', { name: 'Start a match' })).toBeVisible();
+  await member.getByTestId('start-type-royale').click();
+  await member.getByTestId('start-preset-royale-realtime').click();
   const title = `Website round ${String(Date.now() % 10_000)}`;
-  await member.getByTestId('create-title').fill(title);
+  await member.getByTestId('start-title').fill(title);
   await member.getByTestId('create-website').check();
   await member.getByTestId('create-submit').click();
   await expect(member.getByTestId('host-console')).toBeVisible();
@@ -220,4 +254,35 @@ test('P5 deleted on the website: a deleted player in past results, gone from the
   await websiteLogin(page, s.member, s.password);
   await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
+});
+
+test('P6 the website admin: the Overview, maintenance on and off, both in the History', async ({
+  browser,
+}) => {
+  const admin = await (await contextOf(browser, 'admin')).newPage();
+  await admin.goto(GAME);
+  const reason = `Rehearsal ${String(Date.now() % 100_000)}`;
+  try {
+    // Website mode at 1280 px: the back link folds the bar, Admin sits in the menu. The bar
+    // folds once the account is in it, so the menu is opened after the chip is there.
+    await expect(admin.getByTestId('signed-in-as')).toBeAttached();
+    await openMenu(admin);
+    await admin.getByRole('link', { name: 'Admin', exact: true }).click();
+    await expect(admin.getByRole('heading', { name: 'Overview' })).toBeVisible();
+    await expect(admin.getByTestId('admin-maintenance-state')).toHaveText('Maintenance is off');
+    await admin.getByTestId('admin-maintenance-reason').fill(reason);
+    await admin.getByTestId('admin-maintenance-toggle').click();
+    await expect(admin.getByTestId('admin-maintenance-state')).toHaveText(
+      `Maintenance is on: ${reason}`,
+    );
+    await admin.getByTestId('admin-maintenance-toggle').click();
+    await expect(admin.getByTestId('admin-maintenance-state')).toHaveText('Maintenance is off');
+    await admin.getByRole('link', { name: 'History', exact: true }).click();
+    const changes = admin.locator('[data-testid^="admin-history-"]');
+    // Newest first: the switch off above the switch on with its reason.
+    await expect(changes.first()).toContainText('Maintenance off');
+    await expect(changes.filter({ hasText: `Maintenance on: ${reason}` })).toHaveCount(1);
+  } finally {
+    await gamePost(admin, '/admin/maintenance', { on: false });
+  }
 });

@@ -1,6 +1,51 @@
 # Morning sheet
 
-The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is done, running, open, reverted and what needs the owner's word. Regenerated after every piece. Source: [docs/concepts/admin-area.md](concepts/admin-area.md) §9 and [admin-values.md](concepts/admin-values.md).
+The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site rehearsal with the admin area (branch `test/rehearsal-admin`); part B, adopting `@seasonal/kit` v0.10.0 (branch `feat/kit-adoption`, PR not merged). Regenerated after every piece. Below it, the admin area's night (PR #56, merged as `a1495bf`).
+
+## Night chain of 2026-11-22
+
+### Done
+
+- Master before the chain: `a1495bf` (merge of PR #56); CI 45002896346 and CodeQL 45002896286 green.
+- A1 `e612fb4`: the rehearsal's browser spec covers the website admin in the admin area (P6: Admin, Overview, maintenance on and off with a reason, both in History; maintenance always switched off at the end), "Start a match" from the battle royale preset (P2) and a member without the right refused (P1: 403 `FORBIDDEN`). Reused: `contextOf`, `keep`, `sessionOf`, `signInAgain`, `state`; new `gamePost` (spec) and `storage` (real-site-admin.sh: the admin's cookie jar as a browser storage state).
+- A3 fixes from the failed nginx run (website `de057d8`):
+  - `ce6ccdc`: the install's output checks (`said_since`) read the results with one awk; the harness's `tail | grep -q` under pipefail failed on the long output (SIGPIPE, exit 141, checked on the failed run's log). P1 waits for the website's Register form (the login page has a Username field too, the name went into it). P6 opens the folded menu first (`openMenu` from `e2e/menu.ts`, mounted read-only into the browser container): in website mode at 1280 px the back link folds the bar for the website admin.
+  - `4af5337`: the database healthcheck in `ops/compose.yml` asks over TCP: on a fresh volume the image's temporary init server answered the socket check, and the installer's psql met it stopping ("the database system is shutting down"). `apps/server/test/postgresHealth.integration.test.ts` failed before, passes now.
+  - `bcb9602`: the website's admin API grants "may start games" per game now (`POST /api/admin/users/<id>/game-host` with `{"game":"bingo"}`; `/can-start-games` answered `not_found`); the grant, lock, unlock and delete are checks of their own. P6 matches the Admin link exactly (the chip "admin (admin)" matched too).
+  - `3afa668`: P2 opens the folded menu before "Host a match" (an organizer's bar folds at 1280 px in website mode). `c81c79d`: P6 opens the menu only once the account is in the bar (it folds then).
+- A2/A3 results, website `de057d8` (master), Bingo `c81c79d`: **fresh nginx 63 PASS / 0 FAIL, fresh caddy 53 PASS / 0 FAIL**; the retries on the kept server (KEEP=1 RESUME=1) before them: nginx P2 failed at the folded menu (fixed in `3afa668`), caddy all passed. Earlier fresh runs with FAILs: nginx 57 PASS / P2, P6 FAIL; caddy 52 PASS / P6 FAIL (all fixed above). The later runs ran from a local clone of the branch, so the working copy stayed free for part B.
+- A4: BACKLOG Part two (PROBE-REAL-SITE-ADMIN) and OPEN; the operator guide needed no change (no step or output of the install changed).
+
+- Part B (branch `feat/kit-adoption`, PR #58, not merged; docs/concepts/kit-adoption.md):
+  - B0 `8c42d31`: the plan re-checked against master `a1495bf`; the kit pinned at v0.10.0 (36a72cf; no install script, licence AGPL-3.0-or-later).
+  - B1 `ec1a95a`: tokens, fonts, motion and the theme script and hook from the kit; Bingo keeps its arena tokens, `--gutter`, `--panel-padding`. 30 screens pixel for pixel the same. CI on it red in job `image` (run 45038443991): the server's git dependency needs `git` in the build image; fixed in `fd07a84` by taking the kit into the server only in B4.
+  - B2 `0bea630`: the kit's theme toggle and `shell.css`; the back link stays Bingo's (kit request R2: the kit's link drops the space after the arrow). 42 screens (standalone and website mode) the same.
+
+### Running
+
+- Part A: the PR's CI and CodeQL on the A4 commit, then the merge (A5).
+- Part B: verify and CI of B2.
+
+### Open
+
+- Part B: B3–B6, B7 if B1–B6 are green.
+
+### Reverted
+
+- Nothing.
+
+### Needs the owner's word
+
+- Nothing yet.
+
+### Noticed, left alone
+
+- In website mode at 1280 × 720 the bar folds into the menu for the website admin and for an organizer in production too: the back link "← Seasonal Entertainment" takes the room the development items take in development (the decision of 2026-11-22 measured standalone development builds). Players are not affected.
+
+- The first nginx run (fresh) stopped once on the website's own image build (`npm ci` exit 146 after 244 s): Docker downloads inside containers on this PC are slow (46–63 s for a registry fetch against 0.6 s on the host); the website repository is read-only. A second fresh run got past it.
+- `ops/lib/backup.sh` `drill_database` waits with the same socket `pg_isready` and then 2 s; it has worked so far and is left as it is.
+
+# The admin area's night (2026-11-21/22)
 
 ## Done
 
