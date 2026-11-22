@@ -11,15 +11,24 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 - A3 fixes from the failed nginx run (website `de057d8`):
   - `ce6ccdc`: the install's output checks (`said_since`) read the results with one awk; the harness's `tail | grep -q` under pipefail failed on the long output (SIGPIPE, exit 141, checked on the failed run's log). P1 waits for the website's Register form (the login page has a Username field too, the name went into it). P6 opens the folded menu first (`openMenu` from `e2e/menu.ts`, mounted read-only into the browser container): in website mode at 1280 px the back link folds the bar for the website admin.
   - `4af5337`: the database healthcheck in `ops/compose.yml` asks over TCP: on a fresh volume the image's temporary init server answered the socket check, and the installer's psql met it stopping ("the database system is shutting down"). `apps/server/test/postgresHealth.integration.test.ts` failed before, passes now.
+  - `bcb9602`: the website's admin API grants "may start games" per game now (`POST /api/admin/users/<id>/game-host` with `{"game":"bingo"}`; `/can-start-games` answered `not_found`); the grant, lock, unlock and delete are checks of their own. P6 matches the Admin link exactly (the chip "admin (admin)" matched too).
+  - `3afa668`: P2 opens the folded menu before "Host a match" (an organizer's bar folds at 1280 px in website mode). `c81c79d`: P6 opens the menu only once the account is in the bar (it folds then).
+- A2/A3 results, website `de057d8` (master), Bingo `c81c79d`: **fresh nginx 63 PASS / 0 FAIL, fresh caddy 53 PASS / 0 FAIL**; the retries on the kept server (KEEP=1 RESUME=1) before them: nginx P2 failed at the folded menu (fixed in `3afa668`), caddy all passed. Earlier fresh runs with FAILs: nginx 57 PASS / P2, P6 FAIL; caddy 52 PASS / P6 FAIL (all fixed above). The later runs ran from a local clone of the branch, so the working copy stayed free for part B.
+- A4: BACKLOG Part two (PROBE-REAL-SITE-ADMIN) and OPEN; the operator guide needed no change (no step or output of the install changed).
+
+- Part B (branch `feat/kit-adoption`, PR #58, not merged; docs/concepts/kit-adoption.md):
+  - B0 `8c42d31`: the plan re-checked against master `a1495bf`; the kit pinned at v0.10.0 (36a72cf; no install script, licence AGPL-3.0-or-later).
+  - B1 `ec1a95a`: tokens, fonts, motion and the theme script and hook from the kit; Bingo keeps its arena tokens, `--gutter`, `--panel-padding`. 30 screens pixel for pixel the same. CI on it red in job `image` (run 45038443991): the server's git dependency needs `git` in the build image; fixed in `fd07a84` by taking the kit into the server only in B4.
+  - B2 `0bea630`: the kit's theme toggle and `shell.css`; the back link stays Bingo's (kit request R2: the kit's link drops the space after the arrow). 42 screens (standalone and website mode) the same.
 
 ### Running
 
-- A2/A3: the fresh nginx rehearsal (KEEP=1), then the fresh caddy rehearsal.
+- Part A: the PR's CI and CodeQL on the A4 commit, then the merge (A5).
+- Part B: verify and CI of B2.
 
 ### Open
 
-- A4 docs and the PR of `test/rehearsal-admin`; A5 merge only with both fresh runs without FAIL and CI/CodeQL green.
-- Part B: B0 (docs/concepts/kit-adoption.md, the pin), B1–B6, B7 if B1–B6 are green.
+- Part B: B3–B6, B7 if B1–B6 are green.
 
 ### Reverted
 
@@ -30,6 +39,8 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 - Nothing yet.
 
 ### Noticed, left alone
+
+- In website mode at 1280 × 720 the bar folds into the menu for the website admin and for an organizer in production too: the back link "← Seasonal Entertainment" takes the room the development items take in development (the decision of 2026-11-22 measured standalone development builds). Players are not affected.
 
 - The first nginx run (fresh) stopped once on the website's own image build (`npm ci` exit 146 after 244 s): Docker downloads inside containers on this PC are slow (46–63 s for a registry fetch against 0.6 s on the host); the website repository is read-only. A second fresh run got past it.
 - `ops/lib/backup.sh` `drill_database` waits with the same socket `pg_isready` and then 2 s; it has worked so far and is left as it is.
