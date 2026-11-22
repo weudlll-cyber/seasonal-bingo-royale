@@ -11,9 +11,15 @@ in §4, not a fork in Bingo.
 
 ## 1. The pin
 
-`apps/web` and `apps/server` depend on `"@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.10.0"`
-(the kit's docs/DELIVERY.md): the tag's committed `dist/` and CSS, no build and no install
-script. React 19.3.1 and Vite 8.3.4 (the kit's peers) are Bingo's own.
+`apps/web` depends on `"@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.10.0"` (the kit's
+docs/DELIVERY.md): the tag's committed `dist/` and CSS, no build and no install script. React
+19.3.1 and Vite 8.3.4 (the kit's peers) are Bingo's own.
+
+`apps/server` takes it only in B4. A server dependency on a git tag breaks the image: the
+Dockerfile's `pnpm --filter @sbr/server deploy --prod` resolves the git dependency again and the
+build image has no `git` (CI run 45038443991, job `image`, `ERR_PNPM_GIT_RESOLVE_FAILED`). B4
+must solve that first: the server bundle (`apps/server/build.mjs`, esbuild) can carry the kit's
+code so the kit stays a development dependency, or the build stage gets `git`.
 
 ## 2. Per export: what it replaces, what stays, whether it fits
 
