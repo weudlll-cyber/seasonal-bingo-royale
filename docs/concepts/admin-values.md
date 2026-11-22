@@ -803,6 +803,6 @@ Built (admin-area §9 piece 6): the rows marked "admin" with a number are in **S
 
 ### Other
 
-| id              | file:line                      | current value + unit                                         | what changing it does                                         | who may change it | min | max | min/max reason | warning | applies        |
-| --------------- | ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------- | ----------------- | --- | --- | -------------- | ------- | -------------- |
-| ui.defaultTheme | apps/web/src/shell/theme.ts:44 | follow the device (light/dark), then the player's own choice | Sets the colour theme for a visitor who has never picked one. | admin             | —   | —   | —              | no      | next page load |
+| id              | file:line                                   | current value + unit                                         | what changing it does                                         | who may change it | min | max | min/max reason | warning | applies        |
+| --------------- | ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------- | ----------------- | --- | --- | -------------- | ------- | -------------- |
+| ui.defaultTheme | @seasonal/kit `resolveTheme` (src/theme.ts) | follow the device (light/dark), then the player's own choice | Sets the colour theme for a visitor who has never picked one. | admin             | —   | —   | —              | no      | next page load |

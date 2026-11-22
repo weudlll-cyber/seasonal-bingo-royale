@@ -58,7 +58,7 @@ export function ballLabel(item: number): string {
 }
 
 // A season's colour: the design token shared with the Seasonal Entertainment website
-// (01 §13, packages/ui/src/tokens.css); text and icons on it use var(--color-on-season).
+// (01 §13, @seasonal/kit/tokens.css); text and icons on it use var(--color-on-season).
 export function seasonColor(season: Season): string {
   return `var(--color-${season})`;
 }

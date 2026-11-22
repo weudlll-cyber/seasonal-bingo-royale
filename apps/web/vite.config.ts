@@ -5,14 +5,16 @@
  *
  * Responsibility: run the React dev server on the project's reserved port, proxy /api,
  *                 /ws and the development routes /dev to the server on 3900, inject the dev-badge port via `define`,
- *                 keep HMR local and ignore generated folders. The build target is
+ *                 keep HMR local and ignore generated folders; serve and emit the kit's early
+ *                 theme script (themeInit). The build target is
  *                 modern browsers only (ES2023 lib). As the Vitest project config it
  *                 lets tests read motion.css and the design tokens (Vitest skips CSS by
  *                 default).
- * Depends on:     vite, @vitejs/plugin-react
+ * Depends on:     vite, @vitejs/plugin-react, @seasonal/kit/vite
  * Spec:           docs/spec/08-devops-architecture.md §1.1
  */
 /// <reference types="vitest/config" />
+import { themeInit } from '@seasonal/kit/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -22,7 +24,8 @@ const SERVER = 'http://127.0.0.1:3900';
 export default defineConfig({
   // Relative asset paths: one build serves at "/" or under "/games/bingo/" (09 §1).
   base: './',
-  plugins: [react()],
+  // themeInit: the kit's early theme script as theme-init.js (index.html), served and built.
+  plugins: [react(), themeInit()],
   server: {
     host: '127.0.0.1',
     port: PORT,

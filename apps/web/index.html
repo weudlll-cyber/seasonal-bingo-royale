@@ -4,9 +4,11 @@
   @module web
   @brief  The player client's page: the root element, the early theme script, the entry module.
 
-  Responsibility: load public/theme-init.js before the first paint (an external file: the
-                  CSP forbids inline scripts), then the React entry ./src/main.tsx into #root.
-  Depends on:     public/theme-init.js, src/main.tsx
+  Responsibility: load theme-init.js before the first paint (an external file: the CSP
+                  forbids inline scripts; the kit's early script, served and emitted by its
+                  Vite plugin themeInit, vite.config.ts), then the React entry ./src/main.tsx
+                  into #root.
+  Depends on:     @seasonal/kit (browser/theme-init.js through @seasonal/kit/vite), src/main.tsx
   Spec:           docs/spec/01-game-design.md §13; docs/spec/03-security-architecture.md §7
 -->
 <html lang="en">

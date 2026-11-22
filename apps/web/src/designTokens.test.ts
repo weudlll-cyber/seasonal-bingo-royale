@@ -3,30 +3,38 @@
  * @module web
  * @brief  WCAG AA contrast of the design tokens in the light and the dark theme (01 §13).
  *
- * Responsibility: read the shared tokens (@sbr/ui) and check, in both themes, that body and
+ * Responsibility: read the tokens as the page loads them (the kit's shared file, then the
+ *                 game's own from @sbr/ui, which wins) and check, in both themes, that body and
  *                 muted text keep 4.5:1 on the page, the opaque surfaces and the translucent
  *                 cards — composited over the base colour and over each of the four token
  *                 glows, as the website measures — and on the top bar's gradient stops; the
  *                 solid pill and text on the season colours keep 4.5:1; the bingo card ink
  *                 keeps 7:1 (the hero element); the host's Draw next keeps 4.5:1 enabled and
- *                 disabled; and the motion file turns every animation off under
+ *                 disabled; and the kit's motion file turns every animation off under
  *                 prefers-reduced-motion.
- * Depends on:     @sbr/ui/tokens.css, @sbr/ui/motion.css (raw), ./host/host.css
+ * Depends on:     @seasonal/kit/tokens.css, @seasonal/kit/motion.css, @sbr/ui/tokens.css (raw),
+ *                 ./host/host.css
  * Spec:           docs/spec/01-game-design.md §13 (WCAG 2.2 AA)
  */
 import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import motionCss from '@sbr/ui/motion.css?raw';
-import tokensCss from '@sbr/ui/tokens.css?raw';
+import motionCss from '@seasonal/kit/motion.css?raw';
+import kitTokensCss from '@seasonal/kit/tokens.css?raw';
+import gameTokensCss from '@sbr/ui/tokens.css?raw';
 
 type Rgba = readonly [number, number, number, number];
 
-// The text of one block of tokens.css.
+// In the page's order: the game's file is loaded after the kit's (apps/web/src/main.tsx).
+const SOURCES = [kitTokensCss, gameTokensCss];
+
+// The text of one block in every token file, in load order (a later value wins).
 function blockText(selector: string): string {
-  const start = tokensCss.indexOf(`${selector} {`);
-  return tokensCss.slice(start, tokensCss.indexOf('\n}', start));
+  return SOURCES.map((css) => {
+    const start = css.indexOf(`${selector} {`);
+    return start < 0 ? '' : css.slice(start, css.indexOf('\n}', start));
+  }).join('\n');
 }
 
 // A colour as #rrggbb or rgb(r g b / a%).

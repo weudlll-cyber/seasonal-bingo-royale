@@ -8,7 +8,8 @@
  *                 aside: they quote the sources, comments included) contains a marker of
  *                 development code: the Quick Test route or page, the dev sign-in menu,
  *                 the time-travel route and its "Jump ahead" buttons, the demo league or the
- *                 development server address.
+ *                 development server address. The client ships the kit's early theme script
+ *                 (theme-init.js, from @seasonal/kit's Vite plugin) and its page loads it.
  * Depends on:     nothing (runs ../build.mjs and the web client's vite build)
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/03-security-architecture.md §13
  */
@@ -66,11 +67,15 @@ describe('production bundles', () => {
     expect(devMarkersIn(dir)).toEqual([]);
   }, 60_000);
 
-  it('leave Quick Test, the dev sign-in and the dev server address out of the client', () => {
+  it('leave Quick Test, the dev sign-in and the dev server address out of the client; ship the early theme script', () => {
     const dir = path.join(out, 'web');
     const vite = path.join(WEB_DIR, 'node_modules/vite/bin/vite.js');
     run(WEB_DIR, [vite, 'build', '--outDir', dir, '--emptyOutDir', '--logLevel', 'error']);
     expect(readdirSync(dir)).toContain('index.html');
     expect(devMarkersIn(dir)).toEqual([]);
+    expect(readFileSync(path.join(dir, 'index.html'), 'utf8')).toContain(
+      '<script src="theme-init.js"></script>',
+    );
+    expect(readFileSync(path.join(dir, 'theme-init.js'), 'utf8')).toContain("'se.theme'");
   }, 120_000);
 });

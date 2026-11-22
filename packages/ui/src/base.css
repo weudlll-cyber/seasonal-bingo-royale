@@ -3,7 +3,8 @@
  * @module ui
  * @brief  Base styles and the small set of shared components (buttons, panels, fields).
  *
- * Responsibility: the Seasonal Entertainment website's look on the tokens of ./tokens.css:
+ * Responsibility: the Seasonal Entertainment website's look on the tokens (the kit's
+ *                 @seasonal/kit/tokens.css and ./tokens.css):
  *                 the page background with its four token glows (fixed while the page
  *                 scrolls), type, a visible accent focus ring on every control, buttons as
  *                 pills (primary solid, secondary glass with a hairline) and fields at least

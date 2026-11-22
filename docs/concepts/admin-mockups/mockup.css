@@ -1,10 +1,12 @@
 /*
  * docs/concepts/admin-mockups/mockup.css
  * Mockups of the admin-area concept (docs/concepts/admin-area.md), not product code.
- * The game's own styles come first (fonts, tokens, base, shell bar, host form); this file
+ * The game's own styles come first (the kit's fonts and tokens after `pnpm install`, the
+ * game's tokens, base, shell bar, host form); this file
  * adds only what the concept's pages need, on the same tokens, no colours of its own.
  */
-@import url('../../../packages/ui/src/fonts.css');
+@import url('../../../apps/web/node_modules/@seasonal/kit/css/fonts.css');
+@import url('../../../apps/web/node_modules/@seasonal/kit/css/tokens.css');
 @import url('../../../packages/ui/src/tokens.css');
 @import url('../../../packages/ui/src/base.css');
 @import url('../../../apps/web/src/shell/shell.css');

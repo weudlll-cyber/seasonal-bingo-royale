@@ -6,13 +6,13 @@
  * Responsibility: a round glass button with a stroke icon (a moon in light mode, a sun in
  *                 dark mode, in currentColor) whose accessible name says what a click does
  *                 ("Switch to dark theme"). Icons are aria-hidden; no text glyph or emoji.
- * Depends on:     react, ./theme
+ * Depends on:     react, @seasonal/kit/react (useTheme)
  * Used by:        ./AppShell
  * Spec:           docs/spec/01-game-design.md §13; Seasonal Entertainment docs/DESIGN.md "Icons"
  */
 import type { ReactElement } from 'react';
 
-import { useTheme } from './theme.js';
+import { useTheme } from '@seasonal/kit/react';
 
 export function ThemeToggle(): ReactElement {
   const { theme, toggle } = useTheme();

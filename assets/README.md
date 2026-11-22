@@ -12,7 +12,6 @@ Source assets. Build steps copy optimized versions into the apps; files here are
 | `seasons/source/*.svg` | `client/src/assets/seasons/source/` (originals) | Source for re-exports |
 | `brand/logo.svg` | `client/src/assets/seasonal-tokens.svg` | Source for the app icon until one is supplied (no longer in the top bar) |
 | `brand/colors.md` | `client/src/styles/tokens.css` | The four season colours |
-| `fonts/luxora-grotesk-*.woff2` (book, regular, bold, italic, light italic) | `client/src/assets/fonts/` | All UI text: Book for body, Bold for headings (the Heavy face was removed on 2026-10-21 when headings moved to Bold, as on the website) |
 
 ## Received (2026-10-21)
 
@@ -26,3 +25,5 @@ Source assets. Build steps copy optimized versions into the apps; files here are
 |---|---|---|
 | App icon | PNG 512×512, square | Until supplied, generated from `brand/logo.svg` |
 | Sounds | OGG | draw, mark, pattern, season, season-complete, cut, win; the game ships silent until supplied |
+
+The Luxora Grotesk faces (book, regular, bold, italic, light italic: all UI text, Book for body, Bold for headings) come from the shared kit since 2026-11-22: `@seasonal/kit/fonts.css` and its `fonts/`, the same files the website and this folder had (docs/concepts/kit-adoption.md §2, B1).
