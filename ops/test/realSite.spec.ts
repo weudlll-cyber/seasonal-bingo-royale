@@ -30,6 +30,9 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
+// Mounted as /e2e/menu.ts in the browser container (./real-site-bingo.sh), so the path holds there.
+import { openMenu } from '../../e2e/menu.js';
+
 const STATE = '/state/state.json';
 const GAME = '/games/bingo/';
 // The website's account changes reach the game within one poll (2 minutes) and a margin.
@@ -111,6 +114,8 @@ test('P1 guest, join through the website, chat, a member plays and cannot host',
   await member.getByTestId(`sign-in-to-join-${s.play}`).click();
   await expect(member).toHaveURL(/\/login\?next=/);
   await member.getByRole('link', { name: 'Register' }).click();
+  // The login page has a Username field too: fill only once the register form is there.
+  await expect(member.getByRole('heading', { name: 'Register', level: 1 })).toBeVisible();
   await member.getByLabel('Username').fill(s.member);
   await member.getByLabel('Email').fill(`${s.member}@example.org`);
   await member.getByLabel('Password', { exact: true }).fill(s.password);
@@ -256,6 +261,8 @@ test('P6 the website admin: the Overview, maintenance on and off, both in the Hi
   await admin.goto(GAME);
   const reason = `Rehearsal ${String(Date.now() % 100_000)}`;
   try {
+    // Website mode at 1280 px: the back link folds the bar, Admin sits in the menu.
+    await openMenu(admin);
     await admin.getByRole('link', { name: 'Admin' }).click();
     await expect(admin.getByRole('heading', { name: 'Overview' })).toBeVisible();
     await expect(admin.getByTestId('admin-maintenance-state')).toHaveText('Maintenance is off');
