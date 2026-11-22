@@ -9,20 +9,21 @@
  *                 panel on wide screens and a drawer on phones that one tap closes (its Close
  *                 button or the dimmed page behind it). Whether it is open is remembered per
  *                 browser (localStorage, every access in try/catch). The frame of the website's
- *                 embed page (`<site origin><path>?room=<room>&theme=<light|dark>`) is created
- *                 the first time the panel opens and kept while it is closed; it follows the
- *                 game's theme (<html data-theme>). Standalone: no button, no frame, no request.
- * Depends on:     react, ./router (types), ./session, ./chat.css
+ *                 embed page (`<path>?room=<room>&theme=<light|dark>` on the site's origin) is
+ *                 the kit's WebsiteChatFrame (sandboxed, K17; strict-origin referrer; it follows
+ *                 the game's theme, <html data-theme>); it is created the first time the panel
+ *                 opens and kept while it is closed. Standalone: no button, no frame, no request.
+ * Depends on:     react, @seasonal/kit/react (WebsiteChatFrame), ./router (types), ./session,
+ *                 ./chat.css
  * Used by:        ./AppShell
  * Spec:           docs/spec/07-integration-architecture.md §6; Seasonal Entertainment docs/EMBED.md
  */
+import { WebsiteChatFrame } from '@seasonal/kit/react';
 import { useEffect, useState, type ReactElement } from 'react';
 
 import type { Route } from './router.js';
 import { useSession } from './session.js';
 import './chat.css';
-
-type Theme = 'light' | 'dark';
 
 const OPEN_KEY = 'sbr.chat.open';
 // The screens the chat stands beside.
@@ -42,27 +43,6 @@ function storeOpen(open: boolean): void {
   } catch {
     // Blocked storage: the panel keeps its state for this visit only.
   }
-}
-
-const documentTheme = (): Theme =>
-  document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-
-// The game's theme as <html data-theme> holds it, followed live (./theme sets it).
-function useDocumentTheme(): Theme {
-  const [theme, setTheme] = useState<Theme>(documentTheme);
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setTheme(documentTheme());
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-  return theme;
 }
 
 // The top bar's height, for the side panel below it (shell.css keeps the bar sticky there).
@@ -128,13 +108,10 @@ export function ChatButton({ dock }: { readonly dock: ChatDock | null }): ReactE
 }
 
 export function ChatPanel({ dock }: { readonly dock: ChatDock | null }): ReactElement | null {
-  const theme = useDocumentTheme();
   if (dock === null || !dock.opened) return null;
   const close = (): void => {
     dock.setOpen(false);
   };
-  const query = new URLSearchParams({ room: dock.chat.room, theme });
-  const src = `${window.location.origin}${dock.chat.path}?${query.toString()}`;
   return (
     <>
       {/* Phones: the dimmed page behind the drawer; one tap closes it (chat.css). */}
@@ -159,7 +136,12 @@ export function ChatPanel({ dock }: { readonly dock: ChatDock | null }): ReactEl
             Close
           </button>
         </div>
-        <iframe className="chat-panel__frame" title="Chat" src={src} data-testid="chat-frame" />
+        {/* The kit's frame: sandboxed (K17), strict-origin referrer, the game's theme. */}
+        <WebsiteChatFrame
+          room={dock.chat.room}
+          path={dock.chat.path}
+          className="chat-panel__frame"
+        />
       </aside>
     </>
   );
