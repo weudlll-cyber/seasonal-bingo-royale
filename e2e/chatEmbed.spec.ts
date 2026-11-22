@@ -32,8 +32,8 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('w-31', {
-    id: 'w-31',
+  stack.users.set('9031', {
+    id: '9031',
     name: 'Chat Member',
     roles: 'member',
     verified: true,
@@ -49,7 +49,7 @@ test.afterAll(async ({ browserName }) => {
 
 // The member signs in through the website's proxy and lands on the lobby.
 async function signInMember(page: Page): Promise<void> {
-  await page.context().addCookies([{ name: 'stub_user', value: 'w-31', url: stack.origin }]);
+  await page.context().addCookies([{ name: 'stub_user', value: '9031', url: stack.origin }]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Chat_Member');
 }

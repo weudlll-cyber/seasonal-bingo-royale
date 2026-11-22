@@ -24,7 +24,7 @@ import { startWebsiteStack, type StubUser, type WebsiteStack } from './websiteSt
 
 const BASE = '/games/bingo';
 const FORGED = {
-  'x-acting-user-id': 'w-01',
+  'x-acting-user-id': '9001',
   'x-acting-user': 'Web Player 01',
   'x-acting-user-roles': 'organiser',
   'x-acting-user-email-verified': 'true',
@@ -35,9 +35,9 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  // w-01 may start games; w-09 has no verified e-mail address.
+  // 9001 may start games; 9009 has no verified e-mail address.
   for (let n = 1; n <= 9; n += 1) {
-    const id = `w-${String(n).padStart(2, '0')}`;
+    const id = `90${String(n).padStart(2, '0')}`;
     const user: StubUser = {
       id,
       name: `Web Player ${String(n).padStart(2, '0')}`,
@@ -76,14 +76,14 @@ async function post(ctx: APIRequestContext, url: string, data: unknown) {
 }
 
 // The browser player: "Sign in" on the leaderboard goes to the website's login first; signed
-// in there as w-02, the login sends back to the sign-in route and on to the leaderboard (D43).
+// in there as 9002, the login sends back to the sign-in route and on to the leaderboard (D43).
 async function browserSignIn(page: Page): Promise<void> {
   await page.goto(`${stack.origin}${BASE}/#/leaderboard`);
   await page.getByTestId('open-sign-in').click();
   await expect(page.locator('body')).toHaveText('website login');
   const back = new URL(page.url()).searchParams.get('next') ?? '';
   expect(decodeURIComponent(back)).toBe(`${BASE}/auth/website?next=${BASE}/#/leaderboard`);
-  await page.context().addCookies([{ name: 'stub_user', value: 'w-02', url: stack.origin }]);
+  await page.context().addCookies([{ name: 'stub_user', value: '9002', url: stack.origin }]);
   await page.reload();
   await expect(page).toHaveURL(`${stack.origin}${BASE}/#/leaderboard`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Web_Player_02 (player)');
@@ -101,7 +101,7 @@ test('website users sign in through the website and get league points when verif
 }) => {
   test.setTimeout(8 * 60_000);
   await browserSignIn(page);
-  const host = await signedIn('w-01');
+  const host = await signedIn('9001');
   const created = await post(host, '/matches', {
     title: 'Website league',
     gameType: 'royale',
@@ -122,7 +122,7 @@ test('website users sign in through the website and get league points when verif
     await page.getByTestId(`join-${code}`).click();
     await expect(page.getByTestId('waiting-room')).toBeVisible();
     const others = [host];
-    for (const id of ['w-03', 'w-04', 'w-05', 'w-06', 'w-07', 'w-08', 'w-09'])
+    for (const id of ['9003', '9004', '9005', '9006', '9007', '9008', '9009'])
       others.push(await signedIn(id));
     for (const ctx of others)
       expect((await post(ctx, `/matches/${code}/join`, {})).ok()).toBe(true);

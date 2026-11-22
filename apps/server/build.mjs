@@ -5,8 +5,10 @@
  *
  * Responsibility: bundle src/main.ts (the server) and src/cli.ts (the operator commands,
  *                 e.g. create-super) with esbuild into dist/ (or the folder given as the
- *                 first argument), the workspace packages (@sbr/*, TypeScript sources)
- *                 inlined and the npm dependencies left as imports for node_modules,
+ *                 first argument), the workspace packages (@sbr/*, TypeScript sources) and
+ *                 the shared kit (@seasonal/kit, a git tag: the image's `pnpm deploy --prod`
+ *                 could not fetch it, so it is a development dependency compiled in) inlined
+ *                 and the npm dependencies left as imports for node_modules,
  *                 without comments or spacing; the development modules (src/dev/*, the
  *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs
  *                 (kept with SBR_BUILD_DEV=1, only for the local load check, 12 §5);
@@ -27,12 +29,13 @@ import { build } from 'esbuild';
 const out = process.argv[2] ?? 'dist';
 
 // npm packages stay imports for node_modules; the workspace packages (@sbr/*, TypeScript
-// sources) are compiled into the bundle.
+// sources) and the kit (@seasonal/kit) are compiled into the bundle.
+const INLINED = /^@(sbr|seasonal)\//;
 const npmExternal = {
   name: 'npm-external',
   setup(builder) {
     builder.onResolve({ filter: /^[^./]/ }, (args) =>
-      args.path.startsWith('@sbr/') ? undefined : { path: args.path, external: true },
+      INLINED.test(args.path) ? undefined : { path: args.path, external: true },
     );
   },
 };

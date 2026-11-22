@@ -59,7 +59,7 @@ const verifiedAt = async (accountId: string) =>
 describe('signing in through the website (D37)', () => {
   it('creates the account, maps the roles and redirects to the page', async () => {
     const r = await signInAs(
-      { id: 'u-1', name: 'Walter', roles: 'member', verified: 'true', canHost: 'true' },
+      { id: '1001', name: 'Walter', roles: 'member', verified: 'true', canHost: 'true' },
       '127.0.0.1',
       `${BASE}#/match/ABC123`,
     );
@@ -78,7 +78,7 @@ describe('signing in through the website (D37)', () => {
   });
 
   it('follows a new name, recomputes the roles and the verification at the next sign-in', async () => {
-    const r = await signInAs({ id: 'u-1', name: 'Walter W.', roles: 'member', verified: 'false' });
+    const r = await signInAs({ id: '1001', name: 'Walter W.', roles: 'member', verified: 'false' });
     const s = await session(cookieOf(r));
     expect(s.account?.displayName).toBe('Walter_W.');
     expect(s.permissions).not.toContain('match.create');
@@ -87,17 +87,17 @@ describe('signing in through the website (D37)', () => {
   });
 
   it('gives another website user with a taken name a numeric suffix', async () => {
-    await signInAs({ id: 'u-2', name: 'Anna' });
-    const r = await signInAs({ id: 'u-3', name: 'Anna' });
+    await signInAs({ id: '1002', name: 'Anna' });
+    const r = await signInAs({ id: '1003', name: 'Anna' });
     expect((await session(cookieOf(r))).account?.displayName).toBe('Anna2');
   });
 
   it('sends a foreign next to the base path and refuses a suspended account', async () => {
-    const away = await signInAs({ id: 'u-4', name: 'Bert' }, '127.0.0.1', 'https://evil.example/');
+    const away = await signInAs({ id: '1004', name: 'Bert' }, '127.0.0.1', 'https://evil.example/');
     expect(away.headers.location).toBe(BASE);
     const id = (await session(cookieOf(away))).account?.id;
     await harness.pool.query(`UPDATE sbr.accounts SET status = 'suspended' WHERE id = $1`, [id]);
-    const refused = await signInAs({ id: 'u-4', name: 'Bert' });
+    const refused = await signInAs({ id: '1004', name: 'Bert' });
     expect(refused.statusCode).toBe(403);
     expect(cookieOf(refused)).toBeNull();
   });
@@ -105,22 +105,22 @@ describe('signing in through the website (D37)', () => {
 
 describe('forged identity headers (D37)', () => {
   it('sign nobody in from an untrusted peer', async () => {
-    const r = await signInAs({ id: 'u-9', name: 'Mallory', roles: 'organiser' }, '10.0.0.9');
+    const r = await signInAs({ id: '1009', name: 'Mallory', roles: 'organiser' }, '10.0.0.9');
     expect(r.statusCode).toBe(403);
     expect(cookieOf(r)).toBeNull();
   });
 
   it('are ignored on another route', async () => {
-    const s = await session(null, headersOf({ id: 'u-1', name: 'Walter', roles: 'organiser' }));
+    const s = await session(null, headersOf({ id: '1001', name: 'Walter', roles: 'organiser' }));
     expect(s.signedIn).toBe(false);
   });
 
   it('sign nobody in on a server in local mode, where the route does not exist', async () => {
-    const r = await signInAs({ id: 'u-1', name: 'Walter' }, '127.0.0.1', '/#/', local);
+    const r = await signInAs({ id: '1001', name: 'Walter' }, '127.0.0.1', '/#/', local);
     const there = await local.fastify.inject({
       method: 'GET',
       url: '/auth/website',
-      headers: headersOf({ id: 'u-1', name: 'Walter' }),
+      headers: headersOf({ id: '1001', name: 'Walter' }),
     });
     expect([r.statusCode, there.statusCode]).toEqual([404, 404]);
     expect(cookieOf(there)).toBeNull();
@@ -154,18 +154,23 @@ describe('Discord steps from the website (2026-11-04)', () => {
     );
     return r.rows[0]?.steps;
   };
-  const golden = { ladder: 'holder', name: 'Golden', icon: '/media/step-icons/a.webp' };
+  // The contract's icon path, exactly (the kit's check, docs/concepts/kit-adoption.md B4).
+  const golden = {
+    ladder: 'holder',
+    name: 'Golden',
+    icon: '/media/step-icons/0123456789abcdef0123456789abcdef.webp',
+  };
 
   it('keeps the steps of the last sign-in, and none for an empty list', async () => {
-    const first = await signInAs({ id: 'st-1', name: 'Stepper', steps: encode([golden]) });
+    const first = await signInAs({ id: '1101', name: 'Stepper', steps: encode([golden]) });
     expect(await stepsOf(cookieOf(first))).toEqual([golden]);
-    const none = await signInAs({ id: 'st-1', name: 'Stepper', steps: encode([]) });
+    const none = await signInAs({ id: '1101', name: 'Stepper', steps: encode([]) });
     expect(await stepsOf(cookieOf(none))).toEqual([]);
   });
 
   it('signs in without steps when the header is not a valid steps list', async () => {
     const bad = encode([{ ladder: 'holder', name: 'X', icon: 'https://evil.example/x.png' }]);
-    const r = await signInAs({ id: 'st-2', name: 'Shady', steps: bad });
+    const r = await signInAs({ id: '1102', name: 'Shady', steps: bad });
     expect(r.statusCode).toBe(302);
     expect(await stepsOf(cookieOf(r))).toEqual([]);
   });

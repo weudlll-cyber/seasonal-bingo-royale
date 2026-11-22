@@ -13,7 +13,7 @@
  *                 need SBR_DEV=1, which is refused for a public (non-localhost) address.
  * Depends on:     zod
  * Used by:        ../main.ts, ../http/app.ts, ../cli, ./features, ./seedKey, ../index,
- *                 ../auth/websiteIdentity, ../http/routes/websiteSignIn
+ *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/08-devops-architecture.md §5, §1.1; docs/spec/07-integration-architecture.md §2.3
  */
 import { z } from 'zod';
