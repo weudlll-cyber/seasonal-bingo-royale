@@ -33,7 +33,7 @@
   min-width: 0;
 }
 
-.shell-bar[data-folded='true'] .theme-toggle {
+.shell-bar[data-folded='true'] .sk-theme-toggle {
   order: 1;
 }
 

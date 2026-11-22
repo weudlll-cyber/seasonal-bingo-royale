@@ -8,6 +8,7 @@
 @import url('../../../apps/web/node_modules/@seasonal/kit/css/fonts.css');
 @import url('../../../apps/web/node_modules/@seasonal/kit/css/tokens.css');
 @import url('../../../packages/ui/src/tokens.css');
+@import url('../../../apps/web/node_modules/@seasonal/kit/css/shell.css');
 @import url('../../../packages/ui/src/base.css');
 @import url('../../../apps/web/src/shell/shell.css');
 @import url('../../../apps/web/src/host/host.css');
