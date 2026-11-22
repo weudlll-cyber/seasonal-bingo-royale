@@ -49,11 +49,13 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 
 - **B7, the docked layout (K18)**, under the rule to drop B7 first when time runs short: its first step needs a website-mode sweep of every match screen with axe at ten sizes, light and dark (a new extension of the fit audit and a new development dependency), and likely fit work where the chat strip narrows the board (1280×720, 1366×768); estimated 5–7 hours on this machine, too close to the end of the night with the final checks. What it needs: docs/concepts/kit-adoption.md §5 "B7".
 
-### Needs the owner's word
+### Decided (owner decisions of 2026-11-22, after the night)
 
-- **PR #59** (master's red `playerFit` and the admin pages' remount flake): merge it? Master stays red in webkit-mobile until then, sometimes.
-- **B5**: the kit's `ResultFrame` is a result page of its own (an `h1`, one screen high, names that may break); Bingo's final placement is a panel inside three screens. Kept as Bingo's; adopting it means a final page of its own (docs/concepts/kit-adoption.md §6).
-- The kit requests R1 (the header folds when its items do not fit), R2 (the back link keeps the space after the arrow), R3 (a rate rule read on every request): docs/concepts/kit-adoption.md §4.
+- **PR #59 merged** as `c1bab70` (master's red `playerFit` and the admin pages' remount flake).
+- **B5 not adopted for now**: Bingo keeps its final placement; kit request R4 (a `ResultFrame` that sits as a panel inside a screen) in docs/concepts/kit-adoption.md §4.
+- **The website-mode top bar at 1280 px stays as it is for now** (covered by kit request R1).
+- **The kit's v0.10.1 before the merge** (`f7bd65b`): its renames (`data-sk-` attributes) needed no change in Bingo; a shell test pins the toggle's `data-sk-theme-now` (failed on v0.10.0). Then PR #58 merged when green.
+- The kit requests R1–R4: docs/concepts/kit-adoption.md §4. The operator guide notes the recovery codes after a rollback.
 
 ### Noticed, left alone
 

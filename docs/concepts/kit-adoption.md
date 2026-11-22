@@ -1,8 +1,8 @@
-# Adopting @seasonal/kit (v0.10.0)
+# Adopting @seasonal/kit (v0.10.1)
 
 Status: written 2026-11-22 on branch `feat/kit-adoption` (night chain part B, piece B0), before any code moves. Each piece B1–B7 updates its row when it lands.
 
-How Bingo takes the shared kit (github.com/weudlll-cyber/seasonal-kit, tag `v0.10.0`, commit
+How Bingo takes the shared kit (github.com/weudlll-cyber/seasonal-kit, now tag `v0.10.1`, §1; planned on `v0.10.0`, commit
 `36a72cf`). The kit's own plan for Bingo (its docs/ADOPTION.md §"Seasonal Bingo Royale") was
 written against Bingo `a43209a` (2026-11-21); this page re-checks it against Bingo master
 `a1495bf` (2026-11-22: the admin area, migrations 0020–0026, the top bar that folds only when
@@ -11,15 +11,25 @@ in §4, not a fork in Bingo.
 
 ## 1. The pin
 
-`apps/web` depends on `"@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.10.0"` (the kit's
-docs/DELIVERY.md): the tag's committed `dist/` and CSS, no build and no install script. React
-19.3.1 and Vite 8.3.4 (the kit's peers) are Bingo's own.
+`apps/web` (a dependency) and `apps/server` (a development dependency: `apps/server/build.mjs`
+compiles the kit into the server bundle, so the image's `pnpm deploy --prod` needs no `git`; CI
+run 45038443991 had failed with `ERR_PNPM_GIT_RESOLVE_FAILED` before) depend on
+`"@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.10.1"` (the kit's docs/DELIVERY.md): the
+tag's committed `dist/` and CSS, no build and no install script; the lockfile resolves the tag to
+commit `76bd872`. React 19.3.1 and Vite 8.3.4 (the kit's peers) are Bingo's own. The pieces
+B0–B6 were built on v0.10.0 (`36a72cf`); the move to v0.10.1 came before the merge (owner
+decision of 2026-11-22).
 
-`apps/server` takes it only in B4. A server dependency on a git tag breaks the image: the
-Dockerfile's `pnpm --filter @sbr/server deploy --prod` resolves the git dependency again and the
-build image has no `git` (CI run 45038443991, job `image`, `ERR_PNPM_GIT_RESOLVE_FAILED`). B4
-must solve that first: the server bundle (`apps/server/build.mjs`, esbuild) can carry the kit's
-code so the kit stays a development dependency, or the build stage gets `git`.
+**v0.10.1's renames** (its CHANGELOG [0.10.1]: every kit data attribute is `data-sk-` prefixed,
+e.g. `data-sk-theme-now`, `data-sk-view`, `data-sk-open`, `data-sk-layout`, `data-sk-fit-fixed`)
+needed no change in Bingo: Bingo reads and writes none of the renamed attributes, and it loads
+none of the kit files whose CSS changed (`bar.css`, `dock.css`, `frames.css`, `header.css`). The
+same names in Bingo are its own: `data-season` (`apps/web/src/components/OwnerCard.tsx:177`,
+`SeasonIcon.tsx:38`), `data-open` and `data-folded` of its own menu fold
+(`apps/web/src/shell/MenuFold.tsx:78`, `menu.css:49`). Bingo uses no `useDisclosure` (the kit's
+header and menu are not adopted), so `dismiss` is not used. A test pins the one renamed attribute
+Bingo shows: the bar's theme toggle names the shown theme in `data-sk-theme-now`
+(`apps/web/src/shell/shell.test.tsx`; failed on v0.10.0).
 
 ## 2. Per export: what it replaces, what stays, whether it fits
 
@@ -79,6 +89,15 @@ code so the kit stays a development dependency, or the build stage gets `git`.
   `src/server/rateLimit.ts` (the constructor and `validRule`). Bingo keeps its own limiter
   until then.
 
+- **R4, a `ResultFrame` that sits as a panel inside a screen.** What: a variant (or option) of
+  `ResultFrame` without its own page: no `h1` and no one-screen first part, a section heading of
+  the game's level, and names that never break inside their step (no `overflow-wrap: anywhere`).
+  Why: Bingo's final placement is a panel inside the replay, the arena's notice and the host
+  console (owner decision of 2026-11-22: B5 not adopted for now). Where: Bingo
+  `apps/web/src/components/FinalPlacement.tsx` 48–85 (the example), `components/podium.css`,
+  `apps/web/src/minTextSize.test.ts` (the podium rule); kit `src/react/ResultFrame.tsx`,
+  `css/frames.css` 130–160.
+
 ## 5. Done
 
 - **B1** (tokens, fonts, motion, theme): `main.tsx` loads the kit's `fonts.css`, `tokens.css` and `motion.css` before the game's own files; `packages/ui/src/tokens.css` keeps only the arena tokens, `--gutter` and `--panel-padding` (142 → 32 lines); `packages/ui/src/fonts.css` and `assets/fonts/` (the same five files as the kit's, sha256 equal) are gone; `motion.css` lost the unused win glow and the reduced-motion rule (114 → 92); `apps/web/public/theme-init.js` and `shell/theme.ts` are gone, the kit's Vite plugin `themeInit` serves and emits `theme-init.js`, the toggle uses the kit's `useTheme`. The look: 30 screens (sign-in, leaderboard, account, Admin Overview, final placement; 1280×720, 959×700, 390×844; light and dark) pixel for pixel the same before and after.
@@ -91,9 +110,12 @@ code so the kit stays a development dependency, or the build stage gets `git`.
 - **B6** (the header and the dev tools): the header stays Bingo's (§4 R1: the kit's folds below a fixed 960 px; Bingo's bar folds whenever its items do not fit, the decision of 2026-11-21). The dev tools are the kit's: the client's "Dev sign-in" menu is `DevSignIn` (`@seasonal/kit/react/dev`, loaded only in development) with Bingo's identities and sign-in call, styled by Bingo's own rules on the kit's classes (`shell.css` `.sk-dev-menu*`, so the kit's `header.css` is not needed); the server's dev sign-in checks the request with `devSignInAccount` (own keys only, the whole load name); `build.mjs` swaps the dev modules with `devStubPlugin`; `productionBundle.test.ts` scans with `devMarkersIn` and the kit's markers too (`DevTools.tsx` 96 → 67, `devSignIn.ts` 94 → 81). The scan failed with a deliberate leak (a static import of the dev menu; reverted) and passes. The look: 48 screens the same.
 - **B7** (the docked layout, K18): **dropped for this night**, under the task's rule to drop B7 first when time runs short. What it needs before its first step lands: a sweep of every match screen in website mode (the chat is there only), at 1280×720, 1366×768, 1536×768, 1440×900, 1900×860, 1920×1080, 375×667, 360×780, 390×844 and 430×932, light and dark, fitting and passing axe, as an extension of `e2e/acceptance/fitAudit.spec.ts` (which measures standalone screens today; axe would be a new development dependency, `@axe-core/playwright`). The kit's `DockedScreen` puts the chat strip beside the board, so the 1280×720 and 1366×768 boards will likely need fit work. Then step 1 replaces `ChatButton`, `ChatPanel` and `chat.css` (`apps/web/src/shell/ChatDock.tsx`) with `DockedScreen` around the lobby, the match and the console.
 
-## 6. Needs the owner's word
+## 6. Decided by the owner (2026-11-22)
 
-- **B5, the final placement in the kit's `ResultFrame`: kept as Bingo's.** The kit's frame is a result page of its own: its headline an `h1`, its first part one screen high under the bar (`.sk-result-first`, `height: calc(100dvh - var(--sk-result-top))` for a board game) with the reveal and the placings, and `overflow-wrap: anywhere` on the whole result (kit `css/frames.css` 130–160, `src/react/ResultFrame.tsx`). Bingo's final placement is a panel inside the replay, the arena's notice and the host console (`apps/web/src/components/FinalPlacement.tsx` 48–85, an `h3` "Final placement"), and its podium names never break inside their step (the fit rule of `minTextSize.test.ts`). Wrapping it would change what a player sees, and no K decision covers that. To adopt it, Bingo's final screen would become a page of its own (the owner's choice).
+- **B5 is not adopted for now: Bingo keeps its final placement** (request R4). The finding: the kit's frame is a result page of its own: its headline an `h1`, its first part one screen high under the bar (`.sk-result-first`, `height: calc(100dvh - var(--sk-result-top))` for a board game) with the reveal and the placings, and `overflow-wrap: anywhere` on the whole result (kit `css/frames.css` 130–160, `src/react/ResultFrame.tsx`). Bingo's final placement is a panel inside the replay, the arena's notice and the host console (`apps/web/src/components/FinalPlacement.tsx` 48–85, an `h3` "Final placement"), and its podium names never break inside their step (the fit rule of `minTextSize.test.ts`). Wrapping it would change what a player sees, and no K decision covers that.
+
+- **The website-mode top bar at 1280 px stays as it is for now** (it folds for the website admin
+  and for organizers, the back link taking the room): covered by request R1.
 
 ## 7. Noticed, left alone
 
