@@ -1,6 +1,40 @@
 # Morning sheet
 
-The admin area's night (branch `feat/admin-area`, PR #56, not merged): what is done, running, open, reverted and what needs the owner's word. Regenerated after every piece. Source: [docs/concepts/admin-area.md](concepts/admin-area.md) §9 and [admin-values.md](concepts/admin-values.md).
+The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site rehearsal with the admin area (branch `test/rehearsal-admin`); part B, adopting `@seasonal/kit` v0.10.0 (branch `feat/kit-adoption`, PR not merged). Regenerated after every piece. Below it, the admin area's night (PR #56, merged as `a1495bf`).
+
+## Night chain of 2026-11-22
+
+### Done
+
+- Master before the chain: `a1495bf` (merge of PR #56); CI 45002896346 and CodeQL 45002896286 green.
+- A1 `e612fb4`: the rehearsal's browser spec covers the website admin in the admin area (P6: Admin, Overview, maintenance on and off with a reason, both in History; maintenance always switched off at the end), "Start a match" from the battle royale preset (P2) and a member without the right refused (P1: 403 `FORBIDDEN`). Reused: `contextOf`, `keep`, `sessionOf`, `signInAgain`, `state`; new `gamePost` (spec) and `storage` (real-site-admin.sh: the admin's cookie jar as a browser storage state).
+- A3 fixes from the failed nginx run (website `de057d8`):
+  - `ce6ccdc`: the install's output checks (`said_since`) read the results with one awk; the harness's `tail | grep -q` under pipefail failed on the long output (SIGPIPE, exit 141, checked on the failed run's log). P1 waits for the website's Register form (the login page has a Username field too, the name went into it). P6 opens the folded menu first (`openMenu` from `e2e/menu.ts`, mounted read-only into the browser container): in website mode at 1280 px the back link folds the bar for the website admin.
+  - `4af5337`: the database healthcheck in `ops/compose.yml` asks over TCP: on a fresh volume the image's temporary init server answered the socket check, and the installer's psql met it stopping ("the database system is shutting down"). `apps/server/test/postgresHealth.integration.test.ts` failed before, passes now.
+
+### Running
+
+- A2/A3: the fresh nginx rehearsal (KEEP=1), then the fresh caddy rehearsal.
+
+### Open
+
+- A4 docs and the PR of `test/rehearsal-admin`; A5 merge only with both fresh runs without FAIL and CI/CodeQL green.
+- Part B: B0 (docs/concepts/kit-adoption.md, the pin), B1–B6, B7 if B1–B6 are green.
+
+### Reverted
+
+- Nothing.
+
+### Needs the owner's word
+
+- Nothing yet.
+
+### Noticed, left alone
+
+- The first nginx run (fresh) stopped once on the website's own image build (`npm ci` exit 146 after 244 s): Docker downloads inside containers on this PC are slow (46–63 s for a registry fetch against 0.6 s on the host); the website repository is read-only. A second fresh run got past it.
+- `ops/lib/backup.sh` `drill_database` waits with the same socket `pg_isready` and then 2 s; it has worked so far and is left as it is.
+
+# The admin area's night (2026-11-21/22)
 
 ## Done
 
