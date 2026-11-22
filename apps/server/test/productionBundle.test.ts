@@ -10,7 +10,8 @@
  *                 the time-travel route and its "Jump ahead" buttons, the demo league or the
  *                 development server address. The client ships the kit's early theme script
  *                 (theme-init.js, from @seasonal/kit's Vite plugin) and its page loads it.
- * Depends on:     nothing (runs ../build.mjs and the web client's vite build)
+ * Depends on:     @seasonal/kit/devtools (devMarkersIn, KIT_DEV_MARKERS; runs ../build.mjs and
+ *                 the web client's vite build)
  * Spec:           docs/spec/09-deployment-architecture.md §1; docs/spec/03-security-architecture.md §13
  */
 import { spawnSync } from 'node:child_process';
@@ -18,6 +19,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { devMarkersIn, KIT_DEV_MARKERS } from '@seasonal/kit/devtools';
 import { afterAll, describe, expect, it } from 'vitest';
 
 const DEV_MARKERS = [
@@ -45,26 +47,15 @@ function run(cwd: string, args: readonly string[]): void {
   expect(result.status, result.stderr).toBe(0);
 }
 
-// "file: marker" for every shipped file below <dir> that holds a marker.
-function devMarkersIn(dir: string): string[] {
-  const found: string[] = [];
-  for (const entry of readdirSync(dir, { recursive: true, withFileTypes: true })) {
-    if (!entry.isFile() || entry.name.endsWith('.map')) continue;
-    const file = path.join(entry.parentPath, entry.name);
-    const text = readFileSync(file, 'latin1');
-    for (const marker of DEV_MARKERS) {
-      if (text.includes(marker)) found.push(`${path.relative(dir, file)}: ${marker}`);
-    }
-  }
-  return found;
-}
+// Bingo's markers and the kit's (its DevSignIn and its dev sign-in check), via its scan.
+const markersIn = (dir: string) => [...devMarkersIn(dir, [...DEV_MARKERS, ...KIT_DEV_MARKERS])];
 
 describe('production bundles', () => {
   it('leave the development modules out of the server bundle', () => {
     const dir = path.join(out, 'server');
     run(SERVER_DIR, ['build.mjs', dir]);
     expect(readdirSync(dir)).toContain('main.js');
-    expect(devMarkersIn(dir)).toEqual([]);
+    expect(markersIn(dir)).toEqual([]);
   }, 60_000);
 
   it('leave Quick Test, the dev sign-in and the dev server address out of the client; ship the early theme script', () => {
@@ -72,7 +63,7 @@ describe('production bundles', () => {
     const vite = path.join(WEB_DIR, 'node_modules/vite/bin/vite.js');
     run(WEB_DIR, [vite, 'build', '--outDir', dir, '--emptyOutDir', '--logLevel', 'error']);
     expect(readdirSync(dir)).toContain('index.html');
-    expect(devMarkersIn(dir)).toEqual([]);
+    expect(markersIn(dir)).toEqual([]);
     expect(readFileSync(path.join(dir, 'index.html'), 'utf8')).toContain(
       '<script src="theme-init.js"></script>',
     );

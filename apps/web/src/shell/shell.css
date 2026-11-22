@@ -221,14 +221,17 @@
   }
 }
 
-/* Development: one compact sign-in menu instead of four buttons in the bar */
-.dev-menu {
+/* Development: one compact sign-in menu instead of four buttons in the bar (the kit's DevSignIn,
+   @seasonal/kit/react/dev; its classes styled here as Bingo's menu was, header.css is not loaded) */
+.sk-dev-menu {
   position: relative;
 }
 
-.dev-menu-panel {
+.sk-dev-menu-panel {
   /* A menu over the page stays opaque (the website's rule for covering surfaces) */
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
   position: absolute;
   right: 0;
   top: calc(100% + 0.4rem);
@@ -240,8 +243,9 @@
   box-shadow: var(--shadow-raised);
 }
 
-.dev-menu-hint {
+.sk-dev-menu-hint {
   margin: 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-small);
 }
 

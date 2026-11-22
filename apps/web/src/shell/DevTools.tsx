@@ -3,17 +3,20 @@
  * @module web/shell
  * @brief  Development-only parts of the top bar: the "Dev sign-in" menu and the Quick Test link.
  *
- * Responsibility: a compact "Dev sign-in" menu with "Sign in as host" / "Sign in as admin"
- *                 (the admin area's Admin) / "Sign in as player 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
+ * Responsibility: a compact "Dev sign-in" menu (the kit's DevSignIn) with "Sign in as host" /
+ *                 "Sign in as admin" (the admin area's Admin) / "Sign in as owner" / "Sign in as
+ *                 player 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
  *                 navigation link to the Quick Test; `useDevSignIn` for the test page's
  *                 "Sign in as host". Loaded on demand by ./AppShell only
  *                 when Vite's DEV flag is set, so a production bundle contains neither
  *                 these parts nor the quick sign-in call (POST /dev/sign-in).
- * Depends on:     react, ./http, ./router, ./session, ../game/socket
+ * Depends on:     react, @seasonal/kit/react/dev (DevSignIn), ./http, ./router, ./session,
+ *                 ../game/socket
  * Used by:        ./AppShell (lazy import), ../quicktest/TestMatch (development only)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
-import { useState, type ReactElement } from 'react';
+import { DevSignIn as KitDevSignIn } from '@seasonal/kit/react/dev';
+import type { ReactElement } from 'react';
 
 import { resetSocket } from '../game/socket.js';
 import { api } from './http.js';
@@ -51,46 +54,14 @@ export function useDevSignIn(): (as: DevIdentity) => Promise<void> {
   };
 }
 
-// One compact menu instead of four buttons in the bar.
+// One compact menu instead of four buttons in the bar: the kit's, with Bingo's identities.
 export function DevSignIn(): ReactElement {
   const devSignIn = useDevSignIn();
-  const [open, setOpen] = useState(false);
   return (
-    <div className="dev-menu">
-      <button
-        type="button"
-        className="sbr-btn"
-        aria-expanded={open}
-        data-testid="dev-menu"
-        onClick={() => {
-          setOpen(!open);
-        }}
-      >
-        Dev sign-in
-      </button>
-      {open ? (
-        <div className="dev-menu-panel sbr-panel" role="menu">
-          {DEV_IDENTITIES.map((d) => (
-            <button
-              key={d.as}
-              type="button"
-              role="menuitem"
-              className="sbr-btn"
-              data-testid={`dev-sign-in-${d.as}`}
-              onClick={() => {
-                setOpen(false);
-                void devSignIn(d.as);
-              }}
-            >
-              {d.label}
-            </button>
-          ))}
-          <p className="sbr-muted dev-menu-hint">
-            One window holds one sign-in — use a private window or another browser for a second
-            person.
-          </p>
-        </div>
-      ) : null}
-    </div>
+    <KitDevSignIn
+      identities={DEV_IDENTITIES}
+      onSignIn={(as) => devSignIn(as as DevIdentity)}
+      buttonClassName="sbr-btn"
+    />
   );
 }

@@ -10,18 +10,21 @@
  *                 openSession, the old session ended), so the owner can try host and players
  *                 alone in several browser windows. The load check signs in `load-001` …
  *                 `load-200` the same way (`dev-load-NNN`, players) and removes them with
- *                 DELETE /api/v1/dev/load-accounts. The app registers this route only with
- *                 SBR_DEV=1; a test proves a production build answers 404.
- * Depends on:     fastify, zod, ../../auth/*, ../../db/pool, ./auth (openSession)
+ *                 DELETE /api/v1/dev/load-accounts. The request is checked by the kit's
+ *                 devSignInAccount (own keys only, the whole load name). The app registers this
+ *                 route only with SBR_DEV=1; a test proves a production build answers 404.
+ * Depends on:     fastify, @seasonal/kit/devtools, @seasonal/kit/server (types), ../../auth/*,
+ *                 ../../db/pool, ./auth (openSession)
  * Used by:        ../app
- * Spec:           docs/spec/15-implementation-plan.md WP-09 (draft), docs/spec/12-testing-strategy.md §8
+ * Spec:           docs/spec/15-implementation-plan.md WP-09 (draft), docs/spec/12-testing-strategy.md §8;
+ *                 docs/concepts/kit-adoption.md §2 (B6)
  */
+import { devSignInAccount } from '@seasonal/kit/devtools';
+import type { SessionEnds } from '@seasonal/kit/server';
 import type { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 
 import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '@seasonal/kit/server';
 import { accountSessionIds } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
 import { openSession } from './auth.js';
@@ -35,25 +38,10 @@ const DEV_ACCOUNTS = {
   'player-1': { displayName: 'dev-player-1', roles: [] },
   'player-2': { displayName: 'dev-player-2', roles: [] },
   'player-3': { displayName: 'dev-player-3', roles: [] },
-} as const;
+};
 
-// The load check (load/) signs in numbered players: `load-001` … `load-200`.
-const LOAD = /^load-\d{3}$/;
-const body = z.object({
-  as: z.union([
-    z.enum(['host', 'admin', 'owner', 'player-1', 'player-2', 'player-3']),
-    z.string().regex(LOAD),
-  ]),
-});
-
-function devAccount(as: string): {
-  readonly displayName: string;
-  readonly roles: readonly string[];
-} {
-  return as in DEV_ACCOUNTS
-    ? DEV_ACCOUNTS[as as keyof typeof DEV_ACCOUNTS]
-    : { displayName: `dev-${as}`, roles: [] };
-}
+// The development accounts, and the load check's numbered players: `load-001` … `load-200`.
+const RULES = { accounts: DEV_ACCOUNTS, load: /^load-\d{3}$/ };
 
 export function registerDevSignIn(
   app: FastifyInstance,
@@ -61,9 +49,8 @@ export function registerDevSignIn(
 ): void {
   // Starts a session: no CSRF token yet (../../auth/sessionPlugin).
   app.post('/api/v1/dev/sign-in', { config: { sessionStarter: true } }, async (request, reply) => {
-    const parsed = body.safeParse(request.body);
-    if (!parsed.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    const who = devAccount(parsed.data.as);
+    const who = devSignInAccount(request.body, RULES);
+    if (who === null) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
     const accountId = await ensureDevAccount(deps.pool, who.displayName, who.roles);
     await openSession(request, reply, deps, accountId);
     // Nobody knows a development account's password or TOTP: its admin sessions count the
