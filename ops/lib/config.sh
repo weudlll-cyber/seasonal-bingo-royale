@@ -43,7 +43,7 @@ read_saved_answers() {
 # own, e.g. SBR_ALLOWED_ORIGINS) is kept as it is on a re-run.
 ENV_KEYS=(SBR_INSTALL_TYPE SBR_ENV SBR_ENV_FILE SBR_IMAGE POSTGRES_PASSWORD DATABASE_URL
   SBR_DB_OWNER_PASSWORD SBR_DB_APP_PASSWORD SBR_MIGRATION_DATABASE_URL
-  SBR_SEED_KEY SBR_PUBLIC_URL SBR_BASE_PATH SBR_TRUSTED_PROXIES SBR_EXTRA_PROXIES
+  SBR_SEED_KEY SBR_RECOVERY_KEY SBR_PUBLIC_URL SBR_BASE_PATH SBR_TRUSTED_PROXIES SBR_EXTRA_PROXIES
   SBR_SITE_ADDRESS SBR_TLS SBR_WEBSITE_NETWORK SBR_ADMIN_EMAIL SBR_SMTP_HOST SBR_SMTP_PORT
   SBR_SMTP_USER SBR_SMTP_PASSWORD SBR_SMTP_FROM SBR_AGE_RECIPIENT SBR_LOG_LEVEL SBR_AUTH_MODE
   SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH SBR_WEBSITE_LOGIN_PATH
@@ -66,16 +66,19 @@ quoted() {
 
 # write_env <env>: from the answers in SBR_* variables; secrets survive a re-run.
 write_env() {
-  local env=$1 file="$SBR_ETC/$1.env" pg seed proxy public base site tls key extra owner app
+  local env=$1 file="$SBR_ETC/$1.env" pg seed recovery proxy public base site tls key extra owner app
   pg=$(env_value "$file" POSTGRES_PASSWORD)
   owner=$(env_value "$file" SBR_DB_OWNER_PASSWORD)
   app=$(env_value "$file" SBR_DB_APP_PASSWORD)
   seed=$(env_value "$file" SBR_SEED_KEY)
+  recovery=$(env_value "$file" SBR_RECOVERY_KEY)
   proxy=$(env_value "$file" SBR_WEBSITE_PROXY_SECRET)
   [[ -n $pg ]] || pg=$(secret 24)
   [[ -n $owner ]] || owner=$(secret 24)
   [[ -n $app ]] || app=$(secret 24)
   [[ -n $seed ]] || seed=$(secret 32)
+  # The key recovery codes are stored under (K20), never the seed key.
+  [[ -n $recovery ]] || recovery=$(secret 32)
   # The secret the game's route file sends with the identity headers (07 §2.3).
   [[ -n $proxy || $SBR_TYPE != website ]] || proxy=$(secret 32)
   if [[ $SBR_TYPE == website ]]; then
@@ -103,6 +106,7 @@ write_env() {
     quoted DATABASE_URL "$(db_url sbr_app "$app")"
     quoted SBR_MIGRATION_DATABASE_URL "$(db_url sbr_owner "$owner")"
     quoted SBR_SEED_KEY "$seed"
+    quoted SBR_RECOVERY_KEY "$recovery"
     quoted SBR_PUBLIC_URL "$public"
     quoted SBR_BASE_PATH "$base"
     quoted SBR_TRUSTED_PROXIES "$SBR_TRUSTED_PROXIES${extra:+,$extra}"

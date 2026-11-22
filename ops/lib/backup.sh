@@ -5,7 +5,8 @@
 #
 # Responsibility: a backup tars the database dump (pg_dump -Fc in the postgres container), the
 #                 uploads volume minus the maintenance flag (via a helper container) and the env
-#                 file's SBR_SEED_KEY (sealed secrets need it), age-encrypted to the operator's
+#                 file's SBR_SEED_KEY (sealed secrets need it) and SBR_RECOVERY_KEY (the stored
+#                 recovery codes need it; a restore takes the backup's), age-encrypted to the operator's
 #                 public key, written .partial then renamed, group sbr-backup; keeps the 14 newest
 #                 plus the newest of 8 older weeks. A restore needs the age identity, refuses
 #                 another env's backup or seed key unless --force-env, asks, stops the app,
@@ -23,10 +24,11 @@ BACKUP_GROUP=sbr-backup
 
 # do_backup <env>: sets BACKUP_FILE to the new file (runs in this shell, so errors stop it).
 do_backup() {
-  local env=$1 dir="$SBR_BACKUPS/$1" work stamp out recipient image seed
+  local env=$1 dir="$SBR_BACKUPS/$1" work stamp out recipient image seed recovery
   recipient=$(env_value "$SBR_ETC/$env.env" SBR_AGE_RECIPIENT)
   image=$(env_value "$SBR_ETC/$env.env" SBR_IMAGE)
   seed=$(env_value "$SBR_ETC/$env.env" SBR_SEED_KEY)
+  recovery=$(env_value "$SBR_ETC/$env.env" SBR_RECOVERY_KEY)
   [[ -n $recipient ]] || die "no age public key in $SBR_ETC/$env.env (SBR_AGE_RECIPIENT)"
   [[ -n $seed ]] || die "no SBR_SEED_KEY in $SBR_ETC/$env.env: without it no backup can be opened again"
   command -v age >/dev/null || die "age is not installed (apt-get install age)"
@@ -39,11 +41,13 @@ do_backup() {
   # must not bring them back (audit M3).
   docker run --rm --entrypoint tar -v "sbr-${env}_uploads:/data:ro" "$image" \
     -C /data --exclude=./maintenance --exclude=./website-feed -cf - . >"$work/uploads.tar"
-  # Only the seed key of the env file travels with the backup (inside the encryption).
+  # Only the seed key and the recovery key (K20: the stored recovery codes need it) of the env
+  # file travel with the backup (inside the encryption).
   printf '%s\n' "$seed" >"$work/seed.key"
+  printf '%s\n' "$recovery" >"$work/recovery.key"
   install -d -m 0750 -g "$BACKUP_GROUP" "$SBR_BACKUPS" "$dir"
   cleanup_path "$out.partial"
-  tar -C "$work" -cf - db.dump uploads.tar seed.key | age -r "$recipient" >"$out.partial"
+  tar -C "$work" -cf - db.dump uploads.tar seed.key recovery.key | age -r "$recipient" >"$out.partial"
   chgrp "$BACKUP_GROUP" "$out.partial"
   chmod 0640 "$out.partial"
   mv "$out.partial" "$out"
@@ -87,6 +91,18 @@ backup_seed_key() {
   tr -d '[:space:]' <"$1/seed.key"
 }
 
+# restore_recovery_key <env> <unpacked backup>: the backup's recovery key (K20) replaces the
+# env file's, as the restored recovery codes are stored under it. A backup made before the key
+# carries none: the env file keeps its own (codes stored before it still work, K27).
+restore_recovery_key() {
+  local key
+  [[ -s $2/recovery.key ]] || return 0
+  key=$(tr -d '[:space:]' <"$2/recovery.key")
+  [[ -n $key && $key != "$(env_value "$SBR_ETC/$1.env" SBR_RECOVERY_KEY)" ]] || return 0
+  set_env_value "$SBR_ETC/$1.env" SBR_RECOVERY_KEY "$key"
+  info "The backup's recovery key is now the one of $1."
+}
+
 # choose_seed_key <env> <backup key> <force-env>: sets RESTORE_SEED_KEY to the key the env
 # file holds after the restore. The environment's own key when the backup has none or the
 # same one; the backup's when the env file has none; another key stops unless --force-env,
@@ -124,6 +140,7 @@ do_restore() {
   if [[ $RESTORE_SEED_KEY != "$(env_value "$SBR_ETC/$env.env" SBR_SEED_KEY)" ]]; then
     set_env_value "$SBR_ETC/$env.env" SBR_SEED_KEY "$RESTORE_SEED_KEY"
   fi
+  restore_recovery_key "$env" "$work"
   # up, not start: a changed env file (the seed key) recreates the app container.
   compose "$env" up -d
   restart_app_done

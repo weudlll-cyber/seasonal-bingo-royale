@@ -66,6 +66,13 @@ const envSchema = z.object({
     .string()
     .regex(/^[0-9a-f]{64}$/i)
     .optional(),
+  // HMAC key (64 hex characters) that recovery codes are stored under (K20; never the seed
+  // key, which seals the TOTP secrets); required in production, a fixed development key
+  // otherwise (./seedKey recoveryKeyFrom).
+  SBR_RECOVERY_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i)
+    .optional(),
   // Where the app is reachable: "/" standalone, "/games/bingo/" inside the website (09 §1).
   SBR_BASE_PATH: z
     .string()

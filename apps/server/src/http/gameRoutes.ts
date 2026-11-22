@@ -27,6 +27,7 @@ import type { SessionEnds } from '../auth/sessionEnds.js';
 import type { SettingsStore } from '../admin/settings.js';
 import type { Env } from '../config/env.js';
 import type { Switches } from '../config/features.js';
+import { recoveryKeyFrom } from '../config/seedKey.js';
 import { technicalDefaults, type LiveTechnical } from '../config/technical.js';
 import type { MaintenanceCheck } from '../config/maintenance.js';
 import type { DbPool } from '../db/pool.js';
@@ -159,7 +160,8 @@ function registerAdminArea(fastify: FastifyInstance, deps: GameRouteDeps): void 
     website: deps.env.SBR_AUTH_MODE === 'website',
     defaults: technicalDefaults(deps.env),
     technical: deps.technical,
-    seedKey: deps.seedKey,
+    // The step-up's code: the TOTP secret's seal and the recovery codes' key (K20).
+    keys: { seal: deps.seedKey, recovery: recoveryKeyFrom(deps.env) },
   });
   // Players and accounts: standalone only; the website decides accounts and roles (D41, D46).
   if (deps.env.SBR_AUTH_MODE === 'local')

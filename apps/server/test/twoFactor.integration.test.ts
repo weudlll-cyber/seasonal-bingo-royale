@@ -6,16 +6,21 @@
  * Responsibility: a local admin's session has no rights until its second step: the first
  *                 sign-in enrols (QR code and link; the first code makes it live and returns ten
  *                 recovery codes), later sign-ins ask for a code (never the same step twice) or
- *                 a recovery code (each once); wrong answers are limited per session; `reset-2fa`
+ *                 a recovery code (each once; stored as an HMAC under the install's recovery key,
+ *                 K20, and a code stored as the plain SHA-256 of before still works once, K27);
+ *                 wrong answers are limited per session; `reset-2fa`
  *                 (../src/auth/twoFactor resetTwoFactor) ends the sessions and brings the
  *                 enrolment back. A player is never asked. Its accounts are removed.
- * Depends on:     vitest, ../src/auth/*, ./harness
+ * Depends on:     vitest, node:crypto, @seasonal/kit/server (hotp, stepAt, base32Decode),
+ *                 ../src/auth/*, ./harness
  * Spec:           docs/spec/03-security-architecture.md §1, §13
  */
+import { createHash } from 'node:crypto';
+
+import { base32Decode, hotp, stepAt } from '@seasonal/kit/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
-import { codeAt, stepAt } from '../src/auth/totp.js';
 import { resetTwoFactor } from '../src/auth/twoFactor.js';
 import { startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
 
@@ -77,25 +82,12 @@ async function signIn(email = EMAIL): Promise<Seat> {
 }
 
 // The secret of an otpauth:// link (base32 → bytes).
-function secretOf(uri: string): Uint8Array {
-  const text = new URL(uri).searchParams.get('secret') ?? '';
-  let bits = 0;
-  let value = 0;
-  const out: number[] = [];
-  for (const ch of text) {
-    value = (value << 5) | 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.indexOf(ch);
-    bits += 5;
-    if (bits >= 8) {
-      bits -= 8;
-      out.push((value >> bits) & 0xff);
-    }
-  }
-  return new Uint8Array(out);
-}
+const secretOf = (uri: string): Uint8Array =>
+  base32Decode(new URL(uri).searchParams.get('secret') ?? '') ?? new Uint8Array();
 
 let secret: Uint8Array = new Uint8Array();
 let recovery: string[] = [];
-const code = (offset = 0) => codeAt(secret, stepAt(Date.now()) + offset);
+const code = (offset = 0) => hotp(secret, stepAt(Date.now()) + offset);
 
 describe('admin two-factor sign-in (D60)', () => {
   it('enrols at the first sign-in: no rights before, ten recovery codes after the first code', async () => {
@@ -148,6 +140,36 @@ describe('admin two-factor sign-in (D60)', () => {
     for (let i = 0; i < 6; i += 1)
       codes.push((await inject('POST', '/auth/2fa/verify', seat, { code: '000000' })).statusCode);
     expect(codes).toEqual([400, 400, 400, 400, 400, 429]);
+  });
+});
+
+// After the tests above: `recovery` holds the codes the first sign-in received.
+describe("recovery codes under the install's key (K20, K27), then reset-2fa", () => {
+  it('stores the recovery codes keyed, never as their plain SHA-256 (K20)', async () => {
+    const plain = recovery.map((c) => createHash('sha256').update(c).digest('hex'));
+    const stored = await harness.pool.query<{ hash: string }>(
+      `SELECT encode(code_hash, 'hex') AS hash FROM sbr.recovery_codes r
+         JOIN sbr.accounts a ON a.id = r.account_id WHERE a.display_name_key = 'boss'`,
+    );
+    expect(stored.rows).toHaveLength(10);
+    for (const row of stored.rows) expect(plain).not.toContain(row.hash);
+  });
+
+  it('takes a code stored before the change, as its plain SHA-256, once (K27)', async () => {
+    const old = '0a1b2c3d4e';
+    await harness.pool.query(
+      `INSERT INTO sbr.recovery_codes (account_id, code_hash)
+         SELECT id, $1 FROM sbr.accounts WHERE display_name_key = 'boss'`,
+      [createHash('sha256').update(old).digest()],
+    );
+    const first = await signIn();
+    expect(
+      (await inject('POST', '/auth/2fa/verify', first, { recoveryCode: old })).statusCode,
+    ).toBe(204);
+    const second = await signIn();
+    expect(
+      (await inject('POST', '/auth/2fa/verify', second, { recoveryCode: old })).statusCode,
+    ).toBe(400);
   });
 
   it('enrols again after reset-2fa, which ends the sessions', async () => {
