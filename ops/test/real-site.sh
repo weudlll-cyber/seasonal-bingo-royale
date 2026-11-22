@@ -11,7 +11,8 @@
 #                 Then, in that server: the bingo install from this repository's committed tree
 #                 with the documented one command (./real-site.exp), the browser phases
 #                 (./realSite.spec.ts: guest, join through the website's login and registration,
-#                 the chat room, the right to start games, lock, unlock, delete) around the
+#                 the chat room, the right to start games and "Start a match" from a preset,
+#                 lock, unlock, delete, the website admin in the admin area) around the
 #                 website admin's steps (./real-site-admin.sh), and the website's own checks and
 #                 an unchanged website after the install, a re-run, `sbr update` and
 #                 `sbr uninstall`. Prints PASS/FAIL per check and the website SHA. Everything it
@@ -93,6 +94,10 @@ phases() {
   probe browser P4
   admin delete "$(state_value member)"
   probe browser P5
+  # The website admin's sessions (website and game, signed in again) for the admin phase.
+  admin admin-login
+  admin storage admin >"$STATE/admin.storage.json"
+  probe browser P6
   for code in "$(state_value watch)" "$(state_value hosted)"; do [[ -z $code ]] || admin abort admin "$code" >/dev/null || true; done
 }
 
