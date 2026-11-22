@@ -111,8 +111,11 @@ services:
       - no-new-privileges:true
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Over TCP: on a fresh volume the image's temporary init server answers on the socket only,
+    # and the installer's psql right after `up --wait` must not meet it as it stops.
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U sbr -d sbr']
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U sbr -d sbr']
+      start_period: 60s
       interval: 5s
       timeout: 3s
       retries: 20
