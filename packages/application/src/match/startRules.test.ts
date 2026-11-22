@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MatchError } from './engine.js';
 import { fakeEngine } from './fakes.js';
-import { tooFewAtStart } from './startRules.js';
+import { lobbyTooFewReason, tooFewAtStart } from './startRules.js';
 
 const base = {
   title: 't',
@@ -251,5 +251,18 @@ describe('a late or stale automatic start (D16)', () => {
     await t.engine.handle({ matchId: t.id, kind: 'auto_start', dueAt: t.at });
     expect(t.store.records.get(t.id)?.startsAt).toBeNull();
     expect(t.scheduler.pending).toHaveLength(0);
+  });
+});
+
+describe('the reason an asynchronous lobby closes with (admin-area §8 (n))', () => {
+  it("names the ruleset's lobby window, not a fixed 24 hours", () => {
+    const lobby = (openMsAsync: number) => ({
+      ...classicRealtimeDefault,
+      lobby: { ...classicRealtimeDefault.lobby, openMsAsync },
+    });
+    expect(lobbyTooFewReason(lobby(24 * 3_600_000))).toBe('Too few players joined within 24 hours');
+    expect(lobbyTooFewReason(lobby(12 * 3_600_000))).toBe('Too few players joined within 12 hours');
+    expect(lobbyTooFewReason(lobby(3_600_000))).toBe('Too few players joined within 1 hour');
+    expect(lobbyTooFewReason(lobby(90 * 60_000))).toBe('Too few players joined within 90 minutes');
   });
 });

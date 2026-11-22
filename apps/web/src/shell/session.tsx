@@ -8,8 +8,11 @@
  *                 sign-in, registration and sign-out (the development quick sign-in lives
  *                 in ./DevTools, outside the production bundle, and calls `refresh`).
  *                 Only the newest refresh sets the session (an older answer arriving late
- *                 never undoes a sign-in). Screens read it through `useSession`.
- * Depends on:     react, ./http, ../game/socket
+ *                 never undoes a sign-in). Screens read it through `useSession`, forms the
+ *                 server's limits through `useLimits` (admin-area §8 (m)) and the screen values
+ *                 through `useScreens` (§8 (i)); `highestRole` names the session's highest role
+ *                 (owner, admin, organizer, player) for the account chip.
+ * Depends on:     react, @sbr/contracts (types), ./http, ../game/socket
  * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn,
  *                 ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture,
  *                 ../account/AccountPage, ../league/LeaderboardPage
@@ -26,6 +29,13 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
+
+import {
+  clientScreensOf,
+  SCREEN_DEFAULTS,
+  type ClientLimits,
+  type ClientScreens,
+} from '@sbr/contracts';
 
 import { resetSocket } from '../game/socket.js';
 import { api, setCsrfToken } from './http.js';
@@ -45,6 +55,11 @@ interface SessionInfo {
   readonly signInPath?: string;
   // Website mode: the website's chat room and its embed page on the same site (07 §6).
   readonly chat?: { readonly path: string; readonly room: string };
+  // The limits the server checks forms with; forms read them here and keep no copy
+  // (admin-area §8 (m)).
+  readonly limits?: ClientLimits;
+  // What players see that is not a rule (admin-area §8 (i)), read at page load.
+  readonly screens?: ClientScreens;
 }
 
 interface SessionContextValue {
@@ -132,4 +147,25 @@ export function useSession(): SessionContextValue {
   const value = useContext(SessionContext);
   if (value === null) throw new Error('useSession outside SessionProvider');
   return value;
+}
+
+// The server's form limits, or null until the session has answered.
+// The highest role a session holds, for the account chip: the owner changes the Technical
+// section, an Admin sees the admin area, an organizer starts matches, else a player.
+export function highestRole(can: (permission: string) => boolean): string {
+  if (can('technical.edit')) return 'owner';
+  if (can('admin.view')) return 'admin';
+  return can('match.create') ? 'organizer' : 'player';
+}
+
+export function useLimits(): ClientLimits | null {
+  return useContext(SessionContext)?.session?.limits ?? null;
+}
+
+const TODAY_SCREENS = clientScreensOf(SCREEN_DEFAULTS);
+
+// The screen values ("Screens and texts", admin-area §8 (i)): the server's, today's until the
+// session has answered.
+export function useScreens(): ClientScreens {
+  return useContext(SessionContext)?.session?.screens ?? TODAY_SCREENS;
 }

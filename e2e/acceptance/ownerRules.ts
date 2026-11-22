@@ -3,8 +3,9 @@
  * @module e2e/acceptance
  * @brief  The owner's rules D12–D15 asserted on screen during the real-game play-through.
  *
- * Responsibility: D12 — the create form and the live seconds field refuse an interval
- *                 below the longest tap time plus 1 s with a plain message; D13 — after a
+ * Responsibility: D12 — the live seconds field refuses an interval below the longest tap
+ *                 time plus 1 s with a plain message (a new match's speeds are checked with its
+ *                 preset); D13 — after a
  *                 host draw, Draw next counts down to its unlock; D14 — with "host starts
  *                 the next round", players read "Waiting for the host to start round N" and
  *                 no round starts on its own (checked over a wait longer than the default
@@ -18,19 +19,6 @@
 import { expect, type Page } from '@playwright/test';
 
 import type { LivePlayer } from './livePlayer.js';
-
-// D12 in the create form: missed numbers marked after 5 s, so 6 s is the shortest interval.
-export async function checkShortestIntervalForm(host: Page): Promise<void> {
-  await host.goto('/#/host/new');
-  await host.getByTestId('missed-numbers').selectOption('autoMarkAfter');
-  await host.getByTestId('missed-delay').fill('5');
-  await host.getByTestId('start-draw-interval').fill('5');
-  await expect(host.getByTestId('create-interval-problem')).toContainText('at least 6 seconds');
-  await host.getByTestId('start-draw-interval').fill('6');
-  await expect(host.getByTestId('create-interval-problem')).toHaveCount(0);
-  // A fresh form for the match that follows (the form keeps its values while mounted).
-  await host.reload();
-}
 
 // D12 in the console: a too-short interval is not sent; the message says why.
 export async function checkShortestIntervalLive(host: Page): Promise<void> {

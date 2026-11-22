@@ -11,11 +11,11 @@
  *                 of rushing. With "the host starts the next round" each card shows for
  *                 CALM_CARD_MS and they loop. Display only: nothing here computes a score or a
  *                 ranking.
- * Depends on:     @sbr/contracts (types), ./labels (types)
+ * Depends on:     @sbr/contracts (SCREEN_DEFAULTS, types), ./labels (types)
  * Used by:        ./Interlude, ../components/Playback (types), ../quicktest/Simulation (types)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20)
  */
-import type { RoundRecap } from '@sbr/contracts';
+import { SCREEN_DEFAULTS, type RoundRecap } from '@sbr/contracts';
 
 import type { RecapCard } from './labels.js';
 
@@ -23,7 +23,7 @@ import type { RecapCard } from './labels.js';
 // 9–23 words (climber 9, facts 12, top three 16, seasons and speed 19, a cut with eight
 // names 23); at 200 words a minute plus about a second to find one's way on a new card that
 // is 3.7–7.9 s, 5.7 s on average. Names in a list are skimmed rather than read, so 5 s.
-export const CALM_CARD_MS = 5_000;
+export const CALM_CARD_MS = SCREEN_DEFAULTS.recapCardMs;
 
 // The order on screen, and which cards stay when the pause is short.
 const SHOWN_IN: readonly RecapCard[] = ['top', 'climber', 'cut', 'seasons', 'facts'];
@@ -53,20 +53,22 @@ function hasContent(recap: RoundRecap, card: RecapCard): boolean {
   }
 }
 
-// `leftMs`: the time left in a timed pause when the interlude appears (null: the whole pause).
+// `leftMs`: the time left in a timed pause when the interlude appears (null: the whole pause);
+// `cardMs`: a card's calm reading time ("Screens and texts", admin-area §8 (i)).
 export function planInterlude(
   recap: RoundRecap,
   pause: Pause,
   leftMs: number | null,
+  cardMs = CALM_CARD_MS,
 ): InterludePlan {
   const withContent = KEPT_FIRST.filter((card) => hasContent(recap, card));
   if (pause.kind === 'host') {
-    return { cards: inShownOrder(withContent), cardMs: CALM_CARD_MS, loop: true };
+    return { cards: inShownOrder(withContent), cardMs, loop: true };
   }
   const time = Math.max(0, leftMs ?? pause.ms);
-  const fit = Math.max(1, Math.min(withContent.length, Math.floor(time / CALM_CARD_MS)));
+  const fit = Math.max(1, Math.min(withContent.length, Math.floor(time / cardMs)));
   const cards = inShownOrder(withContent.slice(0, fit));
-  return { cards, cardMs: Math.max(CALM_CARD_MS, time / cards.length), loop: false };
+  return { cards, cardMs: Math.max(cardMs, time / cards.length), loop: false };
 }
 
 function inShownOrder(cards: readonly RecapCard[]): readonly RecapCard[] {

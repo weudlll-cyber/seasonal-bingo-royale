@@ -9,7 +9,8 @@
  *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
  *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
  *                 "Register" (../account; in website mode one "Sign in" to the website, D37);
- *                 below 960 px links and account fold into one menu button (./MenuFold).
+ *                 links and account fold into one menu button whenever they do not fit on one
+ *                 row (./MenuFold).
  *                 Below the bar the current route's screen (boards and
  *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
  *                 the lobby and create form show the maintenance page, the host console a banner
@@ -19,13 +20,15 @@
  * Depends on:     react, ./router, ./session, ./ThemeToggle, ./MenuFold, ./Maintenance,
  *                 ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
- *                 development only), ../game/*, ../host/*, ../account/*, ../league/*, ./shell.css,
+ *                 development only), ../admin/AdminArea, ../game/*, ../host/*, ../account/*,
+ *                 ../league/*, ./shell.css,
  *                 assets/brand/emblem.webp
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
 import { lazy, Suspense, type ReactElement } from 'react';
 
+import { AdminArea } from '../admin/AdminArea.js';
 import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
@@ -34,7 +37,7 @@ import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSig
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
-import { CreateMatch } from '../host/CreateMatch.js';
+import { StartMatch } from '../host/StartMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
@@ -42,7 +45,7 @@ import { ChatButton, ChatPanel, useChatDock, type ChatDock } from './ChatDock.js
 import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { MenuFold } from './MenuFold.js';
-import { useSession } from './session.js';
+import { highestRole, useSession } from './session.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
@@ -87,7 +90,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
         </a>
         {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
         <ThemeToggle />
-        {/* Below 960 px the navigation and the account fold into one menu button; it closes
+        {/* When they do not fit on one row the navigation and the account fold into one menu
+            button (always below 960 px); it closes
             on a new route, another sign-in, or when the chat opens from it. */}
         <MenuFold
           where={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)}`}
@@ -137,6 +141,8 @@ function Nav({ route, dev, chat }: NavProps): ReactElement {
         'Leaderboard',
         route.name === 'leaderboard' || route.name === 'player',
       )}
+      {/* The admin area, for Admins only (admin-area §8 (a)); the server checks every call. */}
+      {can('admin.view') ? link({ name: 'admin' }, 'Admin', route.name === 'admin') : null}
       {dev && QuickTestLink !== null ? (
         <Suspense fallback={null}>
           <QuickTestLink active={route.name === 'quicktest'} />
@@ -160,7 +166,7 @@ function Account({ dev }: { readonly dev: boolean }): ReactElement {
             data-testid="signed-in-as"
           >
             <span className="chip-prefix">Signed in as </span>
-            {session.account.displayName} ({can('match.create') ? 'host' : 'player'})
+            {session.account.displayName} ({highestRole(can)})
           </a>
           <button
             type="button"
@@ -217,7 +223,7 @@ function Screen({ route, dev }: { readonly route: Route; readonly dev: boolean }
     case 'match':
       return <MatchScreen key={`${route.code}-${who}`} code={route.code} />;
     case 'hostNew':
-      return <CreateMatch />;
+      return <StartMatch />;
     case 'host':
       return <HostConsole key={`${route.code}-${who}`} code={route.code} />;
     case 'verify':
@@ -239,11 +245,13 @@ type AccountRoute = Extract<
       | 'resetPassword'
       | 'account'
       | 'leaderboard'
-      | 'player';
+      | 'player'
+      | 'admin';
   }
 >;
 
-// The screens around the player: sign-in, register, account, leaderboard and profiles.
+// The screens around the player: sign-in, register, account, leaderboard and profiles; the
+// admin area's Overview.
 function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElement {
   switch (route.name) {
     case 'signIn':
@@ -260,6 +268,8 @@ function AccountScreen({ route }: { readonly route: AccountRoute }): ReactElemen
       return <LeaderboardPage periodId={route.periodId} />;
     case 'player':
       return <ProfilePage key={route.displayName} displayName={route.displayName} />;
+    case 'admin':
+      return <AdminArea section={route.section} />;
   }
 }
 

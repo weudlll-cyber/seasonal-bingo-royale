@@ -52,18 +52,18 @@ test('the next action after an idle game session re-signs through the website on
   await page.context().addCookies([{ name: 'stub_user', value: 'w-41', url: stack.origin }]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/host/new`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Idle_Admin');
-  await expect(page.getByTestId('create-title')).toBeVisible();
+  await expect(page.getByTestId('start-title')).toBeVisible();
   stack.expireSessions();
   expect((await sessionOf(page)).signedIn).toBe(false);
   // The next action: create a match. It goes through the website and back to this page.
-  await page.getByTestId('create-title').fill('After idle');
+  await page.getByTestId('start-title').fill('After idle');
   await page.getByTestId('create-submit').click();
   await expect.poll(async () => (await sessionOf(page)).signedIn, { timeout: 20_000 }).toBe(true);
   await expect(page).toHaveURL(`${stack.origin}${BASE}/#/host/new`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Idle_Admin');
   await expect(page.locator('body')).not.toContainText('website login');
   // Signed in again: the action works.
-  await page.getByTestId('create-title').fill('After idle');
+  await page.getByTestId('start-title').fill('After idle');
   await page.getByTestId('create-submit').click();
   await expect(page.getByTestId('host-console')).toBeVisible();
   const code = (await page.getByTestId('host-code').innerText()).trim();

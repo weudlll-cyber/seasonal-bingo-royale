@@ -7,9 +7,11 @@
  *                 wins, best placement, Season Completes (counted without matches with bots,
  *                 as one line says, D29), the badges and the last 10 finished matches (place of
  *                 how many, whether they gave league points and if not why, a link to the
- *                 match) exactly as sent — no e-mail, no real name (01 §10). An unknown name
- *                 says so.
- * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/router, ./useApiGet, ./league.css
+ *                 match) exactly as sent — no e-mail, no real name (01 §10) — and the corrections
+ *                 of the player's league points with their reasons (admin-area §4). An unknown
+ *                 name says so.
+ * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../game/labels,
+ *                 ../shell/router, ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
@@ -17,6 +19,7 @@ import type { LeagueOutcome, PlayerProfile, ProfileMatch } from '@sbr/contracts'
 import type { ReactElement } from 'react';
 
 import { StepBadges } from '../components/StepBadges.js';
+import { pointsDelta } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useApiGet } from './useApiGet.js';
 import './league.css';
@@ -83,6 +86,7 @@ function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
           ))
         )}
       </div>
+      <Corrections p={p} />
       <h2>Recent matches</h2>
       {p.recentMatches.length === 0 ? (
         <p className="sbr-muted">No finished matches yet.</p>
@@ -93,6 +97,24 @@ function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
           ))}
         </ol>
       )}
+    </>
+  );
+}
+
+// Corrections of the player's league points with the admin's reason (admin-area §4).
+function Corrections({ p }: { readonly p: PlayerProfile }): ReactElement | null {
+  if (p.corrections === undefined) return null;
+  return (
+    <>
+      <h2>League point corrections</h2>
+      <ul className="league-matches" data-testid="profile-corrections">
+        {p.corrections.map((c) => (
+          <li key={c.at} className="league-match">
+            <strong>{pointsDelta(c.delta)}</strong> — {c.reason}
+            <span className="sbr-muted"> · {new Date(c.at).toLocaleDateString()}</span>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }

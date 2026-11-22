@@ -70,6 +70,11 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
       data-seq={live.seq}
     >
       <ConsoleHead live={live} view={view} />
+      {/* Under the title on desktop, below the console on a phone (host.css), as on the
+          player's screen: a phone keeps Draw next in view when a season line wraps. */}
+      <p className="sbr-muted host-rules">
+        {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}
+      </p>
       {live.match.status === 'lobby' ? <HostLobby live={live} view={view} /> : null}
       {live.match.status === 'aborted' ? <MatchCancelled live={live} titled={false} /> : null}
       {live.match.status === 'running' || live.match.status === 'finished' ? (
@@ -79,7 +84,7 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
   );
 }
 
-// Title, code, status and progress, the rules line and the running badge.
+// Title, code, status and progress, and the running badge.
 function ConsoleHead({
   live,
   view,
@@ -99,9 +104,6 @@ function ConsoleHead({
           {live.match.status === 'running' || live.match.status === 'finished'
             ? ` · ${progressText(live, view)}`
             : null}
-        </p>
-        <p className="sbr-muted">
-          {gameTypeName(live.match.gameType)} · {rulesLine(live.match)}
         </p>
         {/* In the header (the window-filling grid's auto row) in the lobby and while
             running alike, so the start does not remount it mid-jump. */}

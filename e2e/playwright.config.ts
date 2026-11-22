@@ -20,14 +20,21 @@ import { CLIENT_URL, REPO_ROOT, SERVER_URL, databaseUrl, mailpit } from './devSt
 
 const CI = process.env['CI'] !== undefined;
 
-// Specs whose checks depend on browser timers firing on time, and the maintenance spec,
-// which switches the whole server: they run alone, after every other spec of the browser.
+// Specs whose checks depend on browser timers firing on time, and the specs that switch the
+// whole server (maintenance, the admin area's maintenance and switches): they run alone,
+// after every other spec of the browser.
 const TIMING = [
   'missedNumbers.spec.ts',
   'drawControl.spec.ts',
   'manual.spec.ts',
   'newRun.spec.ts',
   'maintenance.spec.ts',
+  'adminMaintenance.spec.ts',
+  'adminHistory.spec.ts',
+  'adminPresets.spec.ts',
+  'adminLeague.spec.ts',
+  'adminScreens.spec.ts',
+  'adminTechnical.spec.ts',
 ];
 const ACCEPTANCE = process.env['SBR_ACCEPTANCE'] === '1' ? [] : ['acceptance/**'];
 const ALL_BROWSERS = [

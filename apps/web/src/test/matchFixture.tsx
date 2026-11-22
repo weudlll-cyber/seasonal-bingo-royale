@@ -6,19 +6,24 @@
  * Responsibility: `matchSummary` — an open royale match with host draws, changed by the
  *                 fields a test gives; `serveMatch` stubs fetch with the signed-in host's
  *                 session, the lobby list, the player's own matches, the away summary and the
- *                 live state of one match; `show` renders inside the session provider and lets
- *                 the first fetches settle. Test support only.
+ *                 live state of one match (the session with the server's form limits); `show`
+ *                 renders inside the session provider and lets the first fetches settle,
+ *                 `serveWithLimits` / `showWithLimits` serve that session for a form on its own,
+ *                 `renderInSession` renders in the provider for tests on fake timers. Both serve
+ *                 the published presets (`START_PRESETS`) for "Start a match".
+ *                 Test support only.
  * Depends on:     @testing-library/react, @sbr/contracts (types), ../game/useLiveMatch (types),
  *                 ./quickTestFixture,
  *                 ../shell/session
  * Used by:        the component tests (test helper)
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/12-testing-strategy.md §2
  */
-import type { AwaySummary, MyMatch } from '@sbr/contracts';
+import { LIMITS, type AwaySummary, type MyMatch } from '@sbr/contracts';
 import { act, render } from '@testing-library/react';
 import { vi } from 'vitest';
 
 import type { MatchSummary } from '../game/useLiveMatch.js';
+import type { StartPreset } from '../host/startForm.js';
 import { royaleFixture } from './quickTestFixture.js';
 import { SessionProvider } from '../shell/session.js';
 
@@ -59,11 +64,45 @@ export function matchSummary(over: Partial<MatchSummary> = {}): MatchSummary {
   };
 }
 
+// The published presets as GET /presets sends them: a live and an asynchronous royale and a
+// classic one (admin-area §3).
+const ROYALE_PRESET: StartPreset = {
+  id: 'royale-realtime',
+  name: 'Battle royale',
+  gameType: 'royale',
+  mode: 'realtime',
+  description: 'About 45 min',
+  players: { min: 4, max: 100, start: 20 },
+  speedsMs: { relaxed: 8_000, normal: 5_000, quick: 4_000 },
+  starts: { now: true, at: true, whenFull: false },
+  countsForLeaderboard: true,
+};
+export const START_PRESETS: readonly StartPreset[] = [
+  ROYALE_PRESET,
+  {
+    ...ROYALE_PRESET,
+    id: 'royale-async',
+    name: 'Asynchronous battle royale',
+    mode: 'async',
+    description: '',
+    speedsMs: { relaxed: 1_800_000, normal: 900_000, quick: 300_000 },
+  },
+  {
+    ...ROYALE_PRESET,
+    id: 'classic-realtime',
+    name: 'Classic',
+    gameType: 'classic',
+    countsForLeaderboard: false,
+  },
+];
+
+// The server's form limits as the session answer carries them (admin-area §8 (m)).
 const HOST_SESSION = {
   signedIn: true,
   account: { id: 'h', displayName: 'dev-host' },
   permissions: ['match.join', 'match.create', 'match.manage'],
   csrfToken: 'x',
+  limits: LIMITS,
 };
 
 // Answers the session, the lobby list (this one match) with the player's own matches (none
@@ -79,6 +118,7 @@ export function serveMatch(
     if (url.endsWith('/session')) return HOST_SESSION;
     if (url.endsWith('/matches')) return { matches: [match], mine };
     if (url.endsWith('/away-summary')) return { summary: away };
+    if (url.endsWith('/presets')) return { presets: START_PRESETS };
     return { match, seq: 0, since: 0, me: 'owner-01', view };
   };
   const fetch = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(answer(url)))));
@@ -91,4 +131,39 @@ export async function show(ui: React.ReactElement): Promise<void> {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
+}
+
+type Answer = (url: string, init?: RequestInit) => unknown;
+
+// The signed-in host's session with the server's limits; every other request answers
+// `answer(url)` (an empty object unless given). Returns the fetch stub.
+export function serveWithLimits(
+  answer: Answer = (url) => (url.endsWith('/presets') ? { presets: START_PRESETS } : {}),
+): ReturnType<typeof vi.fn> {
+  const fetch = vi.fn((url: string, init?: RequestInit) =>
+    Promise.resolve(
+      new Response(JSON.stringify(url.endsWith('/session') ? HOST_SESSION : answer(url, init))),
+    ),
+  );
+  vi.stubGlobal('fetch', fetch);
+  return fetch;
+}
+
+// Inside the session provider, for tests on fake timers: the session's answer arrives through
+// promises only, so a few turns of the microtask queue let it settle (no timer runs).
+export async function renderInSession(ui: React.ReactElement): Promise<void> {
+  render(<SessionProvider>{ui}</SessionProvider>);
+  await act(async () => {
+    for (let turn = 0; turn < 20; turn += 1) await Promise.resolve();
+  });
+}
+
+// A form on its own, inside the session provider with that session.
+export async function showWithLimits(
+  ui: React.ReactElement,
+  answer?: Answer,
+): Promise<ReturnType<typeof vi.fn>> {
+  const fetch = serveWithLimits(answer);
+  await show(ui);
+  return fetch;
 }

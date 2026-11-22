@@ -4,14 +4,13 @@
  * @module web/game
  * @brief  Asynchronous matches on screen: the create form, the rules line, quiet hours, "While you were away".
  *
- * Responsibility: the create form offers the asynchronous pace for the royale only and sends
- *                 the mode, the minutes, the quiet hours and the browser's time zone (a
- *                 realtime match sends none of them); the rules line says "every 15 minutes"
+ * Responsibility: (a new asynchronous match comes from its preset: ../host/startMatch.test)
+ *                 the rules line says "every 15 minutes"
  *                 and the quiet hours; a player's screen shows the quiet-hours notice and the
  *                 server's away summary on top, which Dismiss removes, no speed window or bar
  *                 and "In progress"; the console takes minutes and, in development, has "Jump
  *                 ahead"; the first answer is shown also when strict mode ran the fetch twice.
- * Depends on:     @testing-library/react, react, ../host/CreateMatch, ../host/createForm,
+ * Depends on:     @testing-library/react, react,
  *                 ../host/HostConsole, ./labels,
  *                 ./AwaySummary,
  *                 ./MatchScreen, ../test/matchFixture, ../test/quickTestFixture, ./useLiveMatch
@@ -22,9 +21,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { CreateMatch } from '../host/CreateMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
-import { createBody, INITIAL } from '../host/createForm.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { AwaySummary, awayLines } from './AwaySummary.js';
@@ -75,35 +72,6 @@ const away: Summary = {
   finished: false,
   finalPlace: null,
 };
-
-describe('creating an asynchronous match', () => {
-  it('sends the mode, minutes, quiet hours and time zone; a realtime match none of them', () => {
-    const body = createBody({
-      ...INITIAL,
-      pace: { kind: 'async', minutes: 30, quiet: { startHour: 23, endHour: 6 } },
-    });
-    expect(body).toMatchObject({
-      mode: 'async',
-      drawIntervalMs: 30 * 60_000,
-      quietHours: { startHour: 23, endHour: 6 },
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
-    const live = createBody(INITIAL);
-    expect('mode' in live || 'quietHours' in live || 'timeZone' in live).toBe(false);
-  });
-
-  it('offers the asynchronous pace for the royale only', async () => {
-    serveMatch(matchSummary());
-    await show(<CreateMatch />);
-    fireEvent.change(screen.getByTestId('create-pace'), { target: { value: 'async' } });
-    expect(screen.getByTestId('create-async-minutes')).toBeTruthy();
-    expect(screen.getByTestId('create-quiet')).toBeTruthy();
-    expect(screen.queryByTestId('missed-numbers')).toBeNull();
-    fireEvent.change(screen.getByTestId('create-game-type'), { target: { value: 'classic' } });
-    expect(screen.queryByTestId('create-pace')).toBeNull();
-    expect(screen.queryByTestId('create-async-minutes')).toBeNull();
-  });
-});
 
 describe('an asynchronous match on screen', () => {
   it('names the cadence and the quiet hours in the rules line', () => {

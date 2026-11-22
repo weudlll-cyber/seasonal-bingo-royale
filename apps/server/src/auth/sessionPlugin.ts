@@ -20,8 +20,9 @@ import { timingSafeEqual } from 'node:crypto';
 import cookie from '@fastify/cookie';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
+import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
 import type { DbPool } from '../db/pool.js';
-import { RATE_RULES, RateLimiter } from './rateLimit.js';
+import { liveRule, RATE_RULES, RateLimiter } from './rateLimit.js';
 import { findSession, type Session } from './sessions.js';
 
 declare module 'fastify' {
@@ -59,19 +60,25 @@ const SESSION_STARTERS = new Set([
 ]);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+// `technical`: the Technical section's session lengths and API limit, read on every request
+// (admin-area §9 piece 7); today's values without it.
 export async function registerSessions(
   app: FastifyInstance,
   pool: DbPool,
   config: CookieConfig,
+  technical?: LiveTechnical,
 ): Promise<void> {
   await app.register(cookie);
   app.decorateRequest('session', null);
-  const apiLimit = new RateLimiter(RATE_RULES.api);
+  const apiLimit = new RateLimiter(
+    liveRule('api', technical === undefined ? undefined : liveLimits(technical)),
+  );
   const anonymousLimit = new RateLimiter(RATE_RULES.anonymous);
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/')) return;
     const token = request.cookies[config.name];
-    request.session = token === undefined ? null : await findSession(pool, token);
+    const lengths = technical === undefined ? undefined : sessionLengthsOf(technical());
+    request.session = token === undefined ? null : await findSession(pool, token, lengths);
     // A session is limited by its id, a request without one by its address (audit S3).
     const allowed =
       request.session === null

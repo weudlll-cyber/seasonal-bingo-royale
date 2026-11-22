@@ -7,8 +7,8 @@
  *                 navigation as pills with the current one solid, the round light/dark toggle,
  *                 the account chip linking to the account page, and the dev sign-in menu)
  *                 over a centred main column, sticky from 640 px with focus kept below it;
- *                 below 960 px the bar is one row and the navigation and account open from
- *                 one menu button as a panel under it (./MenuFold); on phones the bar scrolls
+ *                 the bar is always one row: when its items do not fit (always below 960 px)
+ *                 the navigation and account open from one menu button as a panel under it (./MenuFold); on phones the bar scrolls
  *                 away with the page. On desktop a live screen (.fit-window: the arena,
  *                 the running host console) fills the window below the bar exactly, so the page
  *                 does not scroll during a round. Colours come from @sbr/ui.

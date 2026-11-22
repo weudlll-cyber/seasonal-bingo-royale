@@ -27,7 +27,7 @@ import proxyaddr from '@fastify/proxy-addr';
 import type { MatchEngine } from '@sbr/application';
 import { Server, type Socket } from 'socket.io';
 
-import { findSession, type Session } from '../auth/sessions.js';
+import { findSession, type Session, type SessionLengths } from '../auth/sessions.js';
 import type { DbPool } from '../db/pool.js';
 import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
@@ -62,6 +62,8 @@ export interface GatewayDeps {
   // (the same list Fastify trusts, SBR_TRUSTED_PROXIES).
   readonly limits: SocketLimits;
   readonly trustedProxies: readonly string[];
+  // The Technical section's session lengths, read when a socket's session is checked.
+  readonly sessionLengths?: () => SessionLengths;
 }
 
 export interface SocketData {
@@ -177,7 +179,8 @@ async function authenticate(socket: Socket, deps: GatewayDeps): Promise<Session>
   if (origin === undefined || !deps.allowedOrigins.includes(origin))
     throw new Error('ORIGIN_NOT_ALLOWED');
   const token = cookieValue(socket.handshake.headers.cookie, deps.cookieName);
-  const session = token === null ? null : await findSession(deps.pool, token);
+  const session =
+    token === null ? null : await findSession(deps.pool, token, deps.sessionLengths?.());
   if (session === null) throw new Error('UNAUTHORIZED');
   return session;
 }

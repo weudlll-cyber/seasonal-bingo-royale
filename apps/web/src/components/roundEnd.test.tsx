@@ -11,19 +11,17 @@
  * Depends on:     @testing-library/react, ../quicktest/Simulation, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §5, §6; docs/spec/15-implementation-plan.md WP-08
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Simulation } from '../quicktest/Simulation.js';
+import { renderInSession, serveWithLimits } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 
 beforeEach(() => {
   vi.useFakeTimers();
   const result = royaleFixture('manual', { kind: 'autoMarkAfter', delayMs: 3000 });
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(() => Promise.resolve(new Response(JSON.stringify(result)))),
-  );
+  serveWithLimits(() => result);
 });
 afterEach(() => {
   cleanup();
@@ -41,7 +39,7 @@ const marked = (testId: string) => screen.getByTestId(testId).getAttribute('data
 
 describe("a round's last number (D10)", () => {
   it('can be tapped inside its window; after the window the round is over', async () => {
-    render(<Simulation />);
+    await renderInSession(<Simulation />);
     fireEvent.change(screen.getByTestId('start-draw-mode'), { target: { value: 'host' } });
     fireEvent.click(screen.getByTestId('start-run'));
     await wait(0);

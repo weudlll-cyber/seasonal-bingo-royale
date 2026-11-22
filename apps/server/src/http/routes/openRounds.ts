@@ -5,7 +5,7 @@
  *
  * Responsibility: public, no login, rate-limited per address, Cache-Control max-age=30: version 1
  *                 of the contract shared with the website (@sbr/contracts openRoundsAnswer,
- *                 docs/OPEN-ROUNDS.md): at most 20 matches whose sign-up is open now (in the
+ *                 docs/OPEN-ROUNDS.md): at most 20 matches ("Screens and texts" may change it) whose sign-up is open now (in the
  *                 lobby, not started, the asynchronous lobby window not closed) with "Show on the
  *                 Seasonal Entertainment website" on, never a test match (the fast test profile)
  *                 or one with bots; id, title, kind, start, sign-up close, player counts and the
@@ -15,7 +15,7 @@
  * Used by:        ../app
  * Spec:           docs/OPEN-ROUNDS.md; docs/spec/07-integration-architecture.md §7
  */
-import type { OpenRound, OpenRoundsAnswer } from '@sbr/contracts';
+import type { OpenRound, OpenRoundsAnswer, ScreenSettings } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
@@ -26,6 +26,8 @@ interface OpenRoundsDeps {
   // development (the request's own origin and base path are used).
   readonly publicUrl: string | null;
   readonly basePath: string;
+  // How many sign-ups at most ("Screens and texts", admin-area §4).
+  readonly screens: () => ScreenSettings;
 }
 
 const KINDS: Readonly<Record<string, string>> = {
@@ -56,7 +58,7 @@ const OPEN = `
      AND m.ruleset_name NOT LIKE '%-test'
      AND NOT EXISTS (SELECT 1 FROM sbr.match_entries e WHERE e.match_id = m.id AND e.is_bot)
    ORDER BY coalesce(m.start_at, m.lobby_closes_at, m.created_at), m.created_at
-   LIMIT 20`;
+   LIMIT $1`;
 
 const iso = (d: Date | null): string | null => (d === null ? null : d.toISOString());
 
@@ -79,7 +81,7 @@ export function registerOpenRounds(app: FastifyInstance, deps: OpenRoundsDeps): 
     { config: { rateLimit: { max: 60, timeWindow: 60_000 } } },
     async (request, reply): Promise<OpenRoundsAnswer> => {
       const page = deps.publicUrl ?? `https://${request.hostname}${deps.basePath}`;
-      const rows = (await deps.pool.query<Row>(OPEN)).rows;
+      const rows = (await deps.pool.query<Row>(OPEN, [deps.screens().openRounds])).rows;
       reply.header('cache-control', 'public, max-age=30');
       return { version: 1, rounds: rows.map((row) => roundOf(row, page)) };
     },

@@ -6,8 +6,9 @@
  * Responsibility: the zod schema of POST /matches (05 §2.3, 11 §3.2: title, game type,
  *                 mode with quiet hours and time zone, prizes, draw mode and interval, missed
  *                 numbers, leaderboard switch, max players, pause between royale rounds, and
- *                 in development the fast test profile), its mapping to the engine's
- *                 CreateMatchInput, and the status code for each MatchError (404 unknown
+ *                 in development the fast test profile; the bounds from @sbr/contracts LIMITS,
+ *                 which the session answer sends to the forms), its mapping to the engine's
+ *                 CreateMatchInput (the preset's rules: ./startPresets), and the status code for each MatchError (404 unknown
  *                 match, 409 wrong phase or quiet hours, 503 maintenance, 422 the rest).
  * Depends on:     fastify, zod, @sbr/application, @sbr/contracts, ../../dev/fastRulesets
  * Used by:        ./matches, ./matchHost
@@ -16,9 +17,11 @@
 import { isTimeZone, MatchError, MatchNotFound, type CreateMatchInput } from '@sbr/application';
 import {
   ASYNC_DRAW_INTERVAL_MS,
+  LIMITS,
   MAX_PRIZES,
   PrizeKeySchema,
   QuietHoursSchema,
+  SPEEDS,
 } from '@sbr/contracts';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -26,7 +29,7 @@ import { z } from 'zod';
 import { fastRuleset } from '../../dev/fastRulesets.js';
 
 export const createBody = z.object({
-  title: z.string().trim().min(1).max(60),
+  title: z.string().trim().min(1).max(LIMITS.titleMaxLength),
   gameType: z.enum(['royale', 'classicSeasons', 'classic']),
   // Asynchronous matches (01 §11; royale only, the engine refuses others): quiet hours
   // (null: none; left out: the ruleset's) in the starter's IANA time zone.
@@ -39,17 +42,23 @@ export const createBody = z.object({
   // Up to a day (async); the engine keeps it in the mode's range (01 §5, D12).
   drawIntervalMs: z.number().int().min(1).max(ASYNC_DRAW_INTERVAL_MS.max).optional(),
   missedNumbers: z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('autoMarkAfter'), delayMs: z.number().int().min(0).max(60_000) }),
+    z.object({
+      kind: z.literal('autoMarkAfter'),
+      delayMs: z.number().int().min(LIMITS.missedDelayMs.min).max(LIMITS.missedDelayMs.max),
+    }),
     z.object({ kind: z.literal('noAutoMark') }),
   ]),
   countsForLeaderboard: z.boolean().optional(),
   // Website mode only (the route ignores it otherwise, D50).
   showOnWebsite: z.boolean().optional(),
-  maxPlayers: z.number().int().min(2).max(200),
+  maxPlayers: z.number().int().min(LIMITS.players.min).max(LIMITS.players.max),
   // The pause between royale rounds (D14); the engine keeps a wait at its minimum.
   roundPause: z
     .discriminatedUnion('kind', [
-      z.object({ kind: z.literal('wait'), ms: z.number().int().min(0).max(120_000) }),
+      z.object({
+        kind: z.literal('wait'),
+        ms: z.number().int().min(0).max(LIMITS.roundPauseMs.max),
+      }),
       z.object({ kind: z.literal('host') }),
     ])
     .optional(),
@@ -64,10 +73,20 @@ export const createBody = z.object({
     .optional(),
   // Development only (the route refuses it otherwise): the fast test profile (../../dev).
   testProfile: z.literal('fast').optional(),
+  // The Organizer's page (admin-area §3): a published preset and its speed in words; the
+  // preset then decides the rules and the interval (./startPresets).
+  preset: z
+    .string()
+    .regex(/^[a-zA-Z0-9-]{1,80}$/)
+    .optional(),
+  speed: z.enum(SPEEDS).optional(),
+  // Development only (the route refuses it otherwise): the request comes from a development
+  // tool (Quick Test, the tests), which may create a match without a preset.
+  devTools: z.literal(true).optional(),
 });
 
 export function toCreateInput(body: z.infer<typeof createBody>): CreateMatchInput {
-  const { testProfile, ...input } = body;
+  const { testProfile, preset: _preset, speed: _speed, devTools: _devTools, ...input } = body;
   const fast = testProfile === 'fast' ? fastRuleset(body.gameType) : null;
   return fast === null ? input : { ...input, ruleset: fast };
 }

@@ -17,14 +17,17 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { RATE_RULES, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
 import { confirm, enrol, twoFactorStep, verify } from '../../auth/twoFactor.js';
 import type { DbPool } from '../../db/pool.js';
+import { liveLimits, type LiveTechnical } from '../../config/technical.js';
 
 interface TwoFactorDeps {
   readonly pool: DbPool;
   // The install's secret key (seed key): the TOTP secret is sealed with it.
   readonly seedKey: Buffer;
+  // The Technical section's limit of codes per session, read on every try.
+  readonly technical?: LiveTechnical;
 }
 
 const codeBody = z.object({ code: z.string().max(16) });
@@ -44,7 +47,8 @@ function pending(request: FastifyRequest, reply: FastifyReply) {
 }
 
 export function registerTwoFactor(app: FastifyInstance, deps: TwoFactorDeps): void {
-  const tries = new RateLimiter(RATE_RULES.twoFactor);
+  const live = deps.technical === undefined ? undefined : liveLimits(deps.technical);
+  const tries = new RateLimiter(liveRule('twoFactor', live));
   const limited = (sessionId: string) => !tries.take(sessionId).allowed;
   app.post('/api/v1/auth/2fa/enrol', async (request, reply) => {
     const who = pending(request, reply);

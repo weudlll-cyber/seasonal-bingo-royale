@@ -94,7 +94,7 @@ Each finding has its cause (file:line of the rule) and an example screenshot (`r
 - **F3 — Form hints in `<small>`, 13.3 px.**
   - Where: "Host a match" ("Everyone plays at the same time.") at every size and font (16.7 / 20 px at 125 / 150 %).
   - Selector: `[data-testid="create-match"] fieldset > small.sbr-muted`.
-  - Cause: no font size is set for `small`, so the browser's `smaller` applies. The element is at [apps/web/src/host/AsyncFields.tsx:90](../../apps/web/src/host/AsyncFields.tsx#L90). The same `<small class="sbr-muted">` is used at AsyncFields.tsx:228, TimingFields.tsx:210 and `account/formParts.tsx:42`, which were not on screen in the measured states.
+  - Cause: no font size is set for `small`, so the browser's `smaller` applies. The element was at `apps/web/src/host/AsyncFields.tsx:90` (the asynchronous pace fields, removed with the host form in admin-area §9 piece 4). The same `<small class="sbr-muted">` was used at AsyncFields.tsx:228, TimingFields.tsx:210 and `account/formParts.tsx:42`, which were not on screen in the measured states.
   - Shot: `fit-host-new-1280x720-16`.
 - **F4 — Development badge "Bingo · dev · 5390", 12 px (development only).**
   - Where: the Quick Test page, the only measured screen that shows it. On phones the page's choice tiles also cover it.

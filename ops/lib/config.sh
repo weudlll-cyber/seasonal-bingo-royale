@@ -234,7 +234,8 @@ build_image() {
   fi
   info "  building $SBR_IMAGE from $ref on this server (a few minutes)"
   git -C "$src" -c advice.detachedHead=false checkout --quiet --force "$commit"
-  docker build --quiet -t "$SBR_IMAGE" "$src"
+  # The ref and commit go into the image as SBR_VERSION (the admin Overview's health line).
+  docker build --quiet --build-arg "SBR_VERSION=$ref (${commit:0:12})" -t "$SBR_IMAGE" "$src"
   SBR_CHANGES=$((SBR_CHANGES + 1))
 }
 

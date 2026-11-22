@@ -11,7 +11,8 @@
  *                 (D15) stays above it. Motion is a fade that switches off under
  *                 prefers-reduced-motion. Fun only: it shows what the server sent and changes
  *                 nothing.
- * Depends on:     react, @sbr/contracts (types), ../playback (types), ../useReducedMotion,
+ * Depends on:     react, @sbr/contracts (types), ../playback (types), ../shell/session
+ *                 (useScreens, the card time), ../useReducedMotion,
  *                 ../useSecondsUntil, ./interludePlan, ./InterludeCards, ./labels,
  *                 ./interlude.css
  * Used by:        ./ArenaNotice, ../host/HostConsole, ../components/Playback (Quick Test)
@@ -27,6 +28,7 @@ import { planInterlude, type InterludePlan, type Pause } from './interludePlan.j
 import { RecapCardBody } from './InterludeCards.js';
 import { nextRoundLine, RECAP_TITLE, recapStep } from './labels.js';
 import './interlude.css';
+import { useScreens } from '../shell/session.js';
 
 // The recap of the round just played while the screen is in the pause after it (D20): a
 // live match sends it only then, the Quick Test sends every round's.
@@ -53,10 +55,11 @@ export function Interlude({ recap, pause, nextRoundAt, me }: InterludeProps): Re
   // can grow while it is on screen (the cut may come in a later fetch than the round's end).
   const [shownAt] = useState(() => Date.now());
   const sig = JSON.stringify([recap, pause]);
+  const cardMs = useScreens().recapCardMs;
   const plan = useMemo<InterludePlan>(
-    () => planInterlude(recap, pause, nextRoundAt === null ? null : nextRoundAt - shownAt),
+    () => planInterlude(recap, pause, nextRoundAt === null ? null : nextRoundAt - shownAt, cardMs),
     // `sig` stands for recap and pause: new objects come with every fetch, the same content not.
-    [sig, nextRoundAt, shownAt],
+    [sig, nextRoundAt, shownAt, cardMs],
   );
   const [step, move] = useCardSequence(plan);
   const index = Math.min(step, plan.cards.length - 1);

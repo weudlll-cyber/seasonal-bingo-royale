@@ -1,22 +1,24 @@
 /**
  * @file   apps/web/src/shell/MenuFold.tsx
  * @module web/shell
- * @brief  The top bar's navigation and account items, folded into one menu button on phones.
+ * @brief  The top bar's navigation and account items, folded into one menu button when they do not fit.
  *
  * Responsibility: wraps the bar's items in a panel and adds a "Menu" button before it. On
- *                 desktop the button is hidden and the panel lays its items into the bar as
- *                 before (display: contents, ./menu.css); below 960 px the bar is one row
- *                 (brand, theme toggle, Menu) and the button opens the panel under it. The
+ *                 one row the button is hidden and the panel lays its items into the bar
+ *                 (display: contents, ./menu.css); when they do not fit on one row (always below
+ *                 960 px, ./useBarFold) the bar is brand, theme toggle and Menu, and the button
+ *                 opens the panel under it. The
  *                 button reports aria-expanded and names the panel; opening moves the focus to
  *                 the panel's first item; Escape closes it and gives the focus back to the
  *                 button; a click outside, a new route, another sign-in or the chat opening
  *                 from it close it.
- * Depends on:     react, ./menu.css
+ * Depends on:     react, ./useBarFold, ./menu.css
  * Used by:        ./AppShell
  * Spec:           docs/concepts/fit-audit.md §5 item 7 (O1, O2); owner decision of 2026-11-20
  */
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 
+import { useBarFold } from './useBarFold.js';
 import './menu.css';
 
 interface MenuFoldProps {
@@ -31,6 +33,8 @@ export function MenuFold({ where, who, children }: MenuFoldProps): ReactElement 
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  // Folded whenever the items do not fit on one row (./useBarFold).
+  useBarFold(button, `${where} ${who ?? ''}`);
 
   // A new screen or another sign-in: the menu has done its job.
   useEffect(() => {

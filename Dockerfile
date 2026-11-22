@@ -43,7 +43,9 @@ RUN pnpm --filter @sbr/server deploy --prod --legacy /out \
 
 # runtime: production files only, owned by root and therefore read-only for the app user.
 FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS runtime
-ENV NODE_ENV=production \
+# The installed version the admin Overview shows (ops/lib/config.sh build_image: ref and commit).
+ARG SBR_VERSION=unknown
+ENV NODE_ENV=production     SBR_VERSION=$SBR_VERSION \
     SBR_WEB_DIR=/app/web \
     SBR_HOST=0.0.0.0 \
     SBR_PORT=3000 \

@@ -184,7 +184,7 @@ As built (WP-15 first draft, migration 0009): `leaderboard_periods` (UNIQUE `(ki
 **push_subscriptions** — `id`, `account_id`, `endpoint text UNIQUE`, `p256dh`, `auth`, `created_at`.
 **email_digest_prefs** — `account_id PK`, `enabled bool`, `frequency`.
 **uploads** — `id`, `kind` (`image`, `svg`, `font`, `audio`), `purpose` (`logo`, `season_icon_spring`, …), `storage_key`, `mime`, `bytes int`, `sha256 bytea`, `width/height NULL`, `uploaded_by`, `created_at`.
-**audit_log** — `id bigserial`, `occurred_at`, `actor_account_id NULL`, `actor_roles text[]`, `ip inet NULL`, `action text`, `target_type`, `target_id`, `diff jsonb`, `request_id`, `prev_hash bytea`, `hash bytea`. Append-only; `sbr_app` has INSERT and SELECT only.
+**audit_log** — `id bigserial`, `occurred_at`, `actor_account_id NULL`, `actor_roles text[]`, `action text`, `target_type`, `target_id`, `diff jsonb`, `request_id`, `prev_hash bytea`, `hash bytea`. Append-only; `sbr_app` has INSERT and SELECT only. No IP address is stored (the game keeps none, docs/PRIVACY-DATA.md; admin-area §8 (v)).
 **jwt_replay_cache** — `issuer`, `jti`, `expires_at`; PK `(issuer, jti)`; cleaned every minute.
 
 ## 4. Integrity constraints worth naming

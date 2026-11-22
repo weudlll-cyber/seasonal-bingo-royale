@@ -9,13 +9,16 @@
  *                 console tab, or a step after creating failed): the code, "Open host console"
  *                 in a new tab, "Go to the waiting room" and "New test match"; the message of
  *                 a failed setup step. Nothing of the live match is rendered on the test page.
- * Depends on:     react, ../shell/router, ./testMatchSetup (types)
+ * Depends on:     react, ../game/labels, ../shell/router, ../shell/session (the countdown from
+ *                 the server's limits), ./testMatchSetup (types)
  * Used by:        ./TestMatch
  * Spec:           docs/spec/01-game-design.md §7.6, §13
  */
 import type { ReactElement } from 'react';
 
+import { countdownName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
+import { useLimits } from '../shell/session.js';
 import type { TestMatchValues } from './testMatchSetup.js';
 
 export function SetupError({ error }: { readonly error: string | null }): ReactElement | null {
@@ -37,6 +40,7 @@ export function NextSteps({
 }): ReactElement {
   const start = values.start;
   const timed = values.draw.mode === 'auto';
+  const limits = useLimits();
   return (
     <div className="sbr-stack test-steps" data-testid="test-match-steps">
       <h3>What happens next{code === null ? '' : ` — match ${code}`}</h3>
@@ -47,7 +51,9 @@ export function NextSteps({
             ? '.'
             : ` and starts by itself in ${String(start.minutes)} minute${start.minutes === 1 ? '' : 's'}.`}
         </li>
-        <li>A 10-second countdown, then the first round.</li>
+        {limits === null ? null : (
+          <li>A {countdownName(limits.startCountdownMs)}, then the first round.</li>
+        )}
         <li>
           {values.playAlong ? 'Your card appears' : 'The bots’ cards play'};{' '}
           {timed

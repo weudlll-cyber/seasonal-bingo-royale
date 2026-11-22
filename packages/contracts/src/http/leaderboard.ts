@@ -91,6 +91,15 @@ export interface PlayerProfile {
   readonly badges: readonly ProfileBadge[];
   // The last 10 finished matches, newest first.
   readonly recentMatches: readonly ProfileMatch[];
+  // Corrections of the player's league points (admin-area §4 "League"), newest first; left
+  // out when there are none.
+  readonly corrections?: readonly ProfileCorrection[];
+}
+
+export interface ProfileCorrection {
+  readonly delta: number;
+  readonly reason: string;
+  readonly at: string;
 }
 
 // GET /me/export (03 §19): everything the server keeps about the caller's account.
@@ -132,4 +141,6 @@ export interface AccountExport {
     readonly matchCode: string;
     readonly awardedAt: string;
   }[];
+  // Corrections of the account's league points with their reasons (admin-area §4).
+  readonly leagueCorrections: readonly ProfileCorrection[];
 }

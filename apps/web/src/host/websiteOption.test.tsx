@@ -32,7 +32,6 @@ const form = (website: boolean) =>
   createBody({
     title: 't',
     gameType: 'royale',
-    pace: { kind: 'realtime' },
     prizes: new Set(),
     draw: { mode: 'host', intervalSec: null, skipped: false },
     missed: { mode: 'manual', missed: 'noAutoMark', delaySec: 3 },

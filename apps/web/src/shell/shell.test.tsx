@@ -98,11 +98,29 @@ describe('app shell', () => {
     window.location.hash = '';
   });
 
-  it('shows "Host a match" and the host role only with match.create', async () => {
+  it('names the highest role: owner, admin, organizer or player', async () => {
+    const chip = async (permissions: string[]) => {
+      serve(permissions);
+      await renderShell(false);
+      const text = (await screen.findByTestId('signed-in-as')).textContent;
+      cleanup();
+      return text;
+    };
+    expect(await chip(['match.create', 'admin.view', 'technical.edit'])).toBe(
+      'Signed in as dev-host (owner)',
+    );
+    expect(await chip(['match.create', 'admin.view'])).toBe('Signed in as dev-host (admin)');
+    expect(await chip(['match.create'])).toBe('Signed in as dev-host (organizer)');
+    expect(await chip(['match.join'])).toBe('Signed in as dev-host (player)');
+  });
+
+  it('shows "Host a match" and the organizer role only with match.create', async () => {
     serve(['match.watch', 'match.join', 'match.create', 'match.manage']);
     await renderShell(false);
     expect(await screen.findByText('Host a match')).toBeTruthy();
-    expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (host)');
+    expect(screen.getByTestId('signed-in-as').textContent).toBe(
+      'Signed in as dev-host (organizer)',
+    );
     cleanup();
     serve(['match.watch', 'match.join']);
     await renderShell(false);
@@ -166,6 +184,8 @@ describe('the session after a quick sign-in', () => {
       answerFirst(new Response(JSON.stringify(anonymous)));
       await Promise.resolve();
     });
-    expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (host)');
+    expect(screen.getByTestId('signed-in-as').textContent).toBe(
+      'Signed in as dev-host (organizer)',
+    );
   });
 });

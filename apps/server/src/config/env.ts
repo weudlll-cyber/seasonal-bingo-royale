@@ -87,6 +87,8 @@ const envSchema = z.object({
   SBR_WEB_DIR: z.string().optional(),
   // A writable directory (the uploads volume in production) for the maintenance flag.
   SBR_DATA_DIR: z.string().default('./data'),
+  // The installed version the admin Overview shows (the image build sets it from the ref).
+  SBR_VERSION: z.string().max(80).default('development'),
   // Outgoing e-mail (password reset in standalone installs, D60); without a host no mail is
   // sent and the reset is off. The installer asks for these; locally Mailpit (port 1090).
   SBR_SMTP_HOST: unsetIfEmpty(z.string().optional()),

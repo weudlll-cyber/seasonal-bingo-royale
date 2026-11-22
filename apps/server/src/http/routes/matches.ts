@@ -6,7 +6,9 @@
  * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
  *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
  *                 503 MAINTENANCE while `sbr maintenance on`, except for the load check's host,
- *                 12 §5), GET /matches/:code, GET
+ *                 12 §5; an organizer names a published preset, 403 PRESET_REQUIRED otherwise;
+ *                 Admins, the load check and development tools may go without, ./startPresets), GET
+ *                 /matches/:code, GET
  *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
  *                 the pause after a royale round with the round's recap, D20; a watching screen
  *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
@@ -24,6 +26,7 @@ import { matchIdByCode } from '../../match/records.js';
 import type { MaintenanceCheck } from '../../config/maintenance.js';
 import type { LiveMetrics } from './metrics.js';
 import type { MatchEngine } from '@sbr/application';
+import { SCREEN_DEFAULTS, type ScreenSettings } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
@@ -35,6 +38,7 @@ import type { LiveViews } from '../../view/liveViews.js';
 import type { WatchQuery } from '../../view/watchView.js';
 import { createBody, sendEngineError, toCreateInput } from './matchInput.js';
 import { liveView, matchSummary } from './matchViews.js';
+import { mayGoWithoutPreset, presetInput, type PresetSource } from './startPresets.js';
 
 export interface MatchRouteDeps {
   readonly pool: DbPool;
@@ -50,6 +54,11 @@ export interface MatchRouteDeps {
   readonly views: LiveViews;
   // Website mode: matches may be shown on the website (D50); standalone never.
   readonly website: boolean;
+  // The published preset a match without a chosen ruleset plays (admin-area §8 (b)); none:
+  // the built-in ruleset.
+  readonly presets?: PresetSource;
+  // List sizes of "Screens and texts" (admin-area §4), read on every request; today's if none.
+  readonly screens?: () => ScreenSettings;
 }
 
 // The operator's load-check host (role load_check, made only by the CLI) creates and starts
@@ -81,7 +90,8 @@ function registerMatchList(app: FastifyInstance, deps: MatchRouteDeps): void {
     const rows = await deps.pool.query<{ id: string }>(
       `SELECT id FROM sbr.matches WHERE status IN ('lobby', 'running')
           OR (status IN ('finished', 'aborted') AND finished_at > now() - interval '1 day')
-       ORDER BY created_at DESC LIMIT 50`,
+       ORDER BY created_at DESC LIMIT $1`,
+      [deps.screens?.().matchList ?? SCREEN_DEFAULTS.matchList],
     );
     const matches = await Promise.all(rows.rows.map((r) => deps.engine.runner.current(r.id)));
     const viewer = request.session?.accountId ?? null;
@@ -150,6 +160,24 @@ function watchQuery(q: WatchParams): WatchQuery {
 const website = (deps: MatchRouteDeps, body: { showOnWebsite?: boolean | undefined }) =>
   deps.website && body.showOnWebsite === true;
 
+// The fast test profile and the development tools' mark exist in development builds only;
+// an organizer names a published preset (owner decision of 2026-11-21).
+function createRefusal(
+  request: FastifyRequest,
+  deps: MatchRouteDeps,
+  body: { testProfile?: unknown; devTools?: true | undefined; preset?: string | undefined },
+): readonly [number, string] | null {
+  if ((body.testProfile ?? body.devTools) !== undefined && !deps.dev)
+    return [400, 'VALIDATION_FAILED'];
+  const permissions = request.session?.permissions ?? [];
+  if (
+    body.preset === undefined &&
+    !mayGoWithoutPreset(permissions, deps.dev, body.devTools === true)
+  )
+    return [403, 'PRESET_REQUIRED'];
+  return null;
+}
+
 export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps): void {
   registerMatchList(app, deps);
   app.post('/api/v1/matches', async (request, reply) => {
@@ -161,12 +189,16 @@ export function registerMatchRoutes(app: FastifyInstance, deps: MatchRouteDeps):
     if (maintenance !== null && !maintenanceExempt(request)) {
       return reply.status(503).send({ code: 'MAINTENANCE', reason: maintenance.reason });
     }
-    // The fast test profile exists in development builds only.
-    if (parsed.data.testProfile !== undefined && !deps.dev) {
-      return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    }
+    const refusal = createRefusal(request, deps, parsed.data);
+    if (refusal !== null) return reply.status(refusal[0]).send({ code: refusal[1] });
     try {
-      const input = { ...toCreateInput(parsed.data), showOnWebsite: website(deps, parsed.data) };
+      const input = presetInput(deps.presets, parsed.data, {
+        ...toCreateInput(parsed.data),
+        showOnWebsite: website(deps, parsed.data),
+      });
+      if (input === 'invalid') return await reply.status(400).send({ code: 'VALIDATION_FAILED' });
+      if (input === 'unavailable')
+        return await reply.status(409).send({ code: 'PRESET_UNAVAILABLE' });
       const record = await deps.engine.create(input, accountId);
       return await reply.status(201).send({ code: record.code, id: record.id });
     } catch (error) {

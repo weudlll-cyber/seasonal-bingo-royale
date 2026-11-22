@@ -70,6 +70,8 @@ async function create(
       drawMode: 'host',
       missedNumbers: { kind: 'noAutoMark' },
       maxPlayers: 40,
+      // A production build: the organizer names a published preset (2026-11-21).
+      preset: 'royale-realtime',
       ...extra,
     },
   });

@@ -19,9 +19,19 @@ export interface Client {
   get(url: string): Promise<LightMyRequestResponse>;
 }
 
+// A test is a development tool: its new matches without a preset say so (the server lets an
+// organizer create one only from a development tool, 2026-11-21). A test that wants the
+// organizer's own request passes `devTools: undefined` (kept out of the JSON).
+function asDevTool(url: string, body: unknown): object {
+  const b = body as Record<string, unknown>;
+  return url === '/api/v1/matches' && !('preset' in b) && !('devTools' in b)
+    ? { ...b, devTools: true }
+    : b;
+}
+
 export async function signIn(
   app: FastifyInstance,
-  as: 'host' | 'player-1' | 'player-2' | 'player-3',
+  as: 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player-3',
 ): Promise<Client> {
   const r = await app.inject({ method: 'POST', url: '/api/v1/dev/sign-in', payload: { as } });
   const cookie = `sbr_session=${r.cookies.find((c) => c.name === 'sbr_session')?.value ?? ''}`;
@@ -31,7 +41,8 @@ export async function signIn(
   return {
     cookie,
     csrf,
-    post: (url, body) => app.inject({ method: 'POST', url, payload: body as object, headers }),
+    post: (url, body) =>
+      app.inject({ method: 'POST', url, payload: asDevTool(url, body), headers }),
     put: (url, body) => app.inject({ method: 'PUT', url, payload: body as object, headers }),
     get: (url) => app.inject({ method: 'GET', url, headers }),
   };

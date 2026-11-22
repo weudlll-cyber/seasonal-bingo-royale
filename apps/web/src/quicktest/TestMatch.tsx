@@ -19,11 +19,11 @@ import { GameTypeField } from '../components/GameTypeField.js';
 import { useState, type ReactElement, type SyntheticEvent } from 'react';
 
 import { StartDrawField } from '../components/StartDrawField.js';
-import { problemText } from '../game/labels.js';
+import { countdownName, problemText } from '../game/labels.js';
 import { INITIAL, intervalMessage } from '../host/createForm.js';
 import '../host/host.css';
 import { useDevSignIn } from '../shell/DevTools.js';
-import { useSession } from '../shell/session.js';
+import { useLimits, useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
 import {
   botLimits,
@@ -157,9 +157,11 @@ interface ValuesProps {
   readonly onValues: (next: TestMatchValues) => void;
 }
 
-// "Now" (the host's Start, 10-second countdown) or a set time with the automatic start.
-function StartField({ values, onValues }: ValuesProps): ReactElement {
+// "Now" (the host's Start with the server's countdown) or a set time with the automatic start.
+function StartField({ values, onValues }: ValuesProps): ReactElement | null {
+  const limits = useLimits();
   const start = values.start;
+  if (limits === null) return null;
   const choice = start.kind === 'now' ? 'now' : start.minutes === 1 ? 'in1' : 'inN';
   return (
     <fieldset>
@@ -178,7 +180,7 @@ function StartField({ values, onValues }: ValuesProps): ReactElement {
           });
         }}
       >
-        <option value="now">Now (10-second countdown)</option>
+        <option value="now">Now ({countdownName(limits.startCountdownMs)})</option>
         <option value="in1">In 1 minute</option>
         <option value="inN">In N minutes</option>
       </select>
@@ -202,8 +204,10 @@ function StartField({ values, onValues }: ValuesProps): ReactElement {
   );
 }
 
-function BotsField({ values, onValues }: ValuesProps): ReactElement {
-  const { min, max } = botLimits(values.playAlong);
+function BotsField({ values, onValues }: ValuesProps): ReactElement | null {
+  const limits = useLimits();
+  if (limits === null) return null;
+  const { min, max } = botLimits(values.playAlong, limits.players);
   return (
     <label className="sbr-field">
       <span>
