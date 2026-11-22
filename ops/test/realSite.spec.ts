@@ -263,7 +263,9 @@ test('P6 the website admin: the Overview, maintenance on and off, both in the Hi
   await admin.goto(GAME);
   const reason = `Rehearsal ${String(Date.now() % 100_000)}`;
   try {
-    // Website mode at 1280 px: the back link folds the bar, Admin sits in the menu.
+    // Website mode at 1280 px: the back link folds the bar, Admin sits in the menu. The bar
+    // folds once the account is in it, so the menu is opened after the chip is there.
+    await expect(admin.getByTestId('signed-in-as')).toBeAttached();
     await openMenu(admin);
     await admin.getByRole('link', { name: 'Admin', exact: true }).click();
     await expect(admin.getByRole('heading', { name: 'Overview' })).toBeVisible();
