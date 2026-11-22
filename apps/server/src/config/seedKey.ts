@@ -31,5 +31,11 @@ function keyFrom(env: Env, name: 'SBR_SEED_KEY' | 'SBR_RECOVERY_KEY', fixed: str
 export const seedKeyFrom = (env: Env): Buffer =>
   keyFrom(env, 'SBR_SEED_KEY', 'sbr-development-only-seed-key');
 
-export const recoveryKeyFrom = (env: Env): Buffer =>
-  keyFrom(env, 'SBR_RECOVERY_KEY', 'sbr-development-only-recovery-key');
+// At start, not at the first recovery code: the kit refuses a key of one byte repeated.
+export function recoveryKeyFrom(env: Env): Buffer {
+  const key = keyFrom(env, 'SBR_RECOVERY_KEY', 'sbr-development-only-recovery-key');
+  if (key.every((byte) => byte === key[0])) {
+    throw new Error('SBR_RECOVERY_KEY must not be one byte repeated');
+  }
+  return key;
+}

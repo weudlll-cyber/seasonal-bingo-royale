@@ -27,10 +27,12 @@ describe('the settings (audit S1)', () => {
   });
 
   it('read the recovery key from the env file, apart from the seed key (K20)', () => {
-    const key = 'ab'.repeat(32);
+    const key = '0123456789abcdef'.repeat(4);
     const env = loadEnv({ ...DB, SBR_RECOVERY_KEY: key, SBR_SEED_KEY: 'cd'.repeat(32) });
     expect(recoveryKeyFrom(env).toString('hex')).toBe(key);
     expect(() => loadEnv({ ...DB, SBR_RECOVERY_KEY: 'short' })).toThrow();
+    const repeated = loadEnv({ ...DB, SBR_RECOVERY_KEY: 'cd'.repeat(32) });
+    expect(() => recoveryKeyFrom(repeated)).toThrow(/one byte repeated/);
   });
 
   it('refuse SBR_DEV=1 for a public address and accept it on localhost', () => {
