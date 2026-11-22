@@ -244,6 +244,9 @@ importers:
       '@sbr/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@seasonal/kit':
+        specifier: github:weudlll-cyber/seasonal-kit#v0.10.0
+        version: https://codeload.github.com/weudlll-cyber/seasonal-kit/tar.gz/36a72cf1e2d96dbc3d6333fd1440b73b797d0785(react@19.3.1)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
       fastify:
         specifier: 5.12.7
         version: 5.12.7
@@ -302,6 +305,9 @@ importers:
       '@sbr/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@seasonal/kit':
+        specifier: github:weudlll-cyber/seasonal-kit#v0.10.0
+        version: https://codeload.github.com/weudlll-cyber/seasonal-kit/tar.gz/36a72cf1e2d96dbc3d6333fd1440b73b797d0785(react@19.3.1)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -1006,6 +1012,19 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@seasonal/kit@https://codeload.github.com/weudlll-cyber/seasonal-kit/tar.gz/36a72cf1e2d96dbc3d6333fd1440b73b797d0785':
+    resolution: {gitHosted: true, integrity: sha512-/nBNRk5ba8d/Dr6GQKHf+QQDCoSuRwWouB4TSRPoaaYjrOvoRhYWRgeJ6/KoxzO+21FQVq87lF7EpZ1oeqfsuw==, tarball: https://codeload.github.com/weudlll-cyber/seasonal-kit/tar.gz/36a72cf1e2d96dbc3d6333fd1440b73b797d0785}
+    version: 0.10.0
+    engines: {node: '>=22'}
+    peerDependencies:
+      react: 19.3.1
+      vite: 8.3.4
+    peerDependenciesMeta:
+      react:
+        optional: true
+      vite:
+        optional: true
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
@@ -3552,6 +3571,11 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@seasonal/kit@https://codeload.github.com/weudlll-cyber/seasonal-kit/tar.gz/36a72cf1e2d96dbc3d6333fd1440b73b797d0785(react@19.3.1)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1))':
+    optionalDependencies:
+      react: 19.3.1
+      vite: 8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15)(yaml@2.9.1)
 
   '@socket.io/component-emitter@3.1.2': {}
 
