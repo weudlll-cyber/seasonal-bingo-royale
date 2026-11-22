@@ -183,6 +183,8 @@ test('P2 the right to start games: the session ends, signed in again the member 
     .toBe(false);
   await member.reload();
   await signInAgain(member, s);
+  // Website mode at 1280 px: the organizer's bar folds too, Host a match sits in the menu.
+  await openMenu(member);
   await member.getByRole('link', { name: 'Host a match' }).click();
   await expect(member.getByRole('heading', { name: 'Start a match' })).toBeVisible();
   await member.getByTestId('start-type-royale').click();
