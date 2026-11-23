@@ -7,7 +7,8 @@
  *                 SBR_SMTP_* settings: the envelope addresses come from SBR_SMTP_FROM and the
  *                 recipient, a subject with a line break never becomes a header of its own,
  *                 a body line starting with "." is dot-stuffed, the message carries a
- *                 Message-ID, and a refused recipient rejects the send. No mailer in website
+ *                 Message-ID, and a refused recipient rejects the send with nodemailer's codes
+ *                 only (its own error names the address; the reset route logs it). No mailer in website
  *                 mode or without a host.
  * Depends on:     vitest, node:net, ./mailer, ../config/env (types)
  * Spec:           docs/spec/03-security-architecture.md §1
@@ -45,7 +46,9 @@ function fakeServer(refuseRecipient = false): Promise<{ port: number; seen: stri
             socket.write('250 queued\r\n');
           }
         } else if (line.startsWith('EHLO')) socket.write('250-fake\r\n250 OK\r\n');
-        else if (line.startsWith('RCPT') && refuseRecipient) socket.write('550 no such user\r\n');
+        // A real server's refusal names the address.
+        else if (line.startsWith('RCPT') && refuseRecipient)
+          socket.write('550 5.1.1 <ann@example.org>: Recipient address rejected\r\n');
         else if (line === 'DATA') {
           data = true;
           socket.write('354 go\r\n');
@@ -97,6 +100,16 @@ describe('the mailer (D60)', () => {
   it('rejects when the server refuses the recipient', async () => {
     const { port } = await fakeServer(true);
     await expect(send(port)).rejects.toThrow();
+  });
+
+  it('rejects with the SMTP codes only, never the address (the error is logged)', async () => {
+    const { port } = await fakeServer(true);
+    const thrown: unknown = await send(port).catch((e: unknown) => e);
+    expect(thrown).toBeInstanceOf(Error);
+    // What pino's error serializer writes: the message and every own property.
+    const logged = JSON.stringify({ ...(thrown as object), message: (thrown as Error).message });
+    expect(logged).not.toContain('ann@example.org');
+    expect((thrown as Error).message).toBe('the mail could not be sent: EENVELOPE (SMTP 550)');
   });
 
   it('is none in website mode or without a host', () => {

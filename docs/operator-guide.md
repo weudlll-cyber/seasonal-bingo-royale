@@ -178,7 +178,7 @@ To take the game off the server (the website and anything else on it stay as the
 sudo sbr uninstall
 ```
 
-It asks you to type the environment's name (`prod`), then removes the game's containers, its database and uploads, its backup timer, its settings and its route file for the website (in nginx mode it reloads nginx; in own-Caddy mode it tells you to remove `bingo.caddy` from the website's `deploy/site/routes/` yourself). The backups in `/var/backups/sbr/prod/` stay (add `--purge-backups` to delete them too); so do Docker, the `backup-pull` user and the `sbr-backup` group. The website's include line may stay: it then matches no file.
+It asks you to type the environment's name (`prod`), then removes the game's containers, its database and uploads, its backup timer, its settings and its route file for the website (in nginx mode it reloads nginx; in own-Caddy mode it removes `bingo.caddy` from the website's `deploy/site/routes/` and reloads the website's Caddy; only an install without the website's record, `/etc/seasonal/install.conf`, tells you to remove that file yourself). The backups in `/var/backups/sbr/prod/` stay (add `--purge-backups` to delete them too); so do Docker, the `backup-pull` user and the `sbr-backup` group. The website's include line may stay: it then matches no file.
 
 ## 8a. For hosts
 
