@@ -1,41 +1,28 @@
 /**
  * @file   apps/web/src/shell/AppShell.tsx
  * @module web/shell
- * @brief  The player client's frame: top bar, navigation, account, screens.
+ * @brief  The player client's frame: the top bar, then the current route's screen.
  *
- * Responsibility: in website mode first "← Seasonal Entertainment" (top left, to the website's
- *                 games page /games in this tab; not in a standalone install), then emblem,
- *                 wordmark, light/dark toggle, links to the lobby, hosting (with
- *                 `match.create`) and the leaderboard; the account: the chip "Signed in as
- *                 <name> (host|player)" opens the account page, sign-out, or "Sign in" and
- *                 "Register" (../account; in website mode one "Sign in" to the website, D37);
- *                 links and account fold into one menu button whenever they do not fit on one
- *                 row (./MenuFold).
- *                 Below the bar the current route's screen (boards and
- *                 profiles: ../league); in maintenance (./useMaintenance, shared as its context)
- *                 the lobby and create form show the maintenance page, the host console a banner
- *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch); in website
- *                 mode the website's chat beside the lobby, match and console (./ChatDock). Dev-only Quick
- *                 Test and "Dev sign-in" (./DevTools) load on demand, out of production builds.
- * Depends on:     react, @seasonal/kit/react (ThemeToggle), ./router, ./session,
- *                 ./MenuFold, ./Maintenance,
- *                 ./useMaintenance, ./ChatDock,
- *                 ./DevTools and ../App (lazy,
- *                 development only), ../admin/AdminArea, ../game/*, ../host/*, ../account/*,
- *                 ../league/*, ./shell.css,
- *                 assets/brand/emblem.webp
+ * Responsibility: the top bar (./Header: the kit's header with Bingo's links and account);
+ *                 below it the current route's screen (boards and profiles: ../league); in
+ *                 maintenance (./useMaintenance, shared as its context) the lobby and create
+ *                 form show the maintenance page, the host console a banner (09 §4); "Verify
+ *                 this match" after a match (../game/VerifyMatch); in website mode the website's
+ *                 chat beside the lobby, match and console (./ChatDock). The dev-only Quick Test
+ *                 (../App) loads on demand, out of production builds.
+ * Depends on:     react, ./Header, ./router, ./session, ./Maintenance, ./useMaintenance,
+ *                 ./ChatDock, ../App (lazy, development only), ../admin/AdminArea, ../game/*,
+ *                 ../host/*, ../account/*, ../league/*, ./shell.css
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
-import { ThemeToggle } from '@seasonal/kit/react';
 import { lazy, Suspense, type ReactElement } from 'react';
 
 import { AdminArea } from '../admin/AdminArea.js';
-import emblem from '../../../../assets/brand/emblem.webp';
 import { AccountPage } from '../account/AccountPage.js';
 import { ForgotPassword, ResetPassword } from '../account/PasswordReset.js';
 import { TwoFactorPage } from '../account/TwoFactor.js';
-import { SignInLinks, SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
+import { SignInPage, useWebsiteResign } from '../account/WebsiteSignIn.js';
 import { Lobby } from '../game/Lobby.js';
 import { MatchScreen } from '../game/MatchScreen.js';
 import { VerifyMatch } from '../game/VerifyMatch.js';
@@ -43,22 +30,16 @@ import { StartMatch } from '../host/StartMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
-import { ChatButton, ChatPanel, useChatDock, type ChatDock } from './ChatDock.js';
-import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
+import { ChatPanel, useChatDock } from './ChatDock.js';
+import { Header } from './Header.js';
+import { useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
-import { MenuFold } from './MenuFold.js';
-import { highestRole, useSession } from './session.js';
+import { useSession } from './session.js';
 import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
 
-// Development tools load on demand. A production build replaces import.meta.env.DEV with
-// false, so these imports and everything behind them stay out of the bundle (audit B).
-const QuickTestLink = import.meta.env.DEV
-  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.QuickTestLink })))
-  : null;
-const DevSignIn = import.meta.env.DEV
-  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.DevSignIn })))
-  : null;
+// The Quick Test loads on demand. A production build replaces import.meta.env.DEV with false,
+// so this import and everything behind it stay out of the bundle (audit B).
 const QuickTest = import.meta.env.DEV
   ? lazy(() => import('../App.js').then((m) => ({ default: m.App })))
   : null;
@@ -70,125 +51,14 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const chat = useChatDock(route);
   // Website mode: an ended game session signs in again through the website (an idle admin).
   useWebsiteResign();
-  const session = useSession().session;
-  const website = session?.authMode === 'website';
   return (
     <MaintenanceContext.Provider value={maintenance}>
-      <header className="shell-bar">
-        {/* Website mode: the way back to the website's games page, an ordinary link in this
-            tab (the website's GAME-INTEGRATION.md section 8); not in a standalone install. */}
-        {/* Bingo's own link, not the kit's BackLink: the kit's drops the space after the arrow
-            (docs/concepts/kit-adoption.md §4 R2). */}
-        {website ? (
-          <a className="shell-back" href="/games">
-            ← Seasonal Entertainment
-          </a>
-        ) : null}
-        <a className="shell-brand" href={hrefOf({ name: 'lobby' })}>
-          <img src={emblem} alt="" width="42" height="37" />
-          <span>
-            Seasonal Bingo Royale
-            <small>Seasonal Entertainment</small>
-          </span>
-        </a>
-        {/* Beside the account on wide screens, beside the brand on phones (shell.css). */}
-        <ThemeToggle />
-        {/* When they do not fit on one row the navigation and the account fold into one menu
-            button (always below 960 px); it closes
-            on a new route, another sign-in, or when the chat opens from it. */}
-        <MenuFold
-          where={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)}`}
-          who={session?.account?.id ?? null}
-        >
-          <Nav route={route} dev={dev} chat={chat} />
-          <Account dev={dev} />
-        </MenuFold>
-      </header>
+      <Header route={route} dev={dev} chat={chat} />
       <main className="shell-main">
         <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />
       </main>
       <ChatPanel dock={chat} />
     </MaintenanceContext.Provider>
-  );
-}
-
-interface NavProps {
-  readonly route: Route;
-  readonly dev: boolean;
-  readonly chat: ChatDock | null;
-}
-
-function Nav({ route, dev, chat }: NavProps): ReactElement {
-  const { can } = useSession();
-  const link = (to: Route, label: string, active: boolean) => (
-    <a href={hrefOf(to)} aria-current={active ? 'page' : undefined}>
-      {label}
-    </a>
-  );
-  return (
-    <nav className="shell-nav" aria-label="Main">
-      {link(
-        { name: 'lobby' },
-        'Play',
-        route.name === 'lobby' || route.name === 'match' || route.name === 'verify',
-      )}
-      {can('match.create')
-        ? link(
-            { name: 'hostNew' },
-            'Host a match',
-            route.name === 'hostNew' || route.name === 'host',
-          )
-        : null}
-      {link(
-        { name: 'leaderboard', periodId: null },
-        'Leaderboard',
-        route.name === 'leaderboard' || route.name === 'player',
-      )}
-      {/* The admin area, for Admins only (admin-area §8 (a)); the server checks every call. */}
-      {can('admin.view') ? link({ name: 'admin' }, 'Admin', route.name === 'admin') : null}
-      {dev && QuickTestLink !== null ? (
-        <Suspense fallback={null}>
-          <QuickTestLink active={route.name === 'quicktest'} />
-        </Suspense>
-      ) : null}
-      <ChatButton dock={chat} />
-    </nav>
-  );
-}
-
-function Account({ dev }: { readonly dev: boolean }): ReactElement {
-  const { session, signOut, can } = useSession();
-  return (
-    <div className="shell-account" data-testid="account">
-      {session?.account ? (
-        <>
-          {/* The chip opens the account page (data download, deletion). */}
-          <a
-            className="sbr-chip shell-account-link"
-            href={hrefOf({ name: 'account' })}
-            data-testid="signed-in-as"
-          >
-            <span className="chip-prefix">Signed in as </span>
-            {session.account.displayName} ({highestRole(can)})
-          </a>
-          <button
-            type="button"
-            className="sbr-btn"
-            data-testid="sign-out"
-            onClick={() => void signOut()}
-          >
-            Sign out
-          </button>
-        </>
-      ) : null}
-      {session !== null && session.account === null ? <SignInLinks /> : null}
-      {/* The server has no quick sign-in in website mode (D37). */}
-      {dev && DevSignIn !== null && session?.authMode !== 'website' ? (
-        <Suspense fallback={null}>
-          <DevSignIn />
-        </Suspense>
-      ) : null}
-    </div>
   );
 }
 

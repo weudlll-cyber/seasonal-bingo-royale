@@ -80,7 +80,7 @@ async function tapCurrent(owner: Page): Promise<void> {
 async function playRoyale(owner: Page, consolePage: Page): Promise<void> {
   const now = consolePage.getByTestId('host-next-round-now');
   const ready = consolePage.locator('[data-testid="host-draw-next"]:enabled');
-  const done = consolePage.getByTestId('final-placement');
+  const done = consolePage.getByTestId('result');
   let draws = 0;
   let paused = false;
   for (let i = 0; i < 200; i += 1) {
@@ -133,8 +133,8 @@ test('A: royale in 1 minute with host draws, 7 bots, playing along, to the resul
     await expect(owner.getByTestId('countdown')).toBeVisible({ timeout: 90_000 });
     await expect(owner.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
     await playRoyale(owner, consolePage);
-    await expect(owner.getByTestId('final-placement')).toBeVisible({ timeout: 10_000 });
-    await captureLook(owner, SHOTS_DIR, 'test-match-result', owner.getByTestId('final-placement'));
+    await expect(owner.getByTestId('result')).toBeVisible({ timeout: 10_000 });
+    await captureLook(owner, SHOTS_DIR, 'test-match-result', owner.getByTestId('result'));
   } finally {
     await stopMatch(owner, code);
   }
@@ -152,7 +152,7 @@ test('A: classic now with timed draws, playing along, to the result', async ({ b
   try {
     await expect(owner.getByTestId('countdown')).toBeVisible({ timeout: 10_000 });
     await expect(owner.getByTestId('arena')).toBeVisible({ timeout: 20_000 });
-    const done = owner.getByTestId('final-placement');
+    const done = owner.getByTestId('result');
     for (let i = 0; i < 600 && (await done.count()) === 0; i += 1) {
       await tapCurrent(owner);
       await owner.waitForTimeout(1_000);
@@ -181,7 +181,7 @@ test('seed check: spring-garden in classicSeasons then royale', async ({ page })
   await page.getByTestId('start-run').click();
   await expect(page.getByTestId('simulation-summary')).toContainText('Battle royale');
   await page.getByRole('button', { name: 'Skip to end' }).click();
-  await expect(page.getByTestId('final-placement')).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId('result')).toBeVisible({ timeout: 60_000 });
   await captureLook(page, SHOTS_DIR, 'seed-check-royale-result');
 });
 

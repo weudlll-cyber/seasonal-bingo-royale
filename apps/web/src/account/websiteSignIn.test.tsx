@@ -14,7 +14,7 @@
  * Depends on:     @testing-library/react, ../shell/AppShell, ../shell/session, ./WebsiteSignIn
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2
  */
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from '../shell/AppShell.js';
@@ -70,6 +70,10 @@ async function renderShell(): Promise<void> {
   await act(async () => {
     await Promise.resolve();
   });
+  // The bar shows its account once the session (and with it the mode) is known.
+  await waitFor(() => {
+    expect(document.querySelector('[data-session="known"]')).not.toBeNull();
+  });
 }
 
 describe('signing in in website mode (D37)', () => {
@@ -77,11 +81,11 @@ describe('signing in in website mode (D37)', () => {
     window.location.hash = '#/match/ABC123';
     serve('website');
     await renderShell();
-    const signIn = await screen.findByTestId('open-sign-in');
+    const signIn = await screen.findByTestId('sign-in');
     expect(signIn.getAttribute('href')).toBe(
       `${SIGN_IN}/login?next=${encodeURIComponent('/games/bingo/#/match/ABC123')}`,
     );
-    expect(screen.queryByTestId('open-register')).toBeNull();
+    expect(screen.queryByTestId('register')).toBeNull();
     expect(screen.queryByTestId('dev-menu')).toBeNull();
   });
 
@@ -98,22 +102,22 @@ describe('signing in in website mode (D37)', () => {
   it('watches as a guest in website mode: one guest session for a visitor without one', async () => {
     const sent = serve('website');
     await renderShell();
-    await screen.findByTestId('open-sign-in');
+    await screen.findByTestId('sign-in');
     expect(sent.filter((r) => r.startsWith('POST') && r.endsWith('/auth/guest'))).toHaveLength(1);
   });
 
   it('asks for no guest session in local mode', async () => {
     const sent = serve('local');
     await renderShell();
-    await screen.findByTestId('open-register');
+    await screen.findByTestId('register');
     expect(sent.filter((r) => r.endsWith('/auth/guest'))).toEqual([]);
   });
 
   it('keeps both buttons in local mode', async () => {
     serve('local');
     await renderShell();
-    expect((await screen.findByTestId('open-sign-in')).getAttribute('href')).toBe('#/sign-in');
-    expect(screen.getByTestId('open-register')).toBeTruthy();
+    expect((await screen.findByTestId('sign-in')).getAttribute('href')).toBe('#/sign-in');
+    expect(screen.getByTestId('register')).toBeTruthy();
   });
 
   it('goes to the website login with this page, or the lobby from a page without a hash', () => {

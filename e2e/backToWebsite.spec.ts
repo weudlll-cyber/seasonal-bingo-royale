@@ -12,7 +12,8 @@
  *                 top left (to /games, same tab), photographed at desktop and phone width in
  *                 both themes as reports/screens/latest/back-<screen>-<size>-<theme>.jpg for
  *                 the owner; the standalone development server's lobby has no such link
- *                 (back-standalone-lobby.jpg). Matches are finished or aborted; the website
+ *                 (back-standalone-lobby.jpg). A guest's bar is folded at 940 px and unfolded
+ *                 without Menu at 1280 px. Matches are finished or aborted; the website
  *                 users' accounts are removed. Chromium only (it builds the client).
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
  * Spec:           docs/spec/07-integration-architecture.md §6b; the website's GAME-INTEGRATION.md §8
@@ -26,7 +27,8 @@ import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 
 const BASE = '/games/bingo';
-const BACK = '← Seasonal Entertainment';
+// The kit's BackLink: the arrow is drawn, not read, so the link is named by its words.
+const BACK = { name: 'Seasonal Entertainment', exact: true } as const;
 let stack: WebsiteStack;
 
 test.describe.configure({ mode: 'serial' });
@@ -110,7 +112,7 @@ async function newMatch(
 // The link is there, leads to /games in this tab, and sits at the top left of the window.
 // At desktop and phone width (the window put back afterwards).
 async function expectBackLink(page: Page): Promise<void> {
-  const back = page.getByRole('link', { name: BACK });
+  const back = page.getByRole('link', BACK);
   const before = page.viewportSize() ?? DESKTOP;
   for (const size of [DESKTOP, PHONE]) {
     await page.setViewportSize(size);
@@ -195,7 +197,7 @@ test('every main screen shows the way back at the top left (screenshots for the 
     const guest = await (await browser.newContext()).newPage();
     await guest.goto(`${stack.origin}${BASE}/#/match/${code}`);
     await expect(guest.getByTestId('arena')).toBeVisible();
-    await expect(guest.getByTestId('open-sign-in')).toBeVisible();
+    await expect(guest.getByTestId('sign-in')).toBeVisible();
     await expectBackLink(guest);
     await captureLook(guest, SHOTS_DIR, 'back-guest');
   } finally {
@@ -204,9 +206,27 @@ test('every main screen shows the way back at the top left (screenshots for the 
   }
 });
 
+// A guest's production bar (no development items) in website mode: folded at 940 px (brand,
+// toggle and Menu), unfolded at 1280 px with no Menu button (apps/web/src/shell/header.css).
+test("a guest's bar is folded at 940 px and unfolded without Menu at 1280 px", async ({
+  browser,
+}) => {
+  const guest = await (
+    await browser.newContext({ viewport: { width: 940, height: 700 } })
+  ).newPage();
+  await guest.goto(`${stack.origin}${BASE}/#/`);
+  await expect(guest.locator('[data-session="known"]')).toBeAttached({ timeout: 20_000 });
+  await expect(guest.getByTestId('menu-button')).toBeVisible();
+  await expect(guest.getByRole('navigation', { name: 'Main' })).toBeHidden();
+  await guest.setViewportSize({ width: 1280, height: 800 });
+  await expect(guest.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  await expect(guest.getByTestId('menu-button')).toBeHidden();
+  await guest.context().close();
+});
+
 test('a standalone install shows no way back', async ({ page }) => {
   await page.goto(`${CLIENT_URL}/#/`);
-  await expect(page.getByTestId('open-sign-in')).toBeVisible();
-  await expect(page.getByRole('link', { name: BACK })).toHaveCount(0);
+  await expect(page.getByTestId('sign-in')).toBeVisible();
+  await expect(page.getByRole('link', BACK)).toHaveCount(0);
   await page.screenshot({ path: path.join(SHOTS_DIR, 'back-standalone-lobby.jpg'), quality: 75 });
 });

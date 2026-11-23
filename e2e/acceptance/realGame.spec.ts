@@ -229,7 +229,7 @@ interface StateBody {
 async function checkEnd(t: Table, code: string): Promise<{ cuts: number; ties: number }> {
   let cuts = { cuts: 0, ties: 0 };
   for (const p of t.players) {
-    await expect(p.page.getByTestId('final-placement')).toBeVisible({ timeout: 15_000 });
+    await expect(p.page.getByTestId('result')).toBeVisible({ timeout: 15_000 });
     const body = (await (
       await p.page.request.get(`/api/v1/matches/${code}/state`)
     ).json()) as StateBody;

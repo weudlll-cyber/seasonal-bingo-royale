@@ -3,19 +3,29 @@
  * @module server/http
  * @brief  GET <base>api/public/open-rounds: the open sign-ups the hosts marked for the website (D50).
  *
- * Responsibility: public, no login, rate-limited per address, Cache-Control max-age=30: version 1
- *                 of the contract shared with the website (@sbr/contracts openRoundsAnswer,
- *                 docs/OPEN-ROUNDS.md): at most 20 matches ("Screens and texts" may change it) whose sign-up is open now (in the
- *                 lobby, not started, the asynchronous lobby window not closed) with "Show on the
- *                 Seasonal Entertainment website" on, never a test match (the fast test profile)
- *                 or one with bots; id, title, kind, start, sign-up close, player counts and the
- *                 join URL (the lobby page on the endpoint's own origin). No personal data. In
+ * Responsibility: public, no login, rate-limited per address: version 1 of the contract shared
+ *                 with the website (@sbr/contracts openRoundsAnswer, docs/OPEN-ROUNDS.md). The
+ *                 query is Bingo's: the matches whose sign-up is open now (in the lobby, not
+ *                 started, the asynchronous lobby window not closed) with "Show on the Seasonal
+ *                 Entertainment website" on, never a test match (the fast test profile) or one
+ *                 with bots, as many as "Screens and texts" allows; id, title, kind, start,
+ *                 sign-up close, player counts and the join URL (the lobby page on the endpoint's
+ *                 own origin). No personal data. The page is the kit's `openRoundsPage`
+ *                 (@seasonal/kit/server, since v0.11.0): the website's checks applied here, a
+ *                 title cut to 80 never through an emoji, at most 20 rounds whatever the setting,
+ *                 a round it leaves out logged with its id; its Cache-Control (max-age=30). In
  *                 standalone installs the option does not exist: the list is empty.
- * Depends on:     fastify, @sbr/contracts, ../../db/pool
+ * Depends on:     fastify, @seasonal/kit/server (openRoundsPage), ../../db/pool
  * Used by:        ../app
  * Spec:           docs/OPEN-ROUNDS.md; docs/spec/07-integration-architecture.md §7
  */
-import type { OpenRound, OpenRoundsAnswer, ScreenSettings } from '@sbr/contracts';
+import type { ScreenSettings } from '@sbr/contracts';
+import {
+  OPEN_ROUNDS_CACHE_CONTROL,
+  openRoundsPage,
+  type OpenRoundInput,
+  type OpenRoundsPage,
+} from '@seasonal/kit/server';
 import type { FastifyInstance } from 'fastify';
 
 import type { DbPool } from '../../db/pool.js';
@@ -26,7 +36,8 @@ interface OpenRoundsDeps {
   // development (the request's own origin and base path are used).
   readonly publicUrl: string | null;
   readonly basePath: string;
-  // How many sign-ups at most ("Screens and texts", admin-area §4).
+  // How many sign-ups the query reads ("Screens and texts", admin-area §4); the kit's page
+  // keeps at most 20 of them.
   readonly screens: () => ScreenSettings;
 }
 
@@ -60,15 +71,14 @@ const OPEN = `
    ORDER BY coalesce(m.start_at, m.lobby_closes_at, m.created_at), m.created_at
    LIMIT $1`;
 
-const iso = (d: Date | null): string | null => (d === null ? null : d.toISOString());
-
-function roundOf(row: Row, origin: string): OpenRound {
+// One match as the kit's page takes it: times as Dates, the title whole (the kit cuts it).
+function roundOf(row: Row, origin: string): OpenRoundInput {
   return {
     id: row.id,
-    title: row.title.slice(0, 80),
+    title: row.title,
     kind: KINDS[row.game_type] ?? 'Seasonal Bingo',
-    startsAt: iso(row.start_at),
-    signupClosesAt: iso(row.lobby_closes_at ?? row.start_at),
+    startsAt: row.start_at,
+    signupClosesAt: row.lobby_closes_at ?? row.start_at,
     players: row.players,
     maxPlayers: row.max_players,
     joinUrl: `${origin}#/match/${encodeURIComponent(row.code)}`,
@@ -79,11 +89,20 @@ export function registerOpenRounds(app: FastifyInstance, deps: OpenRoundsDeps): 
   app.get(
     '/api/public/open-rounds',
     { config: { rateLimit: { max: 60, timeWindow: 60_000 } } },
-    async (request, reply): Promise<OpenRoundsAnswer> => {
+    async (request, reply): Promise<OpenRoundsPage> => {
       const page = deps.publicUrl ?? `https://${request.hostname}${deps.basePath}`;
       const rows = (await deps.pool.query<Row>(OPEN, [deps.screens().openRounds])).rows;
-      reply.header('cache-control', 'public, max-age=30');
-      return { version: 1, rounds: rows.map((row) => roundOf(row, page)) };
+      reply.header('cache-control', OPEN_ROUNDS_CACHE_CONTROL);
+      // A round the website would drop never leaves the game; the log names it by id only.
+      return openRoundsPage(
+        rows.map((row) => roundOf(row, page)),
+        {
+          origin: page,
+          onDrop: (id, why) => {
+            request.log.warn({ round: id, why }, 'open round left out of the website page');
+          },
+        },
+      );
     },
   );
 }

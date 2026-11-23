@@ -1,79 +1,23 @@
 /**
  * @file   apps/server/src/auth/rateLimit.ts
  * @module server/auth
- * @brief  In-memory token buckets for the application rate limits (03 §13, layer 2).
+ * @brief  Bingo's application rate limits (03 §13, layer 2), for the kit's RateLimiter.
  *
- * Responsibility: one limiter per route class, keyed by IP, account or both; each key has
- *                 `limit` tokens refilled evenly over `windowMs`. `take` answers whether a
- *                 request may pass and, if not, after how many milliseconds to retry. The
- *                 clock is injected so tests do not wait. A Redis-backed adapter is the
- *                 scale-out step (02 §8). Lockout is soft: callers get a delay, never a lock.
- *                 Keys idle for a whole window are pruned, so the maps stay small. A rule may be
- *                 read on every request, so a limit changed in the admin area applies at once.
- * Depends on:     nothing
- * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/health,
- *                 ../http/routes/webClient, ../http/routes/websiteSignIn, ../realtime/intents
+ * Responsibility: the rules of each route class (limit per window, keyed by IP, account or both
+ *                 at the caller) and the limit of the routes outside /api. The token buckets are
+ *                 the kit's `RateLimiter` (@seasonal/kit/server, since v0.11.0): soft lockout,
+ *                 a retry delay, idle keys forgotten, the clock injectable. `liveRule` gives it
+ *                 a rule it reads on every request, so a limit changed in the admin area's
+ *                 Technical section applies at once. A Redis-backed adapter is the scale-out
+ *                 step (02 §8).
+ * Depends on:     @seasonal/kit/server (types)
+ * Used by:        ./sessionPlugin, ../config/technical, ../http/routes/adminTechnical,
+ *                 ../http/routes/auth, ../http/routes/health, ../http/routes/passwordReset,
+ *                 ../http/routes/twoFactor, ../http/routes/webClient,
+ *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/03-security-architecture.md §13
  */
-
-interface RateRule {
-  readonly limit: number;
-  readonly windowMs: number;
-}
-
-interface RateDecision {
-  readonly allowed: boolean;
-  readonly retryAfterMs: number;
-}
-
-interface Bucket {
-  tokens: number;
-  updatedAt: number;
-}
-
-export class RateLimiter {
-  private readonly buckets = new Map<string, Bucket>();
-  private takes = 0;
-
-  // `rule` may be a function: read on every request, so a changed limit applies at once
-  // (the admin area's Technical section, admin-area §9 piece 7).
-  constructor(
-    private readonly rules: RateRule | (() => RateRule),
-    private readonly now: () => number = Date.now,
-  ) {}
-
-  private get rule(): RateRule {
-    return typeof this.rules === 'function' ? this.rules() : this.rules;
-  }
-
-  take(key: string): RateDecision {
-    const t = this.now();
-    const rule = this.rule;
-    // Every 1000 requests, forget keys idle for a whole window (their bucket is full again).
-    if ((this.takes += 1) % 1000 === 0) this.prune(t);
-    const refillPerMs = rule.limit / rule.windowMs;
-    const bucket = this.buckets.get(key) ?? { tokens: rule.limit, updatedAt: t };
-    bucket.tokens = Math.min(rule.limit, bucket.tokens + (t - bucket.updatedAt) * refillPerMs);
-    bucket.updatedAt = t;
-    this.buckets.set(key, bucket);
-    if (bucket.tokens >= 1) {
-      bucket.tokens -= 1;
-      return { allowed: true, retryAfterMs: 0 };
-    }
-    return { allowed: false, retryAfterMs: Math.ceil((1 - bucket.tokens) / refillPerMs) };
-  }
-
-  // How many keys are held (tests watch the pruning).
-  get size(): number {
-    return this.buckets.size;
-  }
-
-  private prune(t: number): void {
-    for (const [key, bucket] of this.buckets) {
-      if (t - bucket.updatedAt >= this.rule.windowMs) this.buckets.delete(key);
-    }
-  }
-}
+import type { RateRule, RateRuleSource } from '@seasonal/kit/server';
 
 // Defaults of 03 §13; the admin area's Technical section changes the limits (not the windows)
 // at runtime (`liveRule`).
@@ -107,8 +51,10 @@ export function openRouteLimit(): {
 export type LiveLimits = () => Readonly<Record<TechnicalRule, number>>;
 export type TechnicalRule = Exclude<keyof typeof RATE_RULES, 'anonymous'>;
 
-// A rule whose limit is read from the Technical settings on every request; today's without them.
-export function liveRule(name: TechnicalRule, limits?: LiveLimits): RateRule | (() => RateRule) {
+// A rule whose limit is read from the Technical settings on every request (the kit reads a
+// function rule on every `take`); today's fixed rule without them. The settings keep every
+// limit at 1 or more (@sbr/contracts technical), as the kit requires.
+export function liveRule(name: TechnicalRule, limits?: LiveLimits): RateRuleSource {
   if (limits === undefined) return RATE_RULES[name];
   return () => ({ limit: limits()[name], windowMs: RATE_RULES[name].windowMs });
 }

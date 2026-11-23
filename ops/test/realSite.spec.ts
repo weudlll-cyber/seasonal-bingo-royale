@@ -87,7 +87,7 @@ async function websiteLogin(page: Page, name: string, password: string): Promise
 // "Sign in" in the game: the website's login when it asks (it may also send a member it knows
 // straight back), then the game signed in.
 async function signInAgain(page: Page, s: State): Promise<void> {
-  await page.getByTestId('open-sign-in').click();
+  await page.getByTestId('sign-in').click();
   const signedIn = page.getByTestId('signed-in-as');
   await expect(signedIn.or(page.getByRole('main').getByLabel('Username'))).toBeVisible({
     timeout: 30_000,
@@ -213,7 +213,7 @@ test('P3 locked on the website: the session ends and the member stays a guest', 
     .poll(async () => (await sessionOf(member)).signedIn, { timeout: POLL_MS, intervals: [5_000] })
     .toBe(false);
   await member.reload();
-  await member.getByTestId('open-sign-in').click();
+  await member.getByTestId('sign-in').click();
   // The website has ended the locked member's session too: its login page, not the game.
   await expect(member).toHaveURL(/\/login\?next=/);
   await member.goto(GAME);

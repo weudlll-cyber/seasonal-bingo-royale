@@ -121,7 +121,7 @@ describe("the website's chat in website mode (07 §6)", () => {
     window.location.hash = '#/sign-in';
     serve('website');
     await renderShell();
-    await screen.findByTestId('open-sign-in');
+    await screen.findByTestId('sign-in');
     expect(screen.queryByTestId('chat-toggle')).toBeNull();
   });
 });
@@ -131,7 +131,7 @@ describe('a standalone install (07 §6)', () => {
     window.localStorage.setItem('sbr.chat.open', 'true');
     const sent = serve('local');
     await renderShell();
-    await screen.findByTestId('open-sign-in');
+    await screen.findByTestId('sign-in');
     expect(screen.queryByTestId('chat-toggle')).toBeNull();
     expect(screen.queryByTestId('chat-frame')).toBeNull();
     expect(sent.some((url) => url.includes('embed'))).toBe(false);

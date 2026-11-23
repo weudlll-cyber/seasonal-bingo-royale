@@ -10,7 +10,8 @@
  *                 marked by its route config), which accept JSON only, and unmatched routes
  *                 (404); limit a session to 120 API calls a minute, requests without one to
  *                 600 per address. Cookie name, path and Secure flag follow 03 §3.
- * Depends on:     fastify, @fastify/cookie, ./sessions, ./rateLimit, ../db/pool
+ * Depends on:     fastify, @fastify/cookie, @seasonal/kit/server (RateLimiter), ./sessions,
+ *                 ./rateLimit, ../db/pool
  * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn,
  *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/03-security-architecture.md §3, §8, §13
@@ -18,11 +19,12 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import cookie from '@fastify/cookie';
+import { RateLimiter } from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
 import type { DbPool } from '../db/pool.js';
-import { liveRule, RATE_RULES, RateLimiter } from './rateLimit.js';
+import { liveRule, RATE_RULES } from './rateLimit.js';
 import { findSession, type Session } from './sessions.js';
 
 declare module 'fastify' {

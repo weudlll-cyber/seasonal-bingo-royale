@@ -145,7 +145,7 @@ test('a standalone install shows no chat and asks for no embed page', async ({ p
     if (r.url().includes('/embed/')) embeds.push(r.url());
   });
   await page.goto(`${CLIENT_URL}/#/`);
-  await expect(page.getByTestId('open-sign-in')).toBeVisible();
+  await expect(page.getByTestId('sign-in')).toBeVisible();
   await expect(page.getByTestId('chat-toggle')).toHaveCount(0);
   expect(embeds).toEqual([]);
 });
