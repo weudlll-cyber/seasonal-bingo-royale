@@ -8,9 +8,9 @@
  *                 scrolling list hides it, repeated in a strip below the list; eliminated dimmed
  *                 with "out". Royale groups: "Still in" and "Out of the match"; in the final "In
  *                 the final" and "Out of the match", each out row with the cut and points then
- *                 (from the server). Order and placement rule unchanged (01 §7.5). With `onFollow`
- *                 (out player or spectator, D24) names of players still in are buttons; otherwise
- *                 names link to profiles when `profileHref` is passed.
+ *                 (from the server); order and rule as 01 §7.5. The list scrolls on its own: a
+ *                 named tab stop (WCAG 2.1.1). With `onFollow` (out player or spectator, D24)
+ *                 names of players still in are buttons, else links to profiles (`profileHref`).
  * Depends on:     react, ./RankRow, ../playback, ../shell/session (useScreens), ../types,
  *                 ./matchSide.css
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
@@ -56,7 +56,15 @@ export function Standings({ result, view, onFollow, profileHref }: StandingsProp
   return (
     <section className="sbr-panel standings-panel" data-testid="standings-panel">
       <h3>Standings</h3>
-      <ol className="rank-list" data-testid="standings" ref={list}>
+      {/* The rows scroll inside the panel: a list with a name and a tab stop, so a keyboard can
+          scroll it (WCAG 2.1.1); a region role would take the rows out of the list. */}
+      <ol
+        className="rank-list"
+        data-testid="standings"
+        aria-label="Standings rows"
+        tabIndex={0}
+        ref={list}
+      >
         {royale && firstOut !== 0 ? (
           <GroupLabel key="in" text={final ? 'In the final' : 'Still in'} />
         ) : null}
