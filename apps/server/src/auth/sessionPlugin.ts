@@ -9,7 +9,8 @@
  *                 routes that start a session (register, login, guest, and the dev sign-in,
  *                 marked by its route config), which accept JSON only, and unmatched routes
  *                 (404); limit a session to 120 API calls a minute, requests without one to
- *                 600 per address. Cookie name, path and Secure flag follow 03 §3.
+ *                 600 per address. Cookie name, path and Secure flag follow 03 §3; the cookie
+ *                 lasts as long as a player's or guest's session of the running mode.
  * Depends on:     fastify, @fastify/cookie, @seasonal/kit/server (RateLimiter), ./sessions,
  *                 ./rateLimit, ../db/pool
  * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn,
@@ -25,7 +26,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
 import type { DbPool } from '../db/pool.js';
 import { liveRule, RATE_RULES } from './rateLimit.js';
-import { findSession, type Session } from './sessions.js';
+import { findSession, type Session, type SessionLengths } from './sessions.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -120,8 +121,20 @@ function sameToken(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-export function setSessionCookie(reply: FastifyReply, config: CookieConfig, token: string): void {
-  void reply.setCookie(config.name, token, cookieOptions(config, 30 * 24 * 3600));
+// The cookie lasts as long as the session it names can: the player's and guest's absolute
+// lifetime of the running mode (30 days standalone unless the Technical section says otherwise,
+// 7 in website mode), so the browser never keeps a cookie the server has already ended.
+export function setSessionCookie(
+  reply: FastifyReply,
+  config: CookieConfig,
+  token: string,
+  lengths: SessionLengths,
+): void {
+  void reply.setCookie(
+    config.name,
+    token,
+    cookieOptions(config, lengths.playerAbsoluteDays * 24 * 3600),
+  );
 }
 
 // Cleared with the same attributes it was set with (a `__Host-`/`__Secure-` cookie only

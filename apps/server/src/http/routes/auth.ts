@@ -108,13 +108,14 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     // Website mode: as long as a member's session from the website sign-in (the same lengths in
     // every game, 2026-11-09); standalone the player default.
     const days = deps.mode === 'website' ? WEBSITE_SESSION_DAYS : undefined;
+    const lengths = sessionLengthsOf(deps.technical(), days);
     const { token } = await createSession(
       deps.pool,
       null,
       request.headers['user-agent'] ?? null,
-      sessionLengthsOf(deps.technical(), days),
+      lengths,
     );
-    setSessionCookie(reply, deps.cookie, token);
+    setSessionCookie(reply, deps.cookie, token, lengths);
     return reply.status(201).send({ kind: 'guest' });
   });
 }
@@ -221,13 +222,14 @@ export async function openSession(
     await revokeSession(deps.pool, request.session.id);
     await deps.sessionEnds.end([request.session.id]);
   }
+  const lengths = sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays);
   const { token } = await createSession(
     deps.pool,
     accountId,
     request.headers['user-agent'] ?? null,
-    sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays),
+    lengths,
   );
-  setSessionCookie(reply, deps.cookie, token);
+  setSessionCookie(reply, deps.cookie, token, lengths);
 }
 
 async function startSession(
