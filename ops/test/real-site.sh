@@ -14,10 +14,11 @@
 #                 the chat room, the right to start games and "Start a match" from a preset,
 #                 lock, unlock, delete, the website admin in the admin area) around the
 #                 website admin's steps (./real-site-admin.sh), and the website's own checks and
-#                 an unchanged website after the install, a re-run, `sbr update` and
-#                 `sbr uninstall`; then the drill (./real-site-drill.sh; DRILL=0 skips it): the
-#                 backup taken before the uninstall restored into a fresh server with the
-#                 website and the bingo installed again. Prints PASS/FAIL per check and the website SHA. Everything it
+#                 an unchanged website after the install, a re-run, `sbr update`, `sbr
+#                 rollback`, the update again with `sbr confirm` and `sbr uninstall`; then the
+#                 drill (./real-site-drill.sh; DRILL=0 skips it): the backup taken before the
+#                 uninstall restored into a fresh server with the website and the bingo
+#                 installed again. Prints PASS/FAIL per check and the website SHA. Everything it
 #                 made carries the harness's label and is removed at the end (KEEP=1 keeps it).
 #                 Not part of CI (Docker with privileged containers, about an hour per mode).
 #                 KEEP=1 leaves the server; RESUME=1 then reuses it and its website for a faster
@@ -129,6 +130,12 @@ main_rehearsal() {
   website_unchanged "by the re-run"
   say "--- sbr update"
   probe ok "sbr update master" on_server sbr --yes update master
+  # The operator guide's way back (§6 step 3), then the update again to confirm it.
+  say "--- sbr rollback"
+  probe ok "sbr rollback" on_server sbr --yes rollback
+  probe bingo_status
+  website_unchanged "by the rollback"
+  probe ok "sbr update master after the rollback" on_server sbr --yes update master
   probe ok "sbr confirm" on_server sbr --yes confirm
   probe bingo_status
   website_unchanged "by the update"
