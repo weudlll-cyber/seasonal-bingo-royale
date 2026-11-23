@@ -91,6 +91,7 @@ async function setChat(page: Page, open: boolean): Promise<void> {
 }
 
 // axe on the game's page (WCAG 2 A and AA); the website's chat page in its frame is left out.
+// Each rule with the elements it names (axe's selectors, the first three).
 async function axeOf(page: Page) {
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -100,6 +101,7 @@ async function axeOf(page: Page) {
     id: v.id,
     impact: v.impact ?? null,
     nodes: v.nodes.length,
+    targets: v.nodes.slice(0, 3).map((n) => n.target.join(' ')),
   }));
 }
 
