@@ -37,6 +37,8 @@ Everything in this repository is English: code, comments, commit messages, docs,
 
 Owner decision of 2026-11-06: spend fewer tokens without testing or checking less.
 
+Owner decision of 2026-11-23: these saving rules apply to every Seasonal project.
+
 - Test runs print failures only: `pnpm test:quiet`, `pnpm verify:quiet`, `pnpm e2e:quiet` (dot reporters, failures in full); never read a passing run's full output.
 - Long logs (install/Ubuntu tests, the real-site rehearsal, loadcheck, CI job logs) go to a file under `reports/logs/` (git-ignored); read only the failing part (grep/tail), never the whole log.
 - Screenshots are taken for the owner, not for checking: check with assertions; open an image yourself only when an assertion cannot decide it.

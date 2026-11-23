@@ -118,7 +118,19 @@ Bingo shows: the bar's theme toggle names the shown theme in `data-sk-theme-now`
   v0.11.1, §8). The finding: the kit's frame is a result page of its own: its headline an `h1`, its first part one screen high under the bar (`.sk-result-first`, `height: calc(100dvh - var(--sk-result-top))` for a board game) with the reveal and the placings, and `overflow-wrap: anywhere` on the whole result (kit `css/frames.css` 130–160, `src/react/ResultFrame.tsx`). Bingo's final placement is a panel inside the replay, the arena's notice and the host console (`apps/web/src/components/FinalPlacement.tsx` 48–85, an `h3` "Final placement"), and its podium names never break inside their step (the fit rule of `minTextSize.test.ts`). Wrapping it would change what a player sees, and no K decision covers that.
 
 - **The website-mode top bar at 1280 px stays as it is for now** (it folds for the website admin
-  and for organizers, the back link taking the room): covered by request R1.
+  and for organizers, the back link taking the room): covered by request R1. Settled on
+  2026-11-23: see §6a.
+
+## 6a. Decided by the owner (2026-11-23)
+
+- **The organizer's bar in website mode at 1280 px may fit on one row** instead of folding behind
+  Menu. The kit's header (v0.11.1, adopted in §8) measures what fits, so it no longer folds for
+  the back link's room; below 960 px Bingo's bar still folds whatever fits (`shell/header.css`).
+- **On phones the back link keeps its short row; the kit's 44 px target (K29) stays waived for
+  that link** (`min-height: 0` up to 640 px in `shell/header.css`), as Bingo's own link was.
+  Without it the phone bar is 23 px taller and the player's card leaves a 375×667 window in
+  website mode (the fit audit's sweep, docs/concepts/fit-audit.md §7). For the kit planning: a
+  back link with a shorter phone row.
 
 ## 7. Noticed, left alone
 
@@ -175,4 +187,4 @@ header at 800 px), light and dark.
   960 px whatever fits, and the account hidden until the session is known. The test ids
   `open-sign-in` and `open-register` are the kit's `sign-in` and `register`; the e2e sign-in
   waits for `[data-session="known"]`. The back link's accessible name is "Seasonal
-  Entertainment" (its arrow is drawn, not read); on a phone its own row stays as short as Bingo's was (`min-height: 0` in `shell/header.css`): the kit's 44 px target (K29) made the phone bar 23 px taller and pushed the card out of a 375×667 window in website mode (the fit audit's sweep, 2026-11-23). That waives K29's target for this link on phones, as Bingo's own link did; for the owner and the kit planning.
+  Entertainment" (its arrow is drawn, not read); on a phone its own row stays as short as Bingo's was (`min-height: 0` in `shell/header.css`): the kit's 44 px target (K29) made the phone bar 23 px taller and pushed the card out of a 375×667 window in website mode (the fit audit's sweep, 2026-11-23). That waives K29's target for this link on phones, as Bingo's own link did (owner decision of 2026-11-23, §6a).
