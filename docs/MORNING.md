@@ -8,16 +8,16 @@ Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on 
 
 - **Piece 1 merged**: PR #58 as **`be3f5de`** (merge commit, kit v0.10.1). Before it, on `5c613c0`: the 48 screens (standalone and website mode, 1280×720, 959×700, 390×844, light and dark) pixel for pixel the same as master `c1bab70`; lint, typecheck, format, minTextSize, playerFit (Chromium, 4/4) pass; a short royale played to its final placement on desktop and phone (fast profile); verify 928/930 with two timeouts while other projects loaded this PC (`royale.properties` invariant 10, `matchViews` watched cards: both pass alone, 12 s and 74 s); CI 45073180487 and CodeQL 45073180468 green. On `be3f5de`: CI 45102013233 green **including the security job** (the `.gitleaksignore` entries came with the merge), CodeQL 45102013097 green. The branch is deleted on origin and locally.
 - Piece 2 (branch `test/rehearsal-final`, PR #62), website master `e71c654`, all fresh: nginx on master `be3f5de` **63 PASS / 0 FAIL**; caddy with the new backup-and-restore drill at `8fd1639` **100 PASS / 0 FAIL**; nginx with the drill and the new `sbr rollback` step at `f3f9177` **126 PASS / 0 FAIL**. The drill restores the backup into a fresh server with `--force-env` and finds the 18 data tables, the settings History, the recovery key, a stored recovery code (the app's new read-only `check-recovery-code`; its lookup test failed first; the check failed under another key on the kept server before it passed), the seed key and the played match. A gitleaks finding on the harness test key in `8fd1639` is ignored like the same line in `60ebca7`. Local verify 925/925 (one test file's worker did not start under load; `startRules.test.tsx` alone 6/6). **Merged** as **`4650405`** (PR #62, CI 45120040934 and CodeQL green on `728484f`); master CI 45120901407 and CodeQL 45120901304 green on `4650405`. The branch is deleted.
-- Piece 3 (branch `chore/prod-audit`, PR #63), master merged in (`bfdd9ba`): fresh rehearsals with the drill and the rollback, website `e71c654`: **nginx 126 PASS / 0 FAIL, caddy 110 PASS / 0 FAIL** (the install now ends with "1. The website's admins are the game's admins…"); local verify 934/934. Written up in docs/concepts/prod-readiness.md; fixed (each with a test that failed first where code changed): no e-mail address in the log of a failed mail, a website install's next steps without `create-super`; the guide's own-Caddy uninstall line; the stale osv ignore. **Merged** as **`3c0888d`** (PR #63, CI 45127817963 and CodeQL 45127818040 green on `1be4bcf`); the branch is deleted.
+- Piece 3 (branch `chore/prod-audit`, PR #63), master merged in (`bfdd9ba`): fresh rehearsals with the drill and the rollback, website `e71c654`: **nginx 126 PASS / 0 FAIL, caddy 110 PASS / 0 FAIL** (the install now ends with "1. The website's admins are the game's admins…"); local verify 934/934. Written up in docs/concepts/prod-readiness.md; fixed (each with a test that failed first where code changed): no e-mail address in the log of a failed mail, a website install's next steps without `create-super`; the guide's own-Caddy uninstall line; the stale osv ignore. **Merged** as **`3c0888d`** (PR #63, CI 45127817963 and CodeQL 45127818040 green on `1be4bcf`); the branch is deleted. Master CI 45128837895 and CodeQL 45128837879 green on `3c0888d`.
+- Piece 4: docs/GO-LIVE.md (the steps, the three answers, the expected output, `sudo sbr status` from the rehearsal's server, the website admin's steps, the first browser checks, what to do when a step fails, rollback included). **Merged** as **`890b568`** (PR #64, CI 45129188466 and CodeQL 45129188567 green on `463582f`); master CI 45130406519 and CodeQL 45130406370 green on `890b568`. The branch is deleted.
 
 ### Running
 
-- Piece 4 (branch `docs/go-live`): docs/GO-LIVE.md written (the steps, the three answers, the expected output, `sudo sbr status` from the rehearsal's server, the website admin's steps, the first browser checks, what to do when a step fails); master merged in; CI, then the merge.
-- Piece 5 (branch `test/sweep`): the website-mode sweep measured (480 measurements; docs/concepts/fit-audit.md §7): with the chat closed no finding; with it open the chat covers the match below 1900 px; axe `scrollable-region-focusable` (serious) on the results, interludes and the console's round. New development dependency `@axe-core/playwright` 4.14.0 (MPL-2.0).
+- Piece 5 (branch `test/sweep`): the website-mode sweep (docs/concepts/fit-audit.md §7), measured twice with the same findings, 480 measurements each: with the chat closed no finding; with it open the chat covers the match below 1900 px; axe `scrollable-region-focusable` (serious) on the drawn numbers and the standings of the results and interludes and the console's round, and one `color-contrast` hit on the interlude's podium while it fades in. `atSize`, `ROUND_KEYS`, `keysOutOf` and `findingsOf` moved to `e2e/acceptance/fitMeasure.ts`; the standalone maintenance test passes with them. New development dependency `@axe-core/playwright` 4.14.0 (MPL-2.0). CI, then the merge.
 
 ### Open
 
-- Nothing beyond the merges.
+- Nothing beyond piece 5's merge.
 
 ### Reverted
 
@@ -27,6 +27,14 @@ Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on 
 
 - HSTS on the game's own answers inside the website (docs/concepts/prod-readiness.md §8): the website's Caddy sends it only for its own pages; proposal: the website adds it for the game routes, or the game's route file does.
 - `ops/.env.dev.example` and `apps/server/dev.env`: gitleaks finds nothing in them, but their content is not read by the agent (a permission rule here); a glance that they hold no real values.
+- The docked layout (K18, kit-adoption §5 B7) can start from the sweep's baseline: the open chat covers the match from 1280 to 1536 px; on phones it stays a sheet.
+
+### Noticed, left alone (this night)
+
+- One merge commit has git's default message without the co-author line: `b4ce28c`, master merged into the go-live branch (amending is not allowed here).
+- The guest and member cookie's `Max-Age` is 30 days in website mode, where the server ends a session after 7 (prod-readiness §9).
+- Every round screen scrolls the page on a phone in website mode as in standalone (the ball, the numbers and the cards stay in the window).
+- Local test runs time out when other projects' work loads this PC (two property tests, a worker start); each passed alone.
 
 ## Night chain of 2026-11-22
 
