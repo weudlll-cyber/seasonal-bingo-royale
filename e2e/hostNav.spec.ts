@@ -122,7 +122,7 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
   ).newPage();
   await signIn(page, 'host');
   await page.goto('/#/host/new');
-  const bar = page.locator('.shell-bar');
+  const bar = page.locator('.sk-header');
   await page.evaluate(() => {
     window.scrollTo(0, document.body.scrollHeight);
   });
@@ -147,7 +147,7 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
   const phone = await phonePage.evaluate(async () => {
     window.scrollTo(0, 400);
     await new Promise((resolve) => requestAnimationFrame(resolve));
-    const el = document.querySelector('.shell-bar');
+    const el = document.querySelector('.sk-header');
     return {
       scrolled: window.scrollY,
       position: el === null ? '' : getComputedStyle(el).position,
@@ -164,7 +164,7 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
 function barRow(): { height: number; toggle: number; menu: number } {
   const top = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
   return {
-    height: document.querySelector('.shell-bar')?.getBoundingClientRect().height ?? 0,
+    height: document.querySelector('.sk-header')?.getBoundingClientRect().height ?? 0,
     toggle: top('[data-testid="theme-toggle"]'),
     menu: top('[data-testid="menu-button"]'),
   };
@@ -174,13 +174,13 @@ function barRow(): { height: number; toggle: number; menu: number } {
 // bar or the menu past its right edge.
 function openMenuFacts(): { chipCut: boolean; linksIn: boolean; wider: boolean } {
   const chip = document.querySelector<HTMLElement>('[data-testid="signed-in-as"]');
-  const links = [...document.querySelectorAll<HTMLElement>('.shell-nav a')];
+  const links = [...document.querySelectorAll<HTMLElement>('.sk-header-nav a')];
   return {
     chipCut: chip === null ? true : chip.scrollWidth > chip.clientWidth,
     linksIn: links.every((a) => a.getBoundingClientRect().right <= window.innerWidth),
     // The bar and its open menu, not the page below (the lobby lists whatever other tests
     // created at the time).
-    wider: [...document.querySelectorAll('.shell-bar *')].some(
+    wider: [...document.querySelectorAll('.sk-header *')].some(
       (el) => el.getBoundingClientRect().right > window.innerWidth + 0.5,
     ),
   };

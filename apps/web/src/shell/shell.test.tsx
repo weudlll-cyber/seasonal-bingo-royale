@@ -13,7 +13,7 @@
  * Depends on:     @testing-library/react, ./AppShell, ./router, ./session
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from './AppShell.js';
@@ -147,7 +147,9 @@ describe('the way back to the website (its GAME-INTEGRATION.md section 8)', () =
   it('links "← Seasonal Entertainment" to /games in the same tab in website mode', async () => {
     serve([], 'website');
     await renderShell(false);
-    const back = await screen.findByRole('link', { name: '← Seasonal Entertainment' });
+    // The kit's BackLink: the arrow is drawn, not read, so the link is named by its words.
+    const back = await screen.findByRole('link', { name: 'Seasonal Entertainment' });
+    expect(back.textContent).toBe('← Seasonal Entertainment');
     expect(back.getAttribute('href')).toBe('/games');
     expect(back.getAttribute('target')).toBeNull();
   });
@@ -156,8 +158,11 @@ describe('the way back to the website (its GAME-INTEGRATION.md section 8)', () =
     for (const mode of ['local', undefined] as const) {
       serve([], mode);
       await renderShell(false);
-      await screen.findByTestId('open-sign-in');
-      expect(screen.queryByRole('link', { name: '← Seasonal Entertainment' })).toBeNull();
+      // Once the session (and with it the mode) is known.
+      await waitFor(() => {
+        expect(document.querySelector('[data-session="known"]')).not.toBeNull();
+      });
+      expect(screen.queryByTestId('back-link')).toBeNull();
       cleanup();
     }
   });

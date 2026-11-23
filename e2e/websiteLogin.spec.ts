@@ -79,7 +79,7 @@ async function post(ctx: APIRequestContext, url: string, data: unknown) {
 // in there as 9002, the login sends back to the sign-in route and on to the leaderboard (D43).
 async function browserSignIn(page: Page): Promise<void> {
   await page.goto(`${stack.origin}${BASE}/#/leaderboard`);
-  await page.getByTestId('open-sign-in').click();
+  await page.getByTestId('sign-in').click();
   await expect(page.locator('body')).toHaveText('website login');
   const back = new URL(page.url()).searchParams.get('next') ?? '';
   expect(decodeURIComponent(back)).toBe(`${BASE}/auth/website?next=${BASE}/#/leaderboard`);
@@ -87,7 +87,7 @@ async function browserSignIn(page: Page): Promise<void> {
   await page.reload();
   await expect(page).toHaveURL(`${stack.origin}${BASE}/#/leaderboard`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Web_Player_02 (player)');
-  await expect(page.getByTestId('open-register')).toHaveCount(0);
+  await expect(page.getByTestId('register')).toHaveCount(0);
 }
 
 const leagueOf = async (ctx: APIRequestContext, name: string) => {

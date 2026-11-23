@@ -83,8 +83,9 @@ Each finding has its cause (file:line of the rule) and an example screenshot (`r
 
 - **F1 — Brand subline "SEASONAL ENTERTAINMENT", 12 px.**
   - Where: every screen from 768 px wide, at every font (15 px at 125 %, 18 px at 150 %). Phones hide it.
-  - Selector: `.shell-brand small`.
-  - Cause: `font-size: 0.75rem` at [apps/web/src/shell/shell.css:88](../../apps/web/src/shell/shell.css#L88).
+  - Selector: `.shell-brand small` (since the kit's header, v0.11: `.sk-header-brand small`).
+  - Cause: `font-size: 0.75rem` at `apps/web/src/shell/shell.css` (line 88 then; the rule is now
+    `apps/web/src/shell/header.css`, `.sk-header-brand small`).
   - Shot: `fit-lobby-1280x720-16`.
 - **F2 — LIVE badge, 12 px.**
   - Where: player, spectator and console screens during a round and in the interlude, at every size and font (15 / 18 px at 125 / 150 %).
@@ -286,7 +287,7 @@ Findings per kind:
 - **F12:** the play area's minimum height is `min(20rem, 50vh)`; the standings keep `min(14rem, 60%)` of the side column, so the own row's strip stays whole at 150 %.
 - **F13:** on phones the ball is at most a quarter of the width and the own and followed cards also follow the window's height, so at the default font ball, drawn numbers and the whole card (or the watched cards, or Draw next) fit a 360×640 phone (own cells 38 px there).
 - **F14:** the arena's title line wraps the host button and LIVE under the title.
-- **O1, O2:** below 960 px the top bar is one row: brand, theme toggle and "Menu" (`apps/web/src/shell/MenuFold.tsx`). The menu opens a panel with the links and the account (name, Sign out, Dev sign-in in development, Chat in website mode): `aria-expanded`, the focus moves into the panel, Escape closes it and returns the focus; it also closes on a click outside, a new route, another sign-in or the chat opening. "← Seasonal Entertainment" stays at the top left in website mode.
+- **O1, O2:** below 960 px the top bar is one row: brand, theme toggle and "Menu" (Bingo's `MenuFold.tsx` then; since v0.11 the kit's `AppHeader` in `apps/web/src/shell/Header.tsx`, folded below 960 px by `apps/web/src/shell/header.css`). The menu opens a panel with the links and the account (name, Sign out, Dev sign-in in development, Chat in website mode): `aria-expanded`, the focus moves into the panel, Escape closes it and returns the focus; it also closes on a click outside, a new route, another sign-in or the chat opening. "← Seasonal Entertainment" stays at the top left in website mode.
 - **Kept so:** `e2e/playerFit.spec.ts` measures console, player and spectator at 360×640, 390×844 and 1280×720 at 100, 125 and 150 % (Chromium, about 40 s): nothing below the minimums, nothing cut, covered or wider than the window, the key parts in view at the default font on a phone and at every font on the desktop.
 
 ### 6.3 What remains, and why

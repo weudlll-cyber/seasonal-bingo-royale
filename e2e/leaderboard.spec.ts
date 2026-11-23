@@ -145,9 +145,9 @@ test('the account page downloads the data and deletes the account', async ({ bro
     await page.getByTestId('delete-confirm').click();
     await expect(page.getByTestId('account-deleted')).toBeVisible();
     deleted = true;
-    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await expect(page.getByTestId('sign-in')).toBeAttached();
     await openMenu(page);
-    await expect(page.getByTestId('open-sign-in')).toBeVisible();
+    await expect(page.getByTestId('sign-in')).toBeVisible();
     const again = await page.request.post('/api/v1/auth/login', {
       data: { email, password: PASSWORD },
     });

@@ -34,9 +34,9 @@ const CHIP_ROLE: Readonly<Record<Who, string>> = {
 
 export async function signIn(page: Page, who: Who): Promise<void> {
   await page.goto('/#/');
-  // Attached, not visible: on a phone the account items wait behind the menu (./menu).
-  const account = page.getByTestId('open-sign-in').or(page.getByTestId('signed-in-as'));
-  await expect(account.first()).toBeAttached({ timeout: SETTLE_MS });
+  // The bar knows the session (signed in or not); on a phone its account items wait behind
+  // the menu (./menu).
+  await expect(page.locator('[data-session="known"]')).toBeAttached({ timeout: SETTLE_MS });
   await openMenu(page);
   await page.getByTestId('dev-menu').click();
   await page.getByTestId(`dev-sign-in-${who}`).click();
