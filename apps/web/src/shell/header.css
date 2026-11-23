@@ -14,7 +14,8 @@
  *                 - folded always below 960 px, as Bingo's bar was (the kit folds only when
  *                   the items would take a second row): the panel under the bar as the kit's;
  *                 - the account hidden until the session is known (`data-session`), as the bar
- *                   showed none.
+ *                   showed none;
+ *                 - on a phone the back link's row as short as before (no 44 px row).
  *                 Colours from @sbr/ui and the kit's tokens only, so light and dark both work.
  * Used by:        ./Header
  * Spec:           docs/concepts/fit-audit.md §5 item 7 (O1, O2); owner decisions of 2026-11-20
@@ -101,6 +102,13 @@
 }
 
 @media (max-width: 640px) {
+  /* The back link's own first row as short as Bingo's was: the kit's 44 px target (K29) made
+     the phone bar 23 px taller and pushed the card out of a 375x667 window in website mode
+     (fit audit, docs/concepts/fit-audit.md section 7). Wide, the bar's row is 44 px anyway. */
+  .sk-header .sk-back-link {
+    min-height: 0;
+  }
+
   /* The account row keeps the chip whole: the buttons move to a second line only when chip
      and buttons do not fit side by side (360 px with the development menu). */
   .sk-header-account {

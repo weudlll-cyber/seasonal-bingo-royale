@@ -175,4 +175,4 @@ header at 800 px), light and dark.
   960 px whatever fits, and the account hidden until the session is known. The test ids
   `open-sign-in` and `open-register` are the kit's `sign-in` and `register`; the e2e sign-in
   waits for `[data-session="known"]`. The back link's accessible name is "Seasonal
-  Entertainment" (its arrow is drawn, not read), with a 44 px target (K29).
+  Entertainment" (its arrow is drawn, not read); on a phone its own row stays as short as Bingo's was (`min-height: 0` in `shell/header.css`): the kit's 44 px target (K29) made the phone bar 23 px taller and pushed the card out of a 375×667 window in website mode (the fit audit's sweep, 2026-11-23). That waives K29's target for this link on phones, as Bingo's own link did; for the owner and the kit planning.
