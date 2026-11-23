@@ -140,3 +140,12 @@ header at 800 px), light and dark.
   limit, a broken read keeps the last valid rule, and at most 100 000 keys are held. The
   bucket tests moved with the class (the kit's `src/server/rateRule.test.ts`); Bingo's
   `rateLimit.test.ts` tests `liveRule` on the kit's limiter.
+
+- **The open rounds:** `apps/server/src/http/routes/openRounds.ts` (89 → 108 lines) keeps its
+  query, the "Show on the Seasonal Entertainment website" switch and the limit setting, and
+  answers with the kit's `openRoundsPage` and `OPEN_ROUNDS_CACHE_CONTROL`: the website's checks
+  applied before a round leaves the game (a title cut to 80 never through an emoji, UTC times,
+  an https join URL on the game's origin, no closed sign-up), a round left out logged with its
+  id. The kit keeps at most 20 rounds; the setting "Open sign-ups for the website" still allows
+  1–100 (default 20, `packages/contracts/src/config/screens.ts:37`, `:53`), so 21–100 answer as
+  20, as Bingo's own contract already allowed no more (`packages/contracts/src/http/openRounds.ts:32`).
