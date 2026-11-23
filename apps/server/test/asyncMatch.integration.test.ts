@@ -4,14 +4,13 @@
  * @brief  Asynchronous matches over HTTP: create, time travel, "While you were away" (WP-14).
  *
  * Responsibility: POST /matches creates an asynchronous royale (mode, interval, quiet hours, time
- *                 zone in the summary); an unknown time zone is refused, an asynchronous classic
- *                 match too. A player joins, the match starts with bots, the development time
- *                 travel moves it a day ahead (its draws run through the scheduler rows); the
- *                 player's away summary counts the draws in the log and the player's marks and
- *                 is acknowledged (the next fetch has nothing, last_seen_event_seq is the current
- *                 seq). A stranger gets no summary; a guest 401. A lobby open 24 h (D31) starts
- *                 itself with enough players and is cancelled by the system with fewer, also when
- *                 a restarted server runs the due step. The matches are aborted at the end.
+ *                 zone in the summary); an unknown time zone and an asynchronous classic match are
+ *                 refused. A player joins, the match starts with bots, the development time travel
+ *                 moves it a day ahead (draws run through the scheduler rows); the away summary
+ *                 counts the draws and the player's marks and is acknowledged (next fetch empty). A
+ *                 stranger gets none; a guest 401. A lobby open 24 h (D31) starts itself with
+ *                 enough players and is cancelled by the system with fewer, also when a restarted
+ *                 server runs the due step. Matches are aborted.
  * Depends on:     ./harness, ./session
  * Spec:           docs/spec/01-game-design.md §5, §11; docs/spec/05-api-design.md §2.3;
  *                 docs/spec/06-realtime-architecture.md §6; docs/spec/12-testing-strategy.md §4

@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  The public open-rounds answer (docs/OPEN-ROUNDS.md, D50): only open, marked, real rounds.
  *
- * Responsibility: a server in website mode under /games/bingo/ and one in local mode on the
- *                 same database. A match with "Show on the website" off is not listed; on and
- *                 open it is, with its fields and the join URL on the endpoint's own origin; the
- *                 host can switch it while the sign-up is open; a started match, a test match
- *                 (fast profile) and one with bots are not listed; no player name appears; the
- *                 answer is valid against the contract (@sbr/contracts openRoundsAnswer); no
- *                 login, cached 30 s, rate-limited per address. In local mode the option does
- *                 not exist (a ticked box is ignored, the host route is 404) and the list is
- *                 empty. Every match it creates ends aborted; accounts are removed.
+ * Responsibility: a server in website mode under /games/bingo/ and one in local mode on the same
+ *                 database. A match with "Show on the website" off is not listed; on and open it
+ *                 is, with its fields and the join URL on the endpoint's own origin; the host can
+ *                 switch it while sign-up is open; a started match, a test match (fast profile) and
+ *                 one with bots are not listed; no player name appears; the answer is valid against
+ *                 @sbr/contracts openRoundsAnswer; no login, cached 30 s, rate-limited per address.
+ *                 In local mode the option does not exist (a ticked box is ignored, the host route
+ *                 is 404) and the list is empty. Matches end aborted; accounts are removed.
  * Depends on:     vitest, @sbr/contracts, ../src/auth/accounts, ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/OPEN-ROUNDS.md; docs/spec/07-integration-architecture.md §7
  */

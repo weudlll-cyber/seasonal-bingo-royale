@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  The League section: league values on the settings store, and corrections (piece 5).
  *
- * Responsibility: the League page lists today's values with the schema's limits; an admin
- *                 changes the points of 1st place and the fewest players, and a match that
- *                 finishes afterwards is awarded by the new table; a value outside its limit
- *                 or a key the League does not have is refused. A correction with its reason
- *                 changes the player's season and all-time points, shows on their public
- *                 profile and in the History by name; a delta of 0, a missing reason and an
- *                 unknown player are refused, an organizer may not correct. A correction is
- *                 never changed (trigger) and goes with the player's account. The accounts it
- *                 registers are removed; the matches finish.
+ * Responsibility: the League page lists today's values with the schema's limits; an admin changes
+ *                 the points of 1st place and the fewest players, and a match finishing afterwards
+ *                 is awarded by the new table; a value outside its limit or an unknown key is
+ *                 refused. A correction with its reason changes the player's season and all-time
+ *                 points, shows on their public profile and in the History by name; a delta of 0, a
+ *                 missing reason and an unknown player are refused, an organizer may not correct. A
+ *                 correction is never changed (trigger) and goes with the player's account. The
+ *                 accounts it registers are removed; the matches finish.
  * Depends on:     vitest, ../src/auth/accounts, ./harness, ./playToEnd, ./session
  * Spec:           docs/concepts/admin-area.md §4 (League), §6, §9 piece 5
  */

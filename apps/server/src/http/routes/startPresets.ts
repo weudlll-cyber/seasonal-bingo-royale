@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  The presets as the Organizer sees them, and a new match's rules from its preset.
  *
- * Responsibility: GET /api/v1/presets (`match.create`): the published presets with only what
- *                 the "Start a match" page needs — name, kind, the line of what is special, the
- *                 players range, the three speeds, the starts allowed, whether it counts for the
- *                 league; never the rest of the rules (admin-area §3). `presetInput` turns a
- *                 POST /matches body into the engine's input: with `preset` (and `speed`) the
- *                 chosen published preset's rules, its speed as the draw interval, the players
- *                 and the start inside what the preset allows, and nothing the preset decides
- *                 (interval, prizes, quiet hours, the fast test profile) — else refused; without
- *                 `preset` the most recently published preset of the game type and mode (§8 (b)),
- *                 for those `mayGoWithoutPreset` lets through (Admins, the load check, development
- *                 tools in a development build; an organizer must name a preset, 2026-11-21).
- *                 The match freezes the preset's id as its ruleset name.
+ * Responsibility: GET /api/v1/presets: the published presets with only what the "Start a match"
+ *                 page needs (admin-area §3). `presetInput` turns a POST /matches body into the
+ *                 engine's input: with `preset` (and `speed`) the published preset's rules, its
+ *                 speed as draw interval, players and start inside its limits, nothing the preset
+ *                 decides — else refused; without `preset` the most recently published preset of
+ *                 the game type and mode (§8 (b)), only where `mayGoWithoutPreset` allows (Admins,
+ *                 load check, dev tools; an organizer must name one, 2026-11-21). The match freezes
+ *                 the preset id as ruleset name.
  * Depends on:     fastify, @sbr/application (types), @sbr/contracts (types), ./matches
  *                 (requirePermission), ./matchInput (types)
  * Used by:        ./matches, ../gameRoutes

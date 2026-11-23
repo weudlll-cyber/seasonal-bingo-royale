@@ -4,18 +4,14 @@
 # @brief  The rehearsal's backup-and-restore drill: a backup of the played server, restored
 #         into a fresh server (sourced by ./real-site.sh).
 #
-# Responsibility: drill_backup, on the rehearsal's server after its update: one recovery code
-#                 stored for a member the way the game stores them (HMAC-SHA-256 under the
-#                 install's SBR_RECOVERY_KEY), a fingerprint of the tables that hold the data
-#                 (accounts, the matches and their events, the league, the admin settings and
-#                 their History, the audit log, the recovery codes), `sbr backup`, and the
-#                 backup and the age key taken out to the host. drill_restore, after the
-#                 uninstall: a fresh server with the website and the bingo installed again (the
-#                 one command, three answers), `sbr restore <backup> --identity <key>
-#                 --force-env` as the operator guide says for a new server, then the same
-#                 fingerprint, the backup's recovery key, the stored code checked by the app
-#                 (dist/cli.js check-recovery-code), the seed key opening a restored match, the
-#                 played match read through the game, the website's checks and `sbr status`.
+# Responsibility: drill_backup, on the rehearsal's server after its update: one recovery code stored
+#                 for a member as the game stores them (HMAC-SHA-256 under SBR_RECOVERY_KEY), a
+#                 fingerprint of the data tables, `sbr backup`, and the backup and the age key taken
+#                 out to the host. drill_restore, after the uninstall: a fresh server with website
+#                 and bingo installed again, `sbr restore <backup> --identity <key> --force-env` (as
+#                 the operator guide says), then the same fingerprint, the backup's recovery key,
+#                 the code checked by the app (check-recovery-code), the seed key opening a restored
+#                 match, the played match, the website's checks, `sbr status`.
 # Depends on:     ./real-site.sh (on_server, ok, probe, say, website_server, copy_bingo,
 #                 bingo_install, bingo_status, website_checks, admin, state_value, $STATE),
 #                 docker, openssl in the server

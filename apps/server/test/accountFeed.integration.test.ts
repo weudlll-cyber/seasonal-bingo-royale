@@ -3,17 +3,14 @@
  * @module server/test
  * @brief  The website's account-changes feed: sessions end, deleted accounts go, the cursor stays.
  *
- * Responsibility: a server in website mode (./websiteHelpers) polling a stub of the website's
- *                 feed (X-Games-Sync-Token checked, pages by `since`). Every kind (locked,
- *                 unlocked, rights, an unknown one) revokes all sessions of the linked account
- *                 at once and closes its open sockets; a locked player whom the website then
- *                 answers as a guest gets no session again; "deleted" deletes the game account
- *                 (off the leaderboard, its match entry keeps the points under a "deleted
- *                 player" name) and refuses a later sign-in with the same website id; ids not
- *                 linked to an account are skipped. The poll follows `next` until a page is
- *                 empty, keeps the cursor in the database (a restarted server goes on from it),
- *                 and survives a 401 (status file written, cursor unchanged, play goes on). The
- *                 match it creates ends aborted; the accounts it creates are deleted.
+ * Responsibility: a server in website mode (./websiteHelpers) polling a stub of the website's feed
+ *                 (X-Games-Sync-Token checked, pages by `since`). Pins: every kind (locked,
+ *                 unlocked, rights, unknown) revokes all sessions of the linked account and closes
+ *                 its sockets; a locked player the website answers as a guest gets no session;
+ *                 "deleted" deletes the game account (off the leaderboard, match entry keeps points
+ *                 under "deleted player") and refuses a later sign-in with that website id;
+ *                 unlinked ids are skipped. The poll follows `next`, keeps the cursor in the
+ *                 database, and survives a 401. Its match ends aborted; its accounts are deleted.
  * Depends on:     vitest, node:http, node:fs, node:os, node:path, socket.io-client,
  *                 ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/spec/07-integration-architecture.md §2.4

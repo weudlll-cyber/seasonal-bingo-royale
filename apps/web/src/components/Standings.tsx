@@ -3,17 +3,14 @@
  * @module web
  * @brief  Live standings: the top rows (20 unless changed) plus the owner's own, grouped (WP-08, D23).
  *
- * Responsibility: show the current ranking (players still in first, ./standingsOrder) as
- *                 ranked rows: rank, name, the season icons (royale), points; the owner's
- *                 row highlighted and, while the scrolling list has it out of view, repeated
- *                 in a strip of its own below the list (never over another row),
- *                 eliminated players dimmed with "out". Royale groups the
- *                 rows: "Still in" above the players still playing and "Out of the match"
- *                 above the others; in the final "In the final" and "Out of the match", each
- *                 out row with the cut and the points at that moment (from the server). The
- *                 order and the placement rule are unchanged (01 §7.5). With `onFollow` (a
- *                 player out or a spectator, D24) the names of players still in are buttons;
- *                 otherwise names link to profiles when the screen passes `profileHref`.
+ * Responsibility: the current ranking (players still in first, ./standingsOrder) as rows: rank,
+ *                 name, season icons (royale), points; the owner's row highlighted and, when the
+ *                 scrolling list hides it, repeated in a strip below the list; eliminated dimmed
+ *                 with "out". Royale groups: "Still in" and "Out of the match"; in the final "In
+ *                 the final" and "Out of the match", each out row with the cut and points then
+ *                 (from the server). Order and placement rule unchanged (01 §7.5). With `onFollow`
+ *                 (out player or spectator, D24) names of players still in are buttons; otherwise
+ *                 names link to profiles when `profileHref` is passed.
  * Depends on:     react, ./RankRow, ../playback, ../shell/session (useScreens), ../types,
  *                 ./matchSide.css
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole

@@ -3,15 +3,14 @@
  * @module server/realtime
  * @brief  Client → server intents of the gateway with replay protection and limits (06 §4.1).
  *
- * Responsibility: every intent is `{ t, seq, data }`, acknowledged `{ ok, data }` or `{ ok:
- *                 false, code }`. `seq` must grow strictly per socket, else `REPLAYED`.
- *                 Per-socket limits: 10 intents a second, marks 4, draw.next 2 (03 §13). Intents
- *                 (`INTENT_TYPES`): match.watch / match.unwatch (at most 3 rooms), match.follow (a
- *                 watcher of that match picks the player its frames follow, D24), mark (players,
- *                 manual marking), draw.next, round.next (D14, D21), draw.setMode (creator with
- *                 match.manage, D8); any other `t` answers UNKNOWN_INTENT. Host intents re-read
- *                 the session (../auth/sessions refreshSession): expired or revoked answers
- *                 UNAUTHORIZED (./gateway then closes the socket), a lost match.manage FORBIDDEN.
+ * Responsibility: every intent is `{ t, seq, data }`, acknowledged `{ ok, data }` or `{ ok: false,
+ *                 code }`. `seq` must grow strictly per socket, else `REPLAYED`. Per-socket limits:
+ *                 10 intents a second, marks 4, draw.next 2 (03 §13). `INTENT_TYPES`: match.watch /
+ *                 match.unwatch (at most 3 rooms), match.follow (a watcher picks the player its
+ *                 frames follow, D24), mark, draw.next, round.next (D14, D21), draw.setMode
+ *                 (creator with match.manage, D8); other `t` answers UNKNOWN_INTENT. Host intents
+ *                 re-read the session (refreshSession): expired or revoked answers UNAUTHORIZED
+ *                 (./gateway then closes the socket), a lost match.manage FORBIDDEN.
  * Depends on:     zod, socket.io (types), @sbr/application, @seasonal/kit/server (RateLimiter),
  *                 ../auth/sessions,
  *                 ./gateway (types), ./matchCodes (types)

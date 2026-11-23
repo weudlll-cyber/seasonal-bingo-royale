@@ -3,17 +3,14 @@
  * @module server/http
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
- * Responsibility: GET /session (account summary, permissions, CSRF token, feature flags, the form limits, the
- *                 sign-in mode; in website mode the website's chat room, 07 §6), POST
- *                 /auth/register and /auth/login (local mode only; in website mode players
- *                 sign in through the website, D37), /auth/logout, /auth/guest, DELETE /me
- *                 (the account, after its password is checked; in website mode after its
- *                 display name is typed, D42). Login answers
- *                 uniformly and verifies a dummy hash for unknown e-mails, so timing and
- *                 text never reveal whether an account exists (03 §2.1). Login and
- *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
- *                 verification and 2FA are behind feature flags that are off by default;
- *                 when verification is on, unverified accounts cannot sign in.
+ * Responsibility: GET /session (account, permissions, CSRF token, flags, limits, sign-in mode;
+ *                 website mode: the website's chat room, 07 §6), POST /auth/register and
+ *                 /auth/login (local mode only; in website mode players sign in through the
+ *                 website, D37), /auth/logout, /auth/guest, DELETE /me (password checked first;
+ *                 website mode: display name typed, D42). Login answers uniformly and verifies a
+ *                 dummy hash for unknown e-mails, so nothing reveals whether an account exists (03
+ *                 §2.1). Login and registration are rate-limited per IP and per account+IP (03
+ *                 §13). E-mail verification and 2FA: feature flags, off by default.
  * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
  *                 SessionEnds), ../../auth/*, ../../db/pool, ../../config/features
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)

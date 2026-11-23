@@ -3,15 +3,13 @@
  * @module web
  * @brief  No text below 14 px at the browser's default font, no card number below 16 px, no cut name.
  *
- * Responsibility: scan every stylesheet and component of the client and of @sbr/ui, and the
- *                 @seasonal/kit style files the client loads (KIT_CSS), for font
- *                 sizes written as a fixed length and check their floor: the value itself, or
- *                 the first argument of max() and clamp(), or a var()'s fallback. Text keeps
- *                 0.875rem (14 px), card numbers (--cell-font) 1rem (16 px); sizes computed
- *                 from a box (calc of a custom property) are left to the e2e fit checks.
- *                 `small` gets the small size, never the browser's `smaller`. No text is cut
- *                 with an ellipsis (names wrap or move their figures to the next line), and a
- *                 podium name never breaks inside its step (the podium turns into rows).
+ * Responsibility: scan every stylesheet and component of the client and @sbr/ui, and the
+ *                 @seasonal/kit style files the client loads (KIT_CSS), for fixed font sizes and
+ *                 check the floor: the value, the first argument of max()/clamp(), or a var()
+ *                 fallback. Text keeps 0.875rem (14 px), card numbers (--cell-font) 1rem; sizes
+ *                 computed from a box are left to the e2e fit checks. `small` gets the small size,
+ *                 never `smaller`. No text is cut with an ellipsis, and a podium name never breaks
+ *                 inside its step (the podium turns into rows).
  * Depends on:     nothing (reads the source files)
  * Spec:           docs/concepts/fit-audit.md §3 (F1–F7), §5 items 1, 2 and 6
  */

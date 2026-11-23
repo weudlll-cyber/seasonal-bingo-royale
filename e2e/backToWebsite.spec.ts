@@ -3,18 +3,14 @@
  * @module e2e
  * @brief  "← Seasonal Entertainment" back to the website in website mode, on every main screen.
  *
- * Responsibility: behind the stand-in website (./websiteStack), a member plays a realtime
- *                 royale (with SBR_E2E_FULL_ROYALE=1 at its full length, else and in CI with the
- *                 fast test rules; with bots, as the stack runs with the development
- *                 features) with the link at the top left of the match screen all along; then
- *                 the lobby, the match, "Host a match", the host console, the leaderboard, a
- *                 player profile, the account page and a guest's view each show the link at the
- *                 top left (to /games, same tab), photographed at desktop and phone width in
- *                 both themes as reports/screens/latest/back-<screen>-<size>-<theme>.jpg for
- *                 the owner; the standalone development server's lobby has no such link
- *                 (back-standalone-lobby.jpg). A guest's bar is folded at 940 px and unfolded
- *                 without Menu at 1280 px. Matches are finished or aborted; the website
- *                 users' accounts are removed. Chromium only (it builds the client).
+ * Responsibility: behind the stand-in website (./websiteStack), a member plays a realtime royale
+ *                 (full length with SBR_E2E_FULL_ROYALE=1, else and in CI the fast test rules;
+ *                 bots, as the stack has dev features) with the top-left link on the match screen;
+ *                 then lobby, match, "Host a match", host console, leaderboard, profile, account
+ *                 page and a guest's view each show the link (to /games, same tab), photographed at
+ *                 both widths and themes as reports/screens/latest/back-*.jpg; the standalone dev
+ *                 server's lobby has none. A guest's bar folds at 940 px, unfolded without Menu at
+ *                 1280 px. Matches finished or aborted, accounts removed. Chromium only.
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
  * Spec:           docs/spec/07-integration-architecture.md §6b; the website's GAME-INTEGRATION.md §8
  */

@@ -3,15 +3,14 @@
  * @module server/view
  * @brief  Builds the recap of a royale round from the match's own events (D20).
  *
- * Responsibility: replay the events with the domain's evolve up to what follows the round
- *                 (the next round or stage, or the end) and, for one round, collect: each
- *                 active player's points in it (total at its end less total at its start, so
- *                 multipliers and carry are the domain's), standings place before and after
- *                 (among its players, cut tie-break, 01 §8.4), Season Complete, numbers drawn,
- *                 the following cut (out, shield saves, left) and each player's own taps
- *                 (`manualTaps` from sbr.marks: draw-to-tap time from stored event times; bots
- *                 and auto-marks are not taps). Empty items are left out. Pure: same events, same
- *                 recap, also after a restart. Fun only: nothing here changes a score.
+ * Responsibility: replay the events with the domain's evolve up to what follows the round (next
+ *                 round or stage, or the end) and, for one round, collect: each active player's
+ *                 points in it (total at its end less total at its start, so multipliers and carry
+ *                 are the domain's), standings place before and after (cut tie-break, 01 §8.4),
+ *                 Season Complete, numbers drawn, the following cut (out, shield saves, left) and
+ *                 each player's own taps (`manualTaps` from sbr.marks; bots and auto-marks are not
+ *                 taps). Empty items are left out. Pure: same events, same recap, also after a
+ *                 restart. Fun only: nothing here changes a score.
  * Depends on:     @sbr/contracts (types), @sbr/domain
  * Used by:        ./liveViews, ../dev/quicktest
  * Spec:           docs/spec/01-game-design.md §7 (D20); docs/spec/05-api-design.md §2.3a

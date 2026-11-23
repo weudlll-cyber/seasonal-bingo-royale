@@ -3,15 +3,14 @@
  * @module load
  * @brief  Where a tap's time goes on the server, and what the live updates cost per draw (12 §5).
  *
- * Responsibility: read the server's tap histograms (sbr_tap_*: the gateway's match lookup,
- *                 the wait from arrival to the batch, the batch's decide, append and publish,
- *                 the whole tap until its answer, the batch size, the round trips per stored
- *                 batch of taps) at the start and the end of
- *                 a run and print, per step, how many, the mean and the p95 (the upper edge of
- *                 the histogram bucket that holds it). What the client measures beyond
- *                 "handled" is the socket transport and the event loops of both sides. From the
- *                 live-update metrics (sbr_live_*), per draw: the state fetches, the time spent
- *                 building fetch answers and frames, and the bytes each sent.
+ * Responsibility: read the server's tap histograms (sbr_tap_*: gateway match lookup, wait from
+ *                 arrival to the batch, the batch's decide, append and publish, the whole tap until
+ *                 its answer, batch size, round trips per stored batch) at the start and end of a
+ *                 run and print, per step, how many, the mean and the p95 (the upper edge of the
+ *                 histogram bucket that holds it). What the client measures beyond "handled" is
+ *                 socket transport and the event loops of both sides. From the live-update metrics
+ *                 (sbr_live_*), per draw: the state fetches, the time spent building fetch answers
+ *                 and frames, and the bytes each sent.
  * Depends on:     ./common.mjs (BASE)
  * Used by:        ./drawRun.mjs
  * Spec:           docs/spec/12-testing-strategy.md §5

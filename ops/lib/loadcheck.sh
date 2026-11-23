@@ -5,16 +5,12 @@
 #
 # Responsibility: refuse with the reason while real players are in a match that is not over, or
 #                 while maintenance is off and people are signed in (the app's CLI decides); make
-#                 the temporary accounts and their sessions through the operator-only CLI inside
-#                 the app container (never an HTTP route; the cookies stay in a root-only work
-#                 folder and reach the generator on its standard input); run the load generator
-#                 (dist/loadcheck.js of the same image) in a short-lived container on the stack's
-#                 internal network against the app's own port, one royale with draws every 4 s,
-#                 taps inside the speed window and the spectators; sample the app's and
-#                 PostgreSQL's CPU and memory with docker stats; print the measures with the
-#                 peaks; then abort the match and remove every load account and session, and
-#                 verify it (the CLI's cleanup, also when the run failed: ./common.sh runs it on
-#                 exit). The game's resource limits stay as they are.
+#                 temporary accounts and sessions through the operator-only CLI in the app container
+#                 (never an HTTP route; cookies stay in a root-only work folder, reach the generator
+#                 on stdin); run the generator (dist/loadcheck.js, same image) in a short-lived
+#                 container on the internal network, one royale with draws every 4 s; sample CPU and
+#                 memory with docker stats; then abort the match and remove every load account and
+#                 session (also on failure: ./common.sh does it on exit).
 # Depends on:     ./common.sh (compose, env_value, cleanup_path, cleanup_container, die, info),
 #                 docker
 # Used by:        ops/sbr

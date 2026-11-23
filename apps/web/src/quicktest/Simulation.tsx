@@ -3,15 +3,13 @@
  * @module web/quicktest
  * @brief  "Check a game by seed" on the test page: the seed simulation, replayed in this browser (WP-08).
  *
- * Responsibility: titled "Seed check (simulation)", a computed replay and not a live game; laid
- *                 out apart from the player screen: settings on the left, the replay on the
- *                 right from 960 px (stacked on a phone; ./quicktest.css). The start form
- *                 until the first run; after a run it folds to one line (game
- *                 type, seed) with "Change settings", and only the live draw control remains
- *                 (`auto` interval or `host` "Draw next", switchable during play, D8) — never
- *                 two draw controls at once. Plays the match back one draw at a time
- *                 (../useDrawTicker) through ../components/Playback, remounted for every run so
- *                 no per-run state carries over (fresh-state rule).
+ * Responsibility: titled "Seed check (simulation)", a computed replay, not a live game; laid out
+ *                 apart from the player screen: settings left, replay right from 960 px (stacked
+ *                 on a phone; ./quicktest.css). The start form until the first run, then one line
+ *                 with "Change settings" and only the live draw control (`auto` or `host` "Draw
+ *                 next", switchable, D8), never two at once. Plays back one draw at a time
+ *                 (../useDrawTicker) through ../components/Playback, remounted for every run so no
+ *                 per-run state carries over (fresh-state rule).
  * Depends on:     react, ../api, ../components/*, ../drawControl, ../game/interludePlan (types),
  *                 ../game/labels, ../playback, ../types, ../useDrawTicker, ./quicktest.css
  * Used by:        ../App

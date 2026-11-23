@@ -4,16 +4,13 @@
  * @brief  The admin area's League: the league values and corrections of a player's points.
  *
  * Responsibility: GET /api/v1/admin/league (`admin.view`): the League values as form fields
- *                 (@sbr/contracts settingsFields: name, what it does, unit, the schema's
- *                 limits), each with its current value and today's default, and the latest
- *                 corrections. POST /api/v1/admin/league { values, comment? } (`settings.edit`):
- *                 a new version of the `leaderboard` settings document (only its own keys; the
- *                 whole document must pass LeagueSettingsSchema), applied to every match whose
- *                 points are awarded afterwards. POST /api/v1/admin/league/corrections
- *                 { displayName, delta, reason } (`league.correct`): a correction of that
- *                 player's league points (../../leaderboard/corrections), 404 for no such player.
- *                 The server checks every permission; input through zod; the session plugin's
- *                 limit and CSRF apply; every change is audited.
+ *                 (@sbr/contracts settingsFields) with value and default, and corrections. POST
+ *                 /api/v1/admin/league { values, comment? } (`settings.edit`): a new version of the
+ *                 `leaderboard` settings document (own keys only; the whole document must pass
+ *                 LeagueSettingsSchema), applied to matches whose points are awarded afterwards.
+ *                 POST …/league/corrections { displayName, delta, reason } (`league.correct`):
+ *                 corrects that player's league points, 404 for no such player. Permissions checked
+ *                 on the server; zod input; CSRF and limit apply; audited.
  * Depends on:     fastify, @sbr/contracts, ../../admin/settings (types), ../../db/pool (types),
  *                 ../../leaderboard/corrections, ./adminFlatSettings, ./matches (requirePermission)
  * Used by:        ../gameRoutes

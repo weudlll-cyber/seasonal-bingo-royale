@@ -3,17 +3,14 @@
  * @module server/admin
  * @brief  Account administration: find accounts, roles, lock, second step reset, sessions.
  *
- * Responsibility: `findAccounts` — up to 20 accounts whose display name (or, for the owner,
- *                 e-mail) starts with the search (deleted ones never; e-mail addresses for the
- *                 owner only), with their roles, status, whether they have a
- *                 second step and when they last signed in. Each change runs in one transaction
- *                 with its audit entry (./audit) and ends the sessions it must: giving or
- *                 removing a role (`setRole`; the Admin role ends the account's sessions, so the
- *                 next sign-in is an admin session that asks for the second step, D60), locking
- *                 (`setLocked`: status suspended, every session ended) or unlocking, resetting
- *                 the second step (`resetSecondStep`: factor and recovery codes gone, sessions
- *                 ended, as `sbr admin reset-2fa`) and ending the sessions (`endSessions`). The
- *                 ended session ids are returned so the caller closes their sockets.
+ * Responsibility: `findAccounts`: up to 20 accounts whose display name (owner: also e-mail) starts
+ *                 with the search (never deleted ones; addresses for the owner only), with roles,
+ *                 status, second-step flag and last sign-in. Each change runs in one transaction
+ *                 with its audit entry (./audit) and ends the sessions it must: `setRole` (the
+ *                 Admin role ends the account's sessions so the next sign-in asks for the second
+ *                 step, D60), `setLocked` (suspended, sessions ended) or unlock, `resetSecondStep`
+ *                 (factor and recovery codes gone, as `sbr admin reset-2fa`), `endSessions`. Ended
+ *                 session ids are returned so the caller closes their sockets.
  * Depends on:     pg (types), ../db/pool (types), ./audit
  * Used by:        ../http/routes/adminAccounts
  * Spec:           docs/concepts/admin-area.md §2, §4 (Players and accounts), §6, §9 piece 8

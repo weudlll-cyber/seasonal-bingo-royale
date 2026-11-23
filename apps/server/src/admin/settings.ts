@@ -4,17 +4,13 @@
  * @brief  The settings store: versioned documents the admin area changes and the server reads.
  *
  * Responsibility: each document (`sbr.settings_documents`) holds its values as one JSON object;
- *                 every change writes a new version (`sbr.settings_versions`: who, when, the
- *                 comment) and moves `current_version`, nothing is overwritten, and the same
- *                 transaction writes the audit entry (./audit). Undo writes a new version in
- *                 which the values the undone change touched are back as they were before it
- *                 ("Undo of version N", admin-area §6, §8 (k)); later changes to other values
- *                 stay. The server keeps the current documents in memory, loaded at start and
- *                 replaced on every change, so a change applies at once without a restart.
- *                 Values a document leaves out come from the environment (§8 (p): it is only
- *                 the first default). Built-in documents (the presets, ./presets) are seeded as
- *                 version 1; a duplicated preset is a new document, audited; a section's
- *                 document no migration made starts empty (version 1) on its first change.
+ *                 every change writes a new version (`sbr.settings_versions`: who, when, comment)
+ *                 and moves `current_version`, nothing is overwritten, and the same transaction
+ *                 writes the audit entry (./audit). Undo writes a new version restoring the values
+ *                 the undone change touched (admin-area §6, §8 (k)); later changes to other values
+ *                 stay. Current documents are kept in memory and replaced on every change, so
+ *                 changes apply without a restart. Values left out come from the environment (§8
+ *                 (p)). Built-in documents (./presets) are seeded as version 1.
  * Depends on:     @sbr/contracts (readPath, writePath), ../db/pool (types), ./audit
  * Used by:        ../http/app, ../http/routes/adminSettings, ./presets, ../config/features
  * Spec:           docs/concepts/admin-area.md §6, §8 (k), (p); docs/spec/04-database-design.md §3.2

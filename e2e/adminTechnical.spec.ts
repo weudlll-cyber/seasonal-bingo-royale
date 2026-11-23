@@ -3,15 +3,14 @@
  * @module e2e
  * @brief  The Technical section: the owner lowers the sign-in tries; it applies without a restart.
  *
- * Responsibility: the owner (development account `dev-owner`, super_admin; its sign-in counts
- *                 the second step as just passed) opens Technical, reads the warning, sets "Sign-
- *                 in tries per address" to 6 with a comment and saves; at once the server
- *                 refuses a sign-in try from this address within the next seven (429), and the
- *                 History lists "Sign-in tries per address: 20 → 6". An Admin (`dev-admin`) has
- *                 no Technical link. The page fits 1280×720 and a 390×844 phone at 100, 125 and
- *                 150 % (./acceptance/fitProbe). It changes a limit of the whole server, so it
- *                 runs alone after the other specs of its browser (TIMING); the value is put
- *                 back at the end, also on failure. Chromium saves admin-7-technical-*.
+ * Responsibility: the owner (dev account `dev-owner`, super_admin; its sign-in counts the second
+ *                 step as passed) opens Technical, reads the warning, sets "Sign-in tries per
+ *                 address" to 6 with a comment and saves; the server refuses a try from this
+ *                 address within the next seven (429); the History lists "Sign-in tries per
+ *                 address: 20 → 6". An Admin (`dev-admin`) has no Technical link. The page fits
+ *                 1280×720 and 390×844 at 100, 125, 150 % (./acceptance/fitProbe). It changes a
+ *                 limit of the whole server, so it runs alone after the other specs (TIMING); value
+ *                 restored at the end, also on failure. Saves admin-7-technical-*.
  * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
  * Spec:           docs/concepts/admin-area.md §4 (Technical), §8 (c), (f), §9 piece 7
  */

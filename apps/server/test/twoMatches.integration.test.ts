@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  One player in two matches at once, each in its own tab (D39).
  *
- * Responsibility: player-1 joins an asynchronous royale and a realtime royale; both start. Two
- *                 sockets of the same session stand for two tabs, each watching one match. The
- *                 player taps the realtime match over its socket while a day of the asynchronous
- *                 match runs (development time travel, that match's clock only): its automatic
- *                 marking keeps going; the realtime match, its log, its standings and the
- *                 player's state there (points, seasons, shield) do not move; each socket hears
- *                 only its own match. The day the tab watched counts as seen (D54); with the tab
- *                 closed a second day passes, and the away summary counts exactly its draws, none
- *                 of the realtime match. Open matches are aborted at the end (./harness stopHarness).
+ * Responsibility: player-1 joins an asynchronous and a realtime royale; both start. Two sockets of
+ *                 one session stand for two tabs, each watching one match. The player taps the
+ *                 realtime match while a day of the asynchronous match runs (development time
+ *                 travel, that match's clock only): its automatic marking keeps going; the realtime
+ *                 match's log, standings and player state do not move; each socket hears only its
+ *                 own match. The day the tab watched counts as seen (D54); with the tab closed a
+ *                 second day passes and the away summary counts exactly its draws. Open matches are
+ *                 aborted at the end (./harness stopHarness).
  * Depends on:     @sbr/domain (types), socket.io-client (types), ./harness, ./socketKit
  * Spec:           docs/spec/01-game-design.md §5, §11 (D39); docs/spec/06-realtime-architecture.md §4
  */

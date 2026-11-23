@@ -3,23 +3,14 @@
 # @module ops
 # @brief  Website installs: find the running Seasonal Entertainment website, its mode, network, port and sync token.
 #
-# Responsibility: detect the website's mode as its own installer does: own Caddy (the Caddy
-#                 container of compose project "seasonal-site", per its docs/DEPLOYMENT.md) or
-#                 nginx (host nginx holds 80/443); stop plainly when neither (a dry run without
-#                 Docker only shows the step). Both modes: the app joins the website's Docker
-#                 network (the one of its Caddy, or in nginx mode of its "site" container:
-#                 seasonal-site_default, else its only one, else asked) to reach the website's
-#                 account-changes feed at site:3800 (07 §2.4). Caddy mode: every subnet of that
-#                 network is trusted (Caddy reaches the app from it), SITE_DOMAIN. nginx mode:
-#                 the app publishes one loopback port, its own network has a fixed subnet, which
-#                 alone is trusted (never the website network); the authorize upstream is
-#                 127.0.0.1:<the port in /etc/seasonal/site-local-port>, 3800 with a warning
-#                 without it. The feed's token comes from /etc/seasonal/games-sync-token (root
-#                 only, never printed); without it the feed stays idle, with a warning. What the
-#                 website's installer recorded (/etc/seasonal/install.conf: MODE checked against the
-#                 detection, SITE_DOMAIN without a question, INSTALL_DIR, BINGO=yes required). The route
-#                 file itself: ./websiteRoute.sh, applied by ./websiteApply.sh. For sbr status: whether the authorize endpoint
-#                 answers, the proxy the app trusts (check_proxy), the feed's state.
+# Responsibility: detect the website's mode as its own installer does: own Caddy (compose project
+#                 "seasonal-site") or host nginx; stop plainly when neither. The app joins the
+#                 website's Docker network to reach the account-changes feed at site:3800 (07 §2.4),
+#                 token from /etc/seasonal/games-sync-token (root only, never printed; absent: feed
+#                 idle, warning). Caddy mode trusts every subnet of that network; nginx mode
+#                 publishes one loopback port (site-local-port, else 3800 with a warning) as
+#                 authorize upstream and trusts only the app's own subnet. Reads install.conf
+#                 (BINGO=yes required). Route file: ./websiteRoute.sh, ./websiteApply.sh.
 # Used by:        ops/install.sh, ops/sbr (status, update)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
 

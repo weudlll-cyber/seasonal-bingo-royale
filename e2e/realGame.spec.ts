@@ -4,14 +4,13 @@
  * @brief  The real game in the browser: host creates, player joins, bots fill, host draws.
  *
  * Responsibility: a short end-to-end path through the live match (WP-09 to WP-13): the host
- *                 quick-signs in and creates a classic match with host draws; player 1 joins and
- *                 waits; the host fills with bots and starts; after the countdown both screens
- *                 show the same number per Draw next and the player sees the arena with
- *                 standings; the player taps drawn numbers, goes offline for two draws, catches
- *                 up on reconnect with marks kept; the host draws until a card number is open
- *                 (never a fixed few draws: at most 51 can miss the card) and the player taps it
- *                 (one repeat, refused): the server holds one mark per tapped cell, as the
- *                 screen shows. Teardown stops the match, also when a step fails.
+ *                 quick-signs in and creates a classic match with host draws; player 1 joins; the
+ *                 host adds bots, starts; after the countdown both screens show the same number per
+ *                 Draw next and the player sees the arena; the player taps, goes offline for two
+ *                 draws, catches up on reconnect with marks kept; the host draws until a card
+ *                 number is open (never a fixed few draws: at most 51 can miss the card) and the
+ *                 player taps it (one repeat, refused): one mark per tapped cell on the server, as
+ *                 on screen. Teardown stops the match, also when a step fails.
  * Depends on:     @playwright/test, ./realGame
  * Spec:           docs/spec/12-testing-strategy.md §4 (journey 1, draft); docs/spec/15-implementation-plan.md WP-12, WP-13
  */

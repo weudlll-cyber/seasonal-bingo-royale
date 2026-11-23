@@ -3,17 +3,14 @@
  * @module server/loadcheck
  * @brief  The operator's load check (`sbr loadcheck`): when it may run, its accounts, its cleanup.
  *
- * Responsibility: `loadCheckRefusal` says why the check must not run now: real players in a
- *                 match that is not over, or, with maintenance off, people signed in (12 §5).
- *                 `createLoadAccounts` makes a host (organizer) and the players and spectators,
- *                 all with the role `load_check`, no e-mail and no password (nobody can sign in
- *                 as them), each with one session; it returns the session cookies and CSRF
- *                 tokens for the load generator, never logged. `removeLoadCheck` aborts every
- *                 match a load account hosts that is not over (the event log is append-only:
- *                 aborted, never deleted, 04 §3.3), removes the accounts with their sessions
- *                 and roles (./auth/accounts deleteAccount keeps the matches' entries without
- *                 the account) and verifies that none is left. Operator-only: the CLI inside
- *                 the app container calls these, never an HTTP route.
+ * Responsibility: `loadCheckRefusal` says why the check must not run now: real players in an
+ *                 unfinished match, or, with maintenance off, people signed in (12 §5).
+ *                 `createLoadAccounts` makes a host (organizer), players and spectators, role
+ *                 `load_check`, no e-mail or password, one session each; returns cookies and CSRF
+ *                 tokens, never logged. `removeLoadCheck` aborts every unfinished match a load
+ *                 account hosts (append-only log: aborted, never deleted, 04 §3.3), removes the
+ *                 accounts (./auth/accounts deleteAccount keeps the matches' entries) and verifies
+ *                 none is left. Operator-only (CLI), never an HTTP route.
  * Depends on:     @sbr/application (types), ../auth/accounts, ../auth/sessions, ../db/pool
  * Used by:        ../cli (loadcheck), test/loadCheck.integration.test.ts
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/09-deployment-architecture.md §4

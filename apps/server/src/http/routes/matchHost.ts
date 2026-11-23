@@ -3,15 +3,13 @@
  * @module server/http
  * @brief  Host routes of a match: start, draw next, draw mode, abort, bots; the mark fallback.
  *
- * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1),
- *                 else 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 409
- *                 MATCH_STARTING while it runs, 503 MAINTENANCE with the reason, D22; not for the
- *                 load check's host, 12 §5), POST
- *                 /draw-next (D8, D13), POST /next-round (D14, D21), POST /draw-mode
- *                 { mode, intervalMs }, POST /auto-start { auto } (D16), POST /abort
- *                 { reason }. Development builds add POST /bots { upTo } and POST
- *                 /dev-system-abort { reason } (D17). POST /marks { cardIndex, cell } lets a
- *                 player without a socket tap.
+ * Responsibility: only the match's creator with `match.manage` runs it (05 §2.3a, 06 §4.1), else
+ *                 403 NOT_YOUR_MATCH: POST /start (10-second countdown; 409 MATCH_STARTING while it
+ *                 runs, 503 MAINTENANCE with the reason, D22; not for the load check's host, 12
+ *                 §5), /draw-next (D8, D13), /next-round (D14, D21), /draw-mode { mode, intervalMs
+ *                 }, /auto-start { auto } (D16), /abort { reason }. Development builds add POST
+ *                 /bots { upTo } and /dev-system-abort { reason } (D17). POST /marks { cardIndex,
+ *                 cell } lets a player without a socket tap.
  * Depends on:     fastify, zod, ./matches, ./matchInput, @sbr/contracts
  * Used by:        ./matches
  * Spec:           docs/spec/05-api-design.md §2.3a; docs/spec/06-realtime-architecture.md §4.1;

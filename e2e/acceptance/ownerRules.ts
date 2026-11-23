@@ -3,15 +3,13 @@
  * @module e2e/acceptance
  * @brief  The owner's rules D12–D15 asserted on screen during the real-game play-through.
  *
- * Responsibility: D12 — the live seconds field refuses an interval below the longest tap
- *                 time plus 1 s with a plain message (a new match's speeds are checked with its
- *                 preset); D13 — after a
- *                 host draw, Draw next counts down to its unlock; D14 — with "host starts
- *                 the next round", players read "Waiting for the host to start round N" and
- *                 no round starts on its own (checked over a wait longer than the default
- *                 pause) until the host presses "Start next round"; D15 — the cut screen's
- *                 button reads "Keep playing" for a survivor and "Watch" for an eliminated
- *                 player.
+ * Responsibility: D12 — the live seconds field refuses an interval below the longest tap time plus
+ *                 1 s with a plain message (a new match's speeds are checked with its preset); D13
+ *                 — after a host draw, Draw next counts down to its unlock; D14 — with "host starts
+ *                 the next round", players read "Waiting for the host to start round N" and no
+ *                 round starts on its own (checked over a wait longer than the default pause) until
+ *                 the host presses "Start next round"; D15 — the cut screen's button reads "Keep
+ *                 playing" for a survivor and "Watch" for an eliminated player.
  * Depends on:     @playwright/test, ./livePlayer (types)
  * Used by:        the acceptance Playwright specs (test helper)
  * Spec:           docs/spec/01-game-design.md §5, §7.1, §13 (D12–D15)

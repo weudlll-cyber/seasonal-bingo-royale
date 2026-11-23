@@ -3,18 +3,14 @@
  * @module application/match
  * @brief  How a match starts: the host's Start, a set time, or when every place is taken (01 §7.6).
  *
- * Responsibility: check a set start time (at least a minute ahead, at most a week). A set
- *                 time is an announcement (D16): the host can always start; with the
- *                 automatic start on, the persistent scheduler runs `auto_start` at the
- *                 time, which begins the countdown with the ruleset's minimum
- *                 (`minPlayersOf`) and otherwise leaves the match waiting (`tooFewAtStart`).
- *                 Under "start when full" the last place taken begins the countdown. While
- *                 maintenance is on neither starts by itself: the start is held and checked
- *                 again every 5 s (D22). An asynchronous lobby is open until its announced
- *                 start time, else for the ruleset's window (24 h); then it starts with enough
- *                 players or the system cancels it with a reason naming that window (D31, D33,
- *                 admin-area §8 (n)), held by maintenance like every
- *                 automatic start. Every start runs the same countdown.
+ * Responsibility: check a set start time (at least a minute ahead, at most a week). A set time is
+ *                 an announcement (D16): the host can always start; with automatic start on, the
+ *                 scheduler runs `auto_start` then, beginning the countdown with the ruleset's
+ *                 minimum (`minPlayersOf`), else the match keeps waiting (`tooFewAtStart`). Under
+ *                 "start when full" the last place taken begins it. While maintenance is on neither
+ *                 starts by itself: held, checked every 5 s (D22). An asynchronous lobby is open
+ *                 until its announced start, else the ruleset's window (24 h); then it starts with
+ *                 enough players or is cancelled naming that window (D31, D33, admin-area §8 (n)).
  * Depends on:     @sbr/contracts, ./flow (stopMatch), ./ports
  * Used by:        ./engine, ./flow, apps/server (summary), ../index
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D22, D31, D33); docs/spec/05-api-design.md §2.3

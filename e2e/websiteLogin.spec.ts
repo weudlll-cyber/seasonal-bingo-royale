@@ -3,18 +3,14 @@
  * @module e2e
  * @brief  Website mode end to end: sign in through the website, play, league points (D37).
  *
- * Responsibility: against a game server in website mode behind a stand-in of the website's
- *                 proxy (./websiteStack): in the browser, "Sign in" on the leaderboard leads a
- *                 visitor without a website session to the website's login and, once signed in
- *                 there, back to the leaderboard, signed in under the website name (D43). Nine
- *                 website users (one in the browser, the
- *                 organiser hosting) play one short counting royale; the eight with a verified
- *                 e-mail get league points ("counted"), the one without does not ("notVerified").
- *                 Forged identity headers sign nobody in, on another route, on the sign-in
- *                 route without a website session, and sent to the app directly from this
- *                 machine without the proxy secret. The match finishes (or is aborted); the
- *                 website users' accounts are removed (DELETE /me by name, D42). Chromium only
- *                 (it builds the client).
+ * Responsibility: against a game server in website mode behind the stand-in proxy (./websiteStack):
+ *                 "Sign in" on the leaderboard leads a visitor without a website session to the
+ *                 website login and back, signed in under the website name (D43). Nine website
+ *                 users play one short counting royale; the eight with a verified e-mail get league
+ *                 points ("counted"), the one without does not ("notVerified"). Forged identity
+ *                 headers sign nobody in: on another route, on the sign-in route without a session,
+ *                 and sent directly without the proxy secret. The match finishes or is aborted;
+ *                 accounts removed (DELETE /me by name, D42). Chromium only.
  * Depends on:     @playwright/test, ./websiteStack
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/01-game-design.md §10
  */

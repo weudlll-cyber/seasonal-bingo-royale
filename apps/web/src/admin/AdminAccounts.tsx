@@ -3,15 +3,14 @@
  * @module web/admin
  * @brief  The admin area's Players and accounts: find an account and act on it (standalone).
  *
- * Responsibility: in website mode only a note — accounts and roles come from the website (D41,
- *                 D46). Standalone: a search by the start of a name or e-mail (GET
- *                 /admin/accounts), each account with its roles, status, second step and last
- *                 sign-in, and its actions: Organizer on or off, Admin on or off (the owner's,
- *                 `admins.manage`), lock or unlock, reset the second step (the owner's), end the
- *                 sessions; e-mail addresses and finding by them for the owner only (2026-11-21). An
- *                 action the server answers with STEP_UP_REQUIRED waits for "Confirm it is you"
- *                 (./StepUp) and runs again; the list reloads after each. The server checks
- *                 every permission and refuses one's own account and an owner's for an Admin.
+ * Responsibility: website mode: only a note, accounts and roles come from the website (D41, D46).
+ *                 Standalone: search by start of name or e-mail (GET /admin/accounts); each
+ *                 account with roles, status, second step, last sign-in and actions: Organizer,
+ *                 Admin (owner's `admins.manage`), lock, reset second step (owner's), end
+ *                 sessions; e-mails and finding by them for the owner only (2026-11-21).
+ *                 STEP_UP_REQUIRED waits for "Confirm it is you" (./StepUp), then reruns; the list
+ *                 reloads after each. The server checks every permission and refuses one's own
+ *                 account and an owner's for an Admin.
  * Depends on:     react, ../game/labels, ../shell/http, ../shell/session, ./AccountCard,
  *                 ./AdminNav, ./StepUp, ./admin.css
  * Used by:        ./AdminArea

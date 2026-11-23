@@ -4,15 +4,14 @@
  * @brief  The lobby: open, running and just-finished matches, to join or watch (WP-12).
  *                 Cancelled matches open their end page (D17).
  *
- * Responsibility: list GET /matches (refreshed every 3 seconds unless changed ("Screens and texts", admin-area §8 (i))) as cards with title, game
- *                 type, status, code, players, draw mode and missed-number rule, and for an
- *                 open match its registration status (./Registration); "Manage"
- *                 for the match's host (the server says who that is) while it is open or
- *                 running, "Join" for an open lobby with a place left (signed-in players; a full one
- *                 reads "Full"), "Watch" or "View". Joining calls
- *                 POST /matches/:code/join and opens the match. A signed-in player's own
- *                 matches that are not over come first, from the same answer (./MyMatches, D39). Without a session it
- *                 points to the sign-in buttons.
+ * Responsibility: list GET /matches (refreshed every 3 s unless changed in "Screens and texts",
+ *                 admin-area §8 (i)) as cards: title, game type, status, code, players, draw mode,
+ *                 missed-number rule, and for an open match its registration (./Registration);
+ *                 "Manage" for the host (server says who) while open or running, "Join" for an
+ *                 open lobby with a place left (signed-in players; full reads "Full"), "Watch" or
+ *                 "View". Join calls POST /matches/:code/join and opens the match. A signed-in
+ *                 player's unfinished matches come first, from the same answer (./MyMatches, D39).
+ *                 Without a session it points to the sign-in buttons.
  * Depends on:     react, @sbr/contracts (types), ../account/WebsiteSignIn, ../shell/http, ../shell/router, ../shell/session,
  *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches

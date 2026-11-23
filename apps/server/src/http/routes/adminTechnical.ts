@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  The admin area's Technical section, and the second step an owner repeats before a change.
  *
- * Responsibility: GET /api/v1/admin/technical and POST /api/v1/admin/technical { values,
- *                 comment? } as a page of plain values (./adminFlatSettings): session lengths,
- *                 the reset link's lifetime, rate limits and socket caps with hard min and max
- *                 (admin-area §8 (c)), read by the server on every use, so a change applies
- *                 without a restart. Standalone: only the owner (`technical.edit`), and a
- *                 change needs a second step (TOTP) passed within the last 10 minutes, else 403
- *                 STEP_UP_REQUIRED (§7 row 10). Website mode: the website admins
- *                 (`settings.edit`, §8 (e)), the website doing its own 2FA. POST
- *                 /api/v1/auth/2fa/step-up { code } or { recoveryCode } (standalone, a signed-in
- *                 admin with a confirmed factor): passes the second step again for this session;
- *                 400 TWO_FACTOR_FAILED, limited per session like the sign-in step. Every change
- *                 is audited; the session plugin's limit and CSRF apply.
+ * Responsibility: GET and POST /api/v1/admin/technical { values, comment? } as plain values
+ *                 (./adminFlatSettings): session lengths, reset link lifetime, rate limits, socket
+ *                 caps with hard min and max (admin-area §8 (c)), read on every use so changes
+ *                 apply without a restart. Standalone: only the owner (`technical.edit`), and a
+ *                 change needs a TOTP second step within 10 minutes, else 403 STEP_UP_REQUIRED (§7
+ *                 row 10). Website mode: the website admins (`settings.edit`, §8 (e)), the website
+ *                 doing its own 2FA. POST /api/v1/auth/2fa/step-up { code | recoveryCode } renews
+ *                 the step for the session; 400 TWO_FACTOR_FAILED, limited per session. Audited.
  * Depends on:     fastify, zod, @sbr/contracts, @seasonal/kit/server (RateLimiter),
  *                 ../../admin/settings (types), ../../auth/rateLimit (liveRule),
  *                 ../../auth/twoFactor, ../../config/technical, ../../db/pool (types),

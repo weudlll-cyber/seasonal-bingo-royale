@@ -3,15 +3,14 @@
  * @module web
  * @brief  The owner's score, rank, active effects, shield and seasons in plain words (01 §8, §13).
  *
- * Responsibility: show what the server reports for one owner account: points and rank in the
- *                 standings; each active effect as one sentence with the season's name and the
- *                 numbers of the ruleset and the server's status ("Summer boost: your marks and
- *                 speed bonus count ×1.5 — 5 more numbers"), the Winter shield with its margin and charges
- *                 while it has one, each shield save with the cut and how far below the line the
- *                 owner was; the four seasons of the match by name with the collected ones ticked
- *                 and lit, what all four give, and that seasons count over the whole match. The
- *                 icons and season colours stay beside the words; lines wrap, never truncate.
- *                 Never from local taps. Once eliminated: "Out in cut N" instead.
+ * Responsibility: what the server reports for one owner account: points and rank; each active
+ *                 effect as one sentence with the season's name, ruleset numbers and server status
+ *                 ("Summer boost: your marks and speed bonus count x1.5 - 5 more numbers"), the
+ *                 Winter shield with margin and charges, each shield save with the cut and
+ *                 distance below the line; the four seasons by name with collected ones ticked and
+ *                 lit, what all four give, that seasons count over the whole match. Icons and
+ *                 colours stay beside the words; lines wrap, never truncate. Never from local
+ *                 taps. Once eliminated: "Out in cut N" instead.
  * Depends on:     react, ./SeasonIcon, ../game/seasonText, ../playbackTypes, ../types
  * Used by:        ./OwnerArea
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13; docs/spec/15-implementation-plan.md WP-08

@@ -3,25 +3,14 @@
  * @module ops/test
  * @brief  The game embedded in the real website, in a real browser (./real-site.sh), by phase.
  *
- * Responsibility: on https://example.org/games/bingo/ of a server the real website installer
- *                 set up, one test per phase, run one at a time between the website admin's
- *                 steps (`--grep "P<n> "`); the shared state (/state/state.json: the match codes
- *                 and the member's name and password; each browser's storage) carries over:
- *                 P1 a guest watches a running match and reads the leaderboard; Join leads to the
- *                 website's login, "Register" there (the ?next round trip) and back to the game
- *                 signed in; the Chat button opens the website's room "bingo", a guest reads what
- *                 the member writes, the frame follows the game's theme; the member plays and
- *                 cannot host (no "Host a match", the server refuses a match from a preset).
- *                 P2 after the admin gave "can start games": the game session ends within one
- *                 poll, signed in again the member opens "Start a match", picks the battle
- *                 royale preset and opens the lobby of a match shown on the website (listed at
- *                 /games/bingo/api/public/open-rounds). P3 locked: the session ends and signing
- *                 in leaves a guest. P4 unlocked: signs in again. P5 deleted: past results name
- *                 a "deleted player", the leaderboard does not have the member, and the website
- *                 login refuses the name. P6 the website admin (its game session from
- *                 /state/admin.storage.json, ./real-site-admin.sh storage) sees "Admin", opens
- *                 the Overview, turns maintenance on with a reason and off again, and the
- *                 History lists both; maintenance is off at the end, also on failure.
+ * Responsibility: on https://example.org/games/bingo/ of a server the real website installer set
+ *                 up: one test per phase, run one at a time between the website admin's steps
+ *                 (`--grep "P<n> "`); /state/state.json and browser storage carry over. P1 guest
+ *                 watches, joins through the website's login and "Register" (?next round trip),
+ *                 opens the Chat room "bingo", plays but cannot host. P2 after "can start games":
+ *                 session ends within one poll, the member starts a preset match listed in
+ *                 open-rounds. P3 locked. P4 unlocked. P5 deleted: "deleted player" in results. P6
+ *                 the website admin toggles maintenance; off at the end, also on failure.
  * Depends on:     @playwright/test
  * Spec:           docs/spec/07-integration-architecture.md §2, §6; docs/spec/12-testing-strategy.md §4;
  *                 docs/concepts/admin-area.md §3, §4 (Overview, History)

@@ -3,17 +3,14 @@
  * @module web/game
  * @brief  The registration status of an open match, in the same words for host and players.
  *
- * Responsibility: one line for the console, the waiting room and the lobby card: without
- *                 a start time "Registration open until the host starts the match"; with a
- *                 set time "Starts at 22:25 (in 12 min)" (with the day when it is not today),
- *                 counting down live, plus "starts automatically" or "the host starts it"
- *                 (D16), or once the automatic start found too few players "Waiting for
- *                 players — at least N are needed to start" (N from the server); under
- *                 "start when full" "N places left"; an asynchronous lobby "Starts or closes
- *                 at 22:25 (in 23 h 59 min)", the time the server names (D33, D34); with
- *                 every place taken "Full · " before the start rule ("Full · the host starts
- *                 the match" for a host start);
- *                 "Starting…" only while the real 10-second countdown runs. Display only.
+ * Responsibility: one line for the console, waiting room and lobby card. No start time:
+ *                 "Registration open until the host starts the match"; set time: "Starts at 22:25
+ *                 (in 12 min)" counting down live, plus "starts automatically" or "the host starts
+ *                 it" (D16), or after too few players "Waiting for players - at least N are
+ *                 needed" (N from server); "start when full": "N places left"; async: "Starts or
+ *                 closes at ...", the time the server names (D33, D34); all places taken: "Full ·
+ *                 " before the rule. "Starting..." only while the real 10-second countdown runs.
+ *                 Display only.
  * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
  * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./ArenaNotice and ./MyMatches
  *                 (whenText)

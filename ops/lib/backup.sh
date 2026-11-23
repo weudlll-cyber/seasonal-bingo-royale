@@ -3,17 +3,14 @@
 # @module ops
 # @brief  Backups: pg_dump + uploads + seed key → age → /var/backups/sbr/<env>/, retention, restore, drill, timer.
 #
-# Responsibility: a backup tars the database dump (pg_dump -Fc in the postgres container), the
-#                 uploads volume minus the maintenance flag (via a helper container) and the env
-#                 file's SBR_SEED_KEY (sealed secrets need it) and SBR_RECOVERY_KEY (the stored
-#                 recovery codes need it; a restore takes the backup's), age-encrypted to the operator's
-#                 public key, written .partial then renamed, group sbr-backup; keeps the 14 newest
-#                 plus the newest of 8 older weeks. A restore needs the age identity, refuses
-#                 another env's backup or seed key unless --force-env, asks, stops the app,
-#                 restores in one transaction without owners or grants, then gives the schema to
-#                 the owner role again (./config.sh apply_db_roles; the migrate service grants
-#                 the app role); a drill uses a throw-away PostgreSQL, opens one sealed seed.
-#                 Timer 03:30; failures mark backup-failed.
+# Responsibility: a backup tars the database dump (pg_dump -Fc), the uploads volume minus the
+#                 maintenance flag and the env file's SBR_SEED_KEY (sealed secrets need it) and
+#                 SBR_RECOVERY_KEY (recovery codes need it; a restore takes the backup's),
+#                 age-encrypted to the operator's public key, written .partial then renamed; keeps
+#                 the 14 newest plus the newest of 8 older weeks. A restore needs the age identity,
+#                 refuses another env's backup or seed key unless --force-env, stops the app,
+#                 restores in one transaction without owners or grants, then re-gives the schema to
+#                 the owner role (./config.sh apply_db_roles). Timer 03:30.
 # Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
 #                 cleanup, stop_app), ./config.sh (apply_db_roles), age, docker
 # Used by:        ops/sbr, ops/install.sh (timer)

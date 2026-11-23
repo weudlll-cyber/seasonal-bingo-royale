@@ -4,15 +4,13 @@
  * @brief  Development-only quick sign-in: host, admin and three players without a password.
  *
  * Responsibility: POST /api/v1/dev/sign-in { as: 'host' | 'admin' | 'player-1' | 'player-2' |
- *                 'player-3' } creates on first use, or reuses, the account `dev-host`
- *                 (role organizer), `dev-admin` (role game_admin, the admin area's Admin) or
- *                 `dev-player-N` and starts a session for it (./auth
- *                 openSession, the old session ended), so the owner can try host and players
- *                 alone in several browser windows. The load check signs in `load-001` …
- *                 `load-200` the same way (`dev-load-NNN`, players) and removes them with
- *                 DELETE /api/v1/dev/load-accounts. The request is checked by the kit's
- *                 devSignInAccount (own keys only, the whole load name). The app registers this
- *                 route only with SBR_DEV=1; a test proves a production build answers 404.
+ *                 'player-3' } creates on first use, or reuses, `dev-host` (organizer), `dev-admin`
+ *                 (game_admin) or `dev-player-N` and starts a session for it (./auth openSession,
+ *                 the old session ended), so the owner can try host and players alone in several
+ *                 browser windows. The load check signs in `load-001` … `load-200` the same way
+ *                 (`dev-load-NNN`, players) and removes them with DELETE /api/v1/dev/load-accounts.
+ *                 Checked by the kit's devSignInAccount (own keys only, the whole load name).
+ *                 Registered only with SBR_DEV=1; a test proves a production build answers 404.
  * Depends on:     fastify, @seasonal/kit/devtools, @seasonal/kit/server (types), ../../auth/*,
  *                 ../../db/pool, ./auth (openSession)
  * Used by:        ../app

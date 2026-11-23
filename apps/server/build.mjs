@@ -3,21 +3,14 @@
  * @module server
  * @brief  Production build of the server: one bundle per entry point plus the SQL migrations.
  *
- * Responsibility: bundle src/main.ts (the server) and src/cli.ts (the operator commands,
- *                 e.g. create-super) with esbuild into dist/ (or the folder given as the
- *                 first argument), the workspace packages (@sbr/*, TypeScript sources) and
- *                 the shared kit (@seasonal/kit, a git tag: the image's `pnpm deploy --prod`
- *                 could not fetch it, so it is a development dependency compiled in) inlined
- *                 and the npm dependencies left as imports for node_modules,
- *                 without comments or spacing; the development modules (src/dev/*, the
- *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs (the
- *                 kit's devStubPlugin)
- *                 (kept with SBR_BUILD_DEV=1, only for the local load check, 12 §5);
- *                 copy src/db/migrations to <out>/migrations, where the bundled migrator
- *                 looks for them; bundle the load generator of `sbr loadcheck`
- *                 (../../load/loadcheck.mjs) with its npm packages into <out>/loadcheck.js, so
- *                 the production image can run it without development code. Run by the
- *                 Dockerfile.
+ * Responsibility: bundle src/main.ts and src/cli.ts with esbuild into dist/ (or the first
+ *                 argument): @sbr/* sources and @seasonal/kit (a git tag the image's `pnpm deploy
+ *                 --prod` cannot fetch, so a dev dependency) inlined, npm dependencies left as
+ *                 imports, minified; development modules (src/dev/*) replaced by ./devStub.mjs
+ *                 (kit's devStubPlugin) unless SBR_BUILD_DEV=1 (local load check only, 12 §5);
+ *                 copy src/db/migrations to <out>/migrations for the bundled migrator; bundle the
+ *                 `sbr loadcheck` generator (../../load/loadcheck.mjs) with its npm packages into
+ *                 <out>/loadcheck.js so the production image can run it. Run by the Dockerfile.
  * Depends on:     esbuild, @seasonal/kit/devtools (devStubPlugin), ./devStub.mjs
  * Used by:        Dockerfile
  * Spec:           docs/spec/08-devops-architecture.md §4; docs/spec/09-deployment-architecture.md §1

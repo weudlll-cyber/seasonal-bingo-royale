@@ -3,35 +3,14 @@
 # @module ops/test
 # @brief  The website install (D37) in a disposable Ubuntu 24.04 "VPS", in nginx or own-Caddy mode.
 #
-# Responsibility: as the WP-27 test did: a throw-away Ubuntu 24.04 container with systemd and
-#                 its own Docker (privileged, own volumes, no host port, the repository mounted
-#                 read-only at /src). It runs a stand-in website (./stub-website.py as the
-#                 "site" container of compose project "seasonal-site", behind host nginx on the
-#                 port in /etc/seasonal/site-local-port, or behind that project's Caddy), with
-#                 the website's games-sync-token, runs
-#                 `ops/install.sh --type website` from /src for the given git ref with the website's
-#                 record (/etc/seasonal/install.conf as the website's installer writes it: BINGO=no
-#                 first, which must stop before any change, then yes; no website question asked;
-#                 the installer applies its route file itself), and checks through the
-#                 website's proxy: health, the sign-in route sending a visitor the website
-#                 answers as a guest through the game's login hop to the website's login with the
-#                 wanted page (D43), a website user signed in with name, may-host and Discord
-#                 steps and sent back to that page (the authorize call got the method, origin and
-#                 cookie), a member without may-host not hosting, a website admin as game admin
-#                 (D41), browser-sent identity headers changing nothing (on another route, on the
-#                 sign-in route, and sent to the app directly past the proxy without the secret;
-#                 in nginx mode the website's network refused even with the secret), the secret
-#                 neither printed nor sent to the website, the route file 0600,
-#                 /games/bingo/metrics 404, the account-changes feed reached over the website's
-#                 network with the token (a "rights" change signs a member out), the token in no
-#                 log, and `sbr status` naming the sign-in mode, the authorize endpoint's guest
-#                 answer (204) and the followed feed. Then: a route file the proxy refuses (an
-#                 operator's header name with a stray "{") is rolled back and the website keeps
-#                 answering; a clean re-run applies it again; `sbr uninstall` removes only the
-#                 game's route file and leaves nginx -t / caddy validate green.
-#                 --broken-header makes the stand-in send a wrong id header name: the test must
-#                 fail. Everything it made is removed at the end (--keep leaves it for a look).
-#                 Test only: never part of an install.
+# Responsibility: as the WP-27 test did: a throw-away privileged Ubuntu 24.04 container (systemd,
+#                 own Docker, repo at /src read-only) with a stand-in website (./stub-website.py,
+#                 nginx or Caddy) and its games-sync-token. Runs `ops/install.sh --type website` for
+#                 a git ref (BINGO=no must stop before any change, then yes) and checks through the
+#                 website's proxy: guest login hop (D43), may-host, website admin as game admin
+#                 (D41), spoofed identity headers ignored, secret never printed, route file 0600,
+#                 account-changes feed; a refused route file is rolled back; uninstall removes only
+#                 the game's route file. --broken-header must fail. Test only.
 # Depends on:     docker (with privileged containers), ./stub-website.py, ../install.sh
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
 #

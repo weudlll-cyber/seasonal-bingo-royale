@@ -3,15 +3,13 @@
  * @module web
  * @brief  Test support: a match summary as the server sends it, and a served live match.
  *
- * Responsibility: `matchSummary` — an open royale match with host draws, changed by the
- *                 fields a test gives; `serveMatch` stubs fetch with the signed-in host's
- *                 session, the lobby list, the player's own matches, the away summary and the
- *                 live state of one match (the session with the server's form limits); `show`
- *                 renders inside the session provider and lets the first fetches settle,
- *                 `serveWithLimits` / `showWithLimits` serve that session for a form on its own,
- *                 `renderInSession` renders in the provider for tests on fake timers. Both serve
- *                 the published presets (`START_PRESETS`) for "Start a match".
- *                 Test support only.
+ * Responsibility: `matchSummary`: an open royale match with host draws, changed by the given
+ *                 fields; `serveMatch` stubs fetch with the signed-in host's session (with the
+ *                 server's form limits), lobby list, own matches, away summary and one match's
+ *                 live state; `show` renders in the session provider and lets the first fetches
+ *                 settle; `serveWithLimits`/`showWithLimits` serve that session for a lone form;
+ *                 `renderInSession` is for fake-timer tests. Both serve the published
+ *                 `START_PRESETS`. Test support only.
  * Depends on:     @testing-library/react, @sbr/contracts (types), ../game/useLiveMatch (types),
  *                 ./quickTestFixture,
  *                 ../shell/session

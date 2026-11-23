@@ -5,13 +5,12 @@
  *
  * Responsibility: the dev player joins a realtime royale with timed draws and an asynchronous
  *                 royale; the host fills both with bots and starts them. The lobby shows "My
- *                 matches" with both (pace and state); Open takes the first tab to the realtime
- *                 match, a second tab of the same session opens the asynchronous one, which the
- *                 host moves an hour ahead. Each tab shows its own match: "LIVE" and new numbers
- *                 in the realtime tab, "In progress" and the hour's numbers in the other, their
- *                 numbers apart. In Chromium it saves my-matches-lobby-* and
- *                 my-matches-two-tabs-* (desktop and phone, both themes). Both matches are
- *                 aborted afterwards.
+ *                 matches" with both (pace, state); Open takes the first tab to the realtime match,
+ *                 a second tab of the same session opens the async one, which the host moves an
+ *                 hour ahead. Each tab shows its own match ("LIVE" and new numbers in one, "In
+ *                 progress" and the hour's numbers in the other, numbers apart). Chromium saves
+ *                 my-matches-lobby-* and my-matches-two-tabs-* (desktop and phone, both themes).
+ *                 Both matches aborted afterwards.
  * Depends on:     @playwright/test, ./realGame, ./screens
  * Spec:           docs/spec/01-game-design.md §11, §13 (D39)
  */

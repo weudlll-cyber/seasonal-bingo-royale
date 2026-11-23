@@ -3,19 +3,14 @@
  * @module server/realtime
  * @brief  One live update per step of a match: built once, sent to the room and each socket (06 §8).
  *
- * Responsibility: the events the engine publishes for a match wait up to 40 ms, so a draw, the
- *                 window close and a batch of taps that come together are one step; then, one
- *                 match at a time, the shared replay (../view/liveViews) is extended once with
- *                 those events (no read of the log), the room frame is built once and broadcast
- *                 to the match room (the summary and standings order left out when the room
- *                 already has them), and every socket in the room gets its own frame
- *                 (../view/stepFrames): the watched cards without a followed player are built
- *                 once for all watchers. Screens apply both without a state fetch. This runs on
- *                 a timer, never in the match's command queue: a tap is answered when its batch
- *                 is stored, not after the screens are updated. Per socket it keeps how much of
- *                 the viewer's effect timeline was sent and whom a watcher follows; `settled`
- *                 tells when a match's published events have all gone out. In an
- *                 asynchronous match the accounts sent a step have seen it (./seenLive, D54).
+ * Responsibility: events the engine publishes for a match wait up to 40 ms so a draw, the window
+ *                 close and a tap batch are one step; then, per match in turn, the shared replay
+ *                 (../view/liveViews) is extended with them (no log read), the room frame is built
+ *                 once and broadcast, and each socket gets its own frame (../view/stepFrames). Runs
+ *                 on a timer, never in the match's command queue: a tap is answered when its batch
+ *                 is stored. Per socket: effect-timeline progress and the followed player;
+ *                 `settled` tells when all published events went out. Async match: accounts sent a
+ *                 step have seen it (./seenLive, D54).
  * Depends on:     socket.io (types), @sbr/application, ../view/liveViews, ../view/stepFrames,
  *                 ../view/watchView, ../http/routes/metrics (types), ./gateway (types), ./seenLive
  * Used by:        ./gateway, ./intents (follow)

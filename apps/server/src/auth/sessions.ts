@@ -3,16 +3,14 @@
  * @module server/auth
  * @brief  Session rows: create, look up by cookie token, touch, revoke (03 §3).
  *
- * Responsibility: a session id is 32 random bytes sent in the cookie; the database keeps
- *                 only its SHA-256. Each session carries a synchronizer CSRF token (03 §8).
- *                 Lookup (by cookie token, or by session id for a socket's host intents)
- *                 loads the account's display name and permissions (via role
- *                 assignments; a guest session gets the guest role's permissions) and
- *                 refuses revoked, expired and idle-expired sessions; a local admin account's
- *                 session has no permissions until its second step (TOTP, D60). Idle 7 days, absolute
- *                 30 days for players and guests (in website mode 7 days for members and guests,
- *                 the same in every game); idle 30 minutes, absolute 8 hours for accounts with an
- *                 admin role. Dead sessions are purged by the retention job.
+ * Responsibility: a session id is 32 random bytes sent in the cookie; the database keeps only its
+ *                 SHA-256. Each session carries a synchronizer CSRF token (03 §8). Lookup (by
+ *                 cookie token, or session id for a socket's host intents) loads the display name
+ *                 and permissions (via role assignments; a guest gets the guest role's) and refuses
+ *                 revoked, expired and idle-expired sessions; a local admin account's session has
+ *                 no permissions until its second step (TOTP, D60). Idle 7 days, absolute 30 days
+ *                 for players and guests (website mode: 7 days for both, as in every game); idle 30
+ *                 minutes, absolute 8 hours with an admin role.
  * Depends on:     ../db/pool
  * Used by:        ./sessionPlugin, ../http/routes/auth, ../http/routes/devSignIn, ../realtime/gateway,
  *                 ../realtime/intents, ../match/retention

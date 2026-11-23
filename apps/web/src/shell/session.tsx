@@ -3,15 +3,13 @@
  * @module web/shell
  * @brief  The signed-in session for the whole client: who, permissions, CSRF token.
  *
- * Responsibility: load GET /session on start (in website mode a visitor without a session
- *                 gets a watch-only guest session first), keep its CSRF token for ./http, and offer
- *                 sign-in, registration and sign-out (the development quick sign-in lives
- *                 in ./DevTools, outside the production bundle, and calls `refresh`).
- *                 Only the newest refresh sets the session (an older answer arriving late
- *                 never undoes a sign-in). Screens read it through `useSession`, forms the
- *                 server's limits through `useLimits` (admin-area §8 (m)) and the screen values
- *                 through `useScreens` (§8 (i)); `highestRole` names the session's highest role
- *                 (owner, admin, organizer, player) for the account chip.
+ * Responsibility: load GET /session on start (website mode: a visitor without one gets a
+ *                 watch-only guest session first), keep its CSRF token for ./http, offer sign-in,
+ *                 registration and sign-out (dev quick sign-in lives in ./DevTools and calls
+ *                 `refresh`). Only the newest refresh sets the session (a late older answer never
+ *                 undoes a sign-in). Screens read it via `useSession`, the server's form limits
+ *                 via `useLimits` (admin-area §8 (m)), screen values via `useScreens` (§8 (i));
+ *                 `highestRole` names the highest role for the account chip.
  * Depends on:     react, @sbr/contracts (types), ./http, ../game/socket
  * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn,
  *                 ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture,

@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  Players and accounts: find, Organizer and Admin, lock, second step, sessions (piece 8).
  *
- * Responsibility: the owner alone sees e-mail addresses and finds by them, and alone resets a
- *                 second step (2026-11-21); an Admin finds an account by the start of its
- *                 name and makes it an Organizer (its session lives on, with the new permission); only the owner
- *                 makes it an Admin, which ends its sessions (the next sign-in asks for the
- *                 second step); locking ends its sessions and refuses its sign-in, unlocking
- *                 lets it in again; ending sessions and resetting the second step work and every
- *                 change is audited. Refused: one's own account, an owner's account for an
- *                 Admin, an unknown account, a change without a recent second step, a player.
- *                 The account it registers is removed.
+ * Responsibility: the owner alone sees e-mail addresses, finds by them, and resets a second step
+ *                 (2026-11-21); an Admin finds an account by the start of its name and makes it an
+ *                 Organizer (its session lives on, with the new permission); only the owner makes
+ *                 it an Admin, which ends its sessions (the next sign-in asks for the second step);
+ *                 locking ends sessions and refuses sign-in, unlocking lets it in; ending sessions
+ *                 and resetting the second step work and every change is audited. Refused: one's
+ *                 own account, an owner's account for an Admin, an unknown account, a change
+ *                 without a recent second step, a player. The account it registers is removed.
  * Depends on:     vitest, ../src/auth/accounts, ./harness, ./session
  * Spec:           docs/concepts/admin-area.md §2, §4 (Players and accounts), §6, §7, §9 piece 8
  */

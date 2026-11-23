@@ -3,14 +3,13 @@
  * @module server/view
  * @brief  The royale round recap (D20): every item, its ties and its empty case.
  *
- * Responsibility: hand-made event logs (players a–j, one card each with the numbers 1–25)
- *                 check the top three by points scored in the round (ties by the place
- *                 after it, places tie-broken as the cut does, no one who scored nothing), the biggest climber (ties by points
- *                 in the round, none when nobody gained), the cut (count, at most 8 names,
- *                 shield saves; left out without a cut, when it changed nothing, or when
- *                 only the stage's later round had one, 01 §7.1), Season
- *                 Complete, the fastest tapper (own taps inside the speed window, at least
- *                 5, ties by more taps), the facts, a second round measured from its own
+ * Responsibility: hand-made event logs (players a-j, one card each, numbers 1-25) pin the recap:
+ *                 top three by points scored in the round (ties by place after it, tie-broken as
+ *                 the cut does, none who scored nothing), biggest climber (ties by round points,
+ *                 none when nobody gained), the cut (count, at most 8 names, shield saves; left out
+ *                 without a cut, when it changed nothing, or when only the stage's later round had
+ *                 one, 01 §7.1), Season Complete, fastest tapper (own taps inside the speed window,
+ *                 at least 5, ties by more taps), the facts, a second round measured from its own
  *                 start, and no recap before the round has ended.
  * Depends on:     @sbr/application (ruleset), @sbr/domain (types), ./roundRecap
  * Spec:           docs/spec/01-game-design.md §7 (D20)

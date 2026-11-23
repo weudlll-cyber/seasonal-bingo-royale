@@ -3,17 +3,14 @@
  * @module server/http
  * @brief  The admin area's Presets: list them, change their values, duplicate, publish, retire.
  *
- * Responsibility: GET /api/v1/admin/presets (`admin.view`): every preset with its values as
- *                 form fields (@sbr/contracts presetFields: name, what it does, unit, min/max
- *                 from the schema, warning), each with its current value and its built-in
- *                 default. POST /api/v1/admin/presets/:id { values, comment? }: sets the named
- *                 values (only paths the preset's fields offer). POST …/:id/duplicate { name,
- *                 comment? }: a new draft with the same rules. POST …/:id/status { status,
- *                 comment? }: publish or retire; the last published preset of a game type and
- *                 mode cannot be retired (409 LAST_PUBLISHED). Changes need `settings.edit`,
- *                 pass the full RulesetSchema (../../admin/presets `problem`), are new versions
- *                 with an audit entry, and apply to matches created afterwards (§8 (b)). Input
- *                 through zod; the session plugin's limit and CSRF apply.
+ * Responsibility: GET /api/v1/admin/presets (`admin.view`): every preset with its values as form
+ *                 fields (@sbr/contracts presetFields) with value and built-in default. POST
+ *                 …/presets/:id { values, comment? } sets the named values; …/:id/duplicate { name,
+ *                 comment? } makes a new draft with the same rules; …/:id/status { status, comment?
+ *                 } publishes or retires, never the last published preset of a game type and mode
+ *                 (409 LAST_PUBLISHED). Changes need `settings.edit`, pass the full RulesetSchema
+ *                 (../../admin/presets `problem`), are new audited versions, and apply to matches
+ *                 created afterwards (§8 (b)). Input through zod; session limit and CSRF apply.
  * Depends on:     node:crypto, fastify, zod, @sbr/application, @sbr/contracts,
  *                 ../../admin/presets, ../../admin/settings (types), ./matches (requirePermission)
  * Used by:        ../gameRoutes

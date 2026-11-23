@@ -3,20 +3,13 @@
  * @module web/shell
  * @brief  Bingo's look on the kit's header (./Header, @seasonal/kit/header.css).
  *
- * Responsibility: the kit's header is a port of Bingo's bar; these rules keep what Bingo showed
- *                 before it took the kit's (v0.11):
- *                 - the order of the items: back link, brand, navigation, theme toggle,
- *                   account; folded: brand, toggle, Menu (the kit's DOM puts the toggle last);
- *                 - the account chip as Bingo's chip, "Sign in" as the solid button, the bar's
- *                   buttons with Bingo's padding (smaller in the account on a phone);
- *                 - the wordmark and the dev menu's hint in small type (Bingo loads no
- *                   kit `fit.css`, so the kit's text floor is not set);
- *                 - folded always below 960 px, as Bingo's bar was (the kit folds only when
- *                   the items would take a second row): the panel under the bar as the kit's;
- *                 - the account hidden until the session is known (`data-session`), as the bar
- *                   showed none;
+ * Responsibility: the kit's header ports Bingo's bar; these rules keep what Bingo showed before it:
+ *                 - order: back link, brand, nav, toggle, account; folded: brand, toggle, Menu;
+ *                 - Bingo's chip, solid "Sign in", button padding, small type (no kit `fit.css`);
+ *                 - always folded below 960 px (the kit folds only when items need a second row);
+ *                 - account hidden until the session is known (`data-session`);
  *                 - on a phone the back link's row as short as before (no 44 px row).
- *                 Colours from @sbr/ui and the kit's tokens only, so light and dark both work.
+ *                 Colours from @sbr/ui and the kit tokens only, so light and dark both work.
  * Used by:        ./Header
  * Spec:           docs/concepts/fit-audit.md §5 item 7 (O1, O2); owner decisions of 2026-11-20
  *                 and 2026-11-21 ("the top bar never takes two rows")

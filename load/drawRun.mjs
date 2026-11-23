@@ -3,20 +3,14 @@
  * @module load
  * @brief  One realtime royale under load: players and spectators watching, players tapping, the latencies.
  *
- * Responsibility: given a host and signed-in players and spectators (cookie, CSRF token, name),
- *                 the host creates a royale with timed draws every 4 s, the players join, every
- *                 socket watches it as the player screen does (06 §8): one full fetch first, then
- *                 each step applied when its own frame follows the room frame (the own cards of a
- *                 round start from it), a fetch of the new events only on a gap (one at a time;
- *                 round-start fetch size recorded); every `tapEvery`-th player taps its drawn
- *                 numbers as they arrive, inside the speed window. Records per draw and socket
- *                 the time from the draw event's `at` to the room frame's arrival and to the
- *                 screen having it all, per tap the time to its acknowledgement, the draw gaps;
- *                 samples the server's CPU, memory and event-loop lag from /metrics and reads
- *                 where the taps' time went and what the live updates cost per draw on the server
- *                 (./serverBreakdown.mjs). Ends with
- *                 the match or after `minutes`, then the host aborts the match (append-only
- *                 log). Who signs the accounts in and removes them is the caller's.
+ * Responsibility: given a host and signed-in players and spectators (cookie, CSRF token, name), the
+ *                 host creates a royale with draws every 4 s, the players join, every socket
+ *                 watches as the player screen does (06 §8: one full fetch, then steps applied when
+ *                 their frame follows the room frame, a fetch only on a gap); every `tapEvery`-th
+ *                 player taps drawn numbers inside the speed window. Records per draw and socket
+ *                 the time from the draw's `at` to the room frame and the full screen, per tap the
+ *                 time to its acknowledgement; reads ./serverBreakdown.mjs. Ends with the match or
+ *                 after `minutes`; the host aborts it. Sign-in and cleanup are the caller's.
  * Depends on:     socket.io-client, ./common.mjs, ./serverBreakdown.mjs
  * Used by:        ./drawLatency.mjs (local development stack), ./loadcheck.mjs (sbr loadcheck)
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8

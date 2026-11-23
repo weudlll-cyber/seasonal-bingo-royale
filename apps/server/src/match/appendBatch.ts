@@ -3,16 +3,14 @@
  * @module server/match
  * @brief  One batch of a match's events into PostgreSQL: one statement, or one transaction when it must.
  *
- * Responsibility: the batch's statement is a chain of data-modifying CTEs: `v` moves the match
- *                 row's version from the expected seq to the batch's last (`… WHERE version =
- *                 expected RETURNING id`, which takes the row lock and is the version check),
- *                 then the events (append-only, consecutive seq) and the read models
- *                 (./projections) each join `v`, so nothing is written when the version is stale;
- *                 no row from `v` raises VersionConflict. A batch of taps, a draw or a window
- *                 close is that one statement (its own transaction, one round trip); a batch with
- *                 a join, the finish (league points, ../leaderboard/awards) or a due snapshot
- *                 runs it inside BEGIN … COMMIT with the joined entries first and the snapshot
- *                 (last 3 kept) and the awards after. Returns how many round trips it took.
+ * Responsibility: the batch is a chain of data-modifying CTEs: `v` moves the match row's version
+ *                 from the expected seq to the batch's last (`UPDATE ... WHERE version = expected
+ *                 RETURNING id` takes the row lock and is the version check); the events
+ *                 (append-only, consecutive seq) and the read models (./projections) each join `v`,
+ *                 so nothing is written when the version is stale; no row from `v` raises
+ *                 VersionConflict. Taps, a draw or a window close are that one statement; a join,
+ *                 the finish (league points, ../leaderboard/awards) or a due snapshot (last 3 kept)
+ *                 runs it in BEGIN..COMMIT. Returns the round trips.
  * Depends on:     pg, @sbr/application (types), @sbr/domain (types), ../db/pool,
  *                 ../leaderboard/awards, ./projections
  * Used by:        ./pgMatchStore

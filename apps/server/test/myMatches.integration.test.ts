@@ -4,15 +4,13 @@
  * @brief  `mine` in GET /api/v1/matches: the signed-in player's matches that are not over (D39).
  *
  * Responsibility: player-1 joins a realtime lobby the host starts, one with a set start time, an
- *                 asynchronous lobby and an asynchronous royale a day into play; a cancelled
- *                 match and one player-1 never joined stay out. The list is newest first with
- *                 the start facts, the round and the cuts as the event log has them, read in one
- *                 query; player-2 sees only their own match; a match counting down is in the same state
- *                 on its card and in `mine` (one answer), and so is a full lobby (`full`);
- *                 a guest gets none. An asynchronous match carries "new" after a draw the
- *                 player has not seen and loses it when the away summary is fetched (D54);
- *                 a realtime match never has it. Open matches are
- *                 aborted at the end (./harness stopHarness).
+ *                 asynchronous lobby and an asynchronous royale a day into play; a cancelled match
+ *                 and one never joined stay out. The list is newest first with start facts, round
+ *                 and cuts as the event log has them, in one query; player-2 sees only their own
+ *                 match; a counting-down match and a full lobby (`full`) read the same on the card
+ *                 and in `mine`; a guest gets none. An asynchronous match carries "new" after an
+ *                 unseen draw and loses it when the away summary is fetched (D54); a realtime match
+ *                 never has it. Open matches are aborted at the end (./harness stopHarness).
  * Depends on:     vitest, ./harness, ./session
  * Spec:           docs/spec/05-api-design.md §2.2; docs/spec/01-game-design.md §13 (D39)
  */

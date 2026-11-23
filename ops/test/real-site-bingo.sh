@@ -3,18 +3,14 @@
 # @module ops/test
 # @brief  The bingo side of the rehearsal against the real website (sourced by ./real-site.sh).
 #
-# Responsibility: inside the website harness's server ($SERVER, on_server, ok, check, say from
-#                 the website's deploy/test/run.sh): copy this repository's committed tree in
-#                 as /root/sbr (its own origin, so the installer builds it at master), the
-#                 website's own checks after every bingo step, a fingerprint of everything of
-#                 the website (its tree, nginx's or Caddy's files except the bingo route, the
-#                 site container's start) that must not change, the bingo install through
-#                 ./real-site.exp with its checks (no other question; domain and mode from
-#                 /etc/seasonal/install.conf; route file applied and reloaded; `sbr status`),
-#                 the browser phases (./realSite.spec.ts in a Playwright container on the test
-#                 network) and the in-server helper ./real-site-admin.sh. The install's output is
-#                 read without a pipe (said_since): the harness's `tail | grep -q` under pipefail
-#                 fails when grep stops early and tail is cut off (SIGPIPE) on a long output.
+# Responsibility: inside the website harness's server ($SERVER, on_server, ok, check, say from the
+#                 website's deploy/test/run.sh): copy this repository's committed tree in as
+#                 /root/sbr (its own origin, so the installer builds it at master), run the
+#                 website's own checks after every bingo step, fingerprint what of the website must
+#                 not change (its tree, nginx's or Caddy's files except the bingo route, the site
+#                 container's start), run the bingo install (./real-site.exp), the browser phases
+#                 and ./real-site-admin.sh. The install's output is read without a pipe
+#                 (said_since): `tail | grep -q` under pipefail fails with SIGPIPE on a long output.
 # Depends on:     docker, git, tar, ./real-site.exp, ./real-site-admin.sh, ./realSite.spec.ts,
 #                 ./playwright.real-site.config.ts, ../../e2e/menu.ts (mounted for the spec)
 # Used by:        ./real-site.sh

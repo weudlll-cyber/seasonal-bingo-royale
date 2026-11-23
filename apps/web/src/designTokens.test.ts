@@ -3,15 +3,13 @@
  * @module web
  * @brief  WCAG AA contrast of the design tokens in the light and the dark theme (01 §13).
  *
- * Responsibility: read the tokens as the page loads them (the kit's shared file, then the
- *                 game's own from @sbr/ui, which wins) and check, in both themes, that body and
- *                 muted text keep 4.5:1 on the page, the opaque surfaces and the translucent
- *                 cards — composited over the base colour and over each of the four token
- *                 glows, as the website measures — and on the top bar's gradient stops; the
- *                 solid pill and text on the season colours keep 4.5:1; the bingo card ink
- *                 keeps 7:1 (the hero element); the host's Draw next keeps 4.5:1 enabled and
- *                 disabled; and the kit's motion file turns every animation off under
- *                 prefers-reduced-motion.
+ * Responsibility: read the tokens as the page loads them (kit's shared file, then @sbr/ui's own,
+ *                 which wins) and check in both themes: body and muted text 4.5:1 on the page,
+ *                 opaque surfaces and translucent cards (composited over the base and each of the
+ *                 four token glows, as the website measures) and the top bar's gradient stops;
+ *                 pill and text on season colours 4.5:1; bingo card ink 7:1 (the hero element);
+ *                 Draw next 4.5:1 enabled and disabled; the kit's motion file turns every
+ *                 animation off under prefers-reduced-motion.
  * Depends on:     @seasonal/kit/tokens.css, @seasonal/kit/motion.css, @sbr/ui/tokens.css (raw),
  *                 ./host/host.css
  * Spec:           docs/spec/01-game-design.md §13 (WCAG 2.2 AA)

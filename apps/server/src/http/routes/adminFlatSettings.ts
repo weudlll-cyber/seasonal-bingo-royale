@@ -3,15 +3,14 @@
  * @module server/http
  * @brief  The admin area's pages of plain values: their fields, and saving them as a new version.
  *
- * Responsibility: for a settings document whose values sit at the top level (League, Screens
- *                 and texts, Technical): `flatFields` — its values as form fields (@sbr/contracts
- *                 settingsFields: name, what it does, unit, the schema's limits) with the current
- *                 value and today's default; `registerFlatSettings` — GET <path> (`admin.view`
- *                 unless the page names another permission) with the fields, and POST <path>
- *                 { values, comment? } (the page's edit permission): only the document's own
- *                 keys, the whole document must pass its schema, a new version with its audit
- *                 entry (../../admin/settings). Input through zod; the session plugin's limit
- *                 and CSRF apply.
+ * Responsibility: for a settings document whose values sit at the top level (League, Screens and
+ *                 texts, Technical): `flatFields` gives the values as form fields (@sbr/contracts
+ *                 settingsFields: name, what it does, unit, schema limits) with current value and
+ *                 today's default; `registerFlatSettings` adds GET <path> (`admin.view` unless the
+ *                 page names another permission) and POST <path> { values, comment? } (the page's
+ *                 edit permission): only the document's own keys, the whole document must pass its
+ *                 schema, a new version with its audit entry (../../admin/settings). Input through
+ *                 zod; the session plugin's limit and CSRF apply.
  * Depends on:     fastify, zod, @sbr/contracts (settingsFields, types), ../../admin/settings
  *                 (types), ./matches (requirePermission)
  * Used by:        ./adminLeague, ./adminTechnical, ../gameRoutes (Screens and texts)

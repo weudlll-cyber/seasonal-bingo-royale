@@ -3,17 +3,14 @@
  * @module web/host
  * @brief  The host's console for one match: lobby, start, live draw control, results (05 §3).
  *
- * Responsibility: lobby: ./HostLobby (notice, players, bots, start rules, Start); a match ended
- *                 without a result shows ../game/MatchCancelled (D17). Running: current and
- *                 recent numbers, Draw next (also Space outside fields; host draws only, after
- *                 the speed window, D10), the timed/host switch, seconds (D8), "Start next round"
- *                 when the host must start it (D14) or "Start next round now" in a timed pause
- *                 (D21, Draw next hidden), the round recap (../game/Interlude, D20), the final's
- *                 fresh start (D23), the newest 3 event lines with the whole log one click away,
- *                 standings (active first, grouped, in a bounded panel), prizes, abort with a
- *                 reason (./AbortMatch); while running it fills the window below the top bar on
- *                 desktop; final placement on top at the end. In development builds an
- *                 asynchronous match also has "Jump ahead" (./JumpAhead, lazy).
+ * Responsibility: lobby: ./HostLobby; a match ended without result shows ../game/MatchCancelled
+ *                 (D17). Running: current and recent numbers, Draw next (also Space; host draws
+ *                 only, after the speed window, D10), timed/host switch, seconds (D8), "Start next
+ *                 round" when the host must (D14) or "Start next round now" in a timed pause
+ *                 (D21), round recap (../game/Interlude, D20), final's fresh start (D23), newest 3
+ *                 event lines, standings (active first, grouped, bounded panel), prizes, abort
+ *                 with a reason (./AbortMatch); fills the window on desktop; final placement on
+ *                 top at the end. Dev builds: async "Jump ahead" (./JumpAhead, lazy).
  * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
  *                 ../shell/router

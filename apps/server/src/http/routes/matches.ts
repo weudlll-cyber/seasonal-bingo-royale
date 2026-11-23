@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  Match routes under /api/v1: list, create, detail, state, join, start, host controls.
  *
- * Responsibility: GET /matches (open, running and recent matches, and as `mine` the
- *                 signed-in player's matches not over, ./myMatches, D39), POST /matches (match.create;
- *                 503 MAINTENANCE while `sbr maintenance on`, except for the load check's host,
- *                 12 §5; an organizer names a published preset, 403 PRESET_REQUIRED otherwise;
- *                 Admins, the load check and development tools may go without, ./startPresets), GET
- *                 /matches/:code, GET
- *                 /matches/:code/state?since= (the live view the client folds, ./matchViews; in
- *                 the pause after a royale round with the round's recap, D20; a watching screen
- *                 adds &follow= and &known=, D24), POST /matches/:code/join (match.join), GET
- *                 /matches/:code/away-summary (./awaySummary), the host's routes (./matchHost:
- *                 start, draws, abort, the mark fallback; in development /bots). Engine errors
- *                 become 4xx with their code.
+ * Responsibility: GET /matches (open, running, recent; `mine`: own unfinished matches, ./myMatches,
+ *                 D39), POST /matches (match.create; 503 MAINTENANCE during `sbr maintenance on`
+ *                 except the load check's host, 12 §5; an organizer must name a published preset,
+ *                 else 403 PRESET_REQUIRED; Admins, load check and dev tools may go without,
+ *                 ./startPresets), GET /matches/:code, …/state?since= (live view, ./matchViews;
+ *                 recap in a royale pause, D20; watchers add &follow= and &known=, D24), POST
+ *                 …/join, GET …/away-summary (./awaySummary), the host's routes (./matchHost; /bots
+ *                 in development). Engine errors become 4xx with their code.
  * Depends on:     fastify, zod, @sbr/application, ../../match/*, ../../db/pool,
  *                 ../../config/maintenance, ./awaySummary, ./matchHost, ./matchInput, ./matchViews,
  *                 ./myMatches,

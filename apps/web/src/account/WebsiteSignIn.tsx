@@ -3,16 +3,14 @@
  * @module web/account
  * @brief  How a visitor signs in: the game's own forms, or only the website login (D37).
  *
- * Responsibility: where the top bar's "Sign in" leads in website mode (`useWebsiteSignIn`):
- *                 the website's login through the server's <base>auth/website/login with this
- *                 page as the return path (after the login the sign-in route brings the visitor
- *                 back); null in local mode, where the bar has "Sign in" and "Register" (the
- *                 kit's header, ../shell/Header). In website mode the sign-in and register pages
- *                 show that same link instead of the forms; `useSignInToPlay` gives the same link to the screens that offer
- *                 Join to a visitor without an account. `useWebsiteResign`: a game session that
- *                 ends under a signed-in page (an idle admin's) goes through the sign-in route
- *                 with this page as `next`, so the next action lands here signed in again. The
- *                 server says the mode (GET /session `authMode`, `signInPath`).
+ * Responsibility: where the top bar's "Sign in" leads in website mode (`useWebsiteSignIn`): the
+ *                 website's login via the server's <base>auth/website/login with this page as
+ *                 return path; null in local mode (kit header has "Sign in" and "Register",
+ *                 ../shell/Header). Website mode: the sign-in and register pages show that link
+ *                 instead of forms; `useSignInToPlay` gives it to Join screens for visitors.
+ *                 `useWebsiteResign`: a game session ending under a signed-in page (an idle
+ *                 admin's) goes through the sign-in route with this page as `next`. The server
+ *                 says the mode (GET /session `authMode`, `signInPath`).
  * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./SignIn, ./Register
  * Used by:        ../shell/Header, ../shell/AppShell, ../game/Lobby, ../game/WaitingRoom, ./AccountPage
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2

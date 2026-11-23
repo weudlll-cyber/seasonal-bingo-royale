@@ -3,26 +3,14 @@
 # @module ops/test
 # @brief  The move rehearsed against the REAL website installer, in nginx or own-Caddy mode.
 #
-# Responsibility: clones the website (github.com/weudlll-cyber/seasonal-entertainment) at the
-#                 given ref (it must contain SE-EMBEDDED-GAMES, merge 82e9e30) and reuses its own
-#                 end-to-end harness (deploy/test/run.sh without its last line: a systemd Ubuntu
-#                 24.04 container, Pebble for Let's Encrypt, the test DNS, run-installer.exp,
-#                 checks.sh) to install the real website with BINGO=yes; its checks must pass.
-#                 Then, in that server: the bingo install from this repository's committed tree
-#                 with the documented one command (./real-site.exp), the browser phases
-#                 (./realSite.spec.ts: guest, join through the website's login and registration,
-#                 the chat room, the right to start games and "Start a match" from a preset,
-#                 lock, unlock, delete, the website admin in the admin area) around the
-#                 website admin's steps (./real-site-admin.sh), and the website's own checks and
-#                 an unchanged website after the install, a re-run, `sbr update`, `sbr
-#                 rollback`, the update again with `sbr confirm` and `sbr uninstall`; then the
-#                 drill (./real-site-drill.sh; DRILL=0 skips it): the backup taken before the
-#                 uninstall restored into a fresh server with the website and the bingo
-#                 installed again. Prints PASS/FAIL per check and the website SHA. Everything it
-#                 made carries the harness's label and is removed at the end (KEEP=1 keeps it).
-#                 Not part of CI (Docker with privileged containers, about an hour per mode).
-#                 KEEP=1 leaves the server; RESUME=1 then reuses it and its website for a faster
-#                 try of the bingo part (a fresh run is the real rehearsal).
+# Responsibility: clones the website (github.com/weudlll-cyber/seasonal-entertainment) at a ref with
+#                 SE-EMBEDDED-GAMES (merge 82e9e30), reuses its harness (deploy/test/run.sh minus
+#                 its last line) to install it with BINGO=yes, then the bingo install from this
+#                 repo's committed tree with the documented one command (./real-site.exp), browser
+#                 phases (./realSite.spec.ts) around the admin's steps (./real-site-admin.sh),
+#                 update, rollback, confirm, uninstall, and the drill (./real-site-drill.sh; DRILL=0
+#                 skips). Prints PASS/FAIL and the website SHA; all is removed at the end (KEEP=1
+#                 keeps, RESUME=1 reuses). Not in CI (privileged Docker, an hour per mode).
 # Depends on:     docker, git, ./real-site-bingo.sh (and what it uses), ./real-site-drill.sh
 # Spec:           docs/operator-guide.md (rehearsal); docs/spec/09-deployment-architecture.md §3
 #

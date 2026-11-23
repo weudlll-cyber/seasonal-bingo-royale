@@ -3,15 +3,14 @@
  * @module e2e/acceptance
  * @brief  The fit audit's in-page measurement: small text, cut text, overflow, page scroll, overlaps.
  *
- * Responsibility: one call in the page per screen, size and font measures every visible text
- *                 element (own text nodes, form fields): its computed font size against 14 px
- *                 times the user's font scale (card numbers, text inside a card cell, against
- *                 16 px), text cut by an ancestor's overflow hidden or by an ellipsis, text or
- *                 boxes beyond the window's sides outside a scrolling box, horizontal and
- *                 vertical page scroll, and text fragments that cover each other or are covered
- *                 by another element. The functions run in the browser: `installProbe` puts
- *                 their source into the page as one script (they call each other by name, so
- *                 they use nothing from outside this file), `probe` calls it.
+ * Responsibility: one in-page call per screen, size and font measures every visible text element
+ *                 (own text nodes, form fields): font size against 14 px times the user's font
+ *                 scale (card numbers and text in card cells against 16 px), text cut by an
+ *                 ancestor's overflow hidden or an ellipsis, text or boxes beyond the window sides
+ *                 outside a scrolling box, page scroll, and text fragments covering each other or
+ *                 covered by another element. The functions run in the browser: `installProbe` puts
+ *                 their source into the page as one script (they call each other by name, so use
+ *                 nothing from outside this file), `probe` calls it.
  * Depends on:     @playwright/test
  * Used by:        ./fitAudit.spec, ../playerFit.spec (the round screens in CI)
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13

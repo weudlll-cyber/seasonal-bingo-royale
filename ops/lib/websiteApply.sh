@@ -3,21 +3,14 @@
 # @module ops
 # @brief  Website installs: put the game's route file in place, apply it with a rollback, check it through the proxy.
 #
-# Responsibility: nginx mode: <routes dir>/bingo.conf (0600), `nginx -t`; it fails → the previous
-#                 file back (or the new one removed), `nginx -t` green again, stop with nginx's
-#                 error; it passes → `systemctl reload nginx`. Own-Caddy mode with the website's
-#                 checkout known (/etc/seasonal/install.conf INSTALL_DIR): <checkout>/deploy/site/
-#                 routes/bingo.caddy (0600), after checking the running Caddy has /etc/caddy/routes
-#                 mounted (else stop: run the website installer with --update), `caddy validate`
-#                 inside the container; it fails → restore and stop; it passes → `caddy reload`.
-#                 Without the checkout (an older website): the file in /opt/sbr/routes and the
-#                 manual steps of docs/operator-guide.md. No other website file is touched; the
-#                 website keeps working whatever happens. remove_route_file undoes it (uninstall).
-#                 final_checks: through the real proxy (curl --resolve to this server):
-#                 /games/bingo/ answers 200, the sign-in route without a cookie ends at the
-#                 website's /login?next=…, the authorize endpoint answers 204 with X-Acting-Guest
-#                 (an older website: 401), the account-changes feed answers the app; each failing
-#                 check named plainly.
+# Responsibility: nginx mode: <routes dir>/bingo.conf (0600), `nginx -t`; on failure the previous
+#                 file is back (or the new one removed) and it stops with nginx's error, else
+#                 reload. Own-Caddy mode with the checkout known (install.conf INSTALL_DIR):
+#                 deploy/site/routes/bingo.caddy (0600) once Caddy has /etc/caddy/routes mounted,
+#                 `caddy validate`, restore on failure, else reload; without the checkout (older
+#                 website) /opt/sbr/routes and the manual steps of docs/operator-guide.md. No other
+#                 website file is touched. remove_route_file undoes it. final_checks go through the
+#                 real proxy: game 200, sign-in to /login?next=, authorize 204 (older: 401), feed.
 # Depends on:     ./common.sh, ./website.sh, ./websiteRoute.sh, docker, nginx, curl
 # Used by:        ops/install.sh, ops/sbr (update, uninstall)
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
