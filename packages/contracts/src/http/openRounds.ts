@@ -9,10 +9,14 @@
  *                 absolute https join URL on the endpoint's own origin; no personal data.
  *                 Unknown fields are allowed (the website ignores them).
  * Depends on:     zod
- * Used by:        ../index, apps/server/src/http/routes/openRounds
+ * Used by:        ../index, ../config/screens (MAX_OPEN_ROUNDS), apps/server/src/http/routes/openRounds
  * Spec:           docs/OPEN-ROUNDS.md; docs/spec/07-integration-architecture.md §7
  */
 import { z } from 'zod';
+
+// The most rounds the website takes (docs/OPEN-ROUNDS.md); the admin's "Open sign-ups for the
+// website" setting (../config/screens) ends here too.
+export const MAX_OPEN_ROUNDS = 20;
 
 const isoOrNull = z.iso.datetime().nullable();
 
@@ -29,7 +33,7 @@ export const openRound = z.object({
 
 export const openRoundsAnswer = z.object({
   version: z.literal(1),
-  rounds: z.array(openRound).max(20),
+  rounds: z.array(openRound).max(MAX_OPEN_ROUNDS),
 });
 
 export type OpenRound = z.infer<typeof openRound>;

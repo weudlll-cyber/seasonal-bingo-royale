@@ -1,5 +1,25 @@
 # Morning sheet
 
+## Night of 2026-11-23/24 (unattended)
+
+Pieces: 0 open sign-ups capped at 20, 1 H3 header comments, 2 T4 eliminated-cannot-mark journey, 3a axe focus, 3b docked layout, 4 start card, 5 game bar and focus mode. Pieces 0–2 merge when CI is green; 3–5 stay on `feat/docked-layout` for the owner's look.
+
+### Done
+
+- **Piece 0, open sign-ups capped at 20** (branch `fix/open-rounds-cap`, owner decision of 2026-11-23): `MAX_OPEN_ROUNDS` (new export, `packages/contracts/src/http/openRounds.ts:19`) is the answer's cap and the end of the setting's range (`packages/contracts/src/config/screens.ts:39`, was 1–100); the admin description says the website shows at most 20. The test failed first (the export did not exist; 21 was accepted), passes now; contracts tests 41/41, typecheck passes. Nothing stored or seeded was above 20: the dev database's `screens` document (version 3) holds 20, no fixture names the setting. For an install that did store more than 20, `screenSettingsOf` would read every screen value at its default until saved (the same rule as for any out-of-range value); none exists, and the production install is not made yet. Docs: admin-values.md (range, line references), kit-adoption.md §8, BACKLOG part two (OPEN-ROUNDS-CAP).
+
+### Running
+
+- Piece 0: CI on the PR.
+
+### Open
+
+- Pieces 1–5.
+
+### Needs the owner's word
+
+- Nothing yet.
+
 ## Production night of 2026-11-22/23 (started 23:13, unattended)
 
 Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on the real VPS; nothing a player sees changes.
