@@ -139,12 +139,14 @@ default_source() {
 next_steps() {
   info ""
   info "Done ($SBR_CHANGES change(s)). Next steps:"
-  info "  1. Create the first admin:  sudo sbr admin create-super"
   if [[ $SBR_TYPE == standalone ]]; then
+    info "  1. Create the first admin:  sudo sbr admin create-super"
     info "  2. Open https://$(url_host "$SBR_ADDRESS")/"
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && warn "with an IP address the certificate comes from Caddy's own CA: browsers warn until you point a domain here and re-run with --address <domain>"
     info "  3. Firewall: allow 22, 80 and 443 only (docs/operator-guide.md)."
   else
+    # No create-super here: it refuses in website mode (D41, D37).
+    info "  1. The website's admins are the game's admins; members may host once the website allows it (Admin -> Users)."
     info "  2. $(route_steps)"
     info "  3. Players sign in only with their website account (D37)."
     [[ $SBR_DRY_RUN == 1 ]] || final_checks "$SBR_ENV" || warn "the install is done, but the checks above failed: see docs/operator-guide.md, \"Website by hand\""
