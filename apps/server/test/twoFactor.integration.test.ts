@@ -21,8 +21,14 @@ import { base32Decode, hotp, stepAt } from '@seasonal/kit/server';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { deleteAccount, registerAccount } from '../src/auth/accounts.js';
-import { resetTwoFactor } from '../src/auth/twoFactor.js';
-import { startHarness, stopHarness, SUITE_TIMEOUT_MS, type Harness } from './harness.js';
+import { recoveryCodeStored, resetTwoFactor } from '../src/auth/twoFactor.js';
+import {
+  startHarness,
+  stopHarness,
+  SUITE_TIMEOUT_MS,
+  TEST_RECOVERY_KEY,
+  type Harness,
+} from './harness.js';
 
 let harness: Harness;
 const made: string[] = [];
@@ -170,6 +176,23 @@ describe("recovery codes under the install's key (K20, K27), then reset-2fa", ()
     expect(
       (await inject('POST', '/auth/2fa/verify', second, { recoveryCode: old })).statusCode,
     ).toBe(400);
+  });
+
+  it('finds an unused stored code under the right key only, without using it (the restore drill)', async () => {
+    const key = Buffer.from(TEST_RECOVERY_KEY, 'hex');
+    const other = Buffer.from('fedcba9876543210'.repeat(4), 'hex');
+    const unused = recovery[1] ?? '';
+    expect(await recoveryCodeStored(harness.pool, key, 'boss', unused)).toBe(true);
+    // The name as citext, the code in the kit's hex form (case and dashes do not matter).
+    expect(await recoveryCodeStored(harness.pool, key, 'BOSS', unused.toUpperCase())).toBe(true);
+    expect(await recoveryCodeStored(harness.pool, key, 'boss', recovery[0] ?? '')).toBe(false);
+    expect(await recoveryCodeStored(harness.pool, other, 'boss', unused)).toBe(false);
+    expect(await recoveryCodeStored(harness.pool, key, 'nobody', unused)).toBe(false);
+    // Read only: the code still signs in once.
+    const seat = await signIn();
+    expect(
+      (await inject('POST', '/auth/2fa/verify', seat, { recoveryCode: unused })).statusCode,
+    ).toBe(204);
   });
 
   it('enrols again after reset-2fa, which ends the sessions', async () => {
