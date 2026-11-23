@@ -6,15 +6,18 @@ Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on 
 
 ### Done
 
-- Piece 1 (PR #58, `5c613c0`): 48 screens pixel for pixel the same as master `c1bab70`; lint, typecheck, minTextSize pass; CI 45073180487 and CodeQL 45073180468 green.
+- **Piece 1 merged**: PR #58 as **`be3f5de`** (merge commit, kit v0.10.1). Before it, on `5c613c0`: the 48 screens (standalone and website mode, 1280×720, 959×700, 390×844, light and dark) pixel for pixel the same as master `c1bab70`; lint, typecheck, format, minTextSize, playerFit (Chromium, 4/4) pass; a short royale played to its final placement on desktop and phone (fast profile); verify 928/930 with two timeouts while other projects loaded this PC (`royale.properties` invariant 10, `matchViews` watched cards: both pass alone, 12 s and 74 s); CI 45073180487 and CodeQL 45073180468 green. On `be3f5de`: CI 45102013233 green **including the security job** (the `.gitleaksignore` entries came with the merge), CodeQL 45102013097 green. The branch is deleted on origin and locally.
+- Piece 2 so far (branch `test/rehearsal-final`, PR #62): the fresh nginx rehearsal on master `be3f5de`, website master `e71c654`: **63 PASS / 0 FAIL**.
 
 ### Running
 
-- Piece 1: local verify (a first run timed out under another project's Linux e2e container on this PC; re-run once it had stopped), playerFit, the short royale on desktop and phone, then the merge.
+- Piece 2: the fresh caddy rehearsal with the new backup-and-restore drill (`8fd1639`), then nginx with the drill and the new rollback step.
+- Piece 3 (branch `chore/prod-audit`, PR #63): the audit; fixes so far: no e-mail address in the log of a failed mail, a website install's next steps without `create-super`.
+- Piece 4 (branch `docs/go-live`): docs/GO-LIVE.md drafted.
 
 ### Open
 
-- Pieces 2 (rehearsal and the backup-restore drill), 3 (pre-production audit), 4 (docs/GO-LIVE.md), 5 (website-mode sweep).
+- Piece 5 (website-mode sweep).
 
 ### Reverted
 
