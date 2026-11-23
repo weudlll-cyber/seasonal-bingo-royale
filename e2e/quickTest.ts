@@ -65,7 +65,7 @@ export async function startRun(page: Page, settings: RunSettings): Promise<void>
 // Runs a match to the end and returns the final placement as text.
 export async function finalPlacement(page: Page, settings: RunSettings): Promise<string> {
   await startRun(page, { ...settings, skipToEnd: true });
-  const placement = page.getByTestId('final-placement');
+  const placement = page.getByTestId('result');
   await expect(placement).toBeVisible({ timeout: 60_000 });
   return placement.innerText();
 }

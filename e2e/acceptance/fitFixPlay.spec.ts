@@ -110,7 +110,7 @@ async function playThrough(desk: Page, phone: Page, watcher: Page): Promise<void
   let live = false;
   let long = false;
   let pause = false;
-  const done = desk.getByTestId('final-placement');
+  const done = desk.getByTestId('result');
   await until(
     desk,
     done,
@@ -167,7 +167,7 @@ test('fit fixes: a royale on a phone and a desktop', async ({ browser }) => {
     await watcher.goto(`/#/match/${code}`);
     await expect(desk.getByTestId('arena')).toBeVisible({ timeout: 30_000 });
     await playThrough(desk, phone, watcher);
-    await expect(phone.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
+    await expect(phone.getByTestId('result')).toBeVisible({ timeout: 30_000 });
     await shot(desk, 'results', '1280x720');
     await shot(phone, 'results', '390x844');
   } finally {

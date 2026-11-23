@@ -100,7 +100,7 @@ export async function snapshot(page: Page): Promise<Snap> {
       standings: standings(),
       cutShown: q('[data-testid="cut-screen"]') !== null,
       logEntries: all('[data-testid="match-log"] li').length,
-      finished: q('[data-testid="final-placement"]') !== null,
+      finished: q('[data-testid="result"]') !== null,
       finalOwnerPlace: finalOwnerPlace(),
     };
   });

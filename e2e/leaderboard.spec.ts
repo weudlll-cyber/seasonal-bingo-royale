@@ -72,7 +72,7 @@ test('a played match shows on the profile and gives no league points with bots',
     await fillAndStart(host, 20);
     await expect(host.getByTestId('end-actions')).toBeVisible({ timeout: TO_THE_END_MS });
     // The player's final placement: players link to their profiles, bots never.
-    const final = one.getByTestId('final-placement');
+    const final = one.getByTestId('result');
     await expect(final).toBeVisible({ timeout: 20_000 });
     await expect(final.getByRole('link', { name: 'dev-player-2' })).toHaveAttribute(
       'href',
