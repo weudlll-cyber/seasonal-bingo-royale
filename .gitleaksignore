@@ -5,3 +5,5 @@
 # fixed 32-byte test values ("0123456789abcdef" four times), not secrets of any install.
 60ebca7388eea39a6b50b13b824edbd181dff6e8:apps/server/src/config/env.test.ts:generic-api-key:30
 60ebca7388eea39a6b50b13b824edbd181dff6e8:apps/server/test/harness.ts:generic-api-key:30
+# The same harness test key, exported for the restore drill's lookup test (8fd1639).
+8fd1639825e4a9ef2228b71923d9869b4df4df5b:apps/server/test/harness.ts:generic-api-key:30
