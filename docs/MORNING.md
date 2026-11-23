@@ -11,13 +11,15 @@ Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on 
 - Piece 3 (branch `chore/prod-audit`, PR #63), master merged in (`bfdd9ba`): fresh rehearsals with the drill and the rollback, website `e71c654`: **nginx 126 PASS / 0 FAIL, caddy 110 PASS / 0 FAIL** (the install now ends with "1. The website's admins are the game's admins…"); local verify 934/934. Written up in docs/concepts/prod-readiness.md; fixed (each with a test that failed first where code changed): no e-mail address in the log of a failed mail, a website install's next steps without `create-super`; the guide's own-Caddy uninstall line; the stale osv ignore. **Merged** as **`3c0888d`** (PR #63, CI 45127817963 and CodeQL 45127818040 green on `1be4bcf`); the branch is deleted. Master CI 45128837895 and CodeQL 45128837879 green on `3c0888d`.
 - Piece 4: docs/GO-LIVE.md (the steps, the three answers, the expected output, `sudo sbr status` from the rehearsal's server, the website admin's steps, the first browser checks, what to do when a step fails, rollback included). **Merged** as **`890b568`** (PR #64, CI 45129188466 and CodeQL 45129188567 green on `463582f`); master CI 45130406519 and CodeQL 45130406370 green on `890b568`. The branch is deleted.
 
+- Piece 5 (branch `test/sweep`, PR #65): the website-mode sweep (docs/concepts/fit-audit.md §7), measured twice with the same findings, 480 measurements each: with the chat closed no finding; with it open the chat covers the match below 1900 px; axe `scrollable-region-focusable` (serious) on the drawn numbers and the standings of the results and interludes and the console's round, and one `color-contrast` hit on the interlude's podium while it fades in. `atSize`, `ROUND_KEYS`, `keysOutOf` and `findingsOf` moved to `e2e/acceptance/fitMeasure.ts`; the standalone maintenance test passes with them. New development dependency `@axe-core/playwright` 4.14.0 (MPL-2.0). The acceptance spec stays out of CI. The installer's next-steps test now allows 30 s (Git Bash start-up: 0.3 s alone, past 5 s under load). CI 45143831845 and CodeQL 45143831663 green on `0fccc25`. Local verify twice under other projects' load (their e2e run, the kit's coverage, a sweep): only timeouts (container health checks, worker starts, one CLI test); every failed file passes alone (12 unit files 64/64, `auth.integration` 15/15). **Merged** by PR #65 (merge commit); the merge SHA and its master runs are in the night's closing report.
+
 ### Running
 
-- Piece 5 (branch `test/sweep`): the website-mode sweep (docs/concepts/fit-audit.md §7), measured twice with the same findings, 480 measurements each: with the chat closed no finding; with it open the chat covers the match below 1900 px; axe `scrollable-region-focusable` (serious) on the drawn numbers and the standings of the results and interludes and the console's round, and one `color-contrast` hit on the interlude's podium while it fades in. `atSize`, `ROUND_KEYS`, `keysOutOf` and `findingsOf` moved to `e2e/acceptance/fitMeasure.ts`; the standalone maintenance test passes with them. New development dependency `@axe-core/playwright` 4.14.0 (MPL-2.0). CI, then the merge.
+- Nothing.
 
 ### Open
 
-- Nothing beyond piece 5's merge.
+- Nothing.
 
 ### Reverted
 
