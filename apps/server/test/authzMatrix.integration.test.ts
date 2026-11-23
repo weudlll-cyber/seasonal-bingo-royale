@@ -362,9 +362,9 @@ describe('the authorization matrix: HTTP routes', () => {
 // admin (game_admin) and a guest; nobody is super_admin there. Sessions come from the proxy's
 // sign-in; the accounts this makes are removed at the end.
 const WEB_VISITORS = {
-  player: { id: 'authz-w1', name: 'Authz_Member' },
-  host: { id: 'authz-w2', name: 'Authz_Host', canHost: 'true' },
-  admin: { id: 'authz-w3', name: 'Authz_Admin', roles: 'admin' },
+  player: { id: '2001', name: 'Authz_Member' },
+  host: { id: '2002', name: 'Authz_Host', canHost: 'true' },
+  admin: { id: '2003', name: 'Authz_Admin', roles: 'admin' },
 } as const satisfies Record<string, Visitor>;
 
 async function webSession(app: App, who: keyof typeof WEB_VISITORS | 'guest') {

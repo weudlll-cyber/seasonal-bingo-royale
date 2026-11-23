@@ -5,34 +5,39 @@
  *
  * Responsibility: bundle src/main.ts (the server) and src/cli.ts (the operator commands,
  *                 e.g. create-super) with esbuild into dist/ (or the folder given as the
- *                 first argument), the workspace packages (@sbr/*, TypeScript sources)
- *                 inlined and the npm dependencies left as imports for node_modules,
+ *                 first argument), the workspace packages (@sbr/*, TypeScript sources) and
+ *                 the shared kit (@seasonal/kit, a git tag: the image's `pnpm deploy --prod`
+ *                 could not fetch it, so it is a development dependency compiled in) inlined
+ *                 and the npm dependencies left as imports for node_modules,
  *                 without comments or spacing; the development modules (src/dev/*, the
- *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs
+ *                 Quick Test, dev sign-in and time-travel routes) replaced by ./devStub.mjs (the
+ *                 kit's devStubPlugin)
  *                 (kept with SBR_BUILD_DEV=1, only for the local load check, 12 §5);
  *                 copy src/db/migrations to <out>/migrations, where the bundled migrator
  *                 looks for them; bundle the load generator of `sbr loadcheck`
  *                 (../../load/loadcheck.mjs) with its npm packages into <out>/loadcheck.js, so
  *                 the production image can run it without development code. Run by the
  *                 Dockerfile.
- * Depends on:     esbuild, ./devStub.mjs
+ * Depends on:     esbuild, @seasonal/kit/devtools (devStubPlugin), ./devStub.mjs
  * Used by:        Dockerfile
  * Spec:           docs/spec/08-devops-architecture.md §4; docs/spec/09-deployment-architecture.md §1
  */
 import { cpSync, rmSync } from 'node:fs';
 import path from 'node:path';
 
+import { devStubPlugin } from '@seasonal/kit/devtools';
 import { build } from 'esbuild';
 
 const out = process.argv[2] ?? 'dist';
 
 // npm packages stay imports for node_modules; the workspace packages (@sbr/*, TypeScript
-// sources) are compiled into the bundle.
+// sources) and the kit (@seasonal/kit) are compiled into the bundle.
+const INLINED = /^@(sbr|seasonal)\//;
 const npmExternal = {
   name: 'npm-external',
   setup(builder) {
     builder.onResolve({ filter: /^[^./]/ }, (args) =>
-      args.path.startsWith('@sbr/') ? undefined : { path: args.path, external: true },
+      INLINED.test(args.path) ? undefined : { path: args.path, external: true },
     );
   },
 };
@@ -41,16 +46,8 @@ const npmExternal = {
 // modules only with SBR_DEV=1, so the stub is never called in a production install.
 const DEV_MODULE =
   /[\\/]src[\\/](dev[\\/][^\\/]+|http[\\/]routes[\\/](quicktest|devSignIn|timeTravel))\.js$/;
-const devStub = {
-  name: 'dev-stub',
-  setup(builder) {
-    builder.onResolve({ filter: /^\./ }, (args) =>
-      DEV_MODULE.test(path.resolve(args.resolveDir, args.path))
-        ? { path: path.resolve('devStub.mjs') }
-        : undefined,
-    );
-  },
-};
+// The kit's plugin (@seasonal/kit/devtools): each dev module resolves to ./devStub.mjs.
+const devStub = devStubPlugin({ devModule: DEV_MODULE, stub: path.resolve('devStub.mjs') });
 
 rmSync(out, { recursive: true, force: true });
 await build({

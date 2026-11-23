@@ -19,7 +19,7 @@
         <span>Seasonal Bingo Royale<small>Seasonal Entertainment</small></span>
       </a>
       <button
-        class="theme-toggle"
+        class="sk-theme-toggle"
         type="button"
         data-testid="theme-toggle"
         aria-label="Light or dark"
@@ -171,7 +171,7 @@
     </main>
     <script>
       /* The bar's light/dark toggle, as in the game (data-theme on html). */
-      document.querySelector('.theme-toggle').onclick = () => {
+      document.querySelector('.sk-theme-toggle').onclick = () => {
         const root = document.documentElement;
         root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
       };

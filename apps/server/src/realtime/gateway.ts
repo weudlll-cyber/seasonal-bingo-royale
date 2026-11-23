@@ -7,7 +7,7 @@
  *                 handshake checks Origin (audit-3 S4); the namespace needs a live cookie session
  *                 (06 §2), also on recovery, and admits the socket within the caps per client
  *                 address and per session (./socketLimits). Sockets
- *                 join `session:<id>` and close when it ends (../auth/sessionEnds). Committed
+ *                 join `session:<id>` and close when it ends (@seasonal/kit/server (SessionEnds)). Committed
  *                 events go out per step (./liveSteps): one room frame to `match:<id>` as `events`
  *                 (public: no seed, round starts without cards or draw order) and one `own`
  *                 frame per socket; record changes as `match`.
@@ -15,7 +15,7 @@
  *                 closed. Payloads max 16 KiB; frames recover for 2 min, then HTTP resync.
  * Depends on:     socket.io, ../auth/sessions, ../match/eventBus (types), ../view/liveViews
  *                 (types), ./intents, ./inOrder, ./liveSteps, ./seenLive (types), @sbr/application,
- *                 ../auth/sessionEnds, ../db/pool, ../http/routes/matchViews,
+ *                 @seasonal/kit/server (SessionEnds), ../db/pool, ../http/routes/matchViews,
  *                 ../http/routes/metrics (types), ./matchCodes
  * Used by:        ../http/app, ./intents
  * Spec:           docs/spec/06-realtime-architecture.md §1–§5, §8
@@ -33,7 +33,7 @@ import type { LocalEventBus } from '../match/eventBus.js';
 import { matchSummary } from '../http/routes/matchViews.js';
 import type { LiveMetrics, TapMetrics } from '../http/routes/metrics.js';
 import type { LiveViews } from '../view/liveViews.js';
-import type { SessionEnds } from '../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import { inOrder } from './inOrder.js';
 import { LiveSteps, type SocketLive } from './liveSteps.js';
 import type { SeenLive } from './seenLive.js';

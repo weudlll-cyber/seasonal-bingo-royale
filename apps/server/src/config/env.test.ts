@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { loadEnv } from './env.js';
-import { seedKeyFrom } from './seedKey.js';
+import { recoveryKeyFrom, seedKeyFrom } from './seedKey.js';
 
 const DB = { DATABASE_URL: 'postgres://u:p@localhost:5432/db' };
 
@@ -23,6 +23,16 @@ describe('the settings (audit S1)', () => {
     const env = loadEnv(DB);
     expect([env.NODE_ENV, env.SBR_DEV]).toEqual(['production', false]);
     expect(() => seedKeyFrom(env)).toThrow(/SBR_SEED_KEY is required/);
+    expect(() => recoveryKeyFrom(env)).toThrow(/SBR_RECOVERY_KEY is required/);
+  });
+
+  it('read the recovery key from the env file, apart from the seed key (K20)', () => {
+    const key = '0123456789abcdef'.repeat(4);
+    const env = loadEnv({ ...DB, SBR_RECOVERY_KEY: key, SBR_SEED_KEY: 'cd'.repeat(32) });
+    expect(recoveryKeyFrom(env).toString('hex')).toBe(key);
+    expect(() => loadEnv({ ...DB, SBR_RECOVERY_KEY: 'short' })).toThrow();
+    const repeated = loadEnv({ ...DB, SBR_RECOVERY_KEY: 'cd'.repeat(32) });
+    expect(() => recoveryKeyFrom(repeated)).toThrow(/one byte repeated/);
   });
 
   it('refuse SBR_DEV=1 for a public address and accept it on localhost', () => {
@@ -32,6 +42,8 @@ describe('the settings (audit S1)', () => {
     const local = loadEnv({ ...DB, SBR_DEV: '1', SBR_PUBLIC_URL: 'http://localhost:5390/' });
     expect(local.SBR_DEV).toBe(true);
     expect(seedKeyFrom(local)).toHaveLength(32);
+    expect(recoveryKeyFrom(local)).toHaveLength(32);
+    expect(recoveryKeyFrom(local).equals(seedKeyFrom(local))).toBe(false);
   });
 });
 

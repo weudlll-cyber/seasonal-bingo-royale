@@ -7,27 +7,38 @@
  *                 with the install's secret key bound to the account (../match/codec
  *                 encryptSeed), and the link and QR code for the authenticator. `confirm`: the
  *                 first code makes the factor live and returns ten single-use recovery codes
- *                 (only their SHA-256 stored). `verify`: a code (never one at or before the last
- *                 step used) or an unused recovery code. Each success marks the session's second
+ *                 (the kit's 'hex' codes; only their HMAC under the install's recovery key is
+ *                 stored, K20). `verify`: a code (never one at or before the last step used) or
+ *                 an unused recovery code, stored keyed or as the plain SHA-256 of before (K27:
+ *                 those keep working until used). Each success marks the session's second
  *                 step done (sessions.last_2fa_at). `resetTwoFactor`: removes factor and codes
  *                 of an account by display name and ends its sessions (sbr admin reset-2fa).
- * Depends on:     node:crypto, qrcode, ../db/pool, ../match/codec, ./sessions, ./totp
+ * Depends on:     qrcode, @seasonal/kit/server (TOTP, recovery codes), ../db/pool, ../match/codec,
+ *                 ./sessions
  * Used by:        ../http/routes/twoFactor, ../http/routes/auth (status), ../cli
  * Spec:           docs/spec/03-security-architecture.md §1; docs/spec/04-database-design.md §3.1
  */
-import { createHash, randomBytes } from 'node:crypto';
-
+import {
+  matchingStep,
+  newRecoveryCodes,
+  newSecret,
+  otpauthUri,
+  recoveryHash,
+  recoveryLookups,
+} from '@seasonal/kit/server';
 import QRCode from 'qrcode';
 
 import type { DbPool } from '../db/pool.js';
 import { decryptSeed, encryptSeed } from '../match/codec.js';
 import { accountSessionIds, revokeSession } from './sessions.js';
-import { matchingStep, newSecret, otpauthUri } from './totp.js';
 
 const ISSUER = 'Seasonal Bingo Royale';
 
-const hashOf = (code: string): Buffer =>
-  createHash('sha256').update(code.replace(/[\s-]/g, '').toLowerCase()).digest();
+// The install's two keys: the seed key seals the TOTP secret, the recovery key keys the codes.
+export interface TwoFactorKeys {
+  readonly seal: Buffer;
+  readonly recovery: Buffer;
+}
 
 interface Factor {
   readonly secret: Uint8Array;
@@ -81,15 +92,15 @@ const markSession = (pool: DbPool, sessionId: string) =>
 // The first code of an unconfirmed factor: live, ten recovery codes (shown once), or null.
 export async function confirm(
   pool: DbPool,
-  key: Buffer,
+  keys: TwoFactorKeys,
   who: { readonly accountId: string; readonly sessionId: string },
   code: string,
 ): Promise<readonly string[] | null> {
-  const factor = await factorOf(pool, key, who.accountId);
+  const factor = await factorOf(pool, keys.seal, who.accountId);
   if (factor === null || factor.confirmed) return null;
   const step = matchingStep(factor.secret, code, Date.now(), factor.lastStep);
   if (step === null) return null;
-  const codes = Array.from({ length: 10 }, () => randomBytes(5).toString('hex'));
+  const codes = newRecoveryCodes('hex');
   await pool.query(
     'UPDATE sbr.totp_factors SET confirmed_at = now(), last_used_step = $2 WHERE account_id = $1',
     [who.accountId, step],
@@ -97,7 +108,7 @@ export async function confirm(
   await pool.query('DELETE FROM sbr.recovery_codes WHERE account_id = $1', [who.accountId]);
   await pool.query(
     'INSERT INTO sbr.recovery_codes (account_id, code_hash) SELECT $1, unnest($2::bytea[])',
-    [who.accountId, codes.map(hashOf)],
+    [who.accountId, codes.map((c) => recoveryHash(c, 'hex', keys.recovery))],
   );
   await markSession(pool, who.sessionId);
   return codes;
@@ -106,11 +117,11 @@ export async function confirm(
 // A code or an unused recovery code; true marks the session's second step done.
 export async function verify(
   pool: DbPool,
-  key: Buffer,
+  keys: TwoFactorKeys,
   who: { readonly accountId: string; readonly sessionId: string },
   answer: { readonly code?: string | undefined; readonly recoveryCode?: string | undefined },
 ): Promise<boolean> {
-  const factor = await factorOf(pool, key, who.accountId);
+  const factor = await factorOf(pool, keys.seal, who.accountId);
   if (factor === null || !factor.confirmed) return false;
   let ok = false;
   if (answer.code !== undefined) {
@@ -124,10 +135,11 @@ export async function verify(
       ok = (r.rowCount ?? 0) > 0;
     }
   } else if (answer.recoveryCode !== undefined) {
+    // The keyed hash or the plain one of before: one statement, so either is used up once.
     const r = await pool.query(
       `UPDATE sbr.recovery_codes SET used_at = now()
-        WHERE account_id = $1 AND code_hash = $2 AND used_at IS NULL`,
-      [who.accountId, hashOf(answer.recoveryCode)],
+        WHERE account_id = $1 AND code_hash = ANY($2::bytea[]) AND used_at IS NULL`,
+      [who.accountId, recoveryLookups(answer.recoveryCode, 'hex', keys.recovery)],
     );
     ok = (r.rowCount ?? 0) > 0;
   }

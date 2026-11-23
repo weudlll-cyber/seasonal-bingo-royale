@@ -60,7 +60,7 @@ async function signedIn(v: Visitor) {
 
 describe('signing in again through the website (03 §3)', () => {
   it('ends the session the browser had before (audit-3 S2)', async () => {
-    const visitor = { id: 'r-9', name: 'Rita' };
+    const visitor = { id: '1209', name: 'Rita' };
     const first = cookieOf(await signInAs(website(), visitor));
     expect((await sessionOf(website(), first)).signedIn).toBe(true);
     const again = await website().fastify.inject({
@@ -86,41 +86,49 @@ describe('signing in again through the website (03 §3)', () => {
       );
       return r.rows[0];
     };
-    const player = await lifetime(cookieOf(await signInAs(website(), { id: 'l-1', name: 'Lena' })));
+    const player = await lifetime(
+      cookieOf(await signInAs(website(), { id: '1601', name: 'Lena' })),
+    );
     expect(Math.round(player?.days ?? 0)).toBe(7);
     expect(Math.round(player?.idle ?? 0)).toBe(7);
-    const admin = await signInAs(website(), { id: 'l-2', name: 'Leon', roles: 'admin' });
+    const admin = await signInAs(website(), { id: '1602', name: 'Leon', roles: 'admin' });
     expect(((await lifetime(cookieOf(admin)))?.days ?? 0) * 24).toBeCloseTo(8, 1);
   });
 });
 
 describe('who hosts in website mode (2026-11-04, replaces D40; D41)', () => {
   it('lets a member the website allows to start games host, and an admin; nobody else', async () => {
-    const host = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'true' });
-    const admin = await signedIn({ id: 'r-2', name: 'Adam', roles: 'admin' });
-    const member = await signedIn({ id: 'r-3', name: 'Mona', roles: 'member' });
-    const organiser = await signedIn({ id: 'r-6', name: 'Oris', roles: 'member,organiser' });
+    const host = await signedIn({ id: '1201', name: 'Olga', roles: 'member', canHost: 'true' });
+    const admin = await signedIn({ id: '1202', name: 'Adam', roles: 'admin' });
+    const member = await signedIn({ id: '1203', name: 'Mona', roles: 'member' });
+    const organiser = await signedIn({ id: '1206', name: 'Oris', roles: 'organiser' });
     expect(host.session.permissions).toContain('match.create');
     expect(admin.session.permissions).toContain('match.create');
     expect(member.session.permissions).not.toContain('match.create');
     expect(organiser.session.permissions).not.toContain('match.create');
     // Recomputed at every sign-in: the website takes the permission back.
-    const taken = await signedIn({ id: 'r-1', name: 'Olga', roles: 'member', canHost: 'false' });
+    const taken = await signedIn({ id: '1201', name: 'Olga', roles: 'member', canHost: 'false' });
     expect(taken.session.permissions).not.toContain('match.create');
   });
 
   it('makes a website admin a game admin until the website drops the role', async () => {
-    const admin = await signedIn({ id: 'r-4', name: 'Ada', roles: 'member,admin' });
+    const admin = await signedIn({ id: '1204', name: 'Ada', roles: 'admin' });
     expect(admin.roles).toEqual(['game_admin', 'player']);
     expect(admin.session.permissions).toContain('match.abort');
-    const dropped = await signedIn({ id: 'r-4', name: 'Ada', roles: 'member' });
+    const dropped = await signedIn({ id: '1204', name: 'Ada', roles: 'member' });
     expect(dropped.roles).toEqual(['player']);
     expect(dropped.session.permissions).not.toContain('match.abort');
   });
 
   it('never maps any website role to super_admin or security_admin', async () => {
+    // One role per member (the contract, the kit's check): a list or an unknown role is no
+    // identity at all, so nobody signs in and the visitor goes on to the website's login.
     const all = 'super_admin,superadmin,security_admin,game_admin,owner,admin,organiser,organizer';
-    const greedy = await signedIn({ id: 'r-5', name: 'Greedy', roles: all, canHost: 'true' });
+    for (const roles of [all, 'super_admin']) {
+      const r = await signInAs(website(), { id: '1205', name: 'Greedy', roles, canHost: 'true' });
+      expect(String(r.headers.location)).toContain('auth/website/login');
+    }
+    const greedy = await signedIn({ id: '1205', name: 'Greedy', roles: 'admin', canHost: 'true' });
     expect(greedy.roles).toEqual(['game_admin', 'organizer', 'player']);
   });
 });
@@ -135,7 +143,7 @@ describe('deleting the own account (D42)', () => {
     });
 
   it('deletes a website account once its display name is typed, without a password', async () => {
-    const { cookie, session } = await signedIn({ id: 'd-1', name: 'Dora' });
+    const { cookie, session } = await signedIn({ id: '1901', name: 'Dora' });
     const wrong = await remove(website(), cookie, session.csrfToken, { displayName: 'dora' });
     const password = await remove(website(), cookie, session.csrfToken, { password: 'x' });
     expect([wrong.body, password.body]).toEqual([
@@ -185,7 +193,7 @@ describe('the page wanted before the website login (D43)', () => {
   });
 
   it('sends a visitor the website answers as a guest to its login, keeping any game session', async () => {
-    const { cookie } = await signedIn({ id: 'g-1', name: 'Gina' });
+    const { cookie } = await signedIn({ id: '1801', name: 'Gina' });
     const next = `${BASE}#/match/ABC123`;
     const asGuest = (extra: Record<string, string>) =>
       website().fastify.inject({
@@ -215,14 +223,14 @@ describe('the page wanted before the website login (D43)', () => {
     `${BASE}#/x y`,
   ])('turns the return path %s into the lobby', async (next) => {
     expect((await loginHop(next)).headers.location).toBe(loginFor(BASE));
-    const back = await signInAs(website(), { id: 'n-1', name: 'Nina' }, { next });
+    const back = await signInAs(website(), { id: '1501', name: 'Nina' }, { next });
     expect(back.headers.location).toBe(BASE);
   });
 });
 
 describe('the proxy secret', () => {
   it('signs nobody in without it or with a wrong one, even from the trusted address', async () => {
-    const who = { id: 's-1', name: 'Sam', roles: 'admin' };
+    const who = { id: '1301', name: 'Sam', roles: 'admin' };
     const none = await signInAs(website(), who, { secret: null });
     const wrong = await signInAs(website(), who, { secret: 'f'.repeat(64) });
     expect([none.statusCode, wrong.statusCode]).toEqual([403, 403]);
@@ -233,7 +241,7 @@ describe('the proxy secret', () => {
 
 describe('guests in website mode (2026-11-04)', () => {
   it('may watch, but neither join nor host, with or without a guest session', async () => {
-    const host = await signedIn({ id: 'gh-1', name: 'Hosta', canHost: 'true' });
+    const host = await signedIn({ id: '1701', name: 'Hosta', canHost: 'true' });
     const csrf = (await sessionOf(website(), host.cookie)).csrfToken ?? '';
     const created = await website().fastify.inject({
       method: 'POST',

@@ -24,6 +24,8 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   window.location.hash = '';
+  window.localStorage.removeItem('se.theme');
+  document.documentElement.removeAttribute('data-theme');
 });
 
 // `mode`: the server's sign-in mode (the chat dock test's switch); none says nothing about it.
@@ -126,6 +128,18 @@ describe('app shell', () => {
     await renderShell(false);
     expect(screen.queryByText('Host a match')).toBeNull();
     expect(screen.getByTestId('signed-in-as').textContent).toBe('Signed in as dev-host (player)');
+  });
+});
+
+describe("the bar's theme toggle (the kit's ThemeToggle)", () => {
+  it("names the shown theme in the kit's data-sk- attribute (v0.10.1 renames)", async () => {
+    serve([]);
+    document.documentElement.setAttribute('data-theme', 'dark');
+    window.localStorage.setItem('se.theme', 'dark');
+    await renderShell(false);
+    const toggle = await screen.findByTestId('theme-toggle');
+    expect(toggle.getAttribute('data-sk-theme-now')).toBe('dark');
+    expect(toggle.hasAttribute('data-theme-now')).toBe(false);
   });
 });
 

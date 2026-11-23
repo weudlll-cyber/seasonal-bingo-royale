@@ -18,11 +18,11 @@ import type { ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import { mailerFrom, type Mailer } from '../auth/mailer.js';
-import type { SessionEnds } from '../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import type { CookieConfig } from '../auth/sessionPlugin.js';
 import type { Env } from '../config/env.js';
 import type { LiveTechnical } from '../config/technical.js';
-import { seedKeyFrom } from '../config/seedKey.js';
+import { recoveryKeyFrom, seedKeyFrom } from '../config/seedKey.js';
 import type { Switches } from '../config/features.js';
 import type { DbPool } from '../db/pool.js';
 import { AccountFeed } from '../website/accountFeed.js';
@@ -63,7 +63,10 @@ export function registerSignIn(
   });
   // Local admins' second sign-in step (TOTP, D60); the website does its own.
   if (env.SBR_AUTH_MODE === 'local')
-    registerTwoFactor(fastify, { ...deps, seedKey: seedKeyFrom(env) });
+    registerTwoFactor(fastify, {
+      ...deps,
+      keys: { seal: seedKeyFrom(env), recovery: recoveryKeyFrom(env) },
+    });
   registerAuthRoutes(fastify, {
     ...deps,
     features: () => ({ ...deps.switches(), passwordReset: mailer !== null }),

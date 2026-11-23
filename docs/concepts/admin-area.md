@@ -72,16 +72,16 @@ Values the inventory marks **server only** (ports, database, secrets, domain, re
 
 ## 5. What stays on the server, and why
 
-| Stays on the server                                                                        | Why                                                                                                                                                            |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Install, update, confirm, rollback (`ops/install.sh`; `sbr update`, `confirm`, `rollback`) | They replace the running program; a page of that program cannot safely replace itself, and a failed update must be recoverable without it.                     |
-| Backup and restore (`sbr backup`, `sbr restore`)                                           | The backup's key (age) must never be on the server; a restore replaces the database the admin area runs on. A page may show the last backup's age (read only). |
-| Secrets (`SBR_SEED_KEY`, proxy secret, database passwords, SMTP password)                  | A secret shown or typed in a browser can leak through the browser, screenshots or a stolen session; they stay in `/etc/sbr/prod.env` (root only).              |
-| Ports, domain, TLS, the website's route file, trusted proxies                              | Changing them changes how the server is reached; a wrong value locks the admin out of the page that would undo it.                                             |
-| Resource limits (`SBR_APP_CPUS`, memory)                                                   | They need a container restart.                                                                                                                                 |
-| The load check (`sbr loadcheck`)                                                           | It creates 250 temporary accounts and needs maintenance mode; it stays a deliberate server command.                                                            |
-| The first super admin (`sbr admin create-super`)                                           | Someone must exist before anyone can sign in to the admin area.                                                                                                |
-| `sbr logs`, `sbr status`                                                                   | Reading the server's logs needs the server; the Overview shows a short health line only.                                                                       |
+| Stays on the server                                                                           | Why                                                                                                                                                            |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Install, update, confirm, rollback (`ops/install.sh`; `sbr update`, `confirm`, `rollback`)    | They replace the running program; a page of that program cannot safely replace itself, and a failed update must be recoverable without it.                     |
+| Backup and restore (`sbr backup`, `sbr restore`)                                              | The backup's key (age) must never be on the server; a restore replaces the database the admin area runs on. A page may show the last backup's age (read only). |
+| Secrets (`SBR_SEED_KEY`, `SBR_RECOVERY_KEY`, proxy secret, database passwords, SMTP password) | A secret shown or typed in a browser can leak through the browser, screenshots or a stolen session; they stay in `/etc/sbr/prod.env` (root only).              |
+| Ports, domain, TLS, the website's route file, trusted proxies                                 | Changing them changes how the server is reached; a wrong value locks the admin out of the page that would undo it.                                             |
+| Resource limits (`SBR_APP_CPUS`, memory)                                                      | They need a container restart.                                                                                                                                 |
+| The load check (`sbr loadcheck`)                                                              | It creates 250 temporary accounts and needs maintenance mode; it stays a deliberate server command.                                                            |
+| The first super admin (`sbr admin create-super`)                                              | Someone must exist before anyone can sign in to the admin area.                                                                                                |
+| `sbr logs`, `sbr status`                                                                      | Reading the server's logs needs the server; the Overview shows a short health line only.                                                                       |
 
 ## 6. Versions and undo
 

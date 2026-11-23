@@ -27,7 +27,7 @@ import { z } from 'zod';
 
 import type { SettingsStore } from '../../admin/settings.js';
 import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
-import { verify } from '../../auth/twoFactor.js';
+import { verify, type TwoFactorKeys } from '../../auth/twoFactor.js';
 import { liveLimits, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
 import { registerFlatSettings } from './adminFlatSettings.js';
@@ -39,7 +39,8 @@ export interface AdminTechnicalDeps {
   readonly defaults: ReturnType<LiveTechnical>;
   readonly technical: LiveTechnical;
   // The install's secret key: the TOTP secret is sealed with it (standalone).
-  readonly seedKey: Buffer;
+  // The install's keys for the step-up's code (../../auth/twoFactor).
+  readonly keys: TwoFactorKeys;
 }
 
 // How long a passed second step counts for a change (admin-area §7 row 10).
@@ -80,7 +81,7 @@ export function registerAdminTechnical(app: FastifyInstance, deps: AdminTechnica
     if (!tries.take(s.id).allowed) return reply.status(429).send({ code: 'RATE_LIMITED' });
     const parsed = stepUpBody.safeParse(request.body);
     const who = { accountId: s.accountId, sessionId: s.id };
-    const ok = parsed.success && (await verify(deps.pool, deps.seedKey, who, parsed.data));
+    const ok = parsed.success && (await verify(deps.pool, deps.keys, who, parsed.data));
     if (!ok) return reply.status(400).send({ code: 'TWO_FACTOR_FAILED' });
     return reply.status(204).send();
   });

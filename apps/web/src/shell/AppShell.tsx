@@ -17,7 +17,8 @@
  *                 (09 §4); "Verify this match" after a match (../game/VerifyMatch); in website
  *                 mode the website's chat beside the lobby, match and console (./ChatDock). Dev-only Quick
  *                 Test and "Dev sign-in" (./DevTools) load on demand, out of production builds.
- * Depends on:     react, ./router, ./session, ./ThemeToggle, ./MenuFold, ./Maintenance,
+ * Depends on:     react, @seasonal/kit/react (ThemeToggle), ./router, ./session,
+ *                 ./MenuFold, ./Maintenance,
  *                 ./useMaintenance, ./ChatDock,
  *                 ./DevTools and ../App (lazy,
  *                 development only), ../admin/AdminArea, ../game/*, ../host/*, ../account/*,
@@ -26,6 +27,7 @@
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
  */
+import { ThemeToggle } from '@seasonal/kit/react';
 import { lazy, Suspense, type ReactElement } from 'react';
 
 import { AdminArea } from '../admin/AdminArea.js';
@@ -46,7 +48,6 @@ import { hrefOf, useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
 import { MenuFold } from './MenuFold.js';
 import { highestRole, useSession } from './session.js';
-import { ThemeToggle } from './ThemeToggle.js';
 import { MaintenanceContext, useMaintenance, type MaintenanceState } from './useMaintenance.js';
 import './shell.css';
 
@@ -76,6 +77,8 @@ export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
       <header className="shell-bar">
         {/* Website mode: the way back to the website's games page, an ordinary link in this
             tab (the website's GAME-INTEGRATION.md section 8); not in a standalone install. */}
+        {/* Bingo's own link, not the kit's BackLink: the kit's drops the space after the arrow
+            (docs/concepts/kit-adoption.md §4 R2). */}
         {website ? (
           <a className="shell-back" href="/games">
             ← Seasonal Entertainment

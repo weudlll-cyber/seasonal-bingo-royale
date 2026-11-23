@@ -14,12 +14,12 @@
  *                 histories under a "deleted player" name, it leaves the leaderboard; the event
  *                 log is never rewritten) and keeps the website id in sbr.website_deleted, so a
  *                 later sign-in with it is refused.
- * Depends on:     ../auth/accounts, ../auth/sessions, ../auth/sessionEnds (types), ../db/pool
+ * Depends on:     ../auth/accounts, ../auth/sessions, @seasonal/kit/server (SessionEnds, types), ../db/pool
  * Used by:        ./accountFeed
  * Spec:           docs/spec/07-integration-architecture.md §2.4; docs/spec/03-security-architecture.md §19
  */
 import { deleteAccount } from '../auth/accounts.js';
-import type { SessionEnds } from '../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import { accountSessionIds, revokeSession } from '../auth/sessions.js';
 import type { DbPool } from '../db/pool.js';
 
@@ -61,5 +61,5 @@ export async function applyChange(
     await deleteAccount(deps.pool, accountId);
     deps.accountDeleted(accountId);
   }
-  deps.sessionEnds.end(sessions);
+  await deps.sessionEnds.end(sessions);
 }

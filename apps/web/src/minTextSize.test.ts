@@ -3,7 +3,8 @@
  * @module web
  * @brief  No text below 14 px at the browser's default font, no card number below 16 px, no cut name.
  *
- * Responsibility: scan every stylesheet and component of the client and of @sbr/ui for font
+ * Responsibility: scan every stylesheet and component of the client and of @sbr/ui, and the
+ *                 @seasonal/kit style files the client loads (KIT_CSS), for font
  *                 sizes written as a fixed length and check their floor: the value itself, or
  *                 the first argument of max() and clamp(), or a var()'s fallback. Text keeps
  *                 0.875rem (14 px), card numbers (--cell-font) 1rem (16 px); sizes computed
@@ -25,6 +26,8 @@ const here = (rel: string) =>
     rel,
   );
 const ROOTS = [here('.'), here('../../../packages/ui/src')];
+// The kit's style files the client loads (its type sizes are in its tokens.css since B1).
+const KIT_CSS = ['tokens.css'].map((name) => here(`../node_modules/@seasonal/kit/css/${name}`));
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -33,6 +36,8 @@ function sources(dir: string): string[] {
     return /\.(css|tsx)$/.test(entry.name) && !entry.name.includes('.test.') ? [full] : [];
   });
 }
+
+const allSources = (): string[] => [...ROOTS.flatMap(sources), ...KIT_CSS];
 
 const stripComments = (text: string): string => text.replace(/\/\*[\s\S]*?\*\//g, '');
 
@@ -68,7 +73,7 @@ function floorPx(value: string): number | null {
 
 // Every `font-size:` / `fontSize:` value of the client, with its file and the name it sets.
 function fontSizes(names: RegExp): { where: string; value: string }[] {
-  return ROOTS.flatMap(sources).flatMap((file) =>
+  return allSources().flatMap((file) =>
     [...stripComments(readFileSync(file, 'utf8')).matchAll(names)].map((m) => ({
       where: `${path.basename(file)}: ${m[1] ?? ''}`,
       value: (m[2] ?? '').replace(/^'|'$/g, ''),
@@ -93,7 +98,7 @@ describe('minimum text size', () => {
   });
 
   it('never cuts a name with an ellipsis: rows wrap their figures instead (fit F7)', () => {
-    const cut = ROOTS.flatMap(sources)
+    const cut = allSources()
       .filter((file) =>
         stripComments(readFileSync(file, 'utf8')).includes('text-overflow: ellipsis'),
       )

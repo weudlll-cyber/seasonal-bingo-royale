@@ -96,7 +96,7 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files and the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files, the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened) and its recovery key (`SBR_RECOVERY_KEY`, which the admins' recovery codes are stored under), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
 
 1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
@@ -117,7 +117,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
    It restores into a throw-away database, says how many accounts, matches and events came back, and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
-5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
+5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The backup's recovery key always becomes the server's, so the restored recovery codes keep working. The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
 
 ## 6. Updating and rolling back
 
@@ -134,7 +134,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr rollback
    ```
-   It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is.
+   It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is. After a rollback from a version with the recovery key (`SBR_RECOVERY_KEY`, since November 2026) to one without it, admins' recovery codes created in between do not work; they work again after the next update (sign-in codes from the authenticator app keep working all along).
 4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end; matches set to start at a time or when full wait in their lobby and start once you turn maintenance off. Afterwards `sudo sbr maintenance off`.
 5. Everyday checks: `sudo sbr status` (what runs, health, last backup, the database roles) and `sudo sbr logs app`.
 6. Database roles (since 4 November 2026): the game uses two database roles.

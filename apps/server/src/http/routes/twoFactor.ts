@@ -18,14 +18,14 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
-import { confirm, enrol, twoFactorStep, verify } from '../../auth/twoFactor.js';
+import { confirm, enrol, twoFactorStep, verify, type TwoFactorKeys } from '../../auth/twoFactor.js';
 import type { DbPool } from '../../db/pool.js';
 import { liveLimits, type LiveTechnical } from '../../config/technical.js';
 
 interface TwoFactorDeps {
   readonly pool: DbPool;
-  // The install's secret key (seed key): the TOTP secret is sealed with it.
-  readonly seedKey: Buffer;
+  // The install's keys: the seed key seals the TOTP secret, the recovery key keys the codes.
+  readonly keys: TwoFactorKeys;
   // The Technical section's limit of codes per session, read on every try.
   readonly technical?: LiveTechnical;
 }
@@ -56,7 +56,7 @@ export function registerTwoFactor(app: FastifyInstance, deps: TwoFactorDeps): vo
     if ((await twoFactorStep(deps.pool, who.accountId)) !== 'enrol') {
       return reply.status(409).send({ code: 'NO_TWO_FACTOR_STEP' });
     }
-    return enrol(deps.pool, deps.seedKey, who.accountId, who.name);
+    return enrol(deps.pool, deps.keys.seal, who.accountId, who.name);
   });
   app.post('/api/v1/auth/2fa/confirm', async (request, reply) => {
     const who = pending(request, reply);
@@ -64,7 +64,7 @@ export function registerTwoFactor(app: FastifyInstance, deps: TwoFactorDeps): vo
     if (limited(who.sessionId)) return reply.status(429).send({ code: 'RATE_LIMITED' });
     const parsed = codeBody.safeParse(request.body);
     const codes = parsed.success
-      ? await confirm(deps.pool, deps.seedKey, who, parsed.data.code)
+      ? await confirm(deps.pool, deps.keys, who, parsed.data.code)
       : null;
     if (codes === null) return reply.status(400).send({ code: 'TWO_FACTOR_FAILED' });
     return { recoveryCodes: codes };
@@ -74,7 +74,7 @@ export function registerTwoFactor(app: FastifyInstance, deps: TwoFactorDeps): vo
     if (who === null) return reply;
     if (limited(who.sessionId)) return reply.status(429).send({ code: 'RATE_LIMITED' });
     const parsed = verifyBody.safeParse(request.body);
-    const ok = parsed.success && (await verify(deps.pool, deps.seedKey, who, parsed.data));
+    const ok = parsed.success && (await verify(deps.pool, deps.keys, who, parsed.data));
     if (!ok) return reply.status(400).send({ code: 'TWO_FACTOR_FAILED' });
     return reply.status(204).send();
   });

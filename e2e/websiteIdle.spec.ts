@@ -25,8 +25,8 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('w-41', {
-    id: 'w-41',
+  stack.users.set('9041', {
+    id: '9041',
     name: 'Idle Admin',
     roles: 'admin',
     verified: true,
@@ -49,7 +49,7 @@ const sessionOf = async (page: Page) =>
 test('the next action after an idle game session re-signs through the website on the same page', async ({
   page,
 }) => {
-  await page.context().addCookies([{ name: 'stub_user', value: 'w-41', url: stack.origin }]);
+  await page.context().addCookies([{ name: 'stub_user', value: '9041', url: stack.origin }]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/host/new`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Idle_Admin');
   await expect(page.getByTestId('start-title')).toBeVisible();

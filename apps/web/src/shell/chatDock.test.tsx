@@ -5,8 +5,9 @@
  * @brief  The website's chat beside the game in website mode (07 §6).
  *
  * Responsibility: in website mode the lobby's top bar has "Chat"; the frame does not exist
- *                 before the first opening, then loads `<origin>/embed/chat?room=bingo&theme=light`,
- *                 follows a theme switch, stays while the panel is closed, and the open state
+ *                 before the first opening, then loads `/embed/chat?room=bingo&theme=light` on the
+ *                 site's origin, sandboxed (K17) with the strict-origin referrer (the kit's
+ *                 WebsiteChatFrame), follows a theme switch, stays while the panel is closed, and the open state
  *                 is remembered (and read back on the next visit). The sign-in page has no
  *                 chat. Standalone: no button, no frame, no request for the embed page.
  * Depends on:     @testing-library/react, ./AppShell, ./session
@@ -83,17 +84,25 @@ const frameSrc = (): string | null => screen.getByTestId('chat-frame').getAttrib
 describe("the website's chat in website mode (07 §6)", () => {
   it('opens the room in a frame made on first opening, following the theme', async () => {
     serve('website');
+    // As the early theme script does before the first paint.
+    document.documentElement.setAttribute('data-theme', 'light');
     await renderShell();
     const toggle = await screen.findByTestId('chat-toggle');
     expect(screen.queryByTestId('chat-frame')).toBeNull();
     fireEvent.click(toggle);
-    expect(frameSrc()).toBe(`${window.location.origin}/embed/chat?room=bingo&theme=light`);
+    // On the site's own origin; sandboxed (K17) and with the strict-origin referrer.
+    expect(frameSrc()).toBe('/embed/chat?room=bingo&theme=light');
+    const frame = screen.getByTestId('chat-frame');
+    expect(frame.getAttribute('sandbox')).toBe(
+      'allow-scripts allow-same-origin allow-forms allow-popups',
+    );
+    expect(frame.getAttribute('referrerpolicy')).toBe('strict-origin');
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     await act(async () => {
       document.documentElement.setAttribute('data-theme', 'dark');
       await Promise.resolve();
     });
-    expect(frameSrc()).toBe(`${window.location.origin}/embed/chat?room=bingo&theme=dark`);
+    expect(frameSrc()).toBe('/embed/chat?room=bingo&theme=dark');
     fireEvent.click(screen.getByTestId('chat-close'));
     expect(screen.getByTestId('chat-panel').hidden).toBe(true);
     expect(screen.getByTestId('chat-frame')).toBeTruthy();

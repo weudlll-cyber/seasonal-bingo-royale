@@ -6,7 +6,8 @@
  * Responsibility: behind the stand-in website (./websiteStack, which serves /embed/chat), a
  *                 member who may host sees "Chat" on the lobby, the host console and the match
  *                 screen; at 1440×900 the side panel opens with the frame of
- *                 /embed/chat?room=bingo&theme=<the game's theme>, follows a theme switch, and
+ *                 /embed/chat?room=bingo&theme=<the game's theme> on the site's origin (sandboxed,
+ *                 strict-origin referrer: the kit's WebsiteChatFrame), follows a theme switch, and
  *                 stays open after a reload (remembered); at 390×844 "Chat" is in the top bar's
  *                 menu (./menu), opens a drawer and closes the menu, and one tap on the dimmed
  *                 page closes the drawer, leaving the bar with its Menu button. Screenshots of the open
@@ -31,8 +32,8 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('w-31', {
-    id: 'w-31',
+  stack.users.set('9031', {
+    id: '9031',
     name: 'Chat Member',
     roles: 'member',
     verified: true,
@@ -48,7 +49,7 @@ test.afterAll(async ({ browserName }) => {
 
 // The member signs in through the website's proxy and lands on the lobby.
 async function signInMember(page: Page): Promise<void> {
-  await page.context().addCookies([{ name: 'stub_user', value: 'w-31', url: stack.origin }]);
+  await page.context().addCookies([{ name: 'stub_user', value: '9031', url: stack.origin }]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Chat_Member');
 }
@@ -68,9 +69,17 @@ async function post(page: Page, url: string, data: unknown) {
 
 const frame = (page: Page) => page.frameLocator('[data-testid="chat-frame"]');
 
+// The kit's frame (WebsiteChatFrame): the site's own embed page, sandboxed (K17), with the
+// strict-origin referrer.
 async function expectRoom(page: Page, theme: 'light' | 'dark'): Promise<void> {
-  const src = (await page.getByTestId('chat-frame').getAttribute('src')) ?? '';
-  expect(src).toBe(`${stack.origin}/embed/chat?room=bingo&theme=${theme}`);
+  const element = page.getByTestId('chat-frame');
+  expect(await element.getAttribute('src')).toBe(`/embed/chat?room=bingo&theme=${theme}`);
+  expect(await element.getAttribute('sandbox')).toBe(
+    'allow-scripts allow-same-origin allow-forms allow-popups',
+  );
+  expect(await element.getAttribute('referrerpolicy')).toBe('strict-origin');
+  const loaded = page.frames().map((f) => f.url());
+  expect(loaded).toContain(`${stack.origin}/embed/chat?room=bingo&theme=${theme}`);
   await expect(frame(page).getByTestId('embed-room')).toHaveText('Website chat · room bingo');
   await expect(frame(page).getByTestId('embed-theme')).toHaveText(theme);
 }

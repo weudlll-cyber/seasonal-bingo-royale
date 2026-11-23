@@ -19,24 +19,43 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 - Part B (branch `feat/kit-adoption`, PR #58, not merged; docs/concepts/kit-adoption.md):
   - B0 `8c42d31`: the plan re-checked against master `a1495bf`; the kit pinned at v0.10.0 (36a72cf; no install script, licence AGPL-3.0-or-later).
   - B1 `ec1a95a`: tokens, fonts, motion and the theme script and hook from the kit; Bingo keeps its arena tokens, `--gutter`, `--panel-padding`. 30 screens pixel for pixel the same. CI on it red in job `image` (run 45038443991): the server's git dependency needs `git` in the build image; fixed in `fd07a84` by taking the kit into the server only in B4.
-  - B2 `0bea630`: the kit's theme toggle and `shell.css`; the back link stays Bingo's (kit request R2: the kit's link drops the space after the arrow). 42 screens (standalone and website mode) the same.
+  - B2 `0bea630`: the kit's theme toggle and `shell.css`; the back link stays Bingo's (kit request R2: the kit's link drops the space after the arrow). 42 screens (standalone and website mode) the same. CI green after one allowed re-run of Firefox (its two admin specs hung on a flake fixed at its cause in PR #59).
+  - B3 `21f2161`: the chat frame is the kit's `WebsiteChatFrame`: sandboxed (K17), `strict-origin`. `chatDock.test` and `chatEmbed.spec` failed first. The real-site rehearsal on the kit branch (nginx, `3754710`, website `de057d8`): **63 PASS / 0 FAIL**, the chat in the sandboxed frame included (send, read, theme). CI and CodeQL green (run 45053727505). Master merged in (`3754710`, the rehearsal fixes of part A).
+  - B4 `8bee04d`, `4711b58`, `c6f282f`, `60ebca7`: the server checks from the kit: the website sign-in (`websiteSignInCheck`, `safeNext`, `websiteLoginLocation`; stricter: numeric ids, one role, the contract's steps), TOTP, recovery codes keyed under a new `SBR_RECOVERY_KEY` (K20; codes stored before keep working, K27; made by the install, once by `sbr update`, carried by backups), `SessionEnds`. The rate limiter stays Bingo's (kit request R3: a live rule). The server bundle compiles the kit in (no `git` in the image). Tests that failed first: the role-list test (old code accepted lists), "stores the recovery codes keyed".
+  - B5: not adopted (needs the owner's word below).
+  - B6 `6cc38c3`: the dev tools from the kit (`DevSignIn`, `devSignInAccount`, `devStubPlugin`, `devMarkersIn`); the header stays Bingo's (kit request R1: the kit's folds below a fixed 960 px).
+  - The look gate: 48 screens (sign-in, leaderboard, account, Admin Overview, final placement; website leaderboard, account, open chat; 1280×720, 959×700, 390×844; light and dark) pixel for pixel the same after every piece.
+- Master red after the merge of PR #57 (run 45041420629, webkit-mobile `playerFit`): fixed at its cause on `fix/playerfit-effects`, PR #59 (with a second flake found on PR #58: the admin settings pages remounted on StrictMode's late first answer, `useAdminLoad`). CI and CodeQL green; **not merged** (the night allows only part A's merge).
+
+- A5: PR #57 merged as **`f6c2e1d`** (CI 45040634570 and CodeQL green on its last commit `546d708`); only master and the part B branch on origin. Master CI on `f6c2e1d` red in webkit-mobile (flake, see PR #59), CodeQL green.
 
 ### Running
 
-- Part A: the PR's CI and CodeQL on the A4 commit, then the merge (A5).
-- Part B: verify and CI of B2.
+- Part B: CI and CodeQL of B4–B6. The real-site rehearsal on B4 (nginx, `60ebca7`, website `de057d8`): **63 PASS / 0 FAIL** (the install with the recovery key, `sbr update` with its backup, the real website sign-in through the kit).
 
 ### Open
 
-- Part B: B3–B6, B7 if B1–B6 are green.
+- Nothing of the night's list besides B7 (dropped).
 
 ### Reverted
 
 - Nothing.
 
-### Needs the owner's word
+### Review screenshots
 
-- Nothing yet.
+- `reports/screens/latest/kit-<piece>-<before|after>-<screen>-<size>-<light|dark>.jpg`, 96 pictures: b1 (final placement, Admin Overview, sign-in), b2 (website account, leaderboard), b3 (the open website chat), b4 (website account), b6 (leaderboard with "Dev sign-in"); at 1280×720, 959×700 and 390×844. "before" is the state before that piece's first screen change (standalone before B1, website account and leaderboard before B2, chat before B3); every pair is pixel for pixel the same.
+
+### Dropped
+
+- **B7, the docked layout (K18)**, under the rule to drop B7 first when time runs short: its first step needs a website-mode sweep of every match screen with axe at ten sizes, light and dark (a new extension of the fit audit and a new development dependency), and likely fit work where the chat strip narrows the board (1280×720, 1366×768); estimated 5–7 hours on this machine, too close to the end of the night with the final checks. What it needs: docs/concepts/kit-adoption.md §5 "B7".
+
+### Decided (owner decisions of 2026-11-22, after the night)
+
+- **PR #59 merged** as `c1bab70` (master's red `playerFit` and the admin pages' remount flake).
+- **B5 not adopted for now**: Bingo keeps its final placement; kit request R4 (a `ResultFrame` that sits as a panel inside a screen) in docs/concepts/kit-adoption.md §4.
+- **The website-mode top bar at 1280 px stays as it is for now** (covered by kit request R1).
+- **The kit's v0.10.1 before the merge** (`f7bd65b`): its renames (`data-sk-` attributes) needed no change in Bingo; a shell test pins the toggle's `data-sk-theme-now` (failed on v0.10.0). Then PR #58 merged when green.
+- The kit requests R1–R4: docs/concepts/kit-adoption.md §4. The operator guide notes the recovery codes after a rollback.
 
 ### Noticed, left alone
 
@@ -44,6 +63,8 @@ The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site
 
 - The first nginx run (fresh) stopped once on the website's own image build (`npm ci` exit 146 after 244 s): Docker downloads inside containers on this PC are slow (46–63 s for a registry fetch against 0.6 s on the host); the website repository is read-only. A second fresh run got past it.
 - `ops/lib/backup.sh` `drill_database` waits with the same socket `pg_isready` and then 2 s; it has worked so far and is left as it is.
+- The merge commit `3754710` has git's default message without the co-author line (amending it was not allowed).
+- After `sbr rollback` from a version with the recovery key, codes confirmed in between do not work with the old version until the next update (docs/concepts/kit-adoption.md §7).
 
 # The admin area's night (2026-11-21/22)
 

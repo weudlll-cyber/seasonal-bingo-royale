@@ -10,14 +10,14 @@
  *                 another account has it), the mapped roles recomputed (`idp_mapping`; game_admin
  *                 at most, never super_admin or security_admin), the e-mail verification mirrored for league points, the Discord
  *                 steps as last seen, the last sign-in. A suspended game account is refused. Never links by e-mail.
- * Depends on:     pg (types), ../db/pool, ./websiteIdentity
+ * Depends on:     pg (types), @seasonal/kit/server (mappedRoles, WebsiteIdentity), ../db/pool
  * Used by:        ../http/routes/websiteSignIn
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/04-database-design.md §3.1
  */
+import { mappedRoles, type WebsiteIdentity } from '@seasonal/kit/server';
 import type { PoolClient } from 'pg';
 
 import type { DbPool } from '../db/pool.js';
-import { mappedRoles, type WebsiteIdentity } from './websiteIdentity.js';
 
 interface Linked {
   readonly account_id: string;

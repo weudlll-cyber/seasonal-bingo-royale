@@ -13,7 +13,7 @@
  *                 need SBR_DEV=1, which is refused for a public (non-localhost) address.
  * Depends on:     zod
  * Used by:        ../main.ts, ../http/app.ts, ../cli, ./features, ./seedKey, ../index,
- *                 ../auth/websiteIdentity, ../http/routes/websiteSignIn
+ *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/08-devops-architecture.md §5, §1.1; docs/spec/07-integration-architecture.md §2.3
  */
 import { z } from 'zod';
@@ -63,6 +63,13 @@ const envSchema = z.object({
   // AES-256 key (64 hex characters) that seals match seeds at rest (04 §3.3 seed_enc);
   // required in production, a fixed development key otherwise (./seedKey).
   SBR_SEED_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/i)
+    .optional(),
+  // HMAC key (64 hex characters) that recovery codes are stored under (K20; never the seed
+  // key, which seals the TOTP secrets); required in production, a fixed development key
+  // otherwise (./seedKey recoveryKeyFrom).
+  SBR_RECOVERY_KEY: z
     .string()
     .regex(/^[0-9a-f]{64}$/i)
     .optional(),

@@ -1,3 +1,7 @@
 # The WebSocket key of RFC 6455's example ("the sample nonce" in base64), not a secret; it was in
 # apps/server/test/websiteRoute.integration.test.ts before the test made its key at random.
 93d9bd12e17c9d9231c27f9d9ccd7b5f1529628a:apps/server/test/websiteRoute.integration.test.ts:generic-api-key:159
+# Test keys of the recovery-code key (K20) in the unit test and the integration test harness:
+# fixed 32-byte test values ("0123456789abcdef" four times), not secrets of any install.
+60ebca7388eea39a6b50b13b824edbd181dff6e8:apps/server/src/config/env.test.ts:generic-api-key:30
+60ebca7388eea39a6b50b13b824edbd181dff6e8:apps/server/test/harness.ts:generic-api-key:30

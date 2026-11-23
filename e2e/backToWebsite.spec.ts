@@ -35,15 +35,15 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('w-51', {
-    id: 'w-51',
+  stack.users.set('9051', {
+    id: '9051',
     name: 'Back Host',
     roles: 'member',
     verified: true,
     canHost: true,
   });
-  stack.users.set('w-52', {
-    id: 'w-52',
+  stack.users.set('9052', {
+    id: '9052',
     name: 'Back Player',
     roles: 'member',
     verified: true,
@@ -134,9 +134,9 @@ test('a realtime royale played through, with the way back on the match screen al
   page,
 }) => {
   test.setTimeout((FULL ? 75 : 15) * 60_000);
-  const host = await apiOf('w-51');
+  const host = await apiOf('9051');
   const code = await newMatch(host, 'Royale', FULL ? {} : { testProfile: 'fast' });
-  await signIn(page, 'w-52', `#/match/${code}`);
+  await signIn(page, '9052', `#/match/${code}`);
   await page.goto(`${stack.origin}${BASE}/`);
   await page.getByTestId(`join-${code}`).click();
   await expect(page.getByTestId('waiting-room')).toBeVisible();
@@ -164,9 +164,9 @@ test('every main screen shows the way back at the top left (screenshots for the 
   browser,
 }) => {
   test.setTimeout(10 * 60_000);
-  const host = await apiOf('w-51');
+  const host = await apiOf('9051');
   const code = await newMatch(host, 'Screens', { testProfile: 'fast' });
-  await signIn(page, 'w-51', '#/');
+  await signIn(page, '9051', '#/');
   const shots: [string, string, string][] = [
     ['lobby', '#/', 'lobby-match-' + code],
     ['host-new', '#/host/new', 'start-title'],
@@ -184,7 +184,7 @@ test('every main screen shows the way back at the top left (screenshots for the 
     }
     // The match as its player, while it runs.
     const player = await (await browser.newContext()).newPage();
-    await signIn(player, 'w-52', '#/');
+    await signIn(player, '9052', '#/');
     await player.getByTestId(`join-${code}`).click();
     expect((await post(host, `/matches/${code}/bots`, { upTo: 8 })).ok()).toBe(true);
     expect((await post(host, `/matches/${code}/start`, {})).ok()).toBe(true);

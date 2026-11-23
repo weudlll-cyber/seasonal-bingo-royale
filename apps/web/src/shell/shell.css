@@ -4,7 +4,8 @@
  * @brief  Layout of the player client: top bar and main column.
  *
  * Responsibility: a top bar on the website's season gradient (emblem, wordmark,
- *                 navigation as pills with the current one solid, the round light/dark toggle,
+ *                 navigation as pills with the current one solid, the kit's round light/dark
+ *                 toggle (@seasonal/kit/shell.css; here its order), the website back link,
  *                 the account chip linking to the account page, and the dev sign-in menu)
  *                 over a centred main column, sticky from 640 px with focus kept below it;
  *                 the bar is always one row: when its items do not fit (always below 960 px)
@@ -120,23 +121,9 @@
   color: var(--color-on-solid);
 }
 
-/* The light/dark toggle: a round glass button with a hairline */
-.theme-toggle {
+/* The kit's light/dark toggle (a round glass button with a hairline): its place in the bar */
+.sk-theme-toggle {
   order: 3;
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  width: var(--hit-target);
-  height: var(--hit-target);
-  border: 1px solid var(--color-border);
-  border-radius: 50%;
-  background: var(--color-glass);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.theme-toggle:hover {
-  background: var(--color-active-bg);
 }
 
 .shell-account {
@@ -234,14 +221,17 @@
   }
 }
 
-/* Development: one compact sign-in menu instead of four buttons in the bar */
-.dev-menu {
+/* Development: one compact sign-in menu instead of four buttons in the bar (the kit's DevSignIn,
+   @seasonal/kit/react/dev; its classes styled here as Bingo's menu was, header.css is not loaded) */
+.sk-dev-menu {
   position: relative;
 }
 
-.dev-menu-panel {
+.sk-dev-menu-panel {
   /* A menu over the page stays opaque (the website's rule for covering surfaces) */
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
   position: absolute;
   right: 0;
   top: calc(100% + 0.4rem);
@@ -253,8 +243,9 @@
   box-shadow: var(--shadow-raised);
 }
 
-.dev-menu-hint {
+.sk-dev-menu-hint {
   margin: 0;
+  color: var(--color-text-muted);
   font-size: var(--font-size-small);
 }
 

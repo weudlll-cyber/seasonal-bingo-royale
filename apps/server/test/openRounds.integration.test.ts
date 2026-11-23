@@ -48,7 +48,7 @@ const website = () => harness.built;
 // A host the website lets start games, with the CSRF token for its writes.
 async function host() {
   const cookie = cookieOf(
-    await signInAs(website(), { id: 'or-1', name: 'Hosting', canHost: 'true' }),
+    await signInAs(website(), { id: '1401', name: 'Hosting', canHost: 'true' }),
   );
   const csrf = (await sessionOf(website(), cookie)).csrfToken ?? '';
   return { cookie: cookie ?? '', 'x-csrf-token': csrf };
@@ -138,7 +138,7 @@ describe('the open rounds as the host changes them, and elsewhere (D50)', () => 
     // Eight website members join (no bots: a match with bots is never listed anyway).
     for (let i = 1; i <= 8; i += 1) {
       const c = cookieOf(
-        await signInAs(website(), { id: `or-p${String(i)}`, name: `Player${String(i)}` }),
+        await signInAs(website(), { id: String(1410 + i), name: `Player${String(i)}` }),
       );
       const id = (await sessionOf(website(), c)).account?.id ?? '';
       await website().match.engine.join(m.id, id, true);

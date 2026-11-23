@@ -9,9 +9,10 @@
  *                 built for production; a stand-in proxy on an ephemeral port that plays the
  *                 website: GET /login is its login page (a known stub user goes on to `next`),
  *                 GET /embed/chat its chat embed page (naming the room and theme asked for);
- *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", as the
+ *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", a numeric
+ *                 id as the website's; as the
  *                 website's authorize endpoint would) and passes the four X-Acting-User* headers
- *                 (and Can-Host) with the proxy secret, or sends a visitor without one to the app's
+ *                 (Can-Host, and the steps "[]") with the proxy secret, or sends a visitor without one to the app's
  *                 /games/bingo/auth/website/login with the same query (D43); every request
  *                 (WebSocket upgrades too) reaches the app with client-sent X-Acting-User* and
  *                 X-Sbr-Proxy-Secret headers removed. The server (development features on, for
@@ -122,6 +123,8 @@ function identity(user: StubUser): Record<string, string> {
     'x-acting-user-roles': user.roles,
     'x-acting-user-email-verified': String(user.verified),
     'x-acting-user-can-host': String(user.canHost),
+    // The contract always sends the steps: "[]" (base64url) for none.
+    'x-acting-user-steps': Buffer.from('[]').toString('base64url'),
     'x-sbr-proxy-secret': SECRET,
   };
 }

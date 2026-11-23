@@ -7,7 +7,8 @@
 #                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
 #                 plain pre-update dump, installs the ref's stack files keeping the old ones,
 #                 converts an install made before the database roles once (env file kept for a
-#                 rollback), sets the roles up, restarts: the migrate service migrates as the owner,
+#                 rollback), sets the roles up, makes the recovery key once (K20) for an install
+#                 made before it, restarts: the migrate service migrates as the owner,
 #                 prunes unused images; a ref older than the roles is refused); confirm (drops the
 #                 rollback data); rollback (backup, then the pre-update dump if the schema migrated —
 #                 later data is lost — previous image, stack files, env file and ref); backup;
@@ -161,6 +162,12 @@ cmd_update() {
     info "Database roles: the app now connects as sbr_app, the migrations run as sbr_owner."
   fi
   apply_db_roles "$env"
+  # Once, for an install made before the recovery key (K20): recovery codes are stored under it
+  # from this version on; the codes stored before keep working (K27).
+  if [[ -z $(env_value "$file" SBR_RECOVERY_KEY) ]]; then
+    set_env_value "$file" SBR_RECOVERY_KEY "$(secret 32)"
+    info "Recovery key: made (SBR_RECOVERY_KEY in $file)."
+  fi
   # Website installs: the sync token, nginx's site port and the route file read again.
   refresh_website "$env"
   set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"

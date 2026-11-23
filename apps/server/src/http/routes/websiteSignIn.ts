@@ -5,34 +5,39 @@
  *
  * Responsibility: website mode only (local mode: the routes do not exist, 404). The website's
  *                 proxy protects exactly this path with auth_request / forward_auth and passes
- *                 the visitor as headers. Accepted only from a peer in SBR_TRUSTED_PROXIES that
- *                 sends the proxy secret (X-Sbr-Proxy-Secret, compared in constant time; else
- *                 403, nobody signed in); a guest answer (X-Acting-Guest: true) or no valid id
- *                 and name goes on to the login route below, the browser's game session
- *                 untouched; then the account by (site origin, user id) (../../auth/websiteAccounts; a
- *                 suspended one 403), a fresh game session of at most 7 days (./auth
- *                 openSession) and a redirect
- *                 to `next` when it is a path under the base path, else to the base path (D43).
- *                 Rate-limited per address. GET <base>auth/website/login: where the proxy
- *                 sends a visitor the website refused; a redirect to SBR_WEBSITE_LOGIN_PATH
- *                 with the sign-in route and `next` as return path (D43).
- * Depends on:     node:crypto, fastify, ../../auth/websiteIdentity, ../../auth/websiteAccounts, ./auth,
- *                 ../../auth/sessionPlugin (types), ../../auth/sessionEnds (types), ../../auth/sessions,
+ *                 the visitor as headers. The kit's check (@seasonal/kit/server
+ *                 websiteSignInCheck, with this install's header names and `steps: 'all'`): only
+ *                 from a peer in SBR_TRUSTED_PROXIES that sends the proxy secret
+ *                 (X-Sbr-Proxy-Secret, constant time; else 403, nobody signed in); a guest answer
+ *                 or no valid identity (the website's numeric id, a name, one role) goes on to the
+ *                 login route below, the browser's game session untouched; then the account by
+ *                 (site origin, user id) (../../auth/websiteAccounts; a suspended one 403), a
+ *                 fresh game session of at most 7 days (./auth openSession) and a redirect to
+ *                 `next` when it is a path under the base path, else to the base path (D43; the
+ *                 kit's safeNext). Rate-limited per address. GET <base>auth/website/login: where
+ *                 the proxy sends a visitor the website refused; a redirect to
+ *                 SBR_WEBSITE_LOGIN_PATH with the sign-in route and `next` as return path (D43;
+ *                 the kit's websiteLoginLocation).
+ * Depends on:     fastify, @seasonal/kit/server, ../../auth/websiteAccounts, ./auth,
+ *                 ../../auth/sessionPlugin (types), @seasonal/kit/server (SessionEnds, types), ../../auth/sessions,
  *                 ../../auth/rateLimit, ../../config/env (types), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2;
- *                 docs/spec/05-api-design.md §2.1
+ *                 docs/spec/05-api-design.md §2.1; docs/concepts/kit-adoption.md §2 (B4)
  */
-import { createHash, timingSafeEqual } from 'node:crypto';
-
+import {
+  safeNext,
+  websiteLoginLocation,
+  websiteSignInCheck,
+  type IdentityHeaders,
+} from '@seasonal/kit/server';
 import type { FastifyInstance } from 'fastify';
 
 import { openRouteLimit } from '../../auth/rateLimit.js';
 import type { CookieConfig } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '../../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import { findSession, WEBSITE_SESSION_DAYS } from '../../auth/sessions.js';
 import { websiteAccount } from '../../auth/websiteAccounts.js';
-import { identityFrom, trustedPeers } from '../../auth/websiteIdentity.js';
 import type { Env } from '../../config/env.js';
 import type { DbPool } from '../../db/pool.js';
 import { openSession } from './auth.js';
@@ -53,26 +58,28 @@ const lengthsOf = (deps: WebsiteSignInDeps) =>
     ? undefined
     : sessionLengthsOf(deps.technical(), WEBSITE_SESSION_DAYS);
 
-// Where to go after signing in: a path under the base path (the client's page, its hash
-// included, percent-encoded), never another site: printable ASCII only, no "//", no backslash.
-function safeNext(next: unknown, basePath: string): string {
-  if (typeof next !== 'string' || next.length > 512 || !next.startsWith(basePath)) return basePath;
-  return /^[\x21-\x7e]+$/.test(next) && !/\/\/|\\/.test(next) ? next : basePath;
-}
-
-const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
-
-// A test for the proxy secret header, in constant time (both sides hashed to one length).
-function proxySecret(expected: string): (sent: string | string[] | undefined) => boolean {
-  const want = digest(expected);
-  return (sent) => typeof sent === 'string' && timingSafeEqual(digest(sent), want);
-}
+// This install's names of the website's identity headers (../../config/env).
+const namesOf = (env: Env): IdentityHeaders => ({
+  id: env.SBR_WEBSITE_HEADER_ID,
+  name: env.SBR_WEBSITE_HEADER_NAME,
+  roles: env.SBR_WEBSITE_HEADER_ROLES,
+  emailVerified: env.SBR_WEBSITE_HEADER_EMAIL_VERIFIED,
+  canHost: env.SBR_WEBSITE_HEADER_CAN_HOST,
+  steps: env.SBR_WEBSITE_HEADER_STEPS,
+  guest: env.SBR_WEBSITE_HEADER_GUEST,
+});
 
 export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInDeps): void {
   if (deps.env.SBR_AUTH_MODE !== 'website') return;
-  const trusted = trustedPeers(deps.env.SBR_TRUSTED_PROXIES);
   // checkWebsiteMode (../../config/env) makes sure the public address and the secret are set.
-  const fromProxy = proxySecret(deps.env.SBR_WEBSITE_PROXY_SECRET ?? '');
+  // The whole steps list or none: an invalid list is logged once (below).
+  const check = websiteSignInCheck({
+    trustedProxies: deps.env.SBR_TRUSTED_PROXIES,
+    proxySecret: deps.env.SBR_WEBSITE_PROXY_SECRET ?? '',
+    secretHeader: 'x-sbr-proxy-secret',
+    steps: 'all',
+    names: namesOf(deps.env),
+  });
   const issuer = new URL(deps.env.SBR_PUBLIC_URL ?? '').origin;
   const base = deps.env.SBR_BASE_PATH;
   const config = { rateLimit: { max: 30, timeWindow: 60_000 } };
@@ -87,9 +94,9 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
     '/auth/website/login',
     { config: openRouteLimit() },
     (request, reply) => {
-      const back = `${base}auth/website?next=${encodeURIComponent(safeNext(request.query.next, base))}`;
       reply.header('cache-control', 'no-store');
-      return reply.redirect(`${deps.env.SBR_WEBSITE_LOGIN_PATH}${encodeURIComponent(back)}`, 302);
+      const login = websiteLoginLocation(deps.env.SBR_WEBSITE_LOGIN_PATH, base, request.query.next);
+      return reply.redirect(login, 302);
     },
   );
   app.get<{ Querystring: { next?: string } }>(
@@ -99,16 +106,12 @@ export function registerWebsiteSignIn(app: FastifyInstance, deps: WebsiteSignInD
       reply.header('cache-control', 'no-store');
       // The TCP peer, not X-Forwarded-For: only the website's proxy may name a visitor.
       // And the proxy secret: another process on a trusted address names nobody.
-      if (
-        !trusted(request.socket.remoteAddress) ||
-        !fromProxy(request.headers['x-sbr-proxy-secret'])
-      ) {
-        return reply.status(403).send({ code: 'UNTRUSTED_PROXY' });
-      }
+      const decision = check(request.socket.remoteAddress, request.headers);
+      if (decision.kind === 'untrusted') return reply.status(403).send({ code: 'UNTRUSTED_PROXY' });
       // The website answers a visitor it does not sign in with 204 + X-Acting-Guest (so the
       // proxy's error_page never fires): on to its login; the browser's game session stays.
-      const who = identityFrom(request.headers, deps.env);
-      if (who === null) return reply.redirect(loginHop(request.query.next), 302);
+      if (decision.kind !== 'member') return reply.redirect(loginHop(request.query.next), 302);
+      const who = decision.identity;
       if (who.badSteps && !warnedSteps) {
         warnedSteps = true;
         request.log.warn('the website sent a steps header that is no valid steps list; ignored');

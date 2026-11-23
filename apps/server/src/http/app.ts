@@ -15,7 +15,7 @@
  *                 not open the stored match secrets. The caller owns the lifecycle (listen,
  *                 scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
- *                 ../admin/presets, ../admin/settings, ../auth/sessionEnds, ../auth/sessionPlugin,
+ *                 ../admin/presets, ../admin/settings, @seasonal/kit/server (SessionEnds), ../auth/sessionPlugin,
  *                 ../website/accountFeed, ../config/env, ../config/features,
  *                 ../config/maintenance, ../config/seedKey, ../dev/devClock, ./plugins/problem,
  *                 ./plugins/securityHeaders, ./gameRoutes, ./signIn, ./routes/health,
@@ -31,11 +31,11 @@ import {
   leagueSettingsOf,
   screenSettingsOf,
 } from '@sbr/contracts';
+import { SessionEnds } from '@seasonal/kit/server';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { Presets } from '../admin/presets.js';
 import { SettingsStore } from '../admin/settings.js';
-import { SessionEnds } from '../auth/sessionEnds.js';
 import { SocketLimits } from '../realtime/socketLimits.js';
 import { registerGameRoutes } from './gameRoutes.js';
 import { registerSignIn } from './signIn.js';
@@ -162,6 +162,12 @@ function registerBasics(fastify: FastifyInstance, deps: AppDeps, metrics: Metric
   if (deps.env.SBR_DEV) registerQuickTest(fastify);
 }
 
+// Ended sessions told to their listeners (the sockets); a listener that fails goes to the log.
+const sessionEndsOf = (fastify: FastifyInstance): SessionEnds =>
+  new SessionEnds((error) => {
+    fastify.log.error({ err: error }, 'a listener of ended sessions failed');
+  });
+
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
   const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
@@ -184,7 +190,7 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await registerRouteLimits(fastify);
   registerBasics(fastify, deps, metrics);
   const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
-  const sessionEnds = new SessionEnds();
+  const sessionEnds = sessionEndsOf(fastify);
   await registerSessions(fastify, deps.pool, cookie, loaded.technical);
   // One replay per live match, for the state fetches and the live frames alike.
   const views = liveViewsOn(deps.pool, match.store);

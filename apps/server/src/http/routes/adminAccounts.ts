@@ -12,10 +12,10 @@
  *                 (./adminTechnical recentSecondStep, admin-area §7 row 10), never the caller's
  *                 own account (409 OWN_ACCOUNT), never an owner's account without being an owner
  *                 (403 FORBIDDEN), 404 for no such account; one audit entry; the sessions it
- *                 ends lose their sockets at once (../../auth/sessionEnds). Not registered in
+ *                 ends lose their sockets at once (../@seasonal/kit/server (SessionEnds)). Not registered in
  *                 website mode: the website decides accounts and roles (D41, D46). Input through
  *                 zod; the session plugin's limit and CSRF apply.
- * Depends on:     fastify, zod, ../../admin/accounts, ../../auth/sessionEnds (types),
+ * Depends on:     fastify, zod, ../../admin/accounts, @seasonal/kit/server (SessionEnds, types),
  *                 ../../db/pool (types), ./adminTechnical (recentSecondStep), ./matches
  *                 (requirePermission)
  * Used by:        ../gameRoutes
@@ -32,7 +32,7 @@ import {
   setRole,
   type AccountChange,
 } from '../../admin/accounts.js';
-import type { SessionEnds } from '../../auth/sessionEnds.js';
+import type { SessionEnds } from '@seasonal/kit/server';
 import type { DbPool } from '../../db/pool.js';
 import { recentSecondStep } from './adminTechnical.js';
 import { requirePermission } from './matches.js';
@@ -100,7 +100,7 @@ function change<B>(
     const c = await allowed(request, reply, deps, permission);
     if (c === null) return reply;
     if (!body.success) return reply.status(400).send({ code: 'VALIDATION_FAILED' });
-    deps.sessionEnds.end([...(await run(c, body.data))]);
+    await deps.sessionEnds.end([...(await run(c, body.data))]);
     return reply.status(204).send();
   });
 }
