@@ -1,8 +1,32 @@
 # Morning sheet
 
-The night chain of 2026-11-22 (started 09:42, unattended): part A, the real-site rehearsal with the admin area (branch `test/rehearsal-admin`); part B, adopting `@seasonal/kit` v0.10.0 (branch `feat/kit-adoption`, PR not merged). Regenerated after every piece. Below it, the admin area's night (PR #56, merged as `a1495bf`).
+## Production night of 2026-11-22/23 (started 23:13, unattended)
+
+Owner decision of 2026-11-22: prepare everything up to the VPS move; nothing on the real VPS; nothing a player sees changes.
+
+### Done
+
+- Piece 1 (PR #58, `5c613c0`): 48 screens pixel for pixel the same as master `c1bab70`; lint, typecheck, minTextSize pass; CI 45073180487 and CodeQL 45073180468 green.
+
+### Running
+
+- Piece 1: local verify (a first run timed out under another project's Linux e2e container on this PC; re-run once it had stopped), playerFit, the short royale on desktop and phone, then the merge.
+
+### Open
+
+- Pieces 2 (rehearsal and the backup-restore drill), 3 (pre-production audit), 4 (docs/GO-LIVE.md), 5 (website-mode sweep).
+
+### Reverted
+
+- Nothing.
+
+### Needs the owner's word
+
+- Nothing yet.
 
 ## Night chain of 2026-11-22
+
+Started 09:42, unattended: part A, the real-site rehearsal with the admin area (branch `test/rehearsal-admin`); part B, adopting `@seasonal/kit` v0.10.0 (branch `feat/kit-adoption`). Below it, the admin area's night (PR #56, merged as `a1495bf`).
 
 ### Done
 

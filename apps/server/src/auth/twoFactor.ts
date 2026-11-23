@@ -11,7 +11,8 @@
  *                 stored, K20). `verify`: a code (never one at or before the last step used) or
  *                 an unused recovery code, stored keyed or as the plain SHA-256 of before (K27:
  *                 those keep working until used). Each success marks the session's second
- *                 step done (sessions.last_2fa_at). `resetTwoFactor`: removes factor and codes
+ *                 step done (sessions.last_2fa_at). `recoveryCodeStored`: the same lookup, read
+ *                 only (the restore drill's check). `resetTwoFactor`: removes factor and codes
  *                 of an account by display name and ends its sessions (sbr admin reset-2fa).
  * Depends on:     qrcode, @seasonal/kit/server (TOTP, recovery codes), ../db/pool, ../match/codec,
  *                 ./sessions
@@ -145,6 +146,23 @@ export async function verify(
   }
   if (ok) await markSession(pool, who.sessionId);
   return ok;
+}
+
+// Whether `code` matches an unused stored recovery code of the account, keyed or legacy (the
+// same lookup as `verify`), without using it: the restore drill's proof that a backup brought
+// the recovery key with its codes (../cli check-recovery-code).
+export async function recoveryCodeStored(
+  pool: DbPool,
+  recoveryKey: Buffer,
+  displayName: string,
+  code: string,
+): Promise<boolean> {
+  const r = await pool.query(
+    `SELECT 1 FROM sbr.recovery_codes c JOIN sbr.accounts a ON a.id = c.account_id
+      WHERE a.display_name_key = $1 AND c.code_hash = ANY($2::bytea[]) AND c.used_at IS NULL`,
+    [displayName, recoveryLookups(code, 'hex', recoveryKey)],
+  );
+  return (r.rowCount ?? 0) > 0;
 }
 
 // sbr admin reset-2fa: the factor and codes of the account gone, its sessions ended; false
