@@ -6,21 +6,11 @@
  * Responsibility: the reference rules of the live protocol, shared by the player client and the
  *                 server's equivalence test (apps/server/test/liveSteps.integration.test.ts).
  *                 `mergeAnswer`: a state answer's events are appended to the held view (a delta
- *                 keeps the player list and cut facts it leaves out; events already held are not
- *                 repeated), everything else comes fresh. `applyStep`: the room frame and the
- *                 screen's own frame of one step together — the events appended (the viewer's own
- *                 cards put into its round starts; every held round start keeps only the viewer's
- *                 own cards before the current watched cards go into the newest), the summary (the
- *                 host flag kept) and the players still in in order (the held ones when the step
- *                 leaves them out as unchanged), the recap or its end, and the
- *                 stage baselines, cut facts and player list (the viewer's row marked and given
- *                 its card) when the step brings them, the viewer's effect timeline replaced after
- *                 the entry the frame starts at, the watched cards taken or dropped (D24); a step
- *                 that does not follow the held seq, or a timeline that does not fit, answers null
- *                 and the screen fetches. Applied after every step, the held view equals a full
- *                 state answer at the same seq. `withWatchedCards` puts the watched card layouts
- *                 into the newest round start, so the fold shows their marks. Display data only;
- *                 the server decides everything.
+ *                 keeps the player list and cut facts it leaves out). `applyStep`: the room and own
+ *                 frames of one step together (the viewer's own cards in its round starts, host
+ *                 flag kept, watched cards, D24); a step that does not follow the held seq or fit
+ *                 the timeline answers null and the screen fetches. After every step the held view
+ *                 equals a full state answer at that seq. Display data only.
  * Depends on:     ./clientView, ./liveFrames
  * Used by:        apps/web (game/useLiveMatch, game/matchRoom, game/liveView),
  *                 apps/server/test/liveSteps.integration.test.ts

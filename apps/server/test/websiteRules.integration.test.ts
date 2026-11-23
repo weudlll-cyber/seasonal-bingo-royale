@@ -3,16 +3,14 @@
  * @module server/test
  * @brief  Website mode: who may host and administer, deleting an account, the return path, the proxy secret.
  *
- * Responsibility: a server in website mode under /games/bingo/ (./websiteHelpers) and one in
- *                 local mode on the same database. A member the website allows to start games
- *                 (X-Acting-User-Can-Host: true) and a website admin may host, nobody else, the
- *                 website role does not decide it (2026-11-04); a website admin is a game admin until the website
- *                 drops the role (D41); no website role ever maps to super_admin or
- *                 security_admin. A website account is deleted by typing its display name (D42);
- *                 a local account still needs its password. GET <base>auth/website/login sends a
- *                 visitor to the website's login with the sign-in route and the wanted page as
- *                 its return path; a `next` that is no path under the base path becomes the
- *                 lobby (D43). The identity headers count only with the proxy secret.
+ * Responsibility: a server in website mode under /games/bingo/ and one in local mode on the same
+ *                 database. A member the website allows to start games (X-Acting-User-Can-Host:
+ *                 true) and a website admin may host, nobody else (2026-11-04); a website admin is
+ *                 a game admin while the website keeps the role (D41); no website role maps to
+ *                 super_admin or security_admin. A website account is deleted by typing its display
+ *                 name (D42). GET <base>auth/website/login sends a visitor to the website's login
+ *                 with the wanted page as return path; a `next` outside the base path becomes the
+ *                 lobby (D43). Identity headers count only with the proxy secret.
  * Depends on:     vitest, ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/05-api-design.md §2.1, §2.2
  */

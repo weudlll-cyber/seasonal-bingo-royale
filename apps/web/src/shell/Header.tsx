@@ -3,19 +3,14 @@
  * @module web/shell
  * @brief  The player client's top bar: the kit's AppHeader with Bingo's links, account and tools.
  *
- * Responsibility: the kit's `AppHeader` (@seasonal/kit/react, since v0.11.0 folding whenever its
- *                 items do not fit): in website mode first the kit's `BackLink` "← Seasonal
- *                 Entertainment" (top left, to the website's games page /games in this tab; not
- *                 in a standalone install), then emblem, wordmark, the links to the lobby,
- *                 hosting (with `match.create`), the leaderboard and the admin area (with
- *                 `admin.view`), the development Quick Test link and the chat button, the
- *                 account and the light/dark toggle. The account: the chip "Signed in as <name>
- *                 (host|player)" to the account page and "Sign out", or "Sign in" and "Register"
- *                 (../account; in website mode one "Sign in" to the website, D37); until the
- *                 session is known the account waits hidden (`data-session`, ./header.css), as
- *                 the bar showed none. The folded menu closes on a new route, another sign-in or
- *                 the chat opening from it. Dev-only "Dev sign-in" (./DevTools) loads on demand,
- *                 out of production builds. Bingo's look on the kit's header is ./header.css.
+ * Responsibility: the kit's `AppHeader` (@seasonal/kit/react, folds when items do not fit): in
+ *                 website mode first the kit's `BackLink` to the website's /games (this tab), then
+ *                 emblem, wordmark, links (lobby, hosting `match.create`, leaderboard, admin
+ *                 `admin.view`, dev Quick Test), chat button, account, theme toggle. Account: chip
+ *                 "Signed in as <name> (role)" with "Sign out", or "Sign in"/"Register"
+ *                 (../account; website mode one "Sign in", D37); hidden until the session is known
+ *                 (`data-session`, ./header.css). The folded menu closes on a new route, sign-in
+ *                 or chat opening.
  * Depends on:     react, @seasonal/kit/react (AppHeader), ./router, ./session, ./ChatDock,
  *                 ./DevTools (lazy, development only), ../account/WebsiteSignIn,
  *                 ./header.css, assets/brand/emblem.webp

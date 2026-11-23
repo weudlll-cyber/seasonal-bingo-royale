@@ -3,15 +3,14 @@
  * @module server/http
  * @brief  A delta of the live view leaves out the player list unless it changed (NIGHT-4 piece 5).
  *
- * Responsibility: in a simulated 200-player royale, the full view and a delta with the
- *                 first round's start carry every player; a delta of draws and taps, or of a
- *                 later round start, carries no player list and stays small; a round start
- *                 carries only the viewer's own cards (none for the host) and no draw order,
- *                 and the player list only the viewer's first-round card (NIGHT-5) (the list was 169 of 175 KiB per screen and draw).
- *                 Every view names the players still in, best first (`rankedIn`, 01 §8.4).
- *                 The watched cards (D24) go to spectators and players who are out, never to
- *                 a player still in: the top 4 still in, cards the screen does not hold yet,
- *                 a followed player, "1 to go"; and the cut facts (D23).
+ * Responsibility: in a simulated 200-player royale: the full view and a delta with the first
+ *                 round's start carry every player; a delta of draws and taps, or of a later round
+ *                 start, carries no player list and stays small; a round start carries only the
+ *                 viewer's own cards (none for the host), no draw order, and the player list only
+ *                 first-round cards (NIGHT-5; the list was 169 of 175 KiB per screen and draw).
+ *                 Every view names the players still in, best first (`rankedIn`, 01 §8.4). Watched
+ *                 cards (D24) go to spectators and players who are out, never to a player still in;
+ *                 and the cut facts (D23).
  * Depends on:     @sbr/application, @sbr/domain, ./matchViews, ../../view/liveViews,
  *                 ../../view/watchView
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/05-api-design.md §2.3

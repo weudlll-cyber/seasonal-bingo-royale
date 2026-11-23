@@ -3,15 +3,14 @@
 # @module ops
 # @brief  One-command install of Seasonal Bingo Royale on Ubuntu 24.04: standalone or inside the website.
 #
-# Responsibility: ask (or take from flags) the install type — standalone with its own domain and
+# Responsibility: ask (or take from flags) the install type (standalone with its own domain and
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
-#                 /games/bingo —, environment, address, admin e-mail, optional SMTP (standalone
-#                 only) and age public key; install Docker if missing, build the image from a git ref, write
-#                 /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only through
-#                 the website, D37, and the game's route file for the website's nginx or Caddy),
-#                 start the stack, wait for /readyz, install the backup timer. Re-runs keep earlier answers and operator-added keys,
-#                 never switch type unconfirmed. SMTP password only from a file or hidden prompt;
-#                 --trusted-proxies adds proxy ranges (kept on re-runs, "none" removes them).
+#                 /games/bingo), environment, address, admin e-mail, optional SMTP (standalone only)
+#                 and age public key; install Docker if missing, build the image from a git ref,
+#                 write /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only
+#                 through the website, D37), start the stack, wait for /readyz, install the backup
+#                 timer. Re-runs keep earlier answers, never switch type unconfirmed. SMTP password
+#                 only from a file or hidden prompt; --trusted-proxies adds ranges ("none" removes).
 # Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
 #                 ops/compose.website-nginx.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8

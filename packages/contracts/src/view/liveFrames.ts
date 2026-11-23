@@ -3,18 +3,14 @@
  * @module contracts/view
  * @brief  The live frames of a match: one room frame per step, one own frame per socket (06 §4, §8).
  *
- * Responsibility: the shapes the gateway sends after each step of a match (a draw, a batch of
- *                 taps, a cut, a round start or end; events within 40 ms are one step) and the
- *                 client applies without fetching. `LiveStepFrame` goes once to the match room:
- *                 the new events (round starts without cards or draw order), the summary (no
- *                 `youHost`) and the players still in in the server's order (each left out when
- *                 equal to what the room last got), the recap of the pause (null outside one),
- *                 and the stage baselines, cut facts and player list (no cards) only in the
- *                 steps that change them. `LiveOwnFrame` follows on each
- *                 socket: who the viewer plays as, their new effect-timeline entries, their own
- *                 cards of the step's round starts and first-round card, and the watched cards
- *                 of a viewer who watches (D24). Nothing in either is secret: no seed, no undrawn
- *                 number, no other player's card to a player still in.
+ * Responsibility: the shapes the gateway sends after each step of a match (a draw, a batch of taps,
+ *                 a cut, a round start or end; events within 40 ms are one step) and the client
+ *                 applies without fetching. `LiveStepFrame` goes once to the match room: new events
+ *                 (round starts without cards or draw order), the summary (no `youHost`), players
+ *                 still in and recap (each left out when equal to what the room last got),
+ *                 baselines, cut facts and player list only when a step changes them.
+ *                 `LiveOwnFrame` follows on each socket: the viewer's role, effect-timeline
+ *                 entries, own and watched cards (D24). Nothing in either is secret.
  * Depends on:     ./clientView, ./roundRecap
  * Used by:        apps/server (realtime/liveSteps, view/stepFrames), apps/web (game/liveFrames)
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/01-game-design.md §9, §13

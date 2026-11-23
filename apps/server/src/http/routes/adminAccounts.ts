@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  The admin area's Players and accounts (standalone only): find, roles, lock, 2FA, sessions.
  *
- * Responsibility: GET /api/v1/admin/accounts?q= (`accounts.manage`): up to 20 accounts whose
- *                 name starts with q (and e-mail, with the addresses, for the owner:
- *                 `accounts.email`, 2026-11-21). POST /api/v1/admin/accounts/:id/role { role:
- *                 organizer | game_admin, on } (the Admin role needs `admins.manage`, the
- *                 owner's), …/:id/lock { locked }, …/:id/end-sessions (`accounts.manage`),
- *                 …/:id/reset-2fa (the owner's: `twofactor.reset`). Every change: the second step passed within 10 minutes
- *                 (./adminTechnical recentSecondStep, admin-area §7 row 10), never the caller's
- *                 own account (409 OWN_ACCOUNT), never an owner's account without being an owner
- *                 (403 FORBIDDEN), 404 for no such account; one audit entry; the sessions it
- *                 ends lose their sockets at once (../@seasonal/kit/server (SessionEnds)). Not registered in
- *                 website mode: the website decides accounts and roles (D41, D46). Input through
- *                 zod; the session plugin's limit and CSRF apply.
+ * Responsibility: GET /api/v1/admin/accounts?q= (`accounts.manage`): up to 20 accounts by name
+ *                 prefix q (owner: by e-mail too, `accounts.email`, 2026-11-21). POST …/:id/role
+ *                 (the Admin role needs the owner's `admins.manage`), …/lock, …/end-sessions,
+ *                 …/reset-2fa (owner's `twofactor.reset`). Every change: second step within 10
+ *                 minutes (./adminTechnical recentSecondStep, admin-area §7 row 10), never the
+ *                 caller's own account (409 OWN_ACCOUNT), never an owner's without being owner (403
+ *                 FORBIDDEN), 404 for none; audited. Not registered in website mode: the website
+ *                 decides accounts and roles (D41, D46).
  * Depends on:     fastify, zod, ../../admin/accounts, @seasonal/kit/server (SessionEnds, types),
  *                 ../../db/pool (types), ./adminTechnical (recentSecondStep), ./matches
  *                 (requirePermission)

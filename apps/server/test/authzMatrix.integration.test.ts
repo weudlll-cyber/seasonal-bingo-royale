@@ -3,16 +3,14 @@
  * @module server/test
  * @brief  Who may call what: every HTTP route and WS intent × five kinds of caller.
  *
- * Responsibility: for each registered route and gateway intent, the callers that get through and
- *                 those refused (401/403 with SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH or
- *                 CSRF_INVALID; a refused handshake) — anonymous, guest, player, another host,
- *                 the match's host, an Admin (game_admin) and the owner (super_admin), each with
- *                 a fresh session; allowed callers never meet a 5xx or INTERNAL. A route or
- *                 intent missing from the tables fails the test. Bodies keep a successful call's
- *                 changes minimal. The admin area's routes again in website mode (signed out,
- *                 guest, member, a member who may host, a website admin; D37, D41). One write per
- *                 route group is refused without the CSRF token or with another session's. The
- *                 accounts and guest sessions it creates are removed at the end.
+ * Responsibility: for each registered route and gateway intent, who gets through and who is refused
+ *                 (401/403 SIGN_IN_REQUIRED, FORBIDDEN, NOT_YOUR_MATCH, CSRF_INVALID; a refused
+ *                 handshake): anonymous, guest, player, another host, the match's host, Admin
+ *                 (game_admin), owner (super_admin), each with a fresh session; allowed callers
+ *                 never meet a 5xx or INTERNAL. A route or intent missing from the tables fails the
+ *                 test. The admin routes again in website mode (D37, D41). One write per route
+ *                 group is refused without the CSRF token or with another session's. The accounts
+ *                 and guest sessions it creates are removed at the end.
  * Depends on:     fastify (inject), ../src/auth/*, ../src/http/app (types),
  *                 ../src/realtime/intents, ./harness, ./socketKit, ./websiteHelpers
  * Spec:           docs/spec/03-security-architecture.md §3, §8; docs/spec/12-testing-strategy.md §7;

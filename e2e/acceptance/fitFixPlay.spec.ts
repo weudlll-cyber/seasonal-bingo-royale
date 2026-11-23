@@ -3,16 +3,14 @@
  * @module e2e/acceptance
  * @brief  One royale played through on a phone (390×844) and a desktop (1280×720) after the fit fixes.
  *
- * Responsibility: the host plays along at 1280×720, a second player on a 390×844 phone, a third
- *                 account watches; bots fill to 10 and the server draws by itself. Both players
- *                 tap every number. At each state (the lobby, the leaderboard, the phone menu
- *                 closed and open, the live round as a player and as a spectator, the interlude,
- *                 the final results) the screen is saved light and dark at both sizes as
- *                 reports/screens/latest/fitfix-<screen>-<size>-<light|dark>.jpg and measured
- *                 with ./fitProbe; every finding goes as one JSON line to
- *                 reports/logs/fitfix-play.jsonl. SBR_FIT_FULL=1 plays the royale at its full
- *                 length in real time; otherwise the fast test rules. The match is stopped at the
- *                 end; no account is created. SBR_ACCEPTANCE=1 only, Chromium.
+ * Responsibility: the host plays at 1280×720, a second player on a 390×844 phone, a third account
+ *                 watches; bots fill to 10, the server draws, both players tap every number. At
+ *                 each state (lobby, leaderboard, phone menu closed/open, live round as
+ *                 player/spectator, interlude, final results) the screen is saved light and dark at
+ *                 both sizes as reports/screens/latest/fitfix-<screen>-<size>-<theme>.jpg and
+ *                 measured with ./fitProbe; findings go as JSON lines to
+ *                 reports/logs/fitfix-play.jsonl. SBR_FIT_FULL=1: royale at full length, else fast
+ *                 rules. Match stopped at the end. SBR_ACCEPTANCE=1 only, Chromium.
  * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../devStack,
  *                 ./fitProbe, ./screenPlay
  * Spec:           docs/concepts/fit-audit.md (after the fixes); CLAUDE.md (one realtime royale)

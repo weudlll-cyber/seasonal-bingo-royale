@@ -4,17 +4,13 @@
 # @brief  Inside the rehearsal's server: the real website's accounts and the game's API, by curl.
 #
 # Responsibility: what a website admin and the website's members do outside the browser in
-#                 ./real-site.sh, through https://example.org with the test's Pebble root:
-#                 the website's own API (its pre-login, login and registration with the key
-#                 the site derives from a password, computed in the site container; the test
-#                 admin's 2FA set up on its first login, as the website's own checks do in its
-#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("may start games"
-#                 for the game `bingo`, the website's per-game grant /game-host;
-#                 lock, unlock, delete), and the game under /games/bingo/ with a member's game
-#                 session (signed in through the website's sign-in route): create, join, start,
-#                 draw a host-drawn match to its end, abort; a jar as a browser's storage state
-#                 (the website admin's sessions for the browser's admin phase). Cookie jars and
-#                 the admin's TOTP secret stay in /etc/seasonal-test/sbr (mode 700). Test only.
+#                 ./real-site.sh, through https://example.org with the test's Pebble root: the
+#                 website's own API (login and registration with the key derived from a password,
+#                 computed in the site container; the test admin's 2FA set up on first login as in
+#                 deploy/test/checks-bot-admin.sh), the admin's user actions ("may start games" via
+#                 the per-game grant /game-host for `bingo`; lock, unlock, delete), the game under
+#                 /games/bingo/ with a member's session, and storage-state jars for the admin
+#                 browser phase. Secrets stay in /etc/seasonal-test/sbr (mode 700). Test only.
 # Depends on:     curl, python3, docker (the site container seasonal-site-site-1)
 # Used by:        ./real-site.sh (copied into the server as /etc/seasonal-test/sbr-admin.sh)
 # Spec:           docs/spec/07-integration-architecture.md §2; the website's docs/AUTH.md

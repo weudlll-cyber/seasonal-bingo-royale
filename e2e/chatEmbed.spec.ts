@@ -3,17 +3,13 @@
  * @module e2e
  * @brief  The website's chat beside the game in website mode (07 §6), and none standalone.
  *
- * Responsibility: behind the stand-in website (./websiteStack, which serves /embed/chat), a
- *                 member who may host sees "Chat" on the lobby, the host console and the match
- *                 screen; at 1440×900 the side panel opens with the frame of
- *                 /embed/chat?room=bingo&theme=<the game's theme> on the site's origin (sandboxed,
- *                 strict-origin referrer: the kit's WebsiteChatFrame), follows a theme switch, and
- *                 stays open after a reload (remembered); at 390×844 "Chat" is in the top bar's
- *                 menu (./menu), opens a drawer and closes the menu, and one tap on the dimmed
- *                 page closes the drawer, leaving the bar with its Menu button. Screenshots of the open
- *                 panel in both sizes and themes go to reports/screens/latest. The standalone
- *                 development server shows no button and asks for no embed page. The match is
- *                 aborted, the website user's account removed. Chromium only (it builds the client).
+ * Responsibility: behind the stand-in website (./websiteStack, serving /embed/chat), a member who
+ *                 may host sees "Chat" on lobby, host console and match screen; at 1440×900 the
+ *                 side panel opens with the frame of /embed/chat?room=bingo&theme=<game theme> on
+ *                 the site's origin (the kit's WebsiteChatFrame), follows theme switches, stays
+ *                 open after reload; at 390×844 "Chat" is in the top bar's menu (./menu), opens a
+ *                 drawer and closes the menu, a tap on the dimmed page closes it. Screenshots go to
+ *                 reports/screens/latest. Match aborted, account removed. Chromium only.
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack, ./menu
  * Spec:           docs/spec/07-integration-architecture.md §6
  */

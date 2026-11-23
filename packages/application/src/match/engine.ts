@@ -3,15 +3,14 @@
  * @module application/match
  * @brief  The live match engine: create, join, bots, start, draw control, marks, abort.
  *
- * Responsibility: match use cases on top of the domain lifecycle: create from the published
- *                 default ruleset of the game type and mode with the starter's choices (./create);
- *                 join while the lobby is open (dev bots as non-tapping players); start after a
- *                 countdown; scheduled actions via ./flow; host draws in host mode (not before
- *                 the timed interval, D13, nor in an async match's quiet hours, 01 §5); start the
- *                 next round when it waits (D14); switch draw mode or interval anytime (D8, never
- *                 below D12); taps through ./taps (speed bonus from the draw to the tap's arrival,
- *                 waiting taps in one batch, 01 §6);
- *                 `recover` after a crash. All commands run through ./runner.
+ * Responsibility: match use cases on top of the domain lifecycle: create from the published default
+ *                 ruleset of the game type and mode (./create); join while the lobby is open (dev
+ *                 bots as non-tapping players); start after a countdown; scheduled actions via
+ *                 ./flow; host draws in host mode (not before the timed interval, D13, nor in an
+ *                 async match's quiet hours, 01 §5); start the next round when it waits (D14);
+ *                 switch draw mode or interval anytime (D8, never below D12); taps via ./taps
+ *                 (speed bonus from draw to arrival, waiting taps in one batch, 01 §6); `recover`
+ *                 after a crash. All commands run through ./runner.
  * Depends on:     @sbr/domain, ./asyncCadence, ./ports, ./runner, ./flow, ./timing, ./taps,
  *                 ./startRules (set time, start when full), ./create
  * Used by:        apps/server (HTTP routes, WebSocket gateway, scheduler), ../index, ./fakes

@@ -4,14 +4,13 @@
  * @brief  PostgreSQL adapter of the match store: event log, snapshots, projections (02 §5.2).
  *
  * Responsibility: insert a match (seed encrypted and bound to the match id, commitment public;
- *                 mode, time zone and quiet hours of async matches);
- *                 check at startup that the seed key opens what is stored; write and read events
- *                 and snapshots in the codec's stored encoding; load a match from its latest
- *                 snapshot plus the event tail, with the current round's draw times; append a
- *                 batch (./appendBatch: one statement, or one transaction with a join, the finish
- *                 or a snapshot; version check on the matches row, consecutive seq, projections;
- *                 a snapshot with a draw at least 25 events after the last), reporting its round
- *                 trips; set the status, draw control and start rule (D16) on the row.
+ *                 mode, time zone and quiet hours of async matches); check at startup that the seed
+ *                 key opens what is stored; write and read events and snapshots in the codec's
+ *                 stored encoding; load a match from its latest snapshot plus the event tail, with
+ *                 the current round's draw times; append a batch (./appendBatch: version check on
+ *                 the matches row, consecutive seq, projections; a snapshot with a draw at least 25
+ *                 events after the last), reporting its round trips; set the status, draw control
+ *                 and start rule (D16) on the row.
  * Depends on:     pg, @sbr/domain, @sbr/application (ports), ./codec, ./appendBatch, ./records,
  *                 ../db/pool
  * Used by:        ../http/routes/matches, ../http/routes/matchVerify, ./runtime

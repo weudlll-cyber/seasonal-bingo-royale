@@ -3,18 +3,14 @@
  * @module server/admin
  * @brief  The presets: named rulesets per game type, kept as versioned settings documents.
  *
- * Responsibility: each preset is the settings document `preset:<id>` (./settings) holding its
- *                 name, game type, mode, status (draft, published, retired), when it was last
- *                 published, and its full ruleset. At start the server seeds one published
- *                 preset per built-in ruleset (today's rules) unless it exists, its id the
- *                 ruleset's name so far. A match created
- *                 without a chosen ruleset takes the most recently published preset of its game
- *                 type and mode (admin-area §8 (b)); the match freezes that copy, so a later
- *                 change never reaches it. `problem` is the one check every write passes: the
- *                 document parses (the full RulesetSchema with its cross-field rules), its
- *                 ruleset keeps the preset's game type and mode, and its game type and mode
- *                 keep at least one published preset; the Organizer's speeds fit its mode. A preset
- *                 stored before the Organizer's part existed gets `organizerDefaults` on reading.
+ * Responsibility: each preset is the settings document `preset:<id>` (./settings): name, game type,
+ *                 mode, status (draft, published, retired), last publish time, full ruleset. At
+ *                 start one published preset per built-in ruleset is seeded unless it exists. A
+ *                 match created without a chosen ruleset takes the most recently published preset
+ *                 of its game type and mode (admin-area §8 (b)) and freezes that copy. `problem` is
+ *                 the one check every write passes: the document parses (full RulesetSchema), keeps
+ *                 its game type and mode, that pair keeps a published preset, the Organizer's
+ *                 speeds fit its mode. Older presets get `organizerDefaults` on reading.
  * Depends on:     zod, @sbr/contracts, ./settings
  * Used by:        ../http/app, ../http/routes/adminPresets, ../http/routes/adminSettings
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §6, §8 (b), (k), §9 piece 3

@@ -3,24 +3,14 @@
  * @module e2e
  * @brief  A game server in website mode behind a stand-in of the website's proxy (D37).
  *
- * Responsibility: a database of its own per Playwright worker (`sbr_e2e_website_w<n>` beside
- *                 the e2e database, made once and kept, so no other server's scheduler runs its
- *                 matches, not even another worker's stack at the same time); the player client
- *                 built for production; a stand-in proxy on an ephemeral port that plays the
- *                 website: GET /login is its login page (a known stub user goes on to `next`),
- *                 GET /embed/chat its chat embed page (naming the room and theme asked for);
- *                 /games/bingo/auth/website asks the stub users (cookie "stub_user=<id>", a numeric
- *                 id as the website's; as the
- *                 website's authorize endpoint would) and passes the four X-Acting-User* headers
- *                 (Can-Host, and the steps "[]") with the proxy secret, or sends a visitor without one to the app's
- *                 /games/bingo/auth/website/login with the same query (D43); every request
- *                 (WebSocket upgrades too) reaches the app with client-sent X-Acting-User* and
- *                 X-Sbr-Proxy-Secret headers removed. The server (development features on, for
- *                 the fast test rules) runs in website mode under /games/bingo/ on an ephemeral
- *                 port and trusts only the proxy's address. `expireSessions` lets every game session
- *                 idle out at once (the 30 minutes of an admin's, shortened). `removeAccounts` deletes the website
- *                 users' accounts at the end through DELETE /me with the display name (D42);
- *                 matches are never deleted.
+ * Responsibility: a database per worker (`sbr_e2e_website_w<n>`, kept, so no other scheduler runs
+ *                 its matches); a stand-in proxy playing the website: /login, /embed/chat and
+ *                 /games/bingo/auth/website, which reads cookie "stub_user=<id>" and passes the
+ *                 four X-Acting-User* headers plus the proxy secret, or sends a visitor to the
+ *                 app's /auth/website/login with the same query (D43); client-sent X-Acting-User*
+ *                 and X-Sbr-Proxy-Secret are stripped. The server runs in website mode under
+ *                 /games/bingo/, trusting only the proxy. `expireSessions` idles sessions out;
+ *                 `removeAccounts` deletes the stub users (D42).
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
  * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./acceptance/fitAudit.spec

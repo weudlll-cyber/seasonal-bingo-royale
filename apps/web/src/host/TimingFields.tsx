@@ -3,16 +3,14 @@
  * @module web/host
  * @brief  Timing choices of a new match: start rule, shortest draw interval (D12), round pause (D14).
  *
- * Responsibility: the start rule, only the starts the preset allows (now: I start it; at a set time at least a minute ahead, with
- *                 "Start automatically at the start time", default off, D16; when every
- *                 place is taken; 01 §7.6); the shortest timed-draw interval for the chosen game type and missed-
- *                 number rule (the shared rule from @sbr/contracts: 1 s longer than the
- *                 longest tap time) and the plain message when the seconds are below it;
- *                 the royale pause choice "Wait a few seconds" (N, within the server's range:
- *                 3 to 120 s today) or "I start each round myself"; the start countdown named
- *                 as the server sends it. Ranges and the countdown come from the session's
- *                 limits (admin-area §8 (m)). The server enforces both as well. Every option
- *                 fits a 390 px phone.
+ * Responsibility: the start rule, only the starts the preset allows (I start it; a set time at
+ *                 least a minute ahead with "Start automatically at the start time", default off,
+ *                 D16; when full; 01 §7.6); the shortest timed-draw interval for the game type and
+ *                 missed-number rule (shared rule from @sbr/contracts: 1 s over the longest tap
+ *                 time) with a plain message below it; the royale pause ("Wait a few seconds", N
+ *                 in the server's range, or "I start each round myself"); the start countdown as
+ *                 the server sends it. Ranges come from the session's limits (admin-area §8 (m));
+ *                 the server enforces both too. Every option fits a 390 px phone.
  * Depends on:     react, @sbr/contracts, ../game/labels, ../shell/session, ../types
  * Used by:        ./ThisMatchFields, ./StartMatch, ./startForm, ./HostDrawControls, ./HostLobby,
  *                 ./createForm

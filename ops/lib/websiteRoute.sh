@@ -3,19 +3,14 @@
 # @module ops
 # @brief  Website installs: the game's own route file for the website's nginx or Caddy (D37).
 #
-# Responsibility: write the route file for the website's mode (never a website file; 0600, it
-#                 holds the proxy secret): /games/bingo/ (HTTP and WebSocket) to the app with
-#                 every identity header (X-Acting-User*, X-Acting-Guest) and the proxy secret
-#                 cleared from browser requests on every game path; only the sign-in route
-#                 /games/bingo/auth/website asks the website's authorize endpoint (auth_request /
-#                 forward_auth, passing Cookie, Origin, Host and X-Original-Method) and copies its
-#                 answer's identity headers (id, name, roles, e-mail verified, may host, steps,
-#                 guest) plus the proxy secret (never to the website) to the app; the website's
-#                 session cookie (__Host-se.sid / se.sid) goes only to the authorize request, never
-#                 to the app (HTTP and WebSocket; the game's own cookies pass); a 401/403 from an
-#                 older website goes to the app's /games/bingo/auth/website/login with the same
-#                 query (D43); /games/bingo/metrics 404. Header names: the env file's (an operator
-#                 may rename them), else the app's defaults (07 §2.3).
+# Responsibility: write the route file for the website's mode (never a website file; 0600, it holds
+#                 the proxy secret): /games/bingo/ (HTTP and WebSocket) to the app with identity
+#                 headers (X-Acting-User*, X-Acting-Guest) and the proxy secret cleared from browser
+#                 requests; only /games/bingo/auth/website asks the website's authorize endpoint and
+#                 copies its identity headers plus the secret (never to the website) to the app; the
+#                 website session cookie goes only to the authorize request; a 401/403 from an older
+#                 website goes to the app's login route (D43); metrics 404. Header names: the env
+#                 file's, else the app's defaults (07 §2.3).
 # Used by:        ./websiteApply.sh (install, update)
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
 

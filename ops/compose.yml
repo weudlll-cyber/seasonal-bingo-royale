@@ -3,18 +3,13 @@
 # @brief  The production stack on one VPS: app, PostgreSQL 17 and, standalone, Caddy.
 #
 # Responsibility: the app image (built from a git ref until a release image exists) runs as uid
-#                 10001 on a read-only root, /tmp in memory, one writable volume for uploads and
-#                 the maintenance flag; PostgreSQL on an internal network, no published port.
-#                 Standalone installs add Caddy (profile "standalone", automatic HTTPS on 80/443).
-#                 Website installs (ops/compose.website.yml on top) publish no port: the app joins
-#                 the website's network, whose Caddy forwards /games/bingo. Logs: Docker `local`
-#                 driver, 5 × 20 MB per service. Caps per spec 08 §4, set in the env file:
-#                 app SBR_APP_CPUS / SBR_APP_MEMORY (default 3 CPUs / 1 GiB), PostgreSQL
-#                 SBR_DB_CPUS / SBR_DB_MEMORY (1.5 CPUs / 1 GiB), Caddy 0.25 CPU / 128 MiB; no swap.
-#                 Database roles (audit-3 S1): the one-shot `migrate` service applies the
-#                 migrations as the owner role `sbr_owner` and grants the app role; the app then
-#                 starts as `sbr_app` (DATABASE_URL), checks the migrations and never sees the
-#                 superuser's or the owner's password (blanked below).
+#                 10001 on a read-only root, /tmp in memory, one writable volume (uploads,
+#                 maintenance flag); PostgreSQL on an internal network, no published port.
+#                 Standalone installs add Caddy (profile "standalone"); website installs
+#                 (ops/compose.website.yml on top) publish no port, the app joins the website's
+#                 network. Logs: `local` driver, 5 x 20 MB. Caps per spec 08 §4 from the env file
+#                 (SBR_APP_*, SBR_DB_*). Database roles (audit-3 S1): `migrate` runs as `sbr_owner`;
+#                 the app runs as `sbr_app` and never sees superuser or owner passwords.
 # Depends on:     /etc/sbr/<env>.env (written by ops/install.sh), ops/Caddyfile (as caddy/Caddyfile)
 # Used by:        ops/install.sh, ops/sbr (copied to /opt/sbr/compose.yml)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §2; docs/spec/08-devops-architecture.md §4, §6

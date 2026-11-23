@@ -3,16 +3,14 @@
  * @module server/test
  * @brief  The owner and app roles of a production database (audit-3 S1): who may do what.
  *
- * Responsibility: an install made before the roles (everything migrated by the superuser) is
- *                 converted by ops/lib/db-roles.sql; a fresh database gets the same layout. The
- *                 owner migrates (nothing left on the converted one, all of it on the fresh one)
- *                 and grants the app role (`cli migrate`). The app role then plays a whole
- *                 match through the real app, but is refused UPDATE, DELETE and TRUNCATE on the
- *                 event log, the audit log, the settings versions and the league corrections (by permission, not only
- *                 by their triggers),
- *                 turning a trigger off, writing the migration record, creating or dropping
- *                 tables and creating roles; the owner cannot create roles either. The match it plays is finished in the
- *                 throw-away database; its accounts go with the container.
+ * Responsibility: an install made before the roles (migrated by the superuser) is converted by
+ *                 ops/lib/db-roles.sql; a fresh database gets the same layout. The owner migrates
+ *                 and grants the app role (`cli migrate`). The app role plays a whole match through
+ *                 the real app, but is refused UPDATE, DELETE and TRUNCATE on the event log, audit
+ *                 log, settings versions and league corrections (by permission, not only by
+ *                 triggers), turning a trigger off, writing the migration record, creating or
+ *                 dropping tables and creating roles; the owner cannot create roles either. The
+ *                 match is finished in the throw-away database; accounts go with the container.
  * Depends on:     vitest, @testcontainers/postgresql, ../src/index, ../src/db/roles,
  *                 ./harness, ./session, ./playToEnd
  * Spec:           docs/spec/03-security-architecture.md §9; docs/spec/04-database-design.md §1, §3.3

@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  What the client sees of a match: the summary and the live view (05 §2.3).
  *
- * Responsibility: the summary (code, title, type, mode, status per the event log, settings,
- *                 players, prizes, countdown, next round, Draw next unlock, waiting for host or
- *                 players (D16), when an async lobby closes (D34), quiet hours until, creator,
- *                 if the viewer hosts) and the live view: the Quick Test payload
- *                 (../../view/clientView) from the public log (no seed, 01 §9), display names,
- *                 caller as owner, from the shared replay (../../view/liveViews). `since` sends
- *                 only later events, no player list unless a join, first round start or finish is
- *                 among them, no cut facts unless a cut is. Round starts and the player list carry only the viewer's cards, no
- *                 draw order (NIGHT-5); a royale pause adds the round recap (`recaps`, D20);
- *                 every live view names the players still in, best first (`rankedIn`, 01 §8.4).
- *                 A player who is out or a spectator also gets the watched cards (`watch`,
- *                 ../../view/watchView, D24); a player still in never does.
+ * Responsibility: the summary (status per the event log, settings, players, prizes, countdown, next
+ *                 round, Draw next unlock, waiting (D16), async lobby close (D34), quiet hours) and
+ *                 the live view: the Quick Test payload (../../view/clientView) from the public log
+ *                 (no seed, 01 §9) and the shared replay (liveViews). `since` sends only later
+ *                 events; player list only with a join, first round start or finish. Round starts
+ *                 carry only the viewer's cards, no draw order (NIGHT-5); a royale pause adds the
+ *                 recap (D20); `rankedIn` names players still in, best first (01 §8.4). Players out
+ *                 and spectators get `watch` cards (D24); players still in never.
  * Depends on:     @sbr/application, @sbr/contracts (types), ../../view/clientView, ../../view/liveViews (types),
  *                 @sbr/domain, ../../view/clientEvents, ../../view/watchView
  * Used by:        ./matches, ../../realtime/gateway

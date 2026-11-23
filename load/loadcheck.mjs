@@ -3,17 +3,14 @@
  * @module load
  * @brief  The load generator of `sbr loadcheck`: one realtime royale against a production install.
  *
- * Responsibility: bundled into the app image as dist/loadcheck.js (apps/server/build.mjs) and
- *                 run by `sbr loadcheck` in a short-lived container on the stack's internal
- *                 network: reads the temporary accounts the operator CLI made (host, players,
- *                 spectators with their session cookies) from standard input, plays one realtime
- *                 royale with the published default ruleset (./drawRun.mjs: draws every 4 s,
- *                 every player tapping inside the speed window, the spectators watching) for at
- *                 most `minutes`, has the host abort it, and prints the measures with the
- *                 criteria of 12 §5. The app's address comes from SBR_LOAD_BASE (with the base
- *                 path), the origin its checks accept from SBR_LOAD_ORIGIN. Removing the accounts
- *                 is the CLI's (`loadcheck cleanup`), also when this run fails.
- *                 Usage: node dist/loadcheck.js [minutes=10] [tapEvery=1] < accounts.json
+ * Responsibility: bundled into the app image as dist/loadcheck.js (apps/server/build.mjs), run by
+ *                 `sbr loadcheck` in a short-lived container on the stack's internal network: reads
+ *                 the temporary accounts the operator CLI made from stdin, plays one realtime
+ *                 royale with the published default ruleset (./drawRun.mjs) for at most `minutes`,
+ *                 has the host abort it, prints the measures with the criteria of 12 §5. Address
+ *                 from SBR_LOAD_BASE (with base path), accepted origin from SBR_LOAD_ORIGIN.
+ *                 Removing the accounts is the CLI's (`loadcheck cleanup`), also when this run
+ *                 fails. Usage: node dist/loadcheck.js [minutes=10] [tapEvery=1] < accounts.json
  * Depends on:     ./drawRun.mjs
  * Used by:        ops/lib/loadcheck.sh
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/09-deployment-architecture.md §4

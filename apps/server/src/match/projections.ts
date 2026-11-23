@@ -4,15 +4,13 @@
  * @brief  Read models written with the events, as parts of the batch's one statement (02 §5.2, 04 §3.3).
  *
  * Responsibility: from one appended batch and the state after it: the entry columns of every
- *                 player the batch touched (score, state, elimination round, shield charges,
- *                 seasons, final place) and their standings rows with the ranks (all players at
- *                 a round end, cut, stage or finish), one `marks` row per marked cell with its
- *                 source and speed bonus. Each is a data-modifying CTE part that joins the
- *                 version part `v` (./appendBatch), so it writes only when the batch's version
- *                 check passed; ./appendBatch puts them into one statement with the events.
- *                 New entries for joined players (bots have no account; seen up to the join) are
- *                 a statement of their own, before it (a CTE could not update the rows a sibling
- *                 inserts). Batched SQL with unnest. Pure SQL building, no I/O but insertEntries.
+ *                 touched player (score, state, elimination round, shields, seasons, final place),
+ *                 their standings rows with ranks (all players at a round end, cut, stage or
+ *                 finish), and one `marks` row per marked cell with source and speed bonus. Each is
+ *                 a data-modifying CTE part joining the version part `v` (./appendBatch), so it
+ *                 writes only when the version check passed. New entries for joined players (bots
+ *                 have no account) are a statement before it (a CTE could not update rows a sibling
+ *                 inserts). Batched SQL with unnest. Pure SQL building.
  * Depends on:     pg (PoolClient), @sbr/domain, @sbr/application (types)
  * Used by:        ./appendBatch
  * Spec:           docs/spec/04-database-design.md §3.3, §3.4; docs/spec/02-software-architecture.md §5.2

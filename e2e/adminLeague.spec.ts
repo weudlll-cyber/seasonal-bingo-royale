@@ -3,15 +3,14 @@
  * @module e2e
  * @brief  The League: change the 1st-place points, correct a player's points, see it on the profile.
  *
- * Responsibility: the admin (development account `dev-admin`) opens League, changes "1st place"
- *                 with a comment and saves; the History shows "1st place: … → …". A player the
- *                 spec registers gets a correction of +15 with its reason; the League page lists
- *                 it and the player's profile shows it. The League page fits 1280×720 and a
- *                 390×844 phone at 100, 125 and 150 % (./acceptance/fitProbe). It changes the
- *                 league table of the whole server, so it runs alone after the other specs of
- *                 its browser (TIMING); the value is put back and the account deleted (with its
- *                 correction) at the end, also on failure. Chromium saves admin-5-league-* and
- *                 admin-5-profile-*.
+ * Responsibility: the admin (dev account `dev-admin`) opens League, changes "1st place" with a
+ *                 comment and saves; the History shows "1st place: … → …". A player the spec
+ *                 registers gets a correction of +15 with its reason; the League page lists it and
+ *                 the profile shows it. The page fits 1280×720 and a 390×844 phone at 100, 125 and
+ *                 150 % (./acceptance/fitProbe). It changes the league table of the whole server,
+ *                 so it runs alone after the other specs of its browser (TIMING); value restored
+ *                 and account deleted (with its correction) at the end, also on failure. Chromium
+ *                 saves admin-5-league-* and admin-5-profile-*.
  * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens, ./acceptance/fitProbe
  * Spec:           docs/concepts/admin-area.md §4 (League), §6, §9 piece 5
  */

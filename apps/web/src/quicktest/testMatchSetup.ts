@@ -4,14 +4,12 @@
  * @brief  A real test match from existing routes: create, join, fill with bots, start (dev only).
  *
  * Responsibility: the test match's choices and defaults (game type, start now or in N minutes,
- *                 bots per game type, draws, "I play along", short royale rounds), the limits
- *                 of the bots field (from the server's player range, ../shell/session
- *                 useLimits), the POST /matches body built by the create form's own
- *                 `createBody` (a set start time with "Start automatically", D16), and the
- *                 calls in order: create, join as a player, bots, and for "Now" the host's
- *                 Start with the normal countdown, run by `useCreateTestMatch` for the form:
- *                 the host console in a new tab opened in the click, this tab to the match's
- *                 normal player route. No new game mechanism.
+ *                 bots per type, draws, "I play along", short royale rounds), the bots field
+ *                 limits (server player range, ../shell/session useLimits), the POST /matches body
+ *                 from the create form's `createBody` (set start time with "Start automatically",
+ *                 D16), and the calls in order: create, join, bots, and for "Now" the host's Start
+ *                 with the normal countdown, run by `useCreateTestMatch`: host console in a new
+ *                 tab opened in the click, this tab to the player route. No new game mechanism.
  * Depends on:     react, ../host/createForm, ../drawControl, ../game/labels, ../shell/http,
  *                 ../shell/router, ../shell/session, ../types
  * Used by:        ./TestMatch

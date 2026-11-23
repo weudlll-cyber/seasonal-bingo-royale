@@ -3,17 +3,14 @@
  * @module server/website
  * @brief  One change from the website's account-changes feed applied to the linked game account.
  *
- * Responsibility: find the game account of website id String(id) (the website's identity
- *                 provider, by the site origin); an id linked to none is skipped. Every kind
- *                 revokes all the account's sessions at once and closes their sockets (the
- *                 existing revoke, ../auth/sessions, and the session-end hub the gateway
- *                 listens to): a player in a running match keeps card and results and returns
- *                 after signing in again; a locked account gets a guest answer from the website
- *                 and stays a guest. "deleted" also deletes the game account through the
- *                 existing path (../auth/accounts deleteAccount: points stay in past rounds and
- *                 histories under a "deleted player" name, it leaves the leaderboard; the event
- *                 log is never rewritten) and keeps the website id in sbr.website_deleted, so a
- *                 later sign-in with it is refused.
+ * Responsibility: find the game account of website id String(id) (identity provider = the site
+ *                 origin); an id linked to none is skipped. Every kind revokes all the account's
+ *                 sessions at once and closes their sockets (../auth/sessions revoke, session-end
+ *                 hub): a player in a running match keeps card and results after signing in again;
+ *                 a locked account gets a guest answer from the website and stays a guest.
+ *                 "deleted" also deletes the game account via ../auth/accounts deleteAccount
+ *                 (points stay in past rounds under "deleted player", it leaves the leaderboard)
+ *                 and keeps the website id in sbr.website_deleted, so a later sign-in is refused.
  * Depends on:     ../auth/accounts, ../auth/sessions, @seasonal/kit/server (SessionEnds, types), ../db/pool
  * Used by:        ./accountFeed
  * Spec:           docs/spec/07-integration-architecture.md §2.4; docs/spec/03-security-architecture.md §19

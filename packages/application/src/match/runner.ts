@@ -3,16 +3,14 @@
  * @module application/match
  * @brief  Runs commands against one match: serialized, persisted, published (02 §5.2, §5.4).
  *
- * Responsibility: one command batch per match at a time (an in-process queue per match);
- *                 the match is loaded from the store once and kept in memory (callers that miss
- *                 the cache meanwhile share that load; a load that ends late never replaces a
- *                 newer match); commands are
- *                 decided one after another on the evolving state, the produced events
- *                 appended in one transaction (the store's version check is the safety
- *                 net: on a conflict the cache is dropped and the error rises) and then
- *                 published on the event bus. Keeps the draw times of the current round. A
- *                 caller may ask how long deciding, appending and publishing took (`timing`,
- *                 the tap breakdown of 12 §5).
+ * Responsibility: one command batch per match at a time (an in-process queue per match); the match
+ *                 is loaded from the store once and kept in memory (callers that miss the cache
+ *                 meanwhile share that load; a load that ends late never replaces a newer match);
+ *                 commands are decided one after another on the evolving state, the events appended
+ *                 in one transaction (the store's version check is the safety net: on a conflict
+ *                 the cache is dropped and the error rises), then published on the event bus. Keeps
+ *                 the draw times of the current round. A caller may ask how long deciding,
+ *                 appending and publishing took (`timing`, the tap breakdown of 12 §5).
  * Depends on:     @sbr/domain, ./ports
  * Used by:        ./engine, ../index, ./flow
  * Spec:           docs/spec/02-software-architecture.md §5.2, §5.4

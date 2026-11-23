@@ -3,15 +3,14 @@
 # @module ops
 # @brief  Shared helpers of ops/install.sh and ops/sbr: messages, questions, files, compose.
 #
-# Responsibility: plain messages (info, warn, die); a question taking a flag value or asking
-#                 (never in --yes mode) and a yes/no confirmation; running or only showing a
-#                 command (--dry-run); writing a file atomically and only when its content changed
-#                 (re-runs change nothing); reading or replacing one value of an env file; a host
-#                 as a URL writes it (IPv6 in brackets); on exit, removing work files and
-#                 throw-away containers, restarting an app stopped by stop_app when the script
-#                 fails before restart_app_done, and removing the accounts of a load check that
-#                 did not get to its own cleanup; Docker Compose for one environment with the
-#                 right files.
+# Responsibility: plain messages (info, warn, die); a question taking a flag value or asking (never
+#                 in --yes mode) and a yes/no confirmation; running or only showing a command
+#                 (--dry-run); writing a file atomically and only when its content changed (re-runs
+#                 change nothing); reading or replacing one env-file value; a host as a URL (IPv6 in
+#                 brackets); on exit, removing work files and throw-away containers, restarting an
+#                 app stopped by stop_app when the script fails before restart_app_done, and
+#                 removing the accounts of a load check that missed its own cleanup; Docker Compose
+#                 with the right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
 

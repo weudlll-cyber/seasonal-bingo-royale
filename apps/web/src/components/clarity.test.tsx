@@ -5,16 +5,13 @@
  * @brief  Patterns this round, newest event lines, the final's fresh start, grouped standings,
  *         the watched cards (PLAYER-CLARITY, D23, D24).
  *
- * Responsibility: the royale patterns panel lists the stage's patterns with their points, the
- *                 viewer's tick and who was first (+50 %) or "still open"; the newest 3 event
- *                 lines sit apart from the full log, which expands; a new round's lines sit under
- *                 a separator naming it, an earlier round's dimmed below, the log grouped by round; the final's notice says all
- *                 finalists start at 0 and how the final is won, can be closed and goes after the
- *                 first draws; the standings group "Still in", and in the final "In the final" and
- *                 "Out of the match" with the cut and the points at that moment; only players
- *                 still in can be followed; the watched cards show name, place, points and "1 to
- *                 go", a followed player alone with "Back to the top 4", and say when that player
- *                 went out.
+ * Responsibility: pins the clarity rules: the royale patterns panel (points, viewer's tick, who
+ *                 was first +50 % or "still open"); newest 3 event lines apart from the expandable
+ *                 full log, grouped by round with a separator and earlier rounds dimmed; the
+ *                 final's closable notice (all start at 0, how it is won); standings groups with
+ *                 the cut and points at that moment; only players still in can be followed;
+ *                 watched cards (name, place, points, "1 to go"), the followed player alone with
+ *                 "Back to the top 4", and a note when that player went out.
  * Depends on:     @testing-library/react, ./PatternsPanel, ./RecentEvents, ./FinalNotice,
  *                 ./Standings, ../game/WatchCards, ../playback, ../test/quickTestFixture
  * Spec:           docs/spec/01-game-design.md §7.5, §8.1, §13 (D23, D24)

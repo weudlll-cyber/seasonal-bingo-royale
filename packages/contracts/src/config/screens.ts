@@ -3,15 +3,13 @@
  * @module contracts/config
  * @brief  "Screens and texts": what players see that is not a rule — list sizes, times, refresh.
  *
- * Responsibility: the `screens` settings document (admin-area §4 "Screens and texts", §8 (i)):
- *                 the player client's values (standings and final placement rows, recent-event
- *                 lines, when the final notice goes, a recap card's time, how often the lobby
- *                 and the maintenance state are asked for), which the server sends in the
- *                 session answer so they apply at the players' next page load, and the server's
- *                 list sizes (matches in the lobby, a leaderboard page and the rows around a
- *                 player, a profile's recent matches, the open sign-ups for the website, at most the 20 the
- *                 website takes); their
- *                 bounds (admin-values.md parts C and D), names, what each does, defaults
+ * Responsibility: the `screens` settings document (admin-area §4 "Screens and texts", §8 (i)): the
+ *                 player client's values (standings and final placement rows, recent-event lines,
+ *                 final notice timing, recap card time, how often lobby and maintenance state are
+ *                 polled), sent in the session answer so they apply at the next page load, and the
+ *                 server's list sizes (lobby matches, leaderboard page and rows around a player,
+ *                 profile matches, the open sign-ups for the website, at most the 20 the website
+ *                 takes); their bounds (admin-values.md parts C and D), names, effects, defaults
  *                 (today's values) and `screenSettingsOf`, the stored document over the defaults.
  * Depends on:     zod, ../http/openRounds (MAX_OPEN_ROUNDS), ./presetCatalogue (types)
  * Used by:        ../index; apps/server (session answer, lists, admin Screens), apps/web

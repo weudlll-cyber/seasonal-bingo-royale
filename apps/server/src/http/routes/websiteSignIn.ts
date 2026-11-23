@@ -3,21 +3,14 @@
  * @module server/http
  * @brief  GET <base>auth/website: the only place that reads the website's identity headers (D37).
  *
- * Responsibility: website mode only (local mode: the routes do not exist, 404). The website's
- *                 proxy protects exactly this path with auth_request / forward_auth and passes
- *                 the visitor as headers. The kit's check (@seasonal/kit/server
- *                 websiteSignInCheck, with this install's header names and `steps: 'all'`): only
- *                 from a peer in SBR_TRUSTED_PROXIES that sends the proxy secret
- *                 (X-Sbr-Proxy-Secret, constant time; else 403, nobody signed in); a guest answer
- *                 or no valid identity (the website's numeric id, a name, one role) goes on to the
- *                 login route below, the browser's game session untouched; then the account by
- *                 (site origin, user id) (../../auth/websiteAccounts; a suspended one 403), a
- *                 fresh game session of at most 7 days (./auth openSession) and a redirect to
- *                 `next` when it is a path under the base path, else to the base path (D43; the
- *                 kit's safeNext). Rate-limited per address. GET <base>auth/website/login: where
- *                 the proxy sends a visitor the website refused; a redirect to
- *                 SBR_WEBSITE_LOGIN_PATH with the sign-in route and `next` as return path (D43;
- *                 the kit's websiteLoginLocation).
+ * Responsibility: website mode only (local mode: 404). The website's proxy guards this path with
+ *                 auth_request / forward_auth and passes the visitor as headers. The kit's
+ *                 websiteSignInCheck (`steps: 'all'`): only a peer in SBR_TRUSTED_PROXIES with the
+ *                 proxy secret (X-Sbr-Proxy-Secret, constant time; else 403); a guest or invalid
+ *                 identity goes on to the login route; else the account by (site origin, user id)
+ *                 (suspended 403), a fresh session of at most 7 days, redirect to `next` if under
+ *                 the base path (kit's safeNext, D43). Rate-limited. GET <base>auth/website/login
+ *                 sends refused visitors to SBR_WEBSITE_LOGIN_PATH.
  * Depends on:     fastify, @seasonal/kit/server, ../../auth/websiteAccounts, ./auth,
  *                 ../../auth/sessionPlugin (types), @seasonal/kit/server (SessionEnds, types), ../../auth/sessions,
  *                 ../../auth/rateLimit, ../../config/env (types), ../../db/pool (types)

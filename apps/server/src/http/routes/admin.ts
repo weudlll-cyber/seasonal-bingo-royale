@@ -3,16 +3,14 @@
  * @module server/http
  * @brief  The admin area's Overview: every open and running match, maintenance, a health line.
  *
- * Responsibility: GET /api/v1/admin/overview (`admin.view`): the matches in their lobby or
- *                 running, newest first, with their host and players; whether maintenance is on
- *                 and why; the switches (guests, e-mail verification); the version and how long
- *                 the server runs. POST
- *                 /api/v1/admin/matches/:code/abort { reason } (`match.abort`): any match not
- *                 over, stopped as the system does it (players read the reason). POST
+ * Responsibility: GET /api/v1/admin/overview (`admin.view`): matches in lobby or running, newest
+ *                 first, with host and players; maintenance state and reason; the switches; version
+ *                 and uptime. POST /api/v1/admin/matches/:code/abort { reason } (`match.abort`):
+ *                 any match not over, stopped as the system does it (players read the reason). POST
  *                 /api/v1/admin/maintenance { on, reason } (`maintenance.manage`): the same flag
  *                 file `sbr maintenance` writes. Every change goes to the audit log first-hand
- *                 (../../admin/audit). The server checks every permission; input through zod; the
- *                 session plugin's API limit and CSRF check apply as on every route.
+ *                 (../../admin/audit). Permissions checked on the server; zod input; session limit
+ *                 and CSRF apply.
  * Depends on:     fastify, zod, @sbr/application, ../../admin/audit, ../../config/maintenance,
  *                 ../../db/pool, ../../match/records, ./matches (requirePermission), ./matchInput
  * Used by:        ../app

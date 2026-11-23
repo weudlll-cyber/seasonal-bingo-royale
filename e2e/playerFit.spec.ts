@@ -3,20 +3,14 @@
  * @module e2e
  * @brief  No page scroll during a round: player screen, spectator screen and host console.
  *
- * Responsibility: in a running round of a real match (host draws, the host playing along; royale
- *                 with 11 and 40 players, classic with 11), at 1280×720 up to 1920×950 (1890×850
- *                 included): no page scroll, the key elements in the window, standings rows apart,
- *                 the ball's text inside it, the side column not scrolling itself with the top 3
- *                 and the own row whole (royale player: two effects, a shield and two seasons
- *                 filled in by the spec); on a phone the ball, numbers and card(s) in view. One
- *                 measurement per screen and size (WebKit round trips are slow). Chromium saves
- *                 player-fit-*. On phones (360×640, 390×844; the host console too) and at
- *                 1280×720, at the root font of 16, 20 and 24 px (Chromium): no text below 14 px
- *                 and no card number below 16 px times the font scale, nothing cut, covered or
- *                 wider than the window (./acceptance/fitProbe), the key parts in view at the
- *                 default font on a phone and at every font on the desktop; the watched cards'
- *                 grids line up in a row, also beside a long name. The match is
- *                 aborted afterwards, also on failure.
+ * Responsibility: in a running round of a real match (host draws, plays along; royale 11 and 40
+ *                 players, classic 11) at 1280×720 to 1920×950: no page scroll, key elements in the
+ *                 window, standings rows apart, ball text inside it, side column not scrolling, top
+ *                 3 and own row whole; on a phone ball, numbers, card in view. One measurement per
+ *                 screen/size; Chromium saves player-fit-*. On phones, the host console and
+ *                 1280×720 at root font 16/20/24 px (Chromium): no text below 14 px, no card number
+ *                 below 16 px times the font scale, nothing cut, covered or too wide
+ *                 (./acceptance/fitProbe). Match aborted afterwards, also on failure.
  * Depends on:     @playwright/test, ./realGame, ./layoutChecks, ./screens, ./acceptance/fitProbe
  * Spec:           docs/spec/01-game-design.md §13
  */

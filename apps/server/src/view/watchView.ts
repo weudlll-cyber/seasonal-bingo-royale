@@ -3,15 +3,14 @@
  * @module server/view
  * @brief  The live cards a player who is out, or a spectator, watches (D24).
  *
- * Responsibility: decide who watches (not a player of the match, or a player who is out;
- *                 never a player still in) and build what they get: the 4 best-ranked players
- *                 still in (01 §8.4), the card layouts (compact) of the current round for the watched
- *                 players (top 4 and a followed player) the screen does not hold yet, and per
- *                 watched player the patterns one number away that can still score this round
- *                 ("1 to go": the stage's active patterns in royale, the open prizes in
- *                 classic types). Marks are not sent here: they are the public cellMarked
- *                 events every screen already folds. No seed, draw order or undrawn number.
- *                 `rankedIn`: the players still in, best first, also for the standings.
+ * Responsibility: decide who watches (not a player of the match, or a player who is out; never one
+ *                 still in) and build what they get: the 4 best-ranked players still in (01 §8.4),
+ *                 the compact card layouts of the current round for watched players (top 4 and a
+ *                 followed player) the screen does not hold yet, and per watched player the
+ *                 patterns one number away that can still score this round ("1 to go": the stage's
+ *                 active patterns in royale, open prizes in classic). Marks are not sent: they are
+ *                 the public cellMarked events every screen already folds. No seed, draw order or
+ *                 undrawn number. `rankedIn`: players still in, best first, also for the standings.
  * Depends on:     @sbr/contracts (WatchView, Card), @sbr/domain
  * Used by:        ../http/routes/matchViews (also `rankedIn` for every live view),
  *                 ../http/routes/matches

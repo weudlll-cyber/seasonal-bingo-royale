@@ -4,16 +4,13 @@
  * @brief  The admin area's settings: the Overview's switches, the History and its undo.
  *
  * Responsibility: POST /api/v1/admin/switches { guests, emailVerification, comment? }
- *                 (`settings.edit`): a new version of the `features` settings document, applied
- *                 at once (../../admin/settings). GET /api/v1/admin/history?before=<id>
- *                 (`admin.view`): every change made in the admin area, newest first, 50 at a
- *                 time, with who made it (the account's name, or none once it is gone), what
- *                 changed (old and new) and its comment; settings changes can be undone. POST
- *                 /api/v1/admin/history/:id/undo (`settings.edit`): undoes that settings change
- *                 as a new version (admin-area §6, §8 (k)); 404 for no such change, 409 when
- *                 nothing is left to undo or the undo would leave a preset invalid or no preset
- *                 of its kind published. The server checks every permission; input through
- *                 zod; the session plugin's limit and CSRF apply; every change is audited.
+ *                 (`settings.edit`): a new version of the `features` settings document, applied at
+ *                 once. GET /api/v1/admin/history?before=<id> (`admin.view`): every admin-area
+ *                 change, newest first, 50 at a time, with who, old and new values and comment.
+ *                 POST …/history/:id/undo (`settings.edit`): undoes that settings change as a new
+ *                 version (admin-area §6, §8 (k)); 404 for no such change, 409 when nothing is left
+ *                 to undo or it would leave a preset invalid or a kind unpublished. Permissions
+ *                 checked on the server; zod input; session limit and CSRF apply; audited.
  * Depends on:     fastify, zod, ../../admin/presets, ../../admin/settings, ../../db/pool,
  *                 ./matches (requirePermission)
  * Used by:        ../app

@@ -3,15 +3,14 @@
  * @module e2e
  * @brief  The Overview's switches, the History and "Undo this change" (admin area, piece 2).
  *
- * Responsibility: the admin (development account `dev-admin`) switches guests off with a
- *                 comment on the Overview; at once the server refuses a guest session; the
- *                 History shows the change with the admin's name, old → new and the comment;
- *                 "Undo this change" brings guests back and the History lists the undo. The
- *                 History fits 1280×720 and a 390×844 phone at 100, 125 and 150 % (no text
- *                 below 14 px, nothing cut, covered or wider than the window, ./acceptance/
- *                 fitProbe). It changes a switch of the whole server, so it runs alone after the
- *                 other specs of its browser (TIMING); the switches are put back at the end,
- *                 also on failure. Chromium saves admin-2-switches-* and admin-2-history-*.
+ * Responsibility: the admin (dev account `dev-admin`) switches guests off with a comment on the
+ *                 Overview; the server refuses a guest session at once; the History shows the
+ *                 change with admin name, old → new and comment; "Undo this change" brings guests
+ *                 back and the History lists the undo. The History fits 1280×720 and a 390×844
+ *                 phone at 100, 125 and 150 % (./acceptance/fitProbe). It changes a switch of the
+ *                 whole server, so it runs alone after the other specs of its browser (TIMING);
+ *                 switches restored at the end, also on failure. Chromium saves admin-2-switches-*
+ *                 and admin-2-history-*.
  * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
  * Spec:           docs/concepts/admin-area.md §4, §6, §8 (k), (p), §9 piece 2
  */

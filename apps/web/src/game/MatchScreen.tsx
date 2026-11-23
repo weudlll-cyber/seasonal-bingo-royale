@@ -4,16 +4,12 @@
  * @brief  A live match for a player or spectator: waiting room, arena, final ranking (WP-12/13).
  *
  * Responsibility: fold the server's live view with the Quick Test playback logic and show: the
- *                 lobby waiting room (players, start countdown); the arena, filling the window
- *                 during a round on desktop (current number large, recent numbers, the newest 3
- *                 event lines with the whole log one click away, the cards (./ArenaCards: own
- *                 cards with taps, or for a player out or a spectator the top 4 still in or one
- *                 followed player, D24); beside them the status in sentences, patterns this
- *                 round, classic prize list, the standings in a bounded panel); above it
- *                 ./ArenaNotice (final placement, cut screen, the final's fresh start, the round
- *                 recap, quiet hours, waiting for the host); names link to profiles and carry
- *                 the players' Discord steps (../components/StepBadges);
- *                 ./MatchCancelled (D17); in an asynchronous match "While you were away" on top
+ *                 lobby waiting room; the arena, filling the window on desktop during a round
+ *                 (newest 3 event lines, cards via ./ArenaCards: own with taps, or for out players
+ *                 and spectators the top 4 or one followed player, D24); above it ./ArenaNotice
+ *                 (final placement, cut, final's fresh start, round recap, quiet hours, waiting
+ *                 for host); names link to profiles with Discord steps (../components/StepBadges);
+ *                 ./MatchCancelled (D17); async matches show "While you were away" on top
  *                 (./AwaySummary, 01 §11). Remounted per code.
  * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./ArenaCards,
  *                 ./ArenaNotice, ./AwaySummary, ./CurrentBall, ./HostLink, ./WaitingRoom,

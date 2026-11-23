@@ -3,26 +3,14 @@
  * @module server/test
  * @brief  The live frames give every screen exactly what a full state fetch gives (06 §8).
  *
- * Responsibility: three screens, a player, a spectator and the host, each load the match
- *                 once and then hold it only through the frames, applied with the protocol's own
- *                 rules the client uses (@sbr/contracts liveHeld: mergeAnswer, applyStep). After every step of a whole
- *                 royale (fast profile, host-started rounds: lobby, stages, rounds, cuts,
- *                 recaps, the final) and a whole classic match, the player tapping an open
- *                 number after each draw as a step of its own, each held view equals a fresh
- *                 full fetch for that viewer; the only exception is the player list's live points,
- *                 seasons and shield, which a step sends only with the list (a join, the first
- *                 round, the finish) and the screens never read in between. A gap (a step that
- *                 does not fit) is fetched as the client does, and steps that come while that
- *                 fetch runs are the same gap, caught up after it; none is allowed. Nothing
- *                 depends on timing: the screens open on a settled match and every comparison
- *                 first waits until the server has sent all events as steps (App.live.settled). The room frames left out the summary and
- *                 the standings order in some steps (unchanged) and carried each in others, so a
- *                 part dropped while it changed fails the comparison. Every frame a player still in received
- *                 holds no other player's card, no draw order and no seed (a lobby event's seed
- *                 is stripped to zero bytes), and its own frames no watched cards (D24, 03 §11);
- *                 the spectator's own frames hold them. The comparison fetches of a screen
- *                 rotate over four sessions of its account, so they stay under the per-session
- *                 API limit (03 §13) however fast the match is played.
+ * Responsibility: three screens (player, spectator, host) load the match once, then hold it only
+ *                 through frames applied with the client's own rules. After every step of a whole
+ *                 royale and a classic match, each held view equals a fresh full fetch, except the
+ *                 player list's live points, seasons and shield (sent only with the list). A gap
+ *                 is fetched as the client does; steps arriving meanwhile are the same gap. Timing
+ *                 independent. A player's frames hold no other card, draw order or seed, no
+ *                 watched cards (D24, 03 §11); the spectator's do. Fetches rotate over 4 sessions
+ *                 (03 §13).
  * Depends on:     vitest, @sbr/application, @sbr/contracts, ./socketKit, ./session, ./harness
  * Spec:           docs/spec/06-realtime-architecture.md §4, §8; docs/spec/01-game-design.md §9, §13
  */

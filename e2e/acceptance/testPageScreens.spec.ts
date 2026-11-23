@@ -3,15 +3,14 @@
  * @module e2e/acceptance
  * @brief  The test page played end to end, with its screenshots (QUICKTEST-GUIDE, -2).
  *
- * Responsibility: "Play a test match", royale "In 1 minute", host draws, 7 bots, playing
- *                 along (short royale rounds): Create opens the console tab and turns this tab
- *                 into the normal player route; waiting room with the start countdown, start,
- *                 taps, cut, pause with recap ended by "Start next round now" from the console
- *                 tab, result; classic, timed draws, "Now": countdown, taps, result; "Check a
- *                 game by seed" with seed spring-garden, classicSeasons then royale; the
- *                 console's Start match during maintenance. Saves test-match-*, seed-check-*
- *                 and console-maintenance-start-* at both sizes in both themes. Every match is
- *                 aborted if it has not ended. Runs only with SBR_ACCEPTANCE=1.
+ * Responsibility: "Play a test match", royale "In 1 minute", host draws, 7 bots, playing along
+ *                 (short royale rounds): Create opens the console tab and turns this tab into the
+ *                 player route; waiting room, start countdown, taps, cut, pause with recap ended by
+ *                 "Start next round now" from the console tab, result; classic with timed draws,
+ *                 "Now"; "Check a game by seed" with seed spring-garden, classicSeasons then
+ *                 royale; the console's Start match during maintenance. Saves test-match-*,
+ *                 seed-check-*, console-maintenance-start-* at both sizes in both themes. Matches
+ *                 aborted if not ended. SBR_ACCEPTANCE=1 only.
  * Depends on:     @playwright/test, ../devStack, ../realGame, ../screens, ./liveSnap
  * Spec:           docs/spec/01-game-design.md §7 (D20, D21), §7.6 (D16, D22), §13
  */

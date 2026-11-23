@@ -3,27 +3,14 @@
  * @module server
  * @brief  Operator commands run inside the app image: migrate, create the first admin, check the keys.
  *
- * Responsibility: `reset-2fa --name <display name>` clears an admin's two-factor sign-in (D60).
- *                 `create-super --email <e-mail> --name <display name>` asks for the password
- *                 (not echoed on a terminal, else read from standard input), checks the password
- *                 rules and creates an account with roles super_admin and organizer (every host
- *                 permission); until the admin app's bootstrap page exists (WP-19) this makes the
- *                 first admin (`sbr admin create-super`); standalone only, a website install
- *                 refuses it (website admins are game admins, D41). The password is never printed or
- *                 logged. `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
- *                 with SBR_SEED_KEY (exit 1 when it fails); the backup drill runs it on the
- *                 restored copy (`sbr restore --drill`). `check-recovery-code --name <display name>`
- *                 checks a code read from standard input against that account's unused stored
- *                 recovery codes under SBR_RECOVERY_KEY, read only (the rehearsal's restore
- *                 drill, ops/test/real-site-drill.sh; exit 1 when none matches). `migrate` applies the migrations to
- *                 DATABASE_URL as the schema's owner and grants the app role its rights (./db/roles);
- *                 the stack's one-shot `migrate` service runs it before the app starts.
- *                 Exit 0 on success; a non-zero exit stops the app from starting.
- *                 `loadcheck preflight|accounts|cleanup` serves `sbr loadcheck` (12 §5): why it
- *                 must not run now (exit 3 with the reason), the temporary accounts with their
- *                 session cookies as JSON on standard output (--players N --spectators M), and
- *                 the cleanup that aborts their open match, removes them and verifies (exit 1
- *                 when anything is left).
+ * Responsibility: `reset-2fa --name` clears an admin's two-factor (D60). `create-super --email
+ *                 --name` reads the password (no echo, else stdin), makes a super_admin+organizer
+ *                 account, never prints it; standalone only, website installs refuse (D41).
+ *                 `check-seed-key` opens a stored v2 sealed seed; `check-recovery-code --name`
+ *                 checks a stdin code against unused recovery codes (read only; exit 1 on none).
+ *                 `migrate` applies migrations as schema owner, grants the app role (./db/roles);
+ *                 non-zero exit blocks start. `loadcheck preflight|accounts|cleanup` serves
+ *                 `sbr loadcheck` (12 §5).
  * Depends on:     ./config/env, ./config/seedKey, ./config/maintenance, ./db/pool,
  *                 ./db/migrator, ./db/roles, ./auth/accounts, ./auth/password,
  *                 ./auth/sessionPlugin, ./loadcheck/accounts, ./match/runtime,

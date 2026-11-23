@@ -3,17 +3,14 @@
  * @module server/http
  * @brief  Builds the Fastify instance of the server with every plugin and route wired.
  *
- * Responsibility: wire logging, security headers, problem-details, health, metrics, the
- *                 built client (image) or the placeholder page (development), sessions and
- *                 sign-in (local accounts, or in website mode the website's proxy headers, D37,
- *                 and its account-changes feed, ../website/accountFeed, polled from main),
- *                 the live match engine and the game's routes (./gameRoutes: matches, Verify,
- *                 boards and profiles, the admin area; in development the demo league and the
- *                 time travel on the time-travel clock), with the admin area's settings loaded
- *                 and the built-in presets seeded at start (../admin/settings, ../admin/presets), onto a fresh Fastify instance, under the base
- *                 path and behind the trusted proxies; first of all, refuse a seed key that does
- *                 not open the stored match secrets. The caller owns the lifecycle (listen,
- *                 scheduler, close, pool).
+ * Responsibility: onto a fresh Fastify instance, under the base path and behind the trusted
+ *                 proxies, wire logging, security headers, problem-details, health, metrics, the
+ *                 built client (image) or placeholder page (development), sessions and sign-in
+ *                 (local accounts, or in website mode the website's proxy headers, D37, and its
+ *                 account feed, ../website/accountFeed, polled from main), the match engine and the
+ *                 game's routes (./gameRoutes), with admin settings loaded and built-in presets
+ *                 seeded at start. First of all, refuse a seed key that does not open the stored
+ *                 match secrets. The caller owns the lifecycle (listen, scheduler, close, pool).
  * Depends on:     fastify, @fastify/rate-limit, prom-client (indirectly), ../db/pool,
  *                 ../admin/presets, ../admin/settings, @seasonal/kit/server (SessionEnds), ../auth/sessionPlugin,
  *                 ../website/accountFeed, ../config/env, ../config/features,

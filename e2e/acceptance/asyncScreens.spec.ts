@@ -3,15 +3,14 @@
  * @module e2e/acceptance
  * @brief  An asynchronous royale as the owner tries it, with its screenshots (WP-14, D31).
  *
- * Responsibility: a running asynchronous royale (a dev player and bots): the player's screen
- *                 without speed window or speed bar and with "In progress" (async-player-*);
- *                 the console with minutes and "Jump ahead" (async-console-jump-*); a day later,
- *                 the player's "While you were away" (async-away-summary-*). An asynchronous
- *                 lobby with one player, a day later: the cancelled-match page with "Too few
- *                 players joined within 24 hours" (async-lobby-cancelled-*). An asynchronous
- *                 lobby says when it starts or closes, in the waiting room and the console
- *                 (async-lobby-closes-*, D34). Desktop and phone, both themes. Every match is
- *                 aborted afterwards. Runs only with SBR_ACCEPTANCE=1.
+ * Responsibility: a running asynchronous royale (dev player and bots): the player screen without
+ *                 speed window or bar and with "In progress" (async-player-*); the console with
+ *                 minutes and "Jump ahead" (async-console-jump-*); a day later "While you were
+ *                 away" (async-away-summary-*). An async lobby with one player a day later: the
+ *                 cancelled page "Too few players joined within 24 hours"
+ *                 (async-lobby-cancelled-*). An async lobby says when it starts or closes, in
+ *                 waiting room and console (async-lobby-closes-*, D34). Desktop and phone, both
+ *                 themes. Matches aborted afterwards. SBR_ACCEPTANCE=1 only.
  * Depends on:     @playwright/test, ../realGame, ../screens
  * Spec:           docs/spec/01-game-design.md §7.6 (D31, D33, D34), §11
  */

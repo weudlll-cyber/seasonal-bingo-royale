@@ -3,19 +3,14 @@
  * @module web/game
  * @brief  A live match on screen: the server's view, kept current over the WebSocket.
  *
- * Responsibility: load GET /matches/:code/state, then keep it current from the match room's
- *                 steps (./matchRoom: each step applied without a request); a gap fetches only the
- *                 events after the seq already held (`since`) and appends them; only a (re)connect
- *                 reloads everything, so nothing is lost or doubled (06 §4, §5, §8). A delta without the player list
- *                 keeps the one held. Record changes (status, start time, draw control) arrive as
- *                 `match`; once an announced start time has passed, the summary is fetched once
- *                 more (D16: it changes by the clock alone). Fetches never overlap. The view has
- *                 the Quick Test's shape, so the screens fold it with the same logic. A watching
- *                 screen (a player out or a spectator, D24) names the player it follows and the
- *                 cards it holds; the watched card layouts it receives go into the held round
- *                 start, so the fold shows their marks; a watched player's taps fetch at once
- *                 ("1 to go" comes from the server). The cut facts, like the player list, are
- *                 kept when a delta leaves them out.
+ * Responsibility: load GET /matches/:code/state, then keep it current from the match room's steps
+ *                 (./matchRoom), no request per step; a gap fetches only the events after the held
+ *                 seq (`since`); only a (re)connect reloads all, so nothing is lost or doubled (06
+ *                 §4, §5, §8). Facts a delta omits stay held. Record changes arrive as `match`;
+ *                 once an announced start time has passed the summary is fetched once more (D16).
+ *                 Fetches never overlap. A watching screen (out player or spectator, D24) names
+ *                 the followed player; watched layouts go into the held round start, and a watched
+ *                 player's taps fetch at once.
  * Depends on:     react, @sbr/contracts (mergeAnswer), ../shell/http, ./liveTypes (its types,
  *                 re-exported), ./liveView (the watch query), ./matchRoom (the WebSocket room)
  * Used by:        ./MatchScreen, ../host/HostConsole, ./HostLink, ./Lobby, ./MatchCancelled,

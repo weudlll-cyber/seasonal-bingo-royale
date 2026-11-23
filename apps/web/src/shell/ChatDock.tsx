@@ -4,15 +4,13 @@
  * @brief  The website's chat beside the game in website mode (07 §6): a Chat button and its panel.
  *
  * Responsibility: only when the server names the website's chat (`chat` in the session answer,
- *                 website mode) and only on the lobby, a match screen (player, out player,
- *                 spectator) and the host console: "Chat" in the top bar opens the panel, a side
- *                 panel on wide screens and a drawer on phones that one tap closes (its Close
- *                 button or the dimmed page behind it). Whether it is open is remembered per
- *                 browser (localStorage, every access in try/catch). The frame of the website's
- *                 embed page (`<path>?room=<room>&theme=<light|dark>` on the site's origin) is
- *                 the kit's WebsiteChatFrame (sandboxed, K17; strict-origin referrer; it follows
- *                 the game's theme, <html data-theme>); it is created the first time the panel
- *                 opens and kept while it is closed. Standalone: no button, no frame, no request.
+ *                 website mode) and only on the lobby, match screens and host console: "Chat" in
+ *                 the top bar opens a side panel (wide) or a drawer (phone) that one tap closes.
+ *                 Open state is remembered per browser (localStorage, every access in try/catch).
+ *                 The frame is the kit's WebsiteChatFrame of the site's embed page
+ *                 (`<path>?room=<room>&theme=<light|dark>`; sandboxed, K17; strict-origin
+ *                 referrer; follows <html data-theme>), created on first open and kept while
+ *                 closed. Standalone: no button, no frame, no request.
  * Depends on:     react, @seasonal/kit/react (WebsiteChatFrame), ./router (types), ./session,
  *                 ./chat.css
  * Used by:        ./AppShell

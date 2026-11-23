@@ -3,18 +3,14 @@
  * @module server/http
  * @brief  GET <base>api/public/open-rounds: the open sign-ups the hosts marked for the website (D50).
  *
- * Responsibility: public, no login, rate-limited per address: version 1 of the contract shared
- *                 with the website (@sbr/contracts openRoundsAnswer, docs/OPEN-ROUNDS.md). The
- *                 query is Bingo's: the matches whose sign-up is open now (in the lobby, not
- *                 started, the asynchronous lobby window not closed) with "Show on the Seasonal
- *                 Entertainment website" on, never a test match (the fast test profile) or one
- *                 with bots, as many as "Screens and texts" allows; id, title, kind, start,
- *                 sign-up close, player counts and the join URL (the lobby page on the endpoint's
- *                 own origin). No personal data. The page is the kit's `openRoundsPage`
- *                 (@seasonal/kit/server, since v0.11.0): the website's checks applied here, a
- *                 title cut to 80 never through an emoji, at most 20 rounds whatever the setting,
- *                 a round it leaves out logged with its id; its Cache-Control (max-age=30). In
- *                 standalone installs the option does not exist: the list is empty.
+ * Responsibility: public, no login, rate-limited per address: version 1 of the contract shared with
+ *                 the website (@sbr/contracts openRoundsAnswer, docs/OPEN-ROUNDS.md). The query is
+ *                 Bingo's: matches whose sign-up is open now (lobby, not started, async window
+ *                 open) with "Show on the Seasonal Entertainment website" on, never a test match
+ *                 (fast test profile) or one with bots, as many as "Screens and texts" allows; no
+ *                 personal data; the join URL is the lobby page. The page is the kit's
+ *                 `openRoundsPage` (@seasonal/kit/server, v0.11.0): title cut to 80 not through an
+ *                 emoji, at most 20 rounds, max-age=30. Standalone: the list is empty.
  * Depends on:     fastify, @seasonal/kit/server (openRoundsPage), ../../db/pool
  * Used by:        ../app
  * Spec:           docs/OPEN-ROUNDS.md; docs/spec/07-integration-architecture.md §7

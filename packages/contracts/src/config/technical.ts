@@ -3,15 +3,14 @@
  * @module contracts/config
  * @brief  The Technical section: session lengths, sign-in and reset limits, socket caps.
  *
- * Responsibility: the `technical` settings document (admin-area §4 "Technical", §8 (c), (e),
- *                 (p)): how long player and admin sessions last (idle and at most), how long a
- *                 password reset link is valid, the application rate limits per window (sign-in
- *                 per account and address and per address, registration, the API, guest
- *                 sessions, reset requests, second-step codes; the windows stay fixed) and the
- *                 socket caps per address and per session; their hard bounds (admin-values.md
- *                 part C, proposal min and max), names, what each does with a warning on every
- *                 value, today's defaults and `technicalSettingsOf`, the stored document over the
- *                 defaults the server gives (the socket caps' first default is the environment).
+ * Responsibility: the `technical` settings document (admin-area §4 "Technical", §8 (c), (e), (p)):
+ *                 session lengths (idle and at most) for players and admins, password reset link
+ *                 validity, the application rate limits per window (sign-in per account and address
+ *                 and per address, registration, API, guest sessions, reset requests, second-step
+ *                 codes; the windows stay fixed) and the socket caps per address and per session;
+ *                 their hard bounds (admin-values.md part C), names, effects with a warning on
+ *                 every value, defaults and `technicalSettingsOf`, the stored document over the
+ *                 defaults (the socket caps' first default is the environment).
  * Depends on:     zod, ./presetCatalogue (types)
  * Used by:        ../index; apps/server (sessions, rate limits, sockets, admin Technical)
  * Spec:           docs/concepts/admin-area.md §4, §8 (c), (e), (p), §9 piece 7

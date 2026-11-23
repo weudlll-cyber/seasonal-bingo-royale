@@ -3,15 +3,14 @@
  * @module server/test
  * @brief  The game's route file in a real nginx and a real Caddy: whose cookies reach whom.
  *
- * Responsibility: the route files ops/lib/websiteRoute.sh writes (nginx and own-Caddy mode,
- *                 the same functions the installer calls; only the upstream addresses point at
- *                 this test's stand-ins) run in nginx and Caddy containers. A stand-in website
- *                 answers the authorize request and records the Cookie it got; a stand-in game
- *                 app records the Cookie of each request and accepts the WebSocket upgrade.
- *                 The website's session cookie (`__Host-se.sid`, `se.sid` without Secure) goes
- *                 to the website's authorize request only, never to the game (HTTP, the sign-in
- *                 route, the WebSocket upgrade); the game's own cookies still reach it, the
- *                 sign-in route still carries the website's answer, the upgrade still answers 101.
+ * Responsibility: the route files ops/lib/websiteRoute.sh writes (nginx and own-Caddy mode, the
+ *                 installer's own functions; only upstreams are stand-ins) run in nginx and Caddy
+ *                 containers. A stand-in website answers the authorize request and records the
+ *                 Cookie it got; a stand-in game app records each request's Cookie and accepts the
+ *                 WebSocket upgrade. The website's session cookie (`__Host-se.sid`, `se.sid`
+ *                 without Secure) goes to the website's authorize request only, never to the game
+ *                 (HTTP, sign-in route, WebSocket upgrade); the game's own cookies still reach it,
+ *                 the upgrade answers 101.
  * Depends on:     vitest, testcontainers, node:http, node:child_process, ops/lib/websiteRoute.sh
  * Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
  */

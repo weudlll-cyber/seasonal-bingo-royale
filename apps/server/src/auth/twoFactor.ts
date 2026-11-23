@@ -3,17 +3,14 @@
  * @module server/auth
  * @brief  Admin two-factor sign-in (TOTP) of standalone installs (D60): enrol, confirm, verify, reset.
  *
- * Responsibility: `enrol`: a new secret for the account (replacing an unconfirmed one), sealed
- *                 with the install's secret key bound to the account (../match/codec
- *                 encryptSeed), and the link and QR code for the authenticator. `confirm`: the
- *                 first code makes the factor live and returns ten single-use recovery codes
- *                 (the kit's 'hex' codes; only their HMAC under the install's recovery key is
- *                 stored, K20). `verify`: a code (never one at or before the last step used) or
- *                 an unused recovery code, stored keyed or as the plain SHA-256 of before (K27:
- *                 those keep working until used). Each success marks the session's second
- *                 step done (sessions.last_2fa_at). `recoveryCodeStored`: the same lookup, read
- *                 only (the restore drill's check). `resetTwoFactor`: removes factor and codes
- *                 of an account by display name and ends its sessions (sbr admin reset-2fa).
+ * Responsibility: `enrol`: a new secret, sealed with the install key bound to the account
+ *                 (../match/codec). `confirm`: the first code makes the factor live and returns ten
+ *                 single-use recovery codes (only their HMAC under the install's recovery key is
+ *                 stored, K20). `verify`: a code (never a step at or before the last used) or an
+ *                 unused recovery code, stored keyed or as the old plain SHA-256 (K27: works until
+ *                 used); success marks the session's second step done (sessions.last_2fa_at).
+ *                 `recoveryCodeStored`: read-only. `resetTwoFactor`: removes factor and codes, ends
+ *                 sessions (sbr admin reset-2fa).
  * Depends on:     qrcode, @seasonal/kit/server (TOTP, recovery codes), ../db/pool, ../match/codec,
  *                 ./sessions
  * Used by:        ../http/routes/twoFactor, ../http/routes/auth (status), ../cli

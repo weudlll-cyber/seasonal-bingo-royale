@@ -3,16 +3,14 @@
  * @module e2e/acceptance
  * @brief  The website-mode sweep (measurement only): a screen at ten window sizes, light and dark, chat closed and open, with axe.
  *
- * Responsibility: the baseline for the docked layout (kit K18, docs/concepts/kit-adoption.md
- *                 §5 B7). `sweep` measures one screen of the game inside the website stand-in
- *                 (../websiteStack) at the ten sizes of the night of 2026-11-23 (six desktop,
- *                 four phone) with the root font at 16 px, in both themes, with the website's
- *                 chat closed and open (the dock beside the match): the fit probe (./fitProbe),
- *                 the round screens' key boxes (./fitMeasure) and axe (WCAG 2 A and AA rules)
- *                 on the game's own page, the chat frame left out (the website's page). One
- *                 JSON line per measurement to reports/logs/<tag>-website-sweep.jsonl; no
- *                 screenshots. The helpers sign a stand-in website member in through the
- *                 website's proxy and post with the page's CSRF token under /games/bingo/.
+ * Responsibility: the baseline for the docked layout (kit K18, docs/concepts/kit-adoption.md §5
+ *                 B7). `sweep` measures one game screen inside the website stand-in
+ *                 (../websiteStack) at the ten sizes of the night of 2026-11-23 (six desktop, four
+ *                 phone), root font 16 px, both themes, chat closed and open (dock beside the
+ *                 match): fit probe (./fitProbe), round screens' key boxes (./fitMeasure) and axe
+ *                 (WCAG 2 A and AA) on the game's own page, chat frame left out. One JSON line per
+ *                 measurement to reports/logs/<tag>-website-sweep.jsonl; no screenshots. The
+ *                 helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
  * Used by:        ./fitAudit.spec

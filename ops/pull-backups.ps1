@@ -2,15 +2,14 @@
 # @module ops
 # @brief  Copies the server's encrypted backups to this Windows PC (scp over SSH).
 #
-# Responsibility: run on the operator's own computer: fetch every backup file of one
-#                 environment that is not here yet from /var/backups/sbr/<env>/ on the
-#                 server into a local folder (default: Documents\sbr-backups\<env>). Each
-#                 file is copied as <name>.part, its size compared with the server's, and
-#                 only then renamed, so an interrupted copy never looks like a backup. No
-#                 backup on the server yet is a plain message, not an error. The files stay
-#                 age-encrypted; only the operator's age key opens them. Needs the OpenSSH
-#                 client that ships with Windows 10/11 and an SSH key the server accepts for
-#                 a user in the group sbr-backup (no root login needed).
+# Responsibility: run on the operator's own computer: fetch every backup file of one environment
+#                 that is not here yet from /var/backups/sbr/<env>/ into a local folder (default:
+#                 Documents\sbr-backups\<env>). Each file is copied as <name>.part, its size
+#                 compared with the server's, and only then renamed, so an interrupted copy never
+#                 looks like a backup. No backup on the server yet is a plain message, not an error.
+#                 Files stay age-encrypted; only the operator's age key opens them. Needs the
+#                 Windows OpenSSH client and an SSH key the server accepts for a user in group
+#                 sbr-backup (no root login).
 # Spec:           docs/spec/09-deployment-architecture.md section 6, section 9; docs/operator-guide.md
 #
 # Usage:  powershell -ExecutionPolicy Bypass -File ops\pull-backups.ps1 -Server backup@203.0.113.10 [-Environment prod] [-Target D:\backups]

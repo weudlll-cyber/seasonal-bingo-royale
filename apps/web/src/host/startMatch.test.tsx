@@ -4,16 +4,14 @@
  * @module web/host
  * @brief  "Start a match": three steps from a preset, speed in words, inside the preset.
  *
- * Responsibility: the page shows the game types, the presets of the chosen type (an
- *                 asynchronous preset under the royale only; one preset as a single line) and
- *                 this match's choices: the title with the server's length limit, only the
- *                 starts the preset allows (a set time with its automatic start off unless
- *                 ticked, D16), players inside the preset's range, speed in words with what it
- *                 means, and under "More choices" the 15 s round pause (D21) within the server's
- *                 range; "Open the lobby" sends the preset and the speed, never an interval or
- *                 prizes; an asynchronous preset sends its mode and the time zone, no quiet
- *                 hours. The summary line names the choices. A late second answer of the presets
- *                 (strict mode) keeps the Organizer's choices.
+ * Responsibility: pins the start page: game types and presets of the chosen type (async preset
+ *                 under the royale only; one preset as a single line), this match's choices (title
+ *                 with the server's limit, only the starts the preset allows, auto start off
+ *                 unless ticked D16, players in the preset's range, speed in words, the 15 s round
+ *                 pause D21 under "More choices"); "Open the lobby" sends preset and speed, never
+ *                 interval or prizes; async sends mode and time zone, no quiet hours. The summary
+ *                 line names the choices. A late second presets answer (strict mode) keeps the
+ *                 Organizer's choices.
  * Depends on:     @testing-library/react, ../test/matchFixture, ./StartMatch, ./startForm
  * Spec:           docs/concepts/admin-area.md §3, §8 (g), (h), §9 piece 4; 01 §7.6 (D16, D21)
  */

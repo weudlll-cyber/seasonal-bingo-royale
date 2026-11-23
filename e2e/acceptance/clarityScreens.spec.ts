@@ -4,17 +4,13 @@
  * @brief  PLAYER-CLARITY played as the owner does, with its screenshots (D23, D24).
  *
  * Responsibility: royale with 10 bots and timed draws, the owner playing along in a player tab
- *                 beside the console tab: (A) tapping every number, to the result: the player
- *                 screen, the console, the specials, patterns this round, a shield save, the final's
- *                 notice and grouped standings; (B) never tapping (missed numbers left open), so the
- *                 owner is out in cut 1: the top 4 still in, "1 to go", following one player and
- *                 the line when that player goes out (the short fast rules); (C) a classic match.
- *                 The host starts each royale round from the console (D14). (D) CLARITY-FIXES:
- *                 the seasons line, the host link in a new tab (D25), the owner out before the
- *                 final, standings rows apart, the full card's owner 1st on the placement
- *                 (fixes-* at 1536×730 and on a phone). Saves clarity-*, watch-*
- *                 at 1536×730, 1920×950 and on a phone in both themes. Every match is aborted if it
- *                 has not ended. Runs only with SBR_ACCEPTANCE=1.
+ *                 beside the console tab: (A) tapping every number to the result (player screen,
+ *                 console, specials, a shield save, final notice); (B) never tapping, so the owner
+ *                 is out in cut 1 (top 4, "1 to go", following one player); (C) a classic match;
+ *                 (D) CLARITY-FIXES (seasons line, host link in a new tab D25, owner out before the
+ *                 final, standings rows apart, owner 1st). The host starts each royale round from
+ *                 the console (D14). Saves clarity-*, watch-*, fixes-*, both themes; matches
+ *                 aborted if not ended. SBR_ACCEPTANCE=1 only.
  * Depends on:     @playwright/test, ../realGame, ../layoutChecks, ./screenPlay
  * Spec:           docs/spec/01-game-design.md §7.2, §7.5, §8.2, §13 (D23, D24)
  */

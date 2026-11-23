@@ -6,15 +6,17 @@ Pieces: 0 open sign-ups capped at 20, 1 H3 header comments, 2 T4 eliminated-cann
 
 ### Done
 
-- **Piece 0, open sign-ups capped at 20** (branch `fix/open-rounds-cap`, owner decision of 2026-11-23): `MAX_OPEN_ROUNDS` (new export, `packages/contracts/src/http/openRounds.ts:19`) is the answer's cap and the end of the setting's range (`packages/contracts/src/config/screens.ts:39`, was 1–100); the admin description says the website shows at most 20. The test failed first (the export did not exist; 21 was accepted), passes now; contracts tests 41/41, typecheck passes. Nothing stored or seeded was above 20: the dev database's `screens` document (version 3) holds 20, no fixture names the setting. For an install that did store more than 20, `screenSettingsOf` would read every screen value at its default until saved (the same rule as for any out-of-range value); none exists, and the production install is not made yet. Docs: admin-values.md (range, line references), kit-adoption.md §8, BACKLOG part two (OPEN-ROUNDS-CAP).
+- **Piece 0, open sign-ups capped at 20** (branch `fix/open-rounds-cap`, owner decision of 2026-11-23): `MAX_OPEN_ROUNDS` (new export, `packages/contracts/src/http/openRounds.ts:19`) is the answer's cap and the end of the setting's range (`packages/contracts/src/config/screens.ts:39`, was 1–100); the admin description says the website shows at most 20. The test failed first (the export did not exist; 21 was accepted), passes now; contracts tests 41/41, typecheck passes. Nothing stored or seeded was above 20: the dev database's `screens` document (version 3) holds 20, no fixture names the setting. For an install that did store more than 20, `screenSettingsOf` would read every screen value at its default until saved (the same rule as for any out-of-range value); none exists, and the production install is not made yet. Docs: admin-values.md (range, line references), kit-adoption.md §8, BACKLOG part two (OPEN-ROUNDS-CAP). **Merged** as `bc76aba` (PR #69, CI green on `8d43847`); master CI 45284095834 green on `bc76aba`. The branch is deleted.
+
+- **Piece 1, H3 header comments** (branch `chore/h3-headers`): 124 files had a Responsibility block over 8 lines (the audit counted 34 in November; the worst list in the task was stale, `cli.ts` 21, `fitAudit.spec.ts` 21 and `liveSteps.integration.test.ts` 20 were as long as `website-vps.sh` 29). All are 8 lines or fewer now, 1395 → 980 block lines; the five worst: `ops/test/website-vps.sh` 29 → 8, `apps/server/src/cli.ts` 21 → 8, `e2e/acceptance/fitAudit.spec.ts` 21 → 8, `apps/server/test/liveSteps.integration.test.ts` 20 → 8, `ops/test/real-site.sh` 20 → 8. Five helpers rewrote the blocks in parallel; a checker compared every file with master with the block removed: 124 of 124 identical outside it, every block 8 lines or fewer, no line over 100 characters. Lint and format check pass. Master's CI on piece 0's merge commit (`bc76aba`) was green (run 45284095834). Small details that went (all also visible in the code or the cited docs): `website.sh` the Docker network choice and the `sbr status` list, `config.sh` the list of secrets, `websiteRoute.sh` the identity header list and cookie names, `website-vps.sh` the individual checks, `drawRun.mjs` its sampling details, `liveHeld.ts` the `applyStep` field list. `cli.ts` kept `loadcheck`.
 
 ### Running
 
-- Piece 0: CI on the PR.
+- Piece 1: CI on the PR.
 
 ### Open
 
-- Pieces 1–5.
+- Pieces 2–5.
 
 ### Needs the owner's word
 

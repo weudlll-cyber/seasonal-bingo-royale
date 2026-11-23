@@ -3,18 +3,14 @@
  * @module web
  * @brief  The final placement: the owner's place stated big, a podium for 1–3, then the list.
  *
- * Responsibility: "You finished #9 of 20" for the owner, places 1–3 as a podium in season
- *                 colours, then places from 4 as ranked rows (the top rows, 20 unless changed in "Screens and texts", plus the owner's own
- *                 row): royale shows points and seasons, eliminated players dimmed with
- *                 "out" below a divider, ranked by when they went out, each with the cut and
- *                 the points at that moment (01 §7.5, D23); classic
- *                 types rank by prizes (01 §3a.2), so a row lists the prizes won. One line
- *                 states how places are decided. Names link to profiles when the screen
- *                 passes `profileHref` (the live match screen). The frame is the kit's
- *                 `ResultFrame` as a panel inside the screen (`panel={{ level: 3 }}`, since
- *                 v0.11.0): the heading, the own place and the rule its head, the podium its
- *                 placings, the ranked rows what follows; ./results.css gives it Bingo's one-panel
- *                 look (the kit's frames.css is not loaded).
+ * Responsibility: "You finished #9 of 20" for the owner, places 1-3 as a podium in season colours,
+ *                 then ranked rows from place 4 (top 20 unless changed in "Screens and texts",
+ *                 plus the owner's row): royale shows points and seasons, eliminated dimmed with
+ *                 "out" below a divider, ranked by when they went out, with the cut and points
+ *                 then (01 §7.5, D23); classic ranks by prizes (01 §3a.2). One line states how
+ *                 places are decided. Names link to profiles when `profileHref` is passed. Frame:
+ *                 the kit's `ResultFrame` as a panel (`panel={{ level: 3 }}`, since v0.11.0);
+ *                 ./results.css gives Bingo's one-panel look (the kit's frames.css is not loaded).
  * Depends on:     react, @seasonal/kit/react (ResultFrame), ./Podium, ./RankRow, ./Playback
  *                 (props), ../game/labels, ../playback, ../shell/session (useScreens), ../types,
  *                 ./results.css

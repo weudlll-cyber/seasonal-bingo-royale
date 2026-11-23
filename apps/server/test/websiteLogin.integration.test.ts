@@ -3,17 +3,14 @@
  * @module server/test
  * @brief  Website mode: players sign in only through the website's proxy headers (D37).
  *
- * Responsibility: a server in website mode under /games/bingo/ (production settings, the test
- *                 runner's address as the trusted proxy): GET /games/bingo/auth/website with the
- *                 four headers from the trusted peer creates the account (no password, no
- *                 e-mail), maps "may start games" to hosting, mirrors the e-mail verification, starts a
- *                 game session and redirects to `next` (a foreign `next` goes to the base path);
- *                 a later sign-in follows a new name and recomputes the roles; another user
- *                 with the same name gets a suffix; a suspended account is refused. Forged
- *                 headers sign nobody in: from an untrusted peer, on another route, or on a
- *                 server in local mode (404 there). Registration, password sign-in and the dev
- *                 sign-in answer 404 in website mode. A guest's and a member's session cookie
- *                 lasts as long as the session: 7 days in website mode, 30 standalone.
+ * Responsibility: a server in website mode under /games/bingo/ (production settings). Pins: GET
+ *                 /games/bingo/auth/website with the four headers from the trusted peer creates the
+ *                 account (no password or e-mail), maps "may start games" to hosting, starts a
+ *                 session, redirects to `next` (a foreign `next` goes to the base path); a later
+ *                 sign-in follows a new name and roles; a duplicate name gets a suffix; a suspended
+ *                 account is refused. Forged headers sign nobody in (untrusted peer, other route,
+ *                 local mode). Registration, password and dev sign-in answer 404. Cookie lifetime =
+ *                 session: 7 days in website mode, 30 standalone.
  * Depends on:     vitest, ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/03-security-architecture.md §2.2
  */

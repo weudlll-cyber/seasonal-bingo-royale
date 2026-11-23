@@ -3,15 +3,13 @@
  * @module e2e
  * @brief  The Presets: change "Time between numbers", a new match plays it, the History says so.
  *
- * Responsibility: the admin (development account `dev-admin`) opens Presets, picks the battle
- *                 royale, changes "Time between numbers" with a comment and saves; the host
- *                 then starts a match the old way (the host form, the interval left empty) and
- *                 the match runs on the new interval; the History shows the change in seconds.
- *                 The Presets page fits 1280×720 and a 390×844 phone at 100, 125 and 150 % (no
- *                 text below 14 px, nothing cut, covered or wider than the window,
- *                 ./acceptance/fitProbe). It changes a published preset of the whole server, so
- *                 it runs alone after the other specs of its browser (TIMING); the interval is
- *                 put back and the match aborted at the end, also on failure. Chromium saves
+ * Responsibility: the admin (dev account `dev-admin`) opens Presets, picks the battle royale,
+ *                 changes "Time between numbers" with a comment and saves; the host then starts a
+ *                 match the old way (interval empty) and it runs on the new interval; the History
+ *                 shows the change in seconds. The page fits 1280×720 and a 390×844 phone at 100,
+ *                 125 and 150 % (./acceptance/fitProbe). It changes a published preset of the whole
+ *                 server, so it runs alone after the other specs of its browser (TIMING); interval
+ *                 restored and match aborted at the end, also on failure. Chromium saves
  *                 admin-3-presets-*.
  * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §8 (b), §9 piece 3

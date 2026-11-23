@@ -3,18 +3,14 @@
  * @module server/view
  * @brief  The live frames of one step of a match: the room's once, each socket's own (06 §4, §8).
  *
- * Responsibility: from the match, its shared replay (./liveViews) and the seq the room last got,
- *                 the room frame: the new events with round starts stripped of cards and draw
- *                 order (./clientEvents liveEvent), the summary without `youHost`, the players
- *                 still in in the server's order, the recap of the pause or null, and the stage
- *                 baselines, cut facts and player list (no cards) only when the step changes
- *                 them — the same values a state fetch would carry (../http/routes/matchViews);
- *                 `leaveOutUnchanged` drops the summary and the order of the players still in
- *                 when they equal what the room last got.
- *                 Per socket: who the viewer plays as, their effect timeline after what this
- *                 socket already got, their own cards of the step's round starts, their
- *                 first-round card with the player list, and the watched cards when they watch
- *                 (a player out or a spectator, D24). Display data only; nothing secret.
+ * Responsibility: from the match, its shared replay (./liveViews), the room frame: new events with
+ *                 round starts stripped of cards and draw order, the summary without `youHost`, the
+ *                 players still in, the pause recap or null, and stage baselines, cut facts and
+ *                 player list (no cards) only when the step changes them — the same values a state
+ *                 fetch carries (../http/routes/matchViews); `leaveOutUnchanged` drops summary and
+ *                 order if unchanged. Per socket: who the viewer plays as, their effect timeline
+ *                 after what the socket got, their own round-start and first-round cards, watched
+ *                 cards (D24).
  * Depends on:     @sbr/application (types), @sbr/contracts (types), @sbr/domain (types),
  *                 ../http/routes/matchViews, ./clientEvents, ./clientView, ./liveViews (types),
  *                 ./watchView

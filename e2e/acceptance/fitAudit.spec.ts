@@ -3,27 +3,14 @@
  * @module e2e/acceptance
  * @brief  Fit audit (measurement only): every screen at seven window sizes and three font sizes.
  *
- * Responsibility: opens every screen a player, host or guest sees (the routes of
- *                 apps/web/src/shell/router.ts and the states of a real royale and classic match
- *                 with bots: lobby, waiting room, round, spectator with the top 4 and one followed
- *                 card, interlude, final results; the maintenance page; a website guest) and
- *                 measures each at 360×640 to 2560×1440 with the root font at 16, 20 and 24 px
- *                 (a larger browser font: every size is in rem) in the light theme (./fitProbe;
- *                 the round screens also with ../layoutChecks). Every measurement goes as one
- *                 JSON line to reports/logs/fit-<group>.jsonl; a combination with a finding is
- *                 saved light and dark as reports/screens/latest/fit-<screen>-<size>-<font>-*.jpg,
- *                 a passing one at 390×844 and 1920×1080 (16 px) light as the reference. The
- *                 spectator's card numbers are also compared at three floors (today, 14 px, 16 px)
- *                 injected as CSS from here (fit-cards-<size>-<floor>.jpg, fit-cards.jsonl).
- *                 Matches are aborted at the end; no account is created. Runs only with
- *                 SBR_ACCEPTANCE=1, Chromium, one worker (it switches maintenance on and off).
- *                 SBR_FIT_SIZES limits the sizes, SBR_FIT_TAG replaces the "fit" prefix of every
- *                 log and shot (the audit after the fixes: "fitafter"), SBR_FIT_DOM=1 saves each
- *                 screen's page to reports/logs/fit-dom/<screen>.html (to try style changes).
- *                 The website-mode sweep (./websiteSweep, the docked layout's baseline): every
- *                 match screen of a royale and a classic round inside the website stand-in at ten
- *                 sizes, light and dark, the chat closed and open, with axe; three stand-in
- *                 members (removed at the end), the matches aborted when still open.
+ * Responsibility: opens every screen a player, host or guest sees (the router's routes, states of a
+ *                 real royale and classic match with bots, maintenance page, website guest) and
+ *                 measures each at 360×640 to 2560×1440, root font 16/20/24 px, light theme
+ *                 (./fitProbe; round screens also ../layoutChecks); one JSON line each to
+ *                 reports/logs/fit-<group>.jsonl; findings saved light and dark to
+ *                 reports/screens/latest/, passing ones only as references. Matches aborted, no
+ *                 account created. SBR_ACCEPTANCE=1, Chromium, one worker (toggles maintenance).
+ *                 SBR_FIT_SIZES/_TAG/_DOM tune the run.
  * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../devStack,
  *                 ../websiteStack, ./fitMeasure, ./fitProbe, ./screenPlay, ./websiteSweep
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13

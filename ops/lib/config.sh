@@ -5,18 +5,12 @@
 #
 # Responsibility: read an earlier run's answers back from /etc/sbr/<env>.env so a re-run (also
 #                 --yes) keeps them; write that file (0600, single-quoted, atomic): secrets made
-#                 once (openssl rand), public URL (IPv6 in brackets), base path, trusted proxies
-#                 (install type plus --trusted-proxies), admin e-mail, optional SMTP, age key,
-#                 the sign-in mode (website installs: website, D37) with the website's mode,
-#                 route settings and the proxy secret (made once), the database roles' passwords
-#                 and URLs (owner for the migrations, app for the app; audit-3 S1), other
-#                 operator keys kept; set up those roles (apply_db_roles, ./db-roles.sql) and
-#                 convert an install made before them once (convert_db_roles); write
-#                 /etc/sbr/install.conf; copy compose files,
-#                 Caddyfile and the sbr CLI with its library to /opt/sbr (an update keeps the
-#                 previous ones for a rollback: save_stack, restore_stack); build the app image from
-#                 a git ref on the server (until a signed release image exists; fetch prunes)
-#                 unless that commit's image exists; drop app images older than the previous one.
+#                 once (openssl rand), public URL, trusted proxies, sign-in mode (website installs:
+#                 D37), route settings, proxy secret, database role passwords (audit-3 S1;
+#                 apply_db_roles, convert_db_roles for older installs); operator keys kept. Also
+#                 writes install.conf, copies compose files, Caddyfile and sbr CLI to /opt/sbr
+#                 (save_stack/restore_stack keep the previous for rollback), builds the app image
+#                 from a git ref unless that commit's exists, drops older images.
 # Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (update)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3

@@ -3,16 +3,14 @@
  * @module contracts/config
  * @brief  The values of a preset an admin may change, generated from the ruleset's schema.
  *
- * Responsibility: `presetFields(ruleset)` lists every value of that ruleset the admin area
- *                 offers (admin-area §4 "Presets"), grouped in tabs: its path, name, what
- *                 changing it does, unit, kind (number, yes/no, choice), min and max read from
- *                 RulesetSchema itself ("technical limit"), and a warning where one is needed.
- *                 Paths follow the ruleset as it is: the stages it has, each season's current
- *                 effect. Structure (effect types, the stage list, round-end kinds, patterns)
- *                 and values the game does not read (§8 (r): lobby.maxPlayers, openMsRealtime,
+ * Responsibility: `presetFields(ruleset)` lists every value of that ruleset the admin area offers
+ *                 (admin-area §4 "Presets") in tabs: path, name, effect, unit, kind, min and max
+ *                 read from RulesetSchema itself ("technical limit"), and a warning where needed.
+ *                 Paths follow the ruleset as it is. Structure (effect types, stages, patterns) and
+ *                 values the game does not read (§8 (r): lobby.maxPlayers, openMsRealtime,
  *                 startRule, lateJoin) are not offered. `readPath`/`writePath` read and set one;
- *                 `presetPathName` names one path for the History. The preset's part for the
- *                 Organizer (./organizer) gets its fields the same way, in the tab "organizer".
+ *                 `presetPathName` names a path for the History. The Organizer part (./organizer)
+ *                 is the tab "organizer".
  * Depends on:     zod, ./organizer, ./presetCatalogue, ./ruleset
  * Used by:        ../index; apps/server (admin presets), apps/web (types)
  * Spec:           docs/concepts/admin-area.md §4, §8 (j), (r), §9 pieces 3 and 4; admin-values.md

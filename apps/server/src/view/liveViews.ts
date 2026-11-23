@@ -3,18 +3,14 @@
  * @module server/view
  * @brief  One replay per live match, extended with new events, shared by every screen's fetch.
  *
- * Responsibility: keep per match a `LiveReplay` of all players (renamed events, status timelines,
- *                 stage baselines, first-round cards), extended only by events since the last
- *                 request; a fetch picks its viewer's slice instead of replaying the log (NIGHT-3
- *                 piece 5). Updates per match run one at a time outside the command queue, never
- *                 delaying draws or taps. A changed player list (lobby joins) rereads names and
- *                 rebuilds the replay. In a royale round pause the recap (./roundRecap, D20) is
- *                 built from the stored event times and own taps, once per round and event count:
- *                 the same for every screen, rebuilt from the log after a restart. Names are read
- *                 again after 30 s and at once after a deletion here, so a deleted account soon
- *                 shows as "deleted player …" (audit S10); a changed name rebuilds the replay. One instance
- *                 per server serves the state fetches and the live frames (../realtime/liveSteps);
- *                 the frames pass the events they already hold, so no read of the log is needed.
+ * Responsibility: keep per match a `LiveReplay` of all players, extended only by events since the
+ *                 last request; a fetch picks its viewer's slice instead of replaying the log
+ *                 (NIGHT-3 piece 5). Updates per match run one at a time outside the command queue.
+ *                 A changed player list rereads names and rebuilds the replay. In a royale pause
+ *                 the recap (./roundRecap, D20) is built once per round and event count, the same
+ *                 for every screen, rebuilt from the log after a restart. Names are reread after 30
+ *                 s and at once after a deletion ("deleted player …", audit S10). One instance
+ *                 serves fetches and live frames (../realtime/liveSteps).
  * Depends on:     @sbr/application (types), @sbr/contracts (types), ../db/pool, ../match/codec,
  *                 ./clientEvents, ./playerNames, ./roundRecap
  * Used by:        ../http/app, ../http/routes/matches, ../http/routes/matchViews,
