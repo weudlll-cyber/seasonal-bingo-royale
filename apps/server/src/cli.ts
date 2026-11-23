@@ -1,7 +1,7 @@
 /**
  * @file   apps/server/src/cli.ts
  * @module server
- * @brief  Operator commands run inside the app image: migrate, create the first admin, check the seed key.
+ * @brief  Operator commands run inside the app image: migrate, create the first admin, check the keys.
  *
  * Responsibility: `reset-2fa --name <display name>` clears an admin's two-factor sign-in (D60).
  *                 `create-super --email <e-mail> --name <display name>` asks for the password
@@ -12,7 +12,10 @@
  *                 refuses it (website admins are game admins, D41). The password is never printed or
  *                 logged. `check-seed-key` opens one stored version-2 sealed seed of DATABASE_URL
  *                 with SBR_SEED_KEY (exit 1 when it fails); the backup drill runs it on the
- *                 restored copy (`sbr restore --drill`). `migrate` applies the migrations to
+ *                 restored copy (`sbr restore --drill`). `check-recovery-code --name <display name>`
+ *                 checks a code read from standard input against that account's unused stored
+ *                 recovery codes under SBR_RECOVERY_KEY, read only (the rehearsal's restore
+ *                 drill, ops/test/real-site-drill.sh; exit 1 when none matches). `migrate` applies the migrations to
  *                 DATABASE_URL as the schema's owner and grants the app role its rights (./db/roles);
  *                 the stack's one-shot `migrate` service runs it before the app starts.
  *                 Exit 0 on success; a non-zero exit stops the app from starting.
@@ -26,7 +29,7 @@
  *                 ./auth/sessionPlugin, ./loadcheck/accounts, ./match/runtime,
  *                 ./match/sealedSeedCheck
  * Used by:        ops/sbr (docker compose exec app node dist/cli.js …), ops/lib/backup.sh (drill),
- *                 ops/compose.yml (the migrate service)
+ *                 ops/compose.yml (the migrate service), ops/test/real-site-drill.sh
  * Spec:           docs/spec/09-deployment-architecture.md §4–§6; docs/spec/03-security-architecture.md §2.1
  */
 import { createInterface } from 'node:readline';
@@ -35,10 +38,10 @@ import { Writable } from 'node:stream';
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
 import { cookieConfig } from './auth/sessionPlugin.js';
-import { resetTwoFactor } from './auth/twoFactor.js';
+import { recoveryCodeStored, resetTwoFactor } from './auth/twoFactor.js';
 import { loadEnv } from './config/env.js';
 import { maintenanceFlag } from './config/maintenance.js';
-import { seedKeyFrom } from './config/seedKey.js';
+import { recoveryKeyFrom, seedKeyFrom } from './config/seedKey.js';
 import { migrate } from './db/migrator.js';
 import { createPool } from './db/pool.js';
 import { grantAppRole } from './db/roles.js';
@@ -128,6 +131,32 @@ async function checkSeedKey(): Promise<number> {
   }
 }
 
+// `check-recovery-code --name <display name>`: the code (read like a password, never printed)
+// matches an unused stored recovery code of that account under SBR_RECOVERY_KEY; nothing is
+// used up. The rehearsal's restore drill runs it after a restore into a fresh install.
+async function checkRecoveryCode(args: readonly string[]): Promise<number> {
+  const name = flag(args, '--name');
+  if (name === null) {
+    console.error('usage: check-recovery-code --name <display name> (the code on standard input)');
+    return 2;
+  }
+  const env = loadEnv();
+  const code = await readSecret('Recovery code: ');
+  const pool = createPool(env.DATABASE_URL);
+  try {
+    if (!(await recoveryCodeStored(pool, recoveryKeyFrom(env), name, code))) {
+      console.error(
+        `The code matches no unused recovery code of ${name} under this install's key.`,
+      );
+      return 1;
+    }
+    console.log(`the recovery code matches an unused stored code of ${name}`);
+    return 0;
+  } finally {
+    await pool.end();
+  }
+}
+
 // The owner applies the migrations, then lets the app role read and write the tables.
 async function migrateAsOwner(): Promise<number> {
   const pool = createPool(loadEnv().DATABASE_URL);
@@ -212,6 +241,7 @@ const COMMANDS = new Map<string, (args: readonly string[]) => Promise<number>>([
   ['create-super', createSuper],
   ['reset-2fa', resetTwoFactorCommand],
   ['check-seed-key', checkSeedKey],
+  ['check-recovery-code', checkRecoveryCode],
 ]);
 
 const [command = '', ...rest] = process.argv.slice(2);
@@ -221,7 +251,7 @@ run.then(
   (code) => {
     if (code === -1) {
       console.error(
-        'commands: migrate | create-super --email <e-mail> --name <name> | reset-2fa --name <name> | check-seed-key | loadcheck …',
+        'commands: migrate | create-super --email <e-mail> --name <name> | reset-2fa --name <name> | check-seed-key | check-recovery-code --name <name> | loadcheck …',
       );
     }
     process.exit(code === -1 ? 2 : code);

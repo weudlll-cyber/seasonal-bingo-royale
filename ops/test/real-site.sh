@@ -14,16 +14,19 @@
 #                 the chat room, the right to start games and "Start a match" from a preset,
 #                 lock, unlock, delete, the website admin in the admin area) around the
 #                 website admin's steps (./real-site-admin.sh), and the website's own checks and
-#                 an unchanged website after the install, a re-run, `sbr update` and
-#                 `sbr uninstall`. Prints PASS/FAIL per check and the website SHA. Everything it
+#                 an unchanged website after the install, a re-run, `sbr update`, `sbr
+#                 rollback`, the update again with `sbr confirm` and `sbr uninstall`; then the
+#                 drill (./real-site-drill.sh; DRILL=0 skips it): the backup taken before the
+#                 uninstall restored into a fresh server with the website and the bingo
+#                 installed again. Prints PASS/FAIL per check and the website SHA. Everything it
 #                 made carries the harness's label and is removed at the end (KEEP=1 keeps it).
 #                 Not part of CI (Docker with privileged containers, about an hour per mode).
 #                 KEEP=1 leaves the server; RESUME=1 then reuses it and its website for a faster
 #                 try of the bingo part (a fresh run is the real rehearsal).
-# Depends on:     docker, git, ./real-site-bingo.sh (and what it uses)
+# Depends on:     docker, git, ./real-site-bingo.sh (and what it uses), ./real-site-drill.sh
 # Spec:           docs/operator-guide.md (rehearsal); docs/spec/09-deployment-architecture.md §3
 #
-# Usage: [KEEP=1] [RESUME=1] bash ops/test/real-site.sh nginx|caddy <website-ref>
+# Usage: [KEEP=1] [RESUME=1] [DRILL=0] bash ops/test/real-site.sh nginx|caddy <website-ref>
 set -euo pipefail
 
 MODE=${1:?nginx or caddy}
@@ -48,6 +51,8 @@ sed '$d' "$WEB/deploy/test/run.sh" >"$WEB/deploy/test/run-lib.sh"
 source "$WEB/deploy/test/run-lib.sh"
 # shellcheck source=ops/test/real-site-bingo.sh
 source "$SBR/ops/test/real-site-bingo.sh"
+# shellcheck source=ops/test/real-site-drill.sh
+source "$SBR/ops/test/real-site-drill.sh"
 # KEEP=1 keeps the browser state (screenshots of a failed phase) beside the containers.
 trap 'cleanup; rm -rf "$WEB"; [[ ${KEEP:-} == 1 ]] && say "browser state: $STATE" || rm -rf "$STATE"' EXIT
 FAILED=0
@@ -62,6 +67,14 @@ probe() { "$@" || FAILED=1; }
 website_install() {
   say "=== real website $WEB_SHA ($WEB_REF), mode $MODE"
   infrastructure
+  website_server
+}
+
+# A server with the website installed and checked (also the drill's fresh server). A FAIL of
+# an earlier step does not stop it; only its own checks do.
+website_server() {
+  local before=$FAILED
+  FAILED=0
   start_server 24.04
   [[ $MODE == caddy ]] || on_server /etc/seasonal-test/prepare-nginx.sh | tee -a "$RESULTS"
   # No calls, no www redirect, no backups: the website's own scenarios test those.
@@ -71,6 +84,7 @@ website_install() {
   website_checks
   # The website must work before anything of the bingo is installed.
   [[ $FAILED == 0 ]] || { say "STOP: the website's own checks failed before the bingo install"; exit 1; }
+  FAILED=$before
 }
 
 # The website's checks and an unchanged website after a bingo step.
@@ -116,13 +130,21 @@ main_rehearsal() {
   website_unchanged "by the re-run"
   say "--- sbr update"
   probe ok "sbr update master" on_server sbr --yes update master
+  # The operator guide's way back (§6 step 3), then the update again to confirm it.
+  say "--- sbr rollback"
+  probe ok "sbr rollback" on_server sbr --yes rollback
+  probe bingo_status
+  website_unchanged "by the rollback"
+  probe ok "sbr update master after the rollback" on_server sbr --yes update master
   probe ok "sbr confirm" on_server sbr --yes confirm
   probe bingo_status
   website_unchanged "by the update"
+  [[ ${DRILL:-1} == 0 ]] || probe drill_backup
   say "--- sbr uninstall"
   probe ok "sbr uninstall" on_server sbr --yes uninstall
   probe ok "the route file is gone" on_server test ! -e "$(route_file)"
   website_unchanged "by the uninstall"
+  [[ ${DRILL:-1} == 0 ]] || probe drill_restore
   say "website: $WEB_SHA ($WEB_REF); mode $MODE; results: $RESULTS"
   if [[ $FAILED == 1 ]]; then say "real-site rehearsal ($MODE): FAILED"; exit 1; fi
   say "real-site rehearsal ($MODE): all checks passed"
