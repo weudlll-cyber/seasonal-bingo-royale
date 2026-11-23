@@ -68,7 +68,7 @@ async function playThrough(page: Page): Promise<Seen> {
       if (draws % 8 === 0) await tapCurrent(page);
     }
   };
-  await until(page, page.getByTestId('final-placement'), step, 75);
+  await until(page, page.getByTestId('result'), step, 75);
   return seen;
 }
 

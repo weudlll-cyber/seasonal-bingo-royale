@@ -12,16 +12,17 @@
  *                 match.manage, D8); any other `t` answers UNKNOWN_INTENT. Host intents re-read
  *                 the session (../auth/sessions refreshSession): expired or revoked answers
  *                 UNAUTHORIZED (./gateway then closes the socket), a lost match.manage FORBIDDEN.
- * Depends on:     zod, socket.io (types), @sbr/application, ../auth/rateLimit, ../auth/sessions,
+ * Depends on:     zod, socket.io (types), @sbr/application, @seasonal/kit/server (RateLimiter),
+ *                 ../auth/sessions,
  *                 ./gateway (types), ./matchCodes (types)
  * Used by:        ./gateway
  * Spec:           docs/spec/06-realtime-architecture.md §2.3, §4.1, §8; docs/spec/03-security-architecture.md §3, §13
  */
 import { MatchError, MatchNotFound } from '@sbr/application';
+import { RateLimiter } from '@seasonal/kit/server';
 import type { Socket } from 'socket.io';
 import { z } from 'zod';
 
-import { RateLimiter } from '../auth/rateLimit.js';
 import { refreshSession } from '../auth/sessions.js';
 import type { GatewayDeps, SocketData } from './gateway.js';
 import { liveOf } from './liveSteps.js';

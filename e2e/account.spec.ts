@@ -41,7 +41,7 @@ async function deleteAccount(page: Page, email: string): Promise<void> {
 
 async function signInWithForm(page: Page, email: string, password: string): Promise<void> {
   await openMenu(page);
-  await page.getByTestId('open-sign-in').click();
+  await page.getByTestId('sign-in').click();
   await page.getByTestId('sign-in-email').fill(email);
   await page.getByTestId('sign-in-password').fill(password);
   await page.getByTestId('sign-in-submit').click();
@@ -71,7 +71,7 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
   try {
     await page.goto('/#/');
     await openMenu(page);
-    await page.getByTestId('open-register').click();
+    await page.getByTestId('register').click();
     await page.getByTestId('register-displayName').fill(name);
     await page.getByTestId('register-email').fill(email);
     await page.getByTestId('register-password').fill(PASSWORD);
@@ -82,11 +82,11 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await openMenu(page);
     await page.getByTestId('sign-out').click();
     // Signed out (the menu closes on it), then the sign-in in the opened menu.
-    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await expect(page.getByTestId('sign-in')).toBeAttached();
     await openMenu(page);
-    await expect(page.getByTestId('open-sign-in')).toBeVisible();
+    await expect(page.getByTestId('sign-in')).toBeVisible();
     if (shots) {
-      await page.getByTestId('open-sign-in').click();
+      await page.getByTestId('sign-in').click();
       await captureLook(page, SHOTS_DIR, 'sign-in');
     }
     await signInWithForm(page, email, PASSWORD);
@@ -96,9 +96,9 @@ test('register, sign out, sign in, join a match, sign out', async ({ browser }, 
     await openMenu(page);
     await page.getByTestId('sign-out').click();
     // Signed out (the menu closes on it), then the sign-in in the opened menu.
-    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await expect(page.getByTestId('sign-in')).toBeAttached();
     await openMenu(page);
-    await expect(page.getByTestId('open-sign-in')).toBeVisible();
+    await expect(page.getByTestId('sign-in')).toBeVisible();
   } finally {
     await stopMatch(host, code);
     if (registered) await deleteAccount(page, email);
@@ -115,7 +115,7 @@ test('too many tries for one account get the rate-limit message', async ({ page 
   test.skip(info.project.name !== 'chromium', 'Chromium only: the login limit is per address');
   const email = `limit${Date.now().toString(36)}@example.com`;
   await page.goto('/#/');
-  await page.getByTestId('open-sign-in').click();
+  await page.getByTestId('sign-in').click();
   for (let i = 0; i < 6; i += 1) {
     await page.getByTestId('sign-in-email').fill(email);
     await page.getByTestId('sign-in-password').fill('not the password');

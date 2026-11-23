@@ -45,10 +45,10 @@ function storeOpen(open: boolean): void {
   }
 }
 
-// The top bar's height, for the side panel below it (shell.css keeps the bar sticky there).
+// The top bar's height, for the side panel below it (the kit's header is sticky there).
 function useBarHeight(active: boolean): void {
   useEffect(() => {
-    const bar = document.querySelector<HTMLElement>('.shell-bar');
+    const bar = document.querySelector<HTMLElement>('.sk-header');
     if (!active || bar === null) return;
     const set = (): void => {
       document.documentElement.style.setProperty(

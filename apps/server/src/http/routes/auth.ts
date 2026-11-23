@@ -14,7 +14,8 @@
  *                 registration are rate-limited per IP and per account+IP (03 §13). E-mail
  *                 verification and 2FA are behind feature flags that are off by default;
  *                 when verification is on, unverified accounts cannot sign in.
- * Depends on:     fastify, zod, @sbr/contracts (LIMITS), ../../auth/*, ../../db/pool, ../../config/features
+ * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
+ *                 SessionEnds), ../../auth/*, ../../db/pool, ../../config/features
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
@@ -31,13 +32,13 @@ import {
 } from '../../auth/accounts.js';
 import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
-import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule } from '../../auth/rateLimit.js';
 import {
   clearSessionCookie,
   setSessionCookie,
   type CookieConfig,
 } from '../../auth/sessionPlugin.js';
-import type { SessionEnds } from '@seasonal/kit/server';
+import { RateLimiter, type SessionEnds } from '@seasonal/kit/server';
 import {
   accountSessionIds,
   createSession,

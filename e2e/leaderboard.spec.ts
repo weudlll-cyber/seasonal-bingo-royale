@@ -72,7 +72,7 @@ test('a played match shows on the profile and gives no league points with bots',
     await fillAndStart(host, 20);
     await expect(host.getByTestId('end-actions')).toBeVisible({ timeout: TO_THE_END_MS });
     // The player's final placement: players link to their profiles, bots never.
-    const final = one.getByTestId('final-placement');
+    const final = one.getByTestId('result');
     await expect(final).toBeVisible({ timeout: 20_000 });
     await expect(final.getByRole('link', { name: 'dev-player-2' })).toHaveAttribute(
       'href',
@@ -145,9 +145,9 @@ test('the account page downloads the data and deletes the account', async ({ bro
     await page.getByTestId('delete-confirm').click();
     await expect(page.getByTestId('account-deleted')).toBeVisible();
     deleted = true;
-    await expect(page.getByTestId('open-sign-in')).toBeAttached();
+    await expect(page.getByTestId('sign-in')).toBeAttached();
     await openMenu(page);
-    await expect(page.getByTestId('open-sign-in')).toBeVisible();
+    await expect(page.getByTestId('sign-in')).toBeVisible();
     const again = await page.request.post('/api/v1/auth/login', {
       data: { email, password: PASSWORD },
     });

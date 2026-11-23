@@ -10,14 +10,16 @@
  *                 recovery codes shown once; POST /auth/2fa/verify { code } or { recoveryCode }.
  *                 Wrong answers 400 TWO_FACTOR_FAILED; codes limited per session (429). Any
  *                 other session gets 409 NO_TWO_FACTOR_STEP. CSRF applies (the session exists).
- * Depends on:     fastify, zod, ../../auth/twoFactor, ../../auth/rateLimit, ../../db/pool (types)
+ * Depends on:     fastify, zod, @seasonal/kit/server (RateLimiter), ../../auth/twoFactor,
+ *                 ../../auth/rateLimit (liveRule), ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/03-security-architecture.md §1, §13; docs/spec/05-api-design.md §2.1
  */
+import { RateLimiter } from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
-import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule } from '../../auth/rateLimit.js';
 import { confirm, enrol, twoFactorStep, verify, type TwoFactorKeys } from '../../auth/twoFactor.js';
 import type { DbPool } from '../../db/pool.js';
 import { liveLimits, type LiveTechnical } from '../../config/technical.js';

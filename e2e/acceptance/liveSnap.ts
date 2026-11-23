@@ -69,7 +69,7 @@ export async function liveSnap(page: Page): Promise<LiveSnap> {
       })),
       cutShown: q('[data-testid="cut-screen"]') !== null,
       overflowX: document.documentElement.scrollWidth > window.innerWidth,
-      finished: q('[data-testid="final-placement"]') !== null,
+      finished: q('[data-testid="result"]') !== null,
     };
   });
   return { ...raw, at: Date.now() };

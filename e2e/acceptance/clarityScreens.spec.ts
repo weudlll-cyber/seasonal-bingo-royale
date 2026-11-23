@@ -76,7 +76,7 @@ async function finalEnd(player: Page, step: () => Promise<void>): Promise<void> 
   await until(player, player.locator('[data-testid="draw-ticker"] > *:nth-child(4)'), step);
   await expect(player.getByTestId('standings')).toContainText('In the final');
   await shoot(player, 'clarity-final-standings', player.getByTestId('standings-panel'));
-  await until(player, player.getByTestId('final-placement'), step, 15);
+  await until(player, player.getByTestId('result'), step, 15);
 }
 
 test('B: royale, the owner never taps, is out in cut 1 and watches', async ({ browser }) => {
@@ -118,7 +118,7 @@ test('C: classic, the owner taps every number, to the result', async ({ browser 
     await until(player, player.locator('[data-testid="draw-ticker"] > *:nth-child(8)'), tap);
     await shoot(player, 'clarity-classic');
     await shoot(host, 'clarity-classic-console');
-    await until(player, player.getByTestId('final-placement'), tap, 15);
+    await until(player, player.getByTestId('result'), tap, 15);
   } finally {
     await stopMatch(host, code);
   }
@@ -161,7 +161,7 @@ test('D: the fixes: seasons line, host link tab, rows apart, the full card 1st',
       player.getByTestId('standings-panel'),
       FIXES_SIZES,
     );
-    await until(player, player.getByTestId('final-placement'), idle, 15);
+    await until(player, player.getByTestId('result'), idle, 15);
     // The round-end line names who filled the whole card; that player is 1st.
     await player.getByText(/^Whole match log/).click();
     const line = await player
@@ -170,12 +170,7 @@ test('D: the fixes: seasons line, host link tab, rows apart, the full card 1st',
       .innerText();
     const winner = line.replace(/^Round \d+ over — /, '').replace(/ filled the whole card$/, '');
     await expect(player.getByTestId('final-row-1')).toContainText(winner);
-    await shoot(
-      player,
-      'fixes-final-placement',
-      player.getByTestId('final-placement'),
-      FIXES_SIZES,
-    );
+    await shoot(player, 'fixes-final-placement', player.getByTestId('result'), FIXES_SIZES);
   } finally {
     await stopMatch(host, code);
   }

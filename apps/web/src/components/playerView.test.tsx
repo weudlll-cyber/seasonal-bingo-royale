@@ -228,7 +228,7 @@ describe('spectator view', () => {
     expect(screen.getByTestId('cut-screen').textContent).toContain("You're out in cut 1");
     expect(screen.getByTestId('spectator-note')).toBeTruthy();
     rerender(<Playback result={result} view={playbackAt(result, result.events.length)} />);
-    expect(screen.getByTestId('final-placement')).toBeTruthy();
+    expect(screen.getByTestId('result')).toBeTruthy();
     // Ranked rows: name, points, the collected season lit, "out", own row highlighted.
     const row = screen.getByTestId('standing-owner-01');
     expect(row.className).toBe('rank-row is-own is-out');

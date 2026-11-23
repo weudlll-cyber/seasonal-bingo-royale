@@ -3,24 +3,23 @@
  * @module web/account
  * @brief  How a visitor signs in: the game's own forms, or only the website login (D37).
  *
- * Responsibility: the top bar's buttons for a visitor who is not signed in: "Sign in" and
- *                 "Register" (local mode), or one "Sign in" that opens the website's login
- *                 through the server's <base>auth/website/login with this page as the return
- *                 path (website mode; after the login the sign-in route brings the visitor back).
- *                 In website mode the sign-in and register pages show that same link instead
- *                 of the forms; `useSignInToPlay` gives the same link to the screens that offer
+ * Responsibility: where the top bar's "Sign in" leads in website mode (`useWebsiteSignIn`):
+ *                 the website's login through the server's <base>auth/website/login with this
+ *                 page as the return path (after the login the sign-in route brings the visitor
+ *                 back); null in local mode, where the bar has "Sign in" and "Register" (the
+ *                 kit's header, ../shell/Header). In website mode the sign-in and register pages
+ *                 show that same link instead of the forms; `useSignInToPlay` gives the same link to the screens that offer
  *                 Join to a visitor without an account. `useWebsiteResign`: a game session that
  *                 ends under a signed-in page (an idle admin's) goes through the sign-in route
  *                 with this page as `next`, so the next action lands here signed in again. The
  *                 server says the mode (GET /session `authMode`, `signInPath`).
  * Depends on:     react, ../shell/http, ../shell/router, ../shell/session, ./SignIn, ./Register
- * Used by:        ../shell/AppShell, ../game/Lobby, ../game/WaitingRoom, ./AccountPage
+ * Used by:        ../shell/Header, ../shell/AppShell, ../game/Lobby, ../game/WaitingRoom, ./AccountPage
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/03-security-architecture.md §2.2
  */
 import { useEffect, type ReactElement } from 'react';
 
 import { onSessionLost } from '../shell/http.js';
-import { hrefOf } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
 import { Register } from './Register.js';
 import { SignIn } from './SignIn.js';
@@ -58,7 +57,7 @@ export function useWebsiteResign(): void {
 }
 
 // The website's sign-in route when the server runs in website mode, else null.
-function useWebsiteSignIn(): string | null {
+export function useWebsiteSignIn(): string | null {
   const session = useSession().session;
   if (session?.authMode !== 'website' || session.signInPath === undefined) return null;
   return websiteSignInHref(session.signInPath, window.location.hash);
@@ -69,31 +68,6 @@ function useWebsiteSignIn(): string | null {
 export function useSignInToPlay(): string | null {
   const website = useWebsiteSignIn();
   return useSession().session?.account == null ? website : null;
-}
-
-export function SignInLinks(): ReactElement {
-  const website = useWebsiteSignIn();
-  if (website !== null) {
-    return (
-      <a className="sbr-btn sbr-btn--primary" href={website} data-testid="open-sign-in">
-        Sign in
-      </a>
-    );
-  }
-  return (
-    <>
-      <a
-        className="sbr-btn sbr-btn--primary"
-        href={hrefOf({ name: 'signIn' })}
-        data-testid="open-sign-in"
-      >
-        Sign in
-      </a>
-      <a className="sbr-btn" href={hrefOf({ name: 'register' })} data-testid="open-register">
-        Register
-      </a>
-    </>
-  );
 }
 
 // The sign-in or register page: the forms, or in website mode the website's login.

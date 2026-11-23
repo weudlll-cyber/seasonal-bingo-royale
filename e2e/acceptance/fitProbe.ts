@@ -227,7 +227,7 @@ function wideBoxes(view: { width: number }): { sel: string; left: number; right:
 }
 
 function headerShare(height: number): number {
-  const bar = document.querySelector('.shell-bar');
+  const bar = document.querySelector('.sk-header');
   return bar === null ? 0 : Math.round((bar.getBoundingClientRect().height / height) * 100) / 100;
 }
 

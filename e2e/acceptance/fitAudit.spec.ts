@@ -352,8 +352,8 @@ test('fit: a royale from the lobby to the results', async ({ browser }) => {
     await measure(host, 'royale', 'interlude-console');
     await measure(watcher, 'royale', 'interlude-spectator');
     await playToEnd(host, player);
-    await expect(player.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
-    await expect(watcher.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
+    await expect(player.getByTestId('result')).toBeVisible({ timeout: 30_000 });
+    await expect(watcher.getByTestId('result')).toBeVisible({ timeout: 30_000 });
     await measure(player, 'royale', 'results-player');
     await measure(watcher, 'royale', 'results-spectator');
     await measure(host, 'royale', 'results-console');
@@ -541,8 +541,8 @@ async function webRoyale(host: Page, player: Page, watcher: Page): Promise<void>
   await sweep(host, 'interlude-console');
   await sweep(watcher, 'interlude-spectator');
   await playToEnd(host, player);
-  await expect(player.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
-  await expect(watcher.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
+  await expect(player.getByTestId('result')).toBeVisible({ timeout: 30_000 });
+  await expect(watcher.getByTestId('result')).toBeVisible({ timeout: 30_000 });
   await sweep(player, 'results-player');
   await sweep(watcher, 'results-spectator');
   await sweep(host, 'results-console');
