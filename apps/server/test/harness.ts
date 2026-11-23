@@ -27,7 +27,7 @@ export const SUITE_TIMEOUT_MS = 180_000;
 export const TEST_SEED_KEY = 'ab'.repeat(32);
 // The recovery codes' key (K20), apart from the seed key as in an install; not one byte
 // repeated, which the kit refuses as no secret.
-const TEST_RECOVERY_KEY = '0123456789abcdef'.repeat(4);
+export const TEST_RECOVERY_KEY = '0123456789abcdef'.repeat(4);
 
 export interface Harness {
   readonly container: StartedPostgreSqlContainer;
