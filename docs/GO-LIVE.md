@@ -98,15 +98,33 @@ The important line is **`checked through the website's proxy: … work`**.
 sudo sbr status
 ```
 
-Expected (the rehearsal checks these three lines):
+Expected, as on the rehearsal's server (the website's own Caddy there; with the website's nginx the `proxy:` line reads differently):
 
 ```
-SBR_STATUS_SAMPLE
+type:        website (environment prod)
+address:     https://<website domain>/games/bingo/
+image:       sbr-app:<id> (ref master)
+SERVICE    STATUS
+app        Up 2 minutes (healthy)
+postgres   Up 3 minutes (healthy)
+health:      ready
+last backup: none yet
+next backup: <tomorrow> 03:30:00 UTC
+maintenance: off
+sign-in:     website
+database:    the app as sbr_app, migrations as sbr_owner
+proxy:       the website's network seasonal-site_default (172.18.0.0/16)
+website:     authorize endpoint site:3800/api/games/bingo/authorize: 204
+website feed: following the website's account changes
 ```
+
+The rehearsal checks these three lines; they must be there:
 
 - `sign-in:     website`
-- the website's authorize endpoint answers `204`
-- `following the website's account changes`
+- `website:     authorize endpoint …: 204`
+- `website feed: following the website's account changes`
+
+`last backup: none yet` is right until the first backup (step 7.6, or the night at 03:30).
 
 ## 6. In the website's admin
 
