@@ -68,5 +68,5 @@ The checks before Bingo moves onto the VPS inside the website (owner decision of
 
 ## 9. Noticed, left alone
 
-- The guest and member cookie carries `Max-Age=2592000` (30 days) in website mode, where the server ends a session after 7 days (`apps/server/src/auth/sessions.ts`): the server decides; the cookie only outlives it.
+- The guest and member cookie carries `Max-Age=2592000` (30 days) in website mode, where the server ends a session after 7 days (`apps/server/src/auth/sessions.ts`): the server decides; the cookie only outlives it. **Fixed on branch `fix/session-cookie` (2026-11-23):** the cookie's `Max-Age` is the session's absolute length of the running mode, 7 days in website mode, 30 standalone (`apps/server/src/auth/sessionPlugin.ts` `setSessionCookie`).
 - osv-scanner warns that `ignoreUntil` is deprecated in favour of `effectiveUntil`; with no entry left this no longer applies.

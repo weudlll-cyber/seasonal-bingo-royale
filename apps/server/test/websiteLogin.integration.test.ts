@@ -12,10 +12,12 @@
  *                 with the same name gets a suffix; a suspended account is refused. Forged
  *                 headers sign nobody in: from an untrusted peer, on another route, or on a
  *                 server in local mode (404 there). Registration, password sign-in and the dev
- *                 sign-in answer 404 in website mode.
+ *                 sign-in answer 404 in website mode. A guest's and a member's session cookie
+ *                 lasts as long as the session: 7 days in website mode, 30 standalone.
  * Depends on:     vitest, ../src/index (types), ./harness, ./websiteHelpers
  * Spec:           docs/spec/07-integration-architecture.md §2.1, §2.3; docs/spec/03-security-architecture.md §2.2
  */
+import type { LightMyRequestResponse } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { App } from '../src/index.js';
@@ -208,5 +210,36 @@ describe('guest sessions (same lengths in every game, 2026-11-09)', () => {
 
   it('lasts 30 days standalone', async () => {
     expect(await guestDays(local, '/')).toBe(30);
+  });
+
+  // The session cookie's lifetime in days (its Max-Age), so the browser never keeps a cookie
+  // the server has already ended.
+  const cookieDays = (r: LightMyRequestResponse): number =>
+    Number(r.cookies.find((c) => c.name.endsWith('sbr_session'))?.maxAge) / 86_400;
+  const guestCookieDays = async (app: App, base: string): Promise<number> =>
+    cookieDays(
+      await app.fastify.inject({
+        method: 'POST',
+        url: `${base}api/v1/auth/guest`,
+        headers: { 'content-type': 'application/json' },
+        payload: '{}',
+      }),
+    );
+
+  it('keeps its cookie as long as the session: 7 days in website mode, 30 standalone', async () => {
+    expect(await guestCookieDays(harness.built, BASE)).toBe(7);
+    expect(await guestCookieDays(local, '/')).toBe(30);
+  });
+
+  it("gives a member's session from the website sign-in a cookie of 7 days", async () => {
+    const r = await signInAs({
+      id: '1091',
+      name: 'Cookie Member',
+      roles: 'member',
+      verified: 'true',
+      canHost: 'false',
+    });
+    expect(r.statusCode).toBe(302);
+    expect(cookieDays(r)).toBe(7);
   });
 });
