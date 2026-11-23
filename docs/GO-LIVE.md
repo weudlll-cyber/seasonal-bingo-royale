@@ -8,7 +8,7 @@ Every step below was rehearsed on 2026-11-23 against the real website installer,
 
 ## 1. Before the move
 
-1. **Versions.** Rehearsed together: website master `e71c654` (or newer), Bingo master (the commit named in docs/BACKLOG.md part two, "REHEARSAL-FINAL"). Use master of both.
+1. **Versions.** Rehearsed together: website master `e71c654` and Bingo master `3c0888d` (2026-11-23, both modes, with a backup restored into a fresh server; docs/BACKLOG.md part two, "REHEARSAL-FINAL" and "PROD-AUDIT"). Use master of both; a newer one is fine when its CI is green.
 2. **DNS.** Nothing new. Bingo uses the website's domain. Check that `https://<website domain>/` opens in the browser.
 3. **The age key.** You need the public key (`age1…`) for Bingo's backups. It is the line `Public key: age1…` of your `sbr-age-key.txt` (operator guide §1 step 3). The private key stays on your PC.
 4. **A backup of the website.** On the VPS:
