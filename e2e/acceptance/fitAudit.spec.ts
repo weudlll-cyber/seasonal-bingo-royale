@@ -20,8 +20,12 @@
  *                 SBR_FIT_SIZES limits the sizes, SBR_FIT_TAG replaces the "fit" prefix of every
  *                 log and shot (the audit after the fixes: "fitafter"), SBR_FIT_DOM=1 saves each
  *                 screen's page to reports/logs/fit-dom/<screen>.html (to try style changes).
- * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../layoutChecks,
- *                 ../devStack, ../websiteStack, ./fitProbe, ./screenPlay
+ *                 The website-mode sweep (./websiteSweep, the docked layout's baseline): every
+ *                 match screen of a royale and a classic round inside the website stand-in at ten
+ *                 sizes, light and dark, the chat closed and open, with axe; three stand-in
+ *                 members (removed at the end), the matches aborted when still open.
+ * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../devStack,
+ *                 ../websiteStack, ./fitMeasure, ./fitProbe, ./screenPlay, ./websiteSweep
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
  */
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -30,7 +34,6 @@ import path from 'node:path';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 
 import { REPO_ROOT } from '../devStack.js';
-import { layoutReport } from '../layoutChecks.js';
 import {
   closeContexts,
   drawNext,
@@ -43,9 +46,11 @@ import {
   type Who,
 } from '../realGame.js';
 import { setTheme, SHOTS_DIR } from '../screens.js';
-import { startWebsiteStack } from '../websiteStack.js';
+import { startWebsiteStack, type WebsiteStack } from '../websiteStack.js';
+import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe, type Probe } from './fitProbe.js';
 import { tapCurrent } from './screenPlay.js';
+import { BASE, freshSweep, signInMember, sweep, webPost } from './websiteSweep.js';
 
 test.use({ trace: 'off' });
 test.describe.configure({ mode: 'default' });
@@ -72,25 +77,6 @@ const DOM = path.join(REPO_ROOT, 'reports', 'logs', 'fit-dom');
 const FONTS = [16, 20, 24] as const;
 const REFERENCE = new Set(['390x844', '1920x1080']);
 
-// What a round screen must show in one window (playerFit's rule): ball, numbers, the cards.
-const ROUND_KEYS: Readonly<Record<string, Record<string, string>>> = {
-  console: {
-    ball: '[data-testid="current-ball"]',
-    'drawn numbers': '[data-testid="draw-ticker"]',
-    'Draw next': '[data-testid="host-draw-next"]',
-  },
-  player: {
-    ball: '[data-testid="current-ball"]',
-    'drawn numbers': '[data-testid="draw-ticker"]',
-    card: '.own-cards .live-card',
-  },
-  spectator: {
-    ball: '[data-testid="current-ball"]',
-    'drawn numbers': '[data-testid="draw-ticker"]',
-    'watched cards': '[data-testid="watch-cards"]',
-  },
-};
-
 interface Sample extends Probe {
   readonly screen: string;
   readonly size: string;
@@ -112,19 +98,6 @@ async function newPage(browser: Browser, who: Who | null): Promise<Page> {
   return page;
 }
 
-async function atSize(page: Page, w: number, h: number, font: number): Promise<void> {
-  await page.setViewportSize({ width: w, height: h });
-  await page.evaluate((px) => {
-    document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-    window.scrollTo(0, 0);
-  }, font);
-  // Two frames and a moment for observers (the standings' own-row strip) to follow.
-  await page.evaluate(
-    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
-  );
-  await page.waitForTimeout(250);
-}
-
 const hasToggle = async (page: Page) => (await page.getByTestId('theme-toggle').count()) > 0;
 
 async function shoot(page: Page, name: string, dark: boolean): Promise<void> {
@@ -137,31 +110,6 @@ async function shoot(page: Page, name: string, dark: boolean): Promise<void> {
   });
   await page.screenshot({ path: file('dark'), quality: 70, type: 'jpeg' });
   await setTheme(page, 'light');
-}
-
-function findingsOf(p: Probe, round: boolean, keysOut: readonly string[]): number {
-  return (
-    p.smallText.length +
-    p.smallCells.length +
-    p.cut.length +
-    p.outside.length +
-    p.overlaps.length +
-    (p.hScroll ? 1 : 0) +
-    (round && p.pageScroll ? 1 : 0) +
-    keysOut.length
-  );
-}
-
-async function keysOutOf(page: Page, keys: Record<string, string> | undefined): Promise<string[]> {
-  if (keys === undefined) return [];
-  const report = await layoutReport(page, keys);
-  const { width, height } = report.view;
-  return Object.entries(report.boxes)
-    .filter(
-      ([, b]) =>
-        b === null || b.top < 0 || b.left < 0 || b.bottom > height + 0.5 || b.right > width + 0.5,
-    )
-    .map(([name]) => name);
 }
 
 // Every size and font of one screen; `kind` names a round screen's key boxes.
@@ -490,6 +438,147 @@ test('fit: a guest in website mode', async ({ browser }) => {
     });
     await measure(guest, 'website', 'website-guest');
   } finally {
+    await stack.close();
+  }
+});
+
+// The website-mode sweep (./websiteSweep): the stand-in website's members, a context each.
+const MEMBERS = [
+  ['9101', 'Sweep_Host'],
+  ['9102', 'Sweep_Player'],
+  ['9103', 'Sweep_Watcher'],
+] as const;
+
+async function memberPage(browser: Browser, stack: WebsiteStack, id: string): Promise<Page> {
+  const context = await browser.newContext({ bypassCSP: true, colorScheme: 'light' });
+  const page = await context.newPage();
+  await signInMember(page, stack, id);
+  return page;
+}
+
+// A host-drawn match made by the host member; its console opens. Returns its code.
+async function webMatch(
+  host: Page,
+  stack: WebsiteStack,
+  game: 'royale' | 'classic',
+): Promise<string> {
+  const created = await webPost(host, stack, '/matches', {
+    title: `Sweep ${game}`,
+    gameType: game,
+    drawMode: 'host',
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
+    countsForLeaderboard: false,
+    maxPlayers: 20,
+    startRule: { kind: 'host' },
+    ...(game === 'royale'
+      ? { roundPause: { kind: 'host' }, testProfile: 'fast' }
+      : { prizes: ['rows-1'] }),
+  });
+  expect(created.status(), 'create the match').toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  await host.goto(`${stack.origin}${BASE}/#/host/${code}`);
+  await expect(host.getByTestId('host-console')).toBeVisible({ timeout: 30_000 });
+  return code;
+}
+
+// Teardown: an open or running match is aborted, never deleted.
+async function webStop(host: Page, stack: WebsiteStack, code: string): Promise<void> {
+  const match = await host.request.get(`${stack.origin}${BASE}/api/v1/matches/${code}`);
+  const { status } = (await match.json()) as { status: string };
+  if (status !== 'lobby' && status !== 'running') return;
+  const r = await webPost(host, stack, `/matches/${code}/abort`, { reason: 'test cleanup' });
+  expect(r.status(), `abort ${code}`).toBeLessThan(300);
+}
+
+// Bots through the API (the console's bot field is a development tool, left out of the
+// production client the website stand-in serves), then the console's own start.
+async function webFillAndStart(
+  host: Page,
+  stack: WebsiteStack,
+  code: string,
+  upTo: number,
+): Promise<void> {
+  expect((await webPost(host, stack, `/matches/${code}/bots`, { upTo })).status()).toBeLessThan(
+    300,
+  );
+  await expect(host.getByTestId('host-players').locator('li')).toHaveCount(upTo, {
+    timeout: 30_000,
+  });
+  await host.getByTestId('start-match').click();
+  await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'running', {
+    timeout: 30_000,
+  });
+}
+
+// The player joins, the lobby side is swept, the bots fill the match and it starts.
+async function webLobby(
+  host: Page,
+  player: Page,
+  stack: WebsiteStack,
+  code: string,
+): Promise<void> {
+  await sweep(host, 'console-lobby');
+  expect((await webPost(player, stack, `/matches/${code}/join`, {})).status()).toBe(204);
+  await player.goto(`${stack.origin}${BASE}/#/match/${code}`);
+  await expect(player.getByTestId('waiting-room')).toBeVisible({ timeout: 30_000 });
+  await sweep(player, 'waiting-room');
+  await webFillAndStart(host, stack, code, 20);
+  await expect(player.getByTestId('arena')).toBeVisible({ timeout: 30_000 });
+  for (let i = 0; i < 3; i += 1) {
+    await drawNext(host);
+    await tapCurrent(player).catch(() => undefined);
+  }
+}
+
+// A round, the interlude after it and the results, for console, player and a spectator.
+async function webRoyale(host: Page, player: Page, watcher: Page): Promise<void> {
+  await sweep(host, 'console-round', 'console');
+  await sweep(player, 'player-royale', 'player');
+  await sweep(watcher, 'spectator-4', 'spectator');
+  await drawUntil(host, player, '[data-testid="host-status"][data-status="finished"]');
+  await expect(player.getByTestId('interlude')).toBeVisible({ timeout: 20_000 });
+  await sweep(player, 'interlude-player');
+  await sweep(host, 'interlude-console');
+  await sweep(watcher, 'interlude-spectator');
+  await playToEnd(host, player);
+  await expect(player.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
+  await expect(watcher.getByTestId('final-placement')).toBeVisible({ timeout: 30_000 });
+  await sweep(player, 'results-player');
+  await sweep(watcher, 'results-spectator');
+  await sweep(host, 'results-console');
+}
+
+test('fit: every match screen in website mode (the docked layout baseline, K18)', async ({
+  browser,
+}) => {
+  test.setTimeout(240 * 60_000);
+  freshSweep();
+  const stack = await startWebsiteStack();
+  for (const [id, name] of MEMBERS) {
+    stack.users.set(id, { id, name, roles: 'member', verified: true, canHost: true });
+  }
+  const host = await memberPage(browser, stack, '9101');
+  const codes: string[] = [];
+  try {
+    codes.push(await webMatch(host, stack, 'royale'));
+    const player = await memberPage(browser, stack, '9102');
+    await webLobby(host, player, stack, codes[0] ?? '');
+    const watcher = await memberPage(browser, stack, '9103');
+    await watcher.goto(`${stack.origin}${BASE}/#/match/${codes[0] ?? ''}`);
+    await expect(watcher.getByTestId('watch-cards')).toBeVisible({ timeout: 30_000 });
+    await webRoyale(host, player, watcher);
+    codes.push(await webMatch(host, stack, 'classic'));
+    expect((await webPost(player, stack, `/matches/${codes[1] ?? ''}/join`, {})).status()).toBe(
+      204,
+    );
+    await webFillAndStart(host, stack, codes[1] ?? '', 11);
+    await player.goto(`${stack.origin}${BASE}/#/match/${codes[1] ?? ''}`);
+    await expect(player.getByTestId('arena')).toBeVisible({ timeout: 30_000 });
+    for (let i = 0; i < 3; i += 1) await drawNext(host);
+    await sweep(player, 'player-classic', 'player');
+  } finally {
+    for (const code of codes) await webStop(host, stack, code);
+    await stack.removeAccounts();
     await stack.close();
   }
 });

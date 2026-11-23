@@ -328,3 +328,32 @@ In `reports/screens/latest/` (not committed), from a royale played with `e2e/acc
 - `fitfix-<screen>-<390x844|1280x720>-<light|dark>.jpg` for `lobby`, `player`, `spectator`, `interlude`, `results`, `leaderboard`;
 - `fitfix-menu-closed-390x844-<light|dark>.jpg` and `fitfix-menu-open-390x844-light.jpg`;
 - before: the `fit-*` shots of §3; after, per combination: `fitafter-*`.
+
+## 7. Website mode: the baseline for the docked layout (2026-11-23)
+
+Measurement only; nothing in the layout changed. The baseline for the docked layout (kit K18, docs/concepts/kit-adoption.md §5 "B7"), where the website's chat would sit beside the match instead of over it.
+
+**How:** `e2e/acceptance/fitAudit.spec.ts`, test "every match screen in website mode" (`SBR_ACCEPTANCE=1`, Chromium; `e2e/acceptance/websiteSweep.ts`). The production client inside the website stand-in (`e2e/websiteStack.ts`), three stand-in members: a host, a player, a spectator. A royale (fast rules, host draws, 20 players with bots) from the lobby to the results, and a classic round. Twelve screens: console-lobby, waiting-room, console-round, player-royale, spectator-4, interlude (player, console, spectator), results (player, spectator, console), player-classic. Ten sizes: 1280×720, 1366×768, 1536×768, 1440×900, 1900×860, 1920×1080, 375×667, 360×780, 390×844, 430×932. Root font 16 px, light and dark, the website's chat closed and open. Each combination: the fit probe of §1, the round screens' key boxes, and axe (WCAG 2.0 and 2.1, A and AA) on the game's page without the chat frame. 480 measurements, one JSON line each in `reports/logs/fit-website-sweep.jsonl` (not committed); no screenshots.
+
+**Chat closed:** no finding on any screen at any size by §1's rules. On the phones (375–430 px wide) every round screen (console, player, spectator, classic player) scrolls the page, as standalone does; the ball, the drawn numbers and the cards or Draw next stay inside the window (no key box out). Light and dark measure the same.
+
+**Chat open:** the panel lies over the match. At 1900×860 and 1920×1080 nothing is covered. At 1280–1536 px wide (and 1440×900) it covers game text on every screen. On the phones it covers most of the screen. Text covered (probe "overlap" items, light theme; dark within a few):
+
+| Screen              | 1280×720 | 1366×768 | 1536×768 | 1440×900 | 375×667 | 390×844 | 430×932 |
+| ------------------- | -------: | -------: | -------: | -------: | ------: | ------: | ------: |
+| console-lobby       |        1 |        1 |        0 |        0 |      13 |      15 |      16 |
+| waiting-room        |        0 |        0 |        0 |        0 |      10 |       9 |       9 |
+| console-round       |       40 |       43 |       43 |       55 |      18 |      21 |      29 |
+| player-royale       |       30 |       24 |       17 |       24 |      44 |      49 |      52 |
+| spectator-4         |       29 |       19 |       15 |       20 |      86 |      95 |      99 |
+| interlude-player    |        4 |       13 |       12 |       13 |      25 |      20 |      31 |
+| interlude-console   |       38 |       42 |       42 |       58 |      28 |      29 |      31 |
+| interlude-spectator |        9 |       11 |        7 |       10 |      15 |      54 |      78 |
+| results-player      |        6 |        7 |        7 |       11 |      21 |      34 |      42 |
+| results-spectator   |        8 |        9 |        9 |       12 |      26 |      39 |      47 |
+| results-console     |        7 |        5 |        0 |        3 |      25 |      37 |      48 |
+| player-classic      |       20 |       15 |       14 |       15 |      44 |      45 |      48 |
+
+What covers it: the chat frame (`iframe.chat-panel__frame`) and its close button (`chat-close`), for example the round's live badge, the player's status line and the seasons collected at 1280×720. The docked layout should leave the 1900 px and wider windows as they are and make room beside the match from 1280 px; on a phone the chat stays a sheet over the match (the docked layout's own decision).
+
+**axe:** one rule, `scrollable-region-focusable` (serious): a region that scrolls but cannot get keyboard focus, in 192 of the 480 measurements: the three results screens at every size, the three interludes at most sizes and the console's round at half of them (chat closed and open alike, both themes); the player's and spectator's round screens and the lobby side have none. The log keeps the rule and the number of elements, not which element; the next sweep should name it. No other WCAG A or AA rule fails on the game's pages.
