@@ -11,7 +11,8 @@
  *                 RESET_INVALID for an unknown, used or expired token; 400 PASSWORD_WEAK. Both
  *                 start no session and take JSON only (no CSRF token exists yet, 03 §8).
  * Depends on:     fastify, zod, ../../auth/passwordReset, ../../auth/mailer (types),
- *                 ../../auth/rateLimit, @seasonal/kit/server (SessionEnds, types), ../../db/pool (types)
+ *                 ../../auth/rateLimit (liveRule), @seasonal/kit/server (RateLimiter, SessionEnds),
+ *                 ../../db/pool (types)
  * Used by:        ../app
  * Spec:           docs/spec/03-security-architecture.md §1, §13; docs/spec/05-api-design.md §2.1
  */
@@ -20,8 +21,8 @@ import { z } from 'zod';
 
 import type { Mailer } from '../../auth/mailer.js';
 import { completeReset, requestReset } from '../../auth/passwordReset.js';
-import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
-import type { SessionEnds } from '@seasonal/kit/server';
+import { liveRule } from '../../auth/rateLimit.js';
+import { RateLimiter, type SessionEnds } from '@seasonal/kit/server';
 import type { DbPool } from '../../db/pool.js';
 import { liveLimits, type LiveTechnical } from '../../config/technical.js';
 

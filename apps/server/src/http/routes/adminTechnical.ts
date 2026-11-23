@@ -15,18 +15,20 @@
  *                 admin with a confirmed factor): passes the second step again for this session;
  *                 400 TWO_FACTOR_FAILED, limited per session like the sign-in step. Every change
  *                 is audited; the session plugin's limit and CSRF apply.
- * Depends on:     fastify, zod, @sbr/contracts, ../../admin/settings (types), ../../auth/rateLimit,
+ * Depends on:     fastify, zod, @sbr/contracts, @seasonal/kit/server (RateLimiter),
+ *                 ../../admin/settings (types), ../../auth/rateLimit (liveRule),
  *                 ../../auth/twoFactor, ../../config/technical, ../../db/pool (types),
  *                 ./adminFlatSettings
  * Used by:        ../gameRoutes
  * Spec:           docs/concepts/admin-area.md §4 (Technical), §7, §8 (c), (e), (f), §9 piece 7
  */
 import { TECHNICAL_CATALOGUE, technicalSettingsOf, TechnicalSettingsSchema } from '@sbr/contracts';
+import { RateLimiter } from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import type { SettingsStore } from '../../admin/settings.js';
-import { liveRule, RateLimiter } from '../../auth/rateLimit.js';
+import { liveRule } from '../../auth/rateLimit.js';
 import { verify, type TwoFactorKeys } from '../../auth/twoFactor.js';
 import { liveLimits, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
