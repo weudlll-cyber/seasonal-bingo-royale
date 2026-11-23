@@ -47,7 +47,7 @@ The game's database stores no real name, no address, no IP address and no paymen
 
 ## The server's log
 
-The game's server writes one line per request into its container log: the time, the method, the path, the answer's status, the request id and the IP address the request came from (in website mode the visitor's address as the website's proxy passes it on). A refused game connection is logged with its IP address too. The log holds no password, recovery code, session token or e-mail address: a failed e-mail is logged with its error code only (`apps/server/src/auth/mailer.ts`), a password-reset link's token is never sent to the server (it is in the part of the link after `#`). The log is rotated by size: at most 5 files of 20 MB per service (`ops/compose.yml`), so older lines go when newer ones fill it; `sbr uninstall` removes it with the containers. It is not part of a backup.
+The game's server writes one line per request into its container log: the time, the method, the path, the host name asked for, the answer's status and time, the request id and the IP address and port the request came from (in website mode the visitor's address as the website's proxy passes it on). A refused game connection is logged with its IP address too. The log holds no password, recovery code, session token or e-mail address: a failed e-mail is logged with its error code only (`apps/server/src/auth/mailer.ts`), a password-reset link's token is never sent to the server (it is in the part of the link after `#`). The log is rotated by size: at most 5 files of 20 MB per service (`ops/compose.yml`), so older lines go when newer ones fill it; `sbr uninstall` removes it with the containers. It is not part of a backup.
 
 ## Website mode, in short
 
