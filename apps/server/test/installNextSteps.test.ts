@@ -32,7 +32,9 @@ function nextSteps(type: 'standalone' | 'website'): string {
   return r.stdout + r.stderr;
 }
 
-describe("the installer's next steps", () => {
+// Each case starts Git Bash and sources four libraries: 0.3 s on an idle Windows machine, past
+// the 5 s default when the full verify runs its containers beside it.
+describe("the installer's next steps", { timeout: 30_000 }, () => {
   it('tells a standalone install to create its first admin', () => {
     expect(nextSteps('standalone')).toContain('sudo sbr admin create-super');
   });
