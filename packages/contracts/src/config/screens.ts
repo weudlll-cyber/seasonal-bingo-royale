@@ -9,15 +9,17 @@
  *                 and the maintenance state are asked for), which the server sends in the
  *                 session answer so they apply at the players' next page load, and the server's
  *                 list sizes (matches in the lobby, a leaderboard page and the rows around a
- *                 player, a profile's recent matches, the open sign-ups for the website); their
+ *                 player, a profile's recent matches, the open sign-ups for the website, at most the 20 the
+ *                 website takes); their
  *                 bounds (admin-values.md parts C and D), names, what each does, defaults
  *                 (today's values) and `screenSettingsOf`, the stored document over the defaults.
- * Depends on:     zod, ./presetCatalogue (types)
+ * Depends on:     zod, ../http/openRounds (MAX_OPEN_ROUNDS), ./presetCatalogue (types)
  * Used by:        ../index; apps/server (session answer, lists, admin Screens), apps/web
  * Spec:           docs/concepts/admin-area.md §4, §8 (i), §9 piece 6; admin-values.md C, D
  */
 import { z } from 'zod';
 
+import { MAX_OPEN_ROUNDS } from '../http/openRounds.js';
 import type { Entry } from './presetCatalogue.js';
 
 const count = (min: number, max: number) => z.number().int().min(min).max(max);
@@ -34,7 +36,7 @@ export const ScreenSettingsSchema = z.strictObject({
   leaderboardPage: count(10, 200),
   leaderboardAround: count(1, 25),
   profileRecentMatches: count(1, 50),
-  openRounds: count(1, 100),
+  openRounds: count(1, MAX_OPEN_ROUNDS),
 });
 export type ScreenSettings = z.infer<typeof ScreenSettingsSchema>;
 
@@ -137,7 +139,8 @@ export const SCREEN_CATALOGUE: Readonly<Record<keyof ScreenSettings, Entry>> = {
   },
   openRounds: {
     label: 'Open sign-ups for the website',
-    description: 'The most open sign-ups the website is sent. Applies at once.',
+    description:
+      'The most open sign-ups the website is sent; the website shows at most 20. Applies at once.',
     unit: 'sign-ups',
   },
 };

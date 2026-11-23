@@ -159,9 +159,11 @@ header at 800 px), light and dark.
   answers with the kit's `openRoundsPage` and `OPEN_ROUNDS_CACHE_CONTROL`: the website's checks
   applied before a round leaves the game (a title cut to 80 never through an emoji, UTC times,
   an https join URL on the game's origin, no closed sign-up), a round left out logged with its
-  id. The kit keeps at most 20 rounds; the setting "Open sign-ups for the website" still allows
-  1–100 (default 20, `packages/contracts/src/config/screens.ts:37`, `:53`), so 21–100 answer as
-  20, as Bingo's own contract already allowed no more (`packages/contracts/src/http/openRounds.ts:32`).
+  id. The kit keeps at most 20 rounds. The setting "Open sign-ups for the website" allowed 1–100
+  at first, so 21–100 answered as 20; by the owner's decision of 2026-11-23 it allows 1–20 (default
+  20), the range ending at the contract's cap (`MAX_OPEN_ROUNDS`,
+  `packages/contracts/src/http/openRounds.ts:19`; the setting `screens.ts:39`), and its
+  description says the website shows at most 20.
 
 - **R4, the final placement:** `apps/web/src/components/FinalPlacement.tsx` (134 → 167 lines,
   the ranked rows now their own `RankRows`) builds the kit's `ResultFrame` with
