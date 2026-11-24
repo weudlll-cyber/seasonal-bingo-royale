@@ -272,9 +272,17 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
       sql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
     },
     close: async () => {
+      const t0 = Date.now();
+      const exited = new Promise<void>((r) => server.child.once('exit', () => r()));
       server.child.kill();
+      void exited.then(() => console.log(`TMPLOG child exit +${String(Date.now() - t0)}ms`));
+      const t = setInterval(() => {
+        proxy.getConnections((_e, n) => console.log(`TMPLOG proxy connections: ${String(n)}`));
+      }, 5000);
       await new Promise<void>((resolve) =>
         proxy.close(() => {
+          clearInterval(t);
+          console.log(`TMPLOG proxy closed +${String(Date.now() - t0)}ms`);
           resolve();
         }),
       );

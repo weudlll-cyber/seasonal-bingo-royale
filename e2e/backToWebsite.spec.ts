@@ -51,8 +51,12 @@ test.beforeAll(async ({ browserName }) => {
 
 test.afterAll(async ({ browserName }) => {
   if (browserName !== 'chromium') return;
+  const t0 = Date.now();
+  console.log('TMPLOG afterAll start');
   await stack.removeAccounts();
+  console.log(`TMPLOG removeAccounts done +${String(Date.now() - t0)}ms`);
   await stack.close();
+  console.log(`TMPLOG close done +${String(Date.now() - t0)}ms`);
 });
 
 // A website member signed in to the game in this page (through the stand-in's proxy).
