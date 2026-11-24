@@ -4,22 +4,22 @@
  * @brief  One ranked row (rank, name, seasons, points, "out") and the group labels between rows.
  *
  * Responsibility: the row the standings and the final placement share: rank, name, the
- *                 four season icons with the collected ones lit (royale), the points or
+ *                 four season marks (./SeasonSet: earned icons, empty rings; royale), the points or
  *                 another note, the viewer's own row highlighted, an eliminated row dimmed
  *                 with "out"; the name as a profile link where the screen gives one, or a
  *                 name that can be selected (a watcher follows that player, D24), with the
  *                 player's Discord steps (./StepBadges); and the
  *                 group labels ("Still in", "Out of the match" after a divider).
- *                 Season icons have shapes and names, so colour never carries meaning alone.
- * Depends on:     react, ./SeasonIcon, ./StepBadges, ../types, ./results.css
+ *                 Season marks have shapes and names, so colour never carries meaning alone.
+ * Depends on:     react, ./SeasonSet, ./StepBadges, ../types, ./results.css
  * Used by:        ./Standings, ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7.5, §8.4, §13
  */
 import type { ReactElement } from 'react';
 
-import { SeasonIcon } from './SeasonIcon.js';
+import { SeasonSet } from './SeasonSet.js';
 import { NameSteps } from './StepBadges.js';
-import { SEASON_NAMES, type Season } from '../types.js';
+import type { Season } from '../types.js';
 import './results.css';
 
 // The profile link of a shown name, or null for a name without a profile (bots).
@@ -51,7 +51,7 @@ export function RankRow(props: RankRowProps): ReactElement {
     <li className={className} {...props.attrs}>
       <span className="rank-num">#{rank}</span>
       <RankName {...props} />
-      {seasons === null ? null : <SeasonSet seasons={seasons} />}
+      {seasons === null ? null : <SeasonSet seasons={seasons} className="rank-seasons" />}
       <span className="rank-note">{note}</span>
       {out && props.outNoted !== true ? <span className="rank-out">out</span> : null}
     </li>
@@ -74,16 +74,6 @@ function RankName({ name, href, own, onSelect }: RankRowProps): ReactElement {
       {href == null ? name : <a href={href}>{name}</a>}
       <NameSteps name={name} />
       {own ? <span className="sbr-visually-hidden"> (you)</span> : null}
-    </span>
-  );
-}
-
-function SeasonSet({ seasons }: { readonly seasons: readonly Season[] }): ReactElement {
-  return (
-    <span className="rank-seasons" aria-label={`${String(seasons.length)} of 4 seasons`}>
-      {SEASON_NAMES.map((s) => (
-        <SeasonIcon key={s} season={s} size="0.85rem" onColor dimmed={!seasons.includes(s)} />
-      ))}
     </span>
   );
 }

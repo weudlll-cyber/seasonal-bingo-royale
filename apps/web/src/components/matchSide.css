@@ -53,7 +53,7 @@
   white-space: nowrap;
 }
 
-.season-item img {
+.season-item [data-season] {
   margin-right: 0.2rem;
   vertical-align: -0.2em;
 }

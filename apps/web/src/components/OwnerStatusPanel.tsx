@@ -17,7 +17,7 @@
  */
 import { Fragment, type ReactElement, type ReactNode } from 'react';
 
-import { SeasonIcon } from './SeasonIcon.js';
+import { SEASON_MARK_SIZE, SeasonIcon } from './SeasonIcon.js';
 import {
   boostSentence,
   growthSentence,
@@ -145,7 +145,7 @@ function Seasons({
           <Fragment key={s}>
             {i > 0 ? ' · ' : ''}
             <span className="season-item">
-              <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
+              <SeasonIcon season={s} size={SEASON_MARK_SIZE} onColor earned={collected.has(s)} />
               {/* A collected season is ticked; an open one is its name alone. */}
               {seasonName(s)}
               {collected.has(s) ? ' ✓' : ''}

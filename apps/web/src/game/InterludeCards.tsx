@@ -7,10 +7,12 @@
  *                 with their points in the round; the biggest climber as a standings row
  *                 ("up from #6 to #2"); the cut — how many are out, up to eight names and
  *                 "and N more", the Winter shield's saves; Season Complete with the four
- *                 season icons and the fastest tapper; the round's facts. The viewer's own
- *                 name is highlighted. Texts come from ./labels; nothing is computed here.
+ *                 season marks (./SeasonSet) and the fastest tapper; the round's facts. The viewer's own
+ *                 name is highlighted. Texts come from ./labels; nothing is computed here. The
+ *                 recap's top three carry no seasons (the recap has points only), so its podium
+ *                 shows none.
  * Depends on:     react, @sbr/contracts (types), ../components/Podium, ../components/RankRow,
- *                 ../components/SeasonIcon, ../types, ./labels
+ *                 ../components/SeasonIcon, ../components/SeasonSet, ../types, ./labels
  * Used by:        ./Interlude
  * Spec:           docs/spec/01-game-design.md §7 (D20), §13
  */
@@ -20,6 +22,7 @@ import type { ReactElement } from 'react';
 import { Podium } from '../components/Podium.js';
 import { RankRow } from '../components/RankRow.js';
 import { SeasonIcon } from '../components/SeasonIcon.js';
+import { SeasonSet } from '../components/SeasonSet.js';
 import { SEASON_NAMES } from '../types.js';
 import {
   climberLine,
@@ -120,12 +123,7 @@ function SeasonsCard({ recap }: CardProps): ReactElement {
       {recap.seasonComplete === undefined ? null : (
         // One line however many completed them, the four season icons once.
         <p data-testid="recap-season-complete">
-          <span className="interlude-seasons" aria-hidden="true">
-            {SEASON_NAMES.map((s) => (
-              <SeasonIcon key={s} season={s} size="1.1rem" onColor />
-            ))}
-          </span>{' '}
-          {seasonCompleteLine(nameList(recap.seasonComplete))}
+          <SeasonSet seasons={SEASON_NAMES} /> {seasonCompleteLine(nameList(recap.seasonComplete))}
         </p>
       )}
       {fastest === undefined ? null : (

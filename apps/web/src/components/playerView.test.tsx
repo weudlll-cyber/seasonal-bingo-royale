@@ -237,7 +237,7 @@ describe('spectator view', () => {
     expect(
       within(row)
         .getAllByRole('img')
-        .filter((i) => i.style.opacity === '1'),
+        .filter((i) => i.getAttribute('data-earned') === 'true'),
     ).toHaveLength(1);
     const own = screen.getByTestId('final-own').textContent;
     const ownRow = screen

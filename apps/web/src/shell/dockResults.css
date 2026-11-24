@@ -12,7 +12,8 @@
  *                 rows with no gap, the wide podium's steps lower. Order, the owner's own highlighted row and the content stay. Every size, gap
  *                 and type size is a kit token (@seasonal/kit tokens.css); the standings in the side
  *                 column and every other ranked list keep ../components/results.css. Nothing here
- *                 applies without the dock.
+ *                 applies without the dock. Also the results screen's side column, set loose
+ *                 (owner decision of 2026-11-24, season marks and side column).
  * Used by:        ./DockedChat
  * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
  */
@@ -69,8 +70,42 @@
     gap: 0;
   }
 
+  /* The "Out of the match" divider hugs the rows around it (its margins are the kit's gap elsewhere). */
+  .sk-docked-main .sk-result .rank-divider {
+    margin: 0;
+  }
+
   .sk-docked-main .sk-result .rank-row {
     min-height: var(--space-3);
     padding-block: 0;
+  }
+
+  /* The side column of the results screen (status, winter shield, seasons, patterns) is loose, as
+     the empty room under it allows: larger steps between its blocks and inside them. Only here;
+     the player's, the spectator's and the console's columns keep their tight spacing. */
+  .sk-docked-main .arena:has(.sk-result) .arena-side {
+    --hint-gap: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .sk-docked-main .arena:has(.sk-result) .owner-status {
+    gap: var(--space-2);
+  }
+
+  .sk-docked-main .arena:has(.sk-result) .effect-line {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .sk-docked-main .arena:has(.sk-result) .side-panel {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .sk-docked-main .arena:has(.sk-result) .side-panel h3 {
+    margin-bottom: var(--space-1);
+  }
+
+  .sk-docked-main .arena:has(.sk-result) .pattern-rows {
+    gap: var(--space-1);
   }
 }
