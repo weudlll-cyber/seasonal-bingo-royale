@@ -273,6 +273,8 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
     },
     close: async () => {
       server.child.kill();
+      // Keep-alive and upgraded sockets (the page's live connection) would hold close() open.
+      proxy.closeAllConnections();
       await new Promise<void>((resolve) =>
         proxy.close(() => {
           resolve();
