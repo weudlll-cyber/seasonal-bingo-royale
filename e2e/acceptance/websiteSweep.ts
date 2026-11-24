@@ -110,8 +110,11 @@ const areaOf = (page: Page): Promise<{ client: number; scroll: number } | null> 
   });
 
 // A phone's chat bar: whether it lies wholly inside the window (null on a desktop, no bar).
+// Looked at only when it is shown: `boundingBox()` of a missing element waits for it, without end.
 async function barInWindow(page: Page): Promise<boolean | null> {
-  const box = await page.getByTestId('chat-bar').boundingBox();
+  const bar = page.getByTestId('chat-bar');
+  if (!(await bar.isVisible())) return null;
+  const box = await bar.boundingBox();
   const view = page.viewportSize();
   if (box === null || view === null) return null;
   return (
