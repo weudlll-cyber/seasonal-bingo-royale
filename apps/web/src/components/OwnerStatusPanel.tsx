@@ -64,6 +64,8 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
       data-points={points}
       data-rank={rank}
       aria-label={`${accountId} status`}
+      // Scrolls where the column is short: a tab stop, so a keyboard can reach it (WCAG 2.1.1).
+      tabIndex={0}
     >
       <p className="owner-status-head">
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}

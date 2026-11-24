@@ -3,14 +3,14 @@
  * @module e2e/acceptance
  * @brief  The website-mode sweep (measurement only): a screen at ten window sizes, light and dark, chat closed and open, with axe.
  *
- * Responsibility: the baseline for the docked layout (kit K18, docs/concepts/kit-adoption.md §5
- *                 B7). `sweep` measures one game screen inside the website stand-in
- *                 (../websiteStack) at the ten sizes of the night of 2026-11-23 (six desktop, four
- *                 phone), root font 16 px, both themes, chat closed and open (dock beside the
- *                 match): fit probe (./fitProbe), round screens' key boxes (./fitMeasure) and axe
- *                 (WCAG 2 A and AA) on the game's own page, chat frame left out. One JSON line per
- *                 measurement to reports/logs/<tag>-website-sweep.jsonl; no screenshots. The
- *                 helpers sign a stand-in member in via the proxy and post with the CSRF token.
+ * Responsibility: `sweep` measures one game screen inside the website stand-in (../websiteStack) at
+ *                 the ten sizes of the night of 2026-11-23 (six desktop, four phone), root font
+ *                 16 px, both themes, chat closed and open (a phone's sheet; the desktop strip is
+ *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
+ *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out. One JSON line
+ *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
+ *                 (e.g. "1280x720,375x667") narrows the sizes. Helpers sign a stand-in member in
+ *                 via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
  * Used by:        ./fitAudit.spec
@@ -31,7 +31,7 @@ import { probe } from './fitProbe.js';
 export const BASE = '/games/bingo';
 
 // The sizes of the docked-layout baseline: six desktop windows, four phones.
-export const SWEEP_SIZES = [
+const ALL_SIZES = [
   [1280, 720],
   [1366, 768],
   [1536, 768],
@@ -43,6 +43,12 @@ export const SWEEP_SIZES = [
   [390, 844],
   [430, 932],
 ] as const;
+
+// SBR_SWEEP_SIZES="1280x720,375x667" narrows the sweep (a quick look); else all ten.
+const ONLY = process.env['SBR_SWEEP_SIZES']?.split(',') ?? null;
+export const SWEEP_SIZES = ALL_SIZES.filter(
+  ([w, h]) => ONLY === null || ONLY.includes(`${String(w)}x${String(h)}`),
+);
 
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
 const LOG = path.join(REPO_ROOT, 'reports', 'logs', `${TAG}-website-sweep.jsonl`);
@@ -80,12 +86,35 @@ export async function webPost(
   });
 }
 
-// The website's chat beside the match: opened with the dock's toggle, closed with its button.
+// The website's chat in the dock under the match. On a desktop the strip is always in sight, so
+// "closed" and "open" measure the same page. On a phone "open" is the sheet the kit's bar
+// opens, "closed" the bar alone. Called after the window has its size (the view follows it).
 async function setChat(page: Page, open: boolean): Promise<void> {
-  const panel = page.getByTestId('chat-panel');
-  if ((await panel.isVisible()) === open) return;
-  await page.getByTestId(open ? 'chat-toggle' : 'chat-close').click();
-  await expect(panel).toBeVisible({ visible: open });
+  const bar = page.getByTestId('chat-bar');
+  if (!(await bar.isVisible())) return;
+  const sheet = page.getByRole('dialog', { name: 'Chat' });
+  if ((await sheet.isVisible()) === open) return;
+  if (open) await bar.click();
+  else await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(sheet).toBeVisible({ visible: open });
+}
+
+// The docked layout's game area scrolling inside the one-window page counts as page scroll: the
+// player would have to scroll to see the whole screen (the probe measures the page itself).
+const areaOf = (page: Page): Promise<{ client: number; scroll: number } | null> =>
+  page.evaluate(() => {
+    const area = document.querySelector('.sk-docked-main');
+    return area === null ? null : { client: area.clientHeight, scroll: area.scrollHeight };
+  });
+
+// A phone's chat bar: whether it lies wholly inside the window (null on a desktop, no bar).
+async function barInWindow(page: Page): Promise<boolean | null> {
+  const box = await page.getByTestId('chat-bar').boundingBox();
+  const view = page.viewportSize();
+  if (box === null || view === null) return null;
+  return (
+    box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width && box.y + box.height <= view.height
+  );
 }
 
 // axe on the game's page (WCAG 2 A and AA); the website's chat page in its frame is left out.
@@ -111,10 +140,14 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
       // Switched where nothing folds: the toggles sit in the folded menu on a phone.
       await atSize(page, 1920, 1080, 16);
       await setTheme(page, theme);
-      await setChat(page, chat === 'open');
       for (const [w, h] of SWEEP_SIZES) {
         await atSize(page, w, h, 16);
-        const p = await probe(page);
+        await setChat(page, chat === 'open');
+        const measured = await probe(page);
+        const area = await areaOf(page);
+        const bar = await barInWindow(page);
+        const scrolls = area !== null && area.scroll > area.client + 1;
+        const p = { ...measured, pageScroll: measured.pageScroll || scrolls };
         const keysOut = await keysOutOf(page, kind === undefined ? undefined : ROUND_KEYS[kind]);
         const round = kind !== undefined;
         const axe = await axeOf(page);
@@ -127,14 +160,15 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           chat,
           round,
           keysOut,
+          area,
+          bar,
           axe,
-          findings: findingsOf(p, round, keysOut),
+          findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
       }
     }
   }
   await atSize(page, 1920, 1080, 16);
-  await setChat(page, false);
   await setTheme(page, 'light');
 }

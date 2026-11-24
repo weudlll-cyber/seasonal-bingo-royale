@@ -20,6 +20,7 @@ import '@sbr/ui/tokens.css';
 // kit's header (./shell/Header) with its rules; Bingo's look on it is ./shell/header.css.
 import '@seasonal/kit/shell.css';
 import '@seasonal/kit/header.css';
+import '@seasonal/kit/dock.css';
 import '@sbr/ui/base.css';
 import '@seasonal/kit/motion.css';
 import '@sbr/ui/motion.css';

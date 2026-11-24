@@ -355,6 +355,35 @@ Measurement only; nothing in the layout changed. The baseline for the docked lay
 | results-console     |        7 |        5 |        0 |        3 |      25 |      37 |      48 |
 | player-classic      |       20 |       15 |       14 |       15 |      44 |      45 |      48 |
 
-What covers it: the chat frame (`iframe.chat-panel__frame`) and its close button (`chat-close`), for example the round's live badge, the player's status line and the seasons collected at 1280×720. The docked layout should leave the 1900 px and wider windows as they are and make room beside the match from 1280 px; on a phone the chat stays a sheet over the match (the docked layout's own decision).
+What covers it: the chat frame (`iframe.chat-panel__frame`) and its close button (`chat-close`), for example the round's live badge, the player's status line and the seasons collected at 1280×720. The kit's docked layout (K18) puts the chat in a strip **under** the game (kit `src/react/ChatDock.tsx`: 190 px high, 150 px in a window under 760 px high, always in sight), so the game keeps its width and has less height; on a phone the chat is a bar at the bottom that opens a sheet over the match (§8 has what the docked layout measured).
 
 **axe:** one rule, `scrollable-region-focusable` (serious): a region that scrolls but cannot get keyboard focus, in 192 of the 480 measurements (chat closed and open alike, both themes). The regions: the drawn numbers (`.draw-ticker`) on the three results screens at every size and on the player's and spectator's interludes; the standings (`ol[data-testid="standings"]`, `.rank-list`) on the console's interlude; the console round's list (`ol`) at half the sizes. The player's and spectator's round screens and the lobby side have none. A second run (the same tree, measuring the same findings everywhere else) also saw `color-contrast` once: the podium's names on the player's interlude, in its first measurement only (1920×1080, light, chat closed), most likely while the podium was still fading in; the other 39 measurements of that screen pass. No other WCAG A or AA rule fails on the game's pages.
+
+## 8. Website mode on the docked layout (2026-11-24)
+
+**How:** the same sweep as §7 (`e2e/acceptance/fitAudit.spec.ts`, "every match screen in website mode", `SBR_ACCEPTANCE=1`, Chromium; 480 measurements, twelve screens, ten sizes, light and dark), on the kit's docked layout (K18, `apps/web/src/shell/DockedChat.tsx`, `dock.css`): the chat is a strip under the game (kit `src/react/ChatDock.tsx`: 190 px high, 150 px in a window under 760 px high, always in sight) on a desktop, and the kit's bar at the bottom with a sheet on a phone. "Chat closed" and "open" measure the same page on a desktop (the strip is always there); on a phone "open" is the sheet over the game. Two things the sweep now also measures, because the game area scrolls inside a one-window page: the area's own scroll counts as page scroll, and a key box must lie inside the area above the strip (`area` in each line: its height and its content's).
+
+**The chat covers no game text on any desktop size** (0 in every cell, all twelve screens; §7 had up to 58 at 1280–1536 px and 1440×900). The game area above the strip is 457 px high at 1280×720, 465 px at 1366×768 and 1536×768, 597 at 1440×900, 557 at 1900×860 and 777 at 1920×1080.
+
+Text covered with the chat open (probe "overlap" items, light theme; the desktop cells are 0 because nothing lies under the strip; on a phone the open sheet covers the game by the kit's design, so those cells are the sheet; closed, the phone's bar covers nothing):
+
+| Screen              | 1280×720 | 1366×768 | 1536×768 | 1440×900 | 375×667 | 390×844 | 430×932 |
+| ------------------- | -------: | -------: | -------: | -------: | ------: | ------: | ------: |
+| console-lobby       |        0 |        0 |        0 |        0 |       4 |       7 |       6 |
+| waiting-room        |        0 |        0 |        0 |        0 |       7 |       5 |       2 |
+| console-round       |        0 |        0 |        0 |        0 |       9 |       9 |      11 |
+| player-royale       |        0 |        0 |        0 |        0 |      35 |      30 |      33 |
+| spectator-4         |        0 |        0 |        0 |        0 |      69 |      76 |      68 |
+| interlude-player    |        0 |        0 |        0 |        0 |       8 |      16 |      26 |
+| interlude-console   |        0 |        0 |        0 |        0 |      20 |      18 |      14 |
+| interlude-spectator |        0 |        0 |        0 |        0 |      16 |      14 |      40 |
+| results-player      |        0 |        0 |        0 |        0 |       9 |      19 |      29 |
+| results-spectator   |        0 |        0 |        0 |        0 |      14 |      28 |      33 |
+| results-console     |        0 |        0 |        0 |        0 |      13 |      23 |      28 |
+| player-classic      |        0 |        0 |        0 |        0 |      35 |      30 |      29 |
+
+**The board whole without scrolling:** at every desktop size, on every screen the player and the host have (the player's card and the console's round, lobby, interludes and results), nothing scrolls and every key box (ball, drawn numbers, card, Draw next) is inside the game area, **even at 1280×720 with the 150 px strip**. One exception: the spectator's four watched cards (`spectator-4`, and a player who is out) do not fit above the strip at **1280×720, 1366×768 and 1536×768** (game area 457–465 px): their box scrolls inside the arena (it is a named tab stop) and the strip stays in sight. They fit at 1440×900 (597 px), 1900×860 and 1920×1080, so the whole four need between 466 and 557 px of game area. What would give it room is the owner's call: the strip cannot go under 150 px (the kit's least, the owner's), the text cannot go under 14 px, so the choice is fewer cards at those sizes (the top two beside each other, or a "show more") or a shorter header; nothing was changed to hide them.
+
+**Phones:** the chat bar lies wholly inside the window at all four sizes in every one of the 192 phone measurements (a second run of the four phone sizes recorded its box, sheet closed and open, both themes, all twelve screens), and the sheet opens and closes (`e2e/chatEmbed.spec.ts`). Every round screen scrolls inside the game area as it scrolled the page before (§7). The player's card is not wholly in view above the bar at 375×667 and now also at 360×780 (§7: 375×667 only): the bar and the sheet's room take about 70 px from the area. It scrolls inside the area, and the chat bar stays in reach.
+
+**axe:** `scrollable-region-focusable` is gone (§7 had 192 of 480). Getting there took 3a (the drawn numbers and the standings list) and the regions the shorter area made scroll at 1280×720: the patterns panel, the status panel and the cards' box, each now focusable and named. One `color-contrast` hit remains, once: the podium's names on the spectator's interlude, in its first measurement (1280×720, light), the podium still fading in as in §7; the other 39 measurements of that screen pass.

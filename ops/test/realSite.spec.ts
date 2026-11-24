@@ -136,12 +136,12 @@ test('P1 guest, join through the website, chat, a member plays and cannot host',
   await keep(memberContext, 'member');
 });
 
-// The website's room "bingo" in the panel: the member writes, the guest reads; the theme follows.
+// The website's room "bingo" in the dock under the game: the member writes, the guest reads; the
+// theme follows.
 async function chat(guest: Page, member: Page): Promise<void> {
   const text = `hello bingo ${String(Date.now() % 100_000)}`;
   for (const page of [guest, member]) {
     await page.goto(GAME);
-    await page.getByTestId('chat-toggle').click();
     await expect(
       page.frameLocator('[data-testid="chat-frame"]').getByRole('region', { name: 'Chat: Bingo' }),
     ).toBeVisible();

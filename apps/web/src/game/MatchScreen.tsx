@@ -62,6 +62,40 @@ interface ArenaProps {
   readonly follow: (name: string | null) => void;
 }
 
+interface CardsBoxProps {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+  readonly watching: boolean;
+  readonly followed: string | null;
+  readonly choose: (name: string | null) => void;
+}
+
+// The cards' box: the player's own, or the watched ones. It scrolls where the game area is short
+// (under the docked chat), so it is a named tab stop (WCAG 2.1.1).
+function CardsBox({ live, view, watching, followed, choose }: CardsBoxProps): ReactElement {
+  return (
+    <div
+      className="arena-cards"
+      role="region"
+      aria-label={watching ? 'Watched cards' : 'Your cards'}
+      tabIndex={0}
+    >
+      {watching ? (
+        <Watching
+          live={live}
+          view={view}
+          followed={followed}
+          onBack={() => {
+            choose(null);
+          }}
+        />
+      ) : (
+        <OwnCards live={live} view={view} />
+      )}
+    </div>
+  );
+}
+
 function Arena({ live, view, follow }: ArenaProps): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
@@ -87,20 +121,13 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
             in view at once (arena.css). */}
         <section className="arena-play">
           <BallAndNumbers result={result} view={view} />
-          <div className="arena-cards">
-            {watching ? (
-              <Watching
-                live={live}
-                view={view}
-                followed={followed}
-                onBack={() => {
-                  choose(null);
-                }}
-              />
-            ) : (
-              <OwnCards live={live} view={view} />
-            )}
-          </div>
+          <CardsBox
+            live={live}
+            view={view}
+            watching={watching}
+            followed={followed}
+            choose={choose}
+          />
         </section>
         <aside className="arena-side">
           {owner !== undefined ? (
