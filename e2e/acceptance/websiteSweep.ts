@@ -9,8 +9,9 @@
  *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
  *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out. One JSON line
  *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
- *                 (e.g. "1280x720,375x667") narrows the sizes. Helpers sign a stand-in member in
- *                 via the proxy and post with the CSRF token.
+ *                 ("1280x720,375x667") narrows the sizes; SBR_SWEEP_SHOTS=<folder> saves one
+ *                 picture per screen at 1280x720 and 390x844 (light, chat open) for a review.
+ *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
  * Used by:        ./fitAudit.spec
@@ -51,6 +52,7 @@ export const SWEEP_SIZES = ALL_SIZES.filter(
 );
 
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
+const SHOTS = process.env['SBR_SWEEP_SHOTS'] ?? null;
 const LOG = path.join(REPO_ROOT, 'reports', 'logs', `${TAG}-website-sweep.jsonl`);
 
 export function freshSweep(): void {
@@ -166,6 +168,15 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
+        if (
+          SHOTS !== null &&
+          theme === 'light' &&
+          chat === 'open' &&
+          ['1280x720', '390x844'].includes(size)
+        ) {
+          mkdirSync(SHOTS, { recursive: true });
+          await page.screenshot({ path: path.join(SHOTS, `${screen}-${size}.png`) });
+        }
       }
     }
   }
