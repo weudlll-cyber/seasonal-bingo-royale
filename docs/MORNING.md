@@ -27,6 +27,13 @@ Pieces: 0 open sign-ups capped at 20, 1 H3 header comments, 2 T4 eliminated-cann
 
 - Piece 5 (above). BACKLOG's KIT-ADOPTION remainder stays in part one: B7 step 1 (docked layout) is on draft PR #72, step 2 (start card) is kept as Bingo's with wishes for the kit, step 3 (game bar, focus mode) is dropped.
 
+### Closing state (2026-11-24, 12:45)
+
+- **Draft PR #72 CI is red** (runs 45378272717 on `d874b3c` and 45385414968 on `ecbb058`, same result; the earlier run 45354918274 failed the same way). Only `e2e (chromium 1/2)`, one failure: `e2e/backToWebsite.spec.ts` "afterAll hook timeout of 90000ms exceeded" after all four tests passed. The spec passes locally, 4/4 in 6.9 min including its afterAll; master is green (45347613130). Cause not found: the hook (`removeAccounts`, then `stack.close`, `e2e/websiteStack.ts`) hangs only on CI with the docked layout. A guess (`proxy.closeAllConnections()`) changed nothing and was reverted. Next step: the CI trace of that run, where the hook waits.
+- **Review pictures: skipped.** The sweep's picture run hung for over two hours and the retry ran into its 25-minute limit, so there are no before/after pictures (`sbr-review/docked/` was never created). The hook for them is committed (`SBR_SWEEP_SHOTS`, `SBR_SWEEP_SIZES`).
+- Dev server: on `feat/docked-layout`, port 5390, build badge "Bingo · dev · 5390", standalone, so the docked layout (website mode only) is not visible there. Quick-Test seed `kit-011` (royale, 9 bots, skip to end).
+- `git ls-remote --heads origin` at 12:45: `feat/docked-layout`, `master` (`2380ea7`), `renovate/digests-pin`, `renovate/minor-and-patch-updates`.
+
 ### Needs the owner's word
 
 - The spectator's watched cards at 1280×720, 1366×768 and 1536×768 (above): which of the options, or leave the scroll.
