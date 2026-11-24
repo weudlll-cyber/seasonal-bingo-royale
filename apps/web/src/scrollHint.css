@@ -10,7 +10,7 @@
  *                 makes the box scroll further; it covers the last lines only while there is more
  *                 below), lets clicks through and is empty for a screen reader (decoration; the
  *                 box itself is a named tab stop). Neither the kit nor the game had such a sign.
- *                 Colours and sizes from @sbr/ui tokens.
+ *                 Colours, sizes, gaps and the type size are kit tokens (@seasonal/kit tokens.css).
  * Used by:        ./useScrollHint
  * Spec:           docs/concepts/fit-audit.md §8
  */
@@ -18,19 +18,20 @@
 .sk-docked [data-more='true']::after {
   content: '↓ More below' / '';
   position: sticky;
-  bottom: 0.25rem;
+  bottom: var(--space-1);
   z-index: 1;
-  display: block;
+  display: flex;
+  align-items: center;
   box-sizing: border-box;
   width: max-content;
-  height: 1.75rem;
-  margin: calc(-1.75rem - var(--hint-gap, 0px)) auto 0;
-  padding: 0 0.7rem;
+  height: var(--space-3);
+  margin: calc(-1 * var(--space-3) - var(--hint-gap, 0px)) auto 0;
+  padding: 0 var(--space-1);
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: var(--font-size-small);
-  line-height: calc(1.75rem - 2px);
+  line-height: 1;
   pointer-events: none;
 }

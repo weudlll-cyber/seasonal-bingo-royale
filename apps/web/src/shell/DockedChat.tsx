@@ -12,7 +12,8 @@
  *                 dock stays mounted from lobby to match to console, so the chat keeps its room
  *                 and what was typed. Standalone: no dock, no frame, no request (./dock.css).
  * Depends on:     react, @seasonal/kit/react (DockedScreen, WebsiteChatFrame), ./router (types),
- *                 ./session, ../useScrollHint, ./dock.css, ./dockSide.css
+ *                 ./session, ../useScrollHint, ./dock.css, ./dockSide.css, ./dockWatch.css,
+ *                 ./dockResults.css
  * Used by:        ./AppShell
  * Spec:           docs/spec/07-integration-architecture.md §6; Seasonal Entertainment docs/EMBED.md
  */
@@ -24,6 +25,8 @@ import { useScrollHint } from '../useScrollHint.js';
 import { useSession } from './session.js';
 import './dock.css';
 import './dockSide.css';
+import './dockWatch.css';
+import './dockResults.css';
 
 // The screens the chat is docked under.
 const CHAT_ROUTES: ReadonlySet<Route['name']> = new Set(['lobby', 'match', 'host']);

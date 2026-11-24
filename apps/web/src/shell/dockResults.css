@@ -1,0 +1,76 @@
+/**
+ * @file   apps/web/src/shell/dockResults.css
+ * @module web/shell
+ * @brief  The final placement shows more places above the chat strip (website mode, desktop).
+ *
+ * Responsibility: owner decision of 2026-11-24 (Part B): while the chat is docked, the results
+ *                 screen's panel (./FinalPlacement on the kit's ResultFrame, ../components/results.css)
+ *                 is tightened so more of the places are whole in the game area above the strip:
+ *                 less panel padding and gap, the "Final placement" heading without its margins, the
+ *                 big "You finished #N of M" line at the kit's lead size, the explanation at the small
+ *                 size, and the places (the podium's steps and the ranked rows) one line high in the narrow podium, the
+ *                 rows with no gap, the wide podium's steps lower. Order, the owner's own highlighted row and the content stay. Every size, gap
+ *                 and type size is a kit token (@seasonal/kit tokens.css); the standings in the side
+ *                 column and every other ranked list keep ../components/results.css. Nothing here
+ *                 applies without the dock.
+ * Used by:        ./DockedChat
+ * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
+ */
+
+@media (min-width: 960px) {
+  .sk-docked-main .sk-result[data-sk-variant='panel'] {
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .sk-docked-main .sk-result[data-sk-variant='panel'] h3 {
+    margin: 0;
+    font-size: var(--font-size-body);
+  }
+
+  .sk-docked-main .sk-result .final-own {
+    font-size: var(--font-size-lead);
+  }
+
+  .sk-docked-main .sk-result .final-rule {
+    margin: 0;
+    font-size: var(--font-size-small);
+  }
+
+  /* The podium in its narrow form (rows, ../components/podium.css): one line a step. Their gap
+     stays, the owner's step has an outline that must not run over the next step. */
+  @container (max-width: 46rem) {
+    .sk-docked-main .sk-result .podium-step {
+      padding-block: 0;
+    }
+  }
+
+  /* The podium in its wide form (three steps side by side): the place number at the lead size, the
+     steps lower (the first still the tallest) so the ranked rows come into view. */
+  @container not (max-width: 46rem) {
+    .sk-docked-main .sk-result .podium-place {
+      font-size: var(--font-size-lead);
+    }
+
+    .sk-docked-main .sk-result .podium-step--1 {
+      min-height: calc(2 * var(--space-4) + var(--space-3));
+    }
+
+    .sk-docked-main .sk-result .podium-step--2 {
+      min-height: calc(2 * var(--space-4) + var(--space-1));
+    }
+
+    .sk-docked-main .sk-result .podium-step--3 {
+      min-height: calc(2 * var(--space-4));
+    }
+  }
+
+  .sk-docked-main .sk-result .rank-list {
+    gap: 0;
+  }
+
+  .sk-docked-main .sk-result .rank-row {
+    min-height: var(--space-3);
+    padding-block: 0;
+  }
+}
