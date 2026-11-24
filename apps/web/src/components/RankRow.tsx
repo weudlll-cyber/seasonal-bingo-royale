@@ -4,7 +4,7 @@
  * @brief  One ranked row (rank, name, seasons, points, "out") and the group labels between rows.
  *
  * Responsibility: the row the standings and the final placement share: rank, name, the
- *                 four season marks (./SeasonSet: earned icons, empty rings; royale), the points or
+ *                 four season marks (./SeasonSet: earned icons, discs with a ring; royale), the points or
  *                 another note, the viewer's own row highlighted, an eliminated row dimmed
  *                 with "out"; the name as a profile link where the screen gives one, or a
  *                 name that can be selected (a watcher follows that player, D24), with the

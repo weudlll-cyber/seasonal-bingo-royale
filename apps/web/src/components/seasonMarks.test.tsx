@@ -4,8 +4,8 @@
  * @module web
  * @brief  One look for a player's four season marks: icon when earned, empty ring when not.
  *
- * Responsibility: an earned season renders the coloured icon and a season not earned an empty
- *                 ring (not a faded icon) of the same size; the set of four names how many are
+ * Responsibility: an earned season renders the coloured icon and a season not earned a white disc
+ *                 with a grey ring (not a faded icon) of the same size; the set of four names how many are
  *                 earned; the final placement's podium shows four marks per place in a royale
  *                 and none in a classic match (owner decision of 2026-11-24).
  * Depends on:     @testing-library/react, ./SeasonIcon, ./SeasonSet, ./FinalPlacement,
@@ -24,7 +24,7 @@ import { royaleFixture } from '../test/quickTestFixture.js';
 afterEach(cleanup);
 
 describe('season marks', () => {
-  it('renders an earned season as an icon and a season not earned as an empty ring', () => {
+  it('renders an earned season as an icon and a season not earned as a disc with a ring', () => {
     render(
       <>
         <SeasonIcon season="spring" size={SEASON_MARK_SIZE} onColor earned />
@@ -40,6 +40,15 @@ describe('season marks', () => {
     expect(open.style.width).toBe(earned.style.width);
     expect(open.style.opacity).toBe('');
     expect(earned.style.opacity).toBe('');
+  });
+
+  it('draws a season not earned as a white disc with a grey ring, from the kit tokens', () => {
+    render(<SeasonIcon season="autumn" size={SEASON_MARK_SIZE} onColor earned={false} />);
+    const open = screen.getByRole('img', { name: 'autumn (not collected)' });
+    // The disc is filled (the colour under it never shows through) and rimmed by the ring.
+    expect(open.style.background).toContain('var(--color-surface)');
+    expect(open.style.borderColor).toContain('var(--color-border-strong)');
+    expect(open.className).toContain('season-ring');
   });
 
   it('shows four marks in the set and names how many are earned', () => {

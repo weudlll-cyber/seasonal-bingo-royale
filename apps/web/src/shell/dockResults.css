@@ -6,14 +6,15 @@
  * Responsibility: owner decision of 2026-11-24 (Part B): while the chat is docked, the results
  *                 screen's panel (./FinalPlacement on the kit's ResultFrame, ../components/results.css)
  *                 is tightened so more of the places are whole in the game area above the strip:
- *                 less panel padding and gap, the "Final placement" heading without its margins, the
- *                 big "You finished #N of M" line at the kit's lead size, the explanation at the small
- *                 size, and the places (the podium's steps and the ranked rows) one line high in the narrow podium, the
- *                 rows with no gap, the wide podium's steps lower. Order, the owner's own highlighted row and the content stay. Every size, gap
- *                 and type size is a kit token (@seasonal/kit tokens.css); the standings in the side
- *                 column and every other ranked list keep ../components/results.css. Nothing here
- *                 applies without the dock. Also the results screen's side column, set loose
- *                 (owner decision of 2026-11-24, season marks and side column).
+ *                 less panel padding and gap, the "Final placement" heading without its margins and
+ *                 on one row with the big "You finished #N of M" line (at the kit's lead size), the
+ *                 explanation at the small size, the narrow podium's steps and the ranked rows one
+ *                 line high, the rows with no gap, the wide podium's steps lower. Order, the owner's
+ *                 own highlighted row and the content stay. Every size, gap and type size is a kit
+ *                 token (@seasonal/kit tokens.css); the standings in the side column and every other
+ *                 ranked list keep ../components/results.css. Nothing here applies without the
+ *                 dock. The results screen's side column is set loose here too (owner decision of
+ *                 2026-11-24, season marks and side column).
  * Used by:        ./DockedChat
  * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
  */
@@ -22,6 +23,21 @@
   .sk-docked-main .sk-result[data-sk-variant='panel'] {
     gap: var(--space-1);
     padding: var(--space-1) var(--space-2);
+  }
+
+  /* The heading and the big line share one row (the heading's room is its own width); everything
+     else spans the panel. */
+  .sk-docked-main .sk-result[data-sk-variant='panel'] {
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--space-2);
+  }
+
+  .sk-docked-main .sk-result[data-sk-variant='panel'] :is(h3, .final-own) {
+    align-self: baseline;
+  }
+
+  .sk-docked-main .sk-result[data-sk-variant='panel'] :is(.final-rule, .podium-box, .rank-list) {
+    grid-column: 1 / -1;
   }
 
   .sk-docked-main .sk-result[data-sk-variant='panel'] h3 {

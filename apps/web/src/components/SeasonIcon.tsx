@@ -1,11 +1,11 @@
 /**
  * @file   apps/web/src/components/SeasonIcon.tsx
  * @module web
- * @brief  One original season icon, optionally on its season colour, or its empty ring (01 §13).
+ * @brief  One original season icon, optionally on its season colour, or its white disc with a ring (01 §13).
  *
  * Responsibility: render the delivered SVG for a season with an accessible name, so
  *                 colour is never the only carrier of meaning (WCAG, 01 §13). A season not
- *                 earned (`earned={false}`) is an empty grey ring of the same size with the
+ *                 earned (`earned={false}`) is a white disc with a grey ring of the same size, with the
  *                 name "<season> (not collected)", never a faded icon. `SEASON_MARK_SIZE` is the one
  *                 size of a player's season marks on every screen (a kit token).
  * Depends on:     react, ../seasonIcons, ../types, ./seasonMark.css
@@ -47,7 +47,13 @@ export function SeasonIcon({
         className="season-ring"
         data-season={season}
         data-earned="false"
-        style={{ width: size, height: size }}
+        style={{
+          width: size,
+          height: size,
+          // A white disc with the grey ring, on any ground (kit tokens, the same in both themes).
+          background: 'var(--color-surface)',
+          borderColor: 'var(--color-border-strong)',
+        }}
       />
     );
   return (

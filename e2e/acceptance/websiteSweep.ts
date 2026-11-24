@@ -8,13 +8,14 @@
  *                 16 px, both themes, chat closed and open (a phone's sheet; the desktop strip is
  *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
  *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out; on the results
- *                 screen also how many places lie wholly above the strip (`places`). One JSON line
+ *                 screen also how many places lie wholly above the strip (`places`) and, where there are standings, how many of their rows are
+ *                 whole (`standings`). One JSON line
  *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
  *                 ("1280x720,375x667"), SBR_SWEEP_SCREENS ("player-royale,results-player"),
  *                 SBR_SWEEP_THEMES ("light") and SBR_SWEEP_CHAT ("open") narrow the sweep;
- *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen and size for a review:
- *                 light, the chat strip shown on a desktop, the game with the sheet closed on a
- *                 phone.
+ *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen, size and theme for a
+ *                 review (`<screen>-<size>-<theme>.png`): the chat strip shown on a desktop, the
+ *                 game with the sheet closed on a phone.
  *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
@@ -123,16 +124,39 @@ const areaOf = (page: Page): Promise<{ client: number; scroll: number } | null> 
     return area === null ? null : { client: area.clientHeight, scroll: area.scrollHeight };
   });
 
-// The results screen's places (podium steps and ranked rows) lying wholly inside the game area:
+// The results screen's places (podium steps and ranked rows) lying wholly inside the game area, above
+// the "More below" strip:
 // null where the screen has no final placement.
 const placesOf = (page: Page): Promise<{ whole: number; total: number } | null> =>
   page.evaluate(() => {
     const area = document.querySelector('.sk-docked-main');
     const places = [...document.querySelectorAll('.sk-result .podium-step, .sk-result .rank-row')];
     if (area === null || places.length === 0) return null;
-    const bottom = area.getBoundingClientRect().bottom;
+    // Above the "More below" strip, which has a band of its own at the bottom while it shows.
+    const sign =
+      area.getAttribute('data-more') === 'true' ? getComputedStyle(area, '::after') : null;
+    const bottom =
+      area.getBoundingClientRect().bottom - (sign === null ? 0 : parseFloat(sign.height));
     const whole = places.filter((e) => e.getBoundingClientRect().bottom <= bottom + 0.5).length;
     return { whole, total: places.length };
+  });
+
+// The standings' rows lying wholly inside their scrolling list (the strip with the viewer's own row
+// is not counted): null where the screen has no standings.
+const standingsOf = (page: Page): Promise<{ whole: number; total: number } | null> =>
+  page.evaluate(() => {
+    const list = document.querySelector('.standings-panel .rank-list');
+    if (list === null) return null;
+    const box = list.getBoundingClientRect();
+    const sign =
+      list.getAttribute('data-more') === 'true' ? getComputedStyle(list, '::after') : null;
+    const bottom = box.bottom - (sign === null ? 0 : parseFloat(sign.height));
+    const rows = [...list.querySelectorAll(':scope > .rank-row')];
+    const whole = rows.filter((e) => {
+      const r = e.getBoundingClientRect();
+      return r.top >= box.top - 0.5 && r.bottom <= bottom + 0.5;
+    }).length;
+    return { whole, total: rows.length };
   });
 
 // A phone's chat bar: whether it lies wholly inside the window (null on a desktop, no bar).
@@ -163,8 +187,8 @@ async function axeOf(page: Page) {
   }));
 }
 
-// The review picture (SBR_SWEEP_SHOTS): light, a desktop with its strip (always shown, so "open" is
-// the same page), a phone with the sheet closed (`wanted`).
+// The review picture (SBR_SWEEP_SHOTS, `<screen>-<size>-<theme>.png`): a desktop with its strip
+// (always shown, so "open" is the same page), a phone with the sheet closed (`wanted`).
 async function review(page: Page, name: string, wanted: boolean): Promise<void> {
   if (SHOTS === null || !wanted) return;
   mkdirSync(SHOTS, { recursive: true });
@@ -187,6 +211,7 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
         const area = await areaOf(page);
         const bar = await barInWindow(page);
         const places = await placesOf(page);
+        const standings = await standingsOf(page);
         const scrolls = area !== null && area.scroll > area.client + 1;
         const p = { ...measured, pageScroll: measured.pageScroll || scrolls };
         const keysOut = await keysOutOf(page, kind === undefined ? undefined : ROUND_KEYS[kind]);
@@ -203,16 +228,13 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           keysOut,
           area,
           places,
+          standings,
           bar,
           axe,
           findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
-        await review(
-          page,
-          `${screen}-${size}`,
-          theme === 'light' && chat === (w >= 960 ? 'open' : 'closed'),
-        );
+        await review(page, `${screen}-${size}-${theme}`, chat === (w >= 960 ? 'open' : 'closed'));
       }
     }
   }

@@ -15,6 +15,8 @@
  *                 a column too short for them scrolls as a whole (./dock.css gives the hint).
  *                 Nothing here applies without the dock: standalone installs keep arena.css and
  *                 host.css as they are. Under 960 px the screens stack as before.
+ *                 Where the column holds the standings, they stand beside the patterns and the
+ *                 status and take the column's whole height.
  *                 Owner decision of 2026-11-24: every size, gap and margin is a kit token or a whole
  *                 number of the kit's spacing steps (@seasonal/kit tokens.css), no value of Bingo's own.
  * Used by:        ./DockedChat
@@ -89,6 +91,39 @@
      (its rows scroll inside; room for its heading and the first rows at least). */
   .sk-docked-main .arena-side {
     --hint-gap: var(--space-1);
+  }
+
+  /* Where the column has the standings (the player's and the spectator's round, not the results
+     screen): "Patterns this round" and the status in the first half, the standings beside them in
+     the second half with the column's whole height (owner decision of 2026-11-24). The column is
+     wider for it (two panels side by side); the standings' rows scroll inside as before. */
+  .sk-docked-main .arena:has(> .arena-grid > .arena-side > .standings-panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(calc(13 * var(--space-4)), 1fr);
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: var(--space-2);
+    row-gap: var(--space-1);
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) > * {
+    grid-column: 1;
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    min-height: 0;
+  }
+
+  /* A row that wraps (a long name, the points under it) keeps its whole height: in a list that is
+     shorter than its rows the grid would squeeze them to their minimum and let the points run over
+     the next row. */
+  .sk-docked-main .standings-panel .rank-list {
+    grid-auto-rows: max-content;
   }
 
   /* A column of flex items, not a grid: the sign's negative margin takes back a flex gap, never

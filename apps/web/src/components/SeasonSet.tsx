@@ -1,7 +1,7 @@
 /**
  * @file   apps/web/src/components/SeasonSet.tsx
  * @module web
- * @brief  A player's four season marks, earned ones as icons, the others as empty rings.
+ * @brief  A player's four season marks, earned ones as icons, the others as white discs with a ring.
  *
  * Responsibility: the one set every screen uses where a player's seasons show (ranked rows,
  *                 standings, the podium): the four seasons in their fixed order at the one mark
