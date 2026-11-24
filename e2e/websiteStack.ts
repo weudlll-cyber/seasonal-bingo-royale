@@ -10,7 +10,9 @@
  *                 app's /auth/website/login with the same query (D43); client-sent X-Acting-User*
  *                 and X-Sbr-Proxy-Secret are stripped. The server runs in website mode under
  *                 /games/bingo/, trusting only the proxy. `expireSessions` idles sessions out;
- *                 `removeAccounts` deletes the stub users (D42).
+ *                 `removeAccounts` deletes the stub users (D42). `close` destroys every proxy
+ *                 socket (upgraded ones too) before it stops the server, so a page left open cannot
+ *                 hold the shutdown.
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
  * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./acceptance/fitAudit.spec
@@ -184,6 +186,9 @@ function startProxy(users: Map<string, StubUser>, app: { port: number }): http.S
     });
     up.on('error', () => socket.destroy());
     socket.on('error', () => up.destroy());
+    // Either end going away takes the other with it (a destroyed socket sends no FIN).
+    up.on('close', () => socket.destroy());
+    socket.on('close', () => up.destroy());
   });
   return server;
 }
@@ -245,6 +250,12 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
   const users = new Map<string, StubUser>();
   const app = { port: 0 };
   const proxy = startProxy(users, app);
+  // Every client socket: `closeAllConnections()` leaves the upgraded (WebSocket) ones open.
+  const sockets = new Set<net.Socket>();
+  proxy.on('connection', (socket: net.Socket) => {
+    sockets.add(socket);
+    socket.once('close', () => sockets.delete(socket));
+  });
   await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
   const address = proxy.address();
   const origin = `http://127.0.0.1:${String(typeof address === 'object' && address !== null ? address.port : 0)}`;
@@ -272,20 +283,18 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
       sql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
     },
     close: async () => {
-      const t0 = Date.now();
-      const exited = new Promise<void>((r) => server.child.once('exit', () => r()));
+      // A page left open holds a socket; the game's shutdown and proxy.close wait for each other.
+      for (const socket of sockets) socket.destroy();
+      const exited = new Promise((resolve) => server.child.once('exit', resolve));
       server.child.kill();
-      void exited.then(() => console.log(`TMPLOG child exit +${String(Date.now() - t0)}ms`));
-      const t = setInterval(() => {
-        proxy.getConnections((_e, n) => console.log(`TMPLOG proxy connections: ${String(n)}`));
-      }, 5000);
-      await new Promise<void>((resolve) =>
-        proxy.close(() => {
-          clearInterval(t);
-          console.log(`TMPLOG proxy closed +${String(Date.now() - t0)}ms`);
-          resolve();
-        }),
-      );
+      await Promise.all([
+        exited,
+        new Promise<void>((resolve) =>
+          proxy.close(() => {
+            resolve();
+          }),
+        ),
+      ]);
     },
   };
 }
