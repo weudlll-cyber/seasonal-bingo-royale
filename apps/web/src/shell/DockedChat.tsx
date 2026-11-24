@@ -12,7 +12,7 @@
  *                 dock stays mounted from lobby to match to console, so the chat keeps its room
  *                 and what was typed. Standalone: no dock, no frame, no request (./dock.css).
  * Depends on:     react, @seasonal/kit/react (DockedScreen, WebsiteChatFrame), ./router (types),
- *                 ./session, ./dock.css
+ *                 ./session, ../useScrollHint, ./dock.css, ./dockSide.css
  * Used by:        ./AppShell
  * Spec:           docs/spec/07-integration-architecture.md §6; Seasonal Entertainment docs/EMBED.md
  */
@@ -20,8 +20,10 @@ import { DockedScreen, WebsiteChatFrame } from '@seasonal/kit/react';
 import type { ReactElement, ReactNode } from 'react';
 
 import type { Route } from './router.js';
+import { useScrollHint } from '../useScrollHint.js';
 import { useSession } from './session.js';
 import './dock.css';
+import './dockSide.css';
 
 // The screens the chat is docked under.
 const CHAT_ROUTES: ReadonlySet<Route['name']> = new Set(['lobby', 'match', 'host']);
@@ -44,6 +46,8 @@ export function DockedChat({
   readonly place: ChatPlace;
   readonly children: ReactNode;
 }): ReactElement {
+  // The game area scrolls where its content is taller than the strip leaves (./dock.css).
+  useScrollHint('.sk-docked-main');
   return (
     <DockedScreen
       chat={<WebsiteChatFrame room={place.room} path={place.path} />}

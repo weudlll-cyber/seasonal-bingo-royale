@@ -1,0 +1,36 @@
+/**
+ * @file   apps/web/src/scrollHint.css
+ * @module web
+ * @brief  "More below": the sign on a scrolling box that its content continues.
+ *
+ * Responsibility: a small pill at the bottom edge of a box marked `data-more="true"` by
+ *                 ./useScrollHint, under the docked chat only (standalone pages are as they were);
+ *                 it sticks to the visible bottom edge and takes no room (its height and the box's
+ *                 row gap, `--hint-gap`, are taken back by a negative margin, so showing it never
+ *                 makes the box scroll further; it covers the last lines only while there is more
+ *                 below), lets clicks through and is empty for a screen reader (decoration; the
+ *                 box itself is a named tab stop). Neither the kit nor the game had such a sign.
+ *                 Colours and sizes from @sbr/ui tokens.
+ * Used by:        ./useScrollHint
+ * Spec:           docs/concepts/fit-audit.md §8
+ */
+
+.sk-docked [data-more='true']::after {
+  content: '↓ More below' / '';
+  position: sticky;
+  bottom: 0.25rem;
+  z-index: 1;
+  display: block;
+  box-sizing: border-box;
+  width: max-content;
+  height: 1.75rem;
+  margin: calc(-1.75rem - var(--hint-gap, 0px)) auto 0;
+  padding: 0 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  line-height: calc(1.75rem - 2px);
+  pointer-events: none;
+}

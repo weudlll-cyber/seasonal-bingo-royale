@@ -11,7 +11,8 @@
  *                 (from the server); order and rule as 01 §7.5. The list scrolls on its own: a
  *                 named tab stop (WCAG 2.1.1). With `onFollow` (out player or spectator, D24)
  *                 names of players still in are buttons, else links to profiles (`profileHref`).
- * Depends on:     react, ./RankRow, ../playback, ../shell/session (useScreens), ../types,
+ * Depends on:     react, ./RankRow, ../playback, ../shell/session (useScreens), ../useScrollHint,
+ *                 ../types,
  *                 ./matchSide.css
  * Used by:        ./Playback, ../game/MatchScreen, ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §7.5, §13 (D23, D24), docs/spec/15-implementation-plan.md WP-08
@@ -23,6 +24,7 @@ import type { PlaybackView, PlayerView } from '../playback.js';
 import type { QuickTestResult } from '../types.js';
 import './matchSide.css';
 import { useScreens } from '../shell/session.js';
+import { useScrollHint } from '../useScrollHint.js';
 
 interface StandingsProps {
   readonly result: QuickTestResult;
@@ -41,6 +43,7 @@ export function Standings({ result, view, onFollow, profileHref }: StandingsProp
   const firstOut = shown.findIndex((p) => p.eliminated);
   const own = shown.find((p) => p.isOwner);
   const { list, pinned } = useOwnRowOutOfView();
+  useScrollHint(list);
   const row = (player: PlayerView, pin = false) => (
     <PlayerRow
       key={player.accountId}

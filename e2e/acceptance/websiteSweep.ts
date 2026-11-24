@@ -9,8 +9,11 @@
  *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
  *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out. One JSON line
  *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
- *                 ("1280x720,375x667") narrows the sizes; SBR_SWEEP_SHOTS=<folder> saves one
- *                 picture per screen at 1280x720 and 390x844 (light, chat open) for a review.
+ *                 ("1280x720,375x667"), SBR_SWEEP_SCREENS ("player-royale,results-player"),
+ *                 SBR_SWEEP_THEMES ("light") and SBR_SWEEP_CHAT ("open") narrow the sweep;
+ *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen and size for a review:
+ *                 light, the chat strip shown on a desktop, the game with the sheet closed on a
+ *                 phone.
  *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
@@ -49,6 +52,16 @@ const ALL_SIZES = [
 const ONLY = process.env['SBR_SWEEP_SIZES']?.split(',') ?? null;
 export const SWEEP_SIZES = ALL_SIZES.filter(
   ([w, h]) => ONLY === null || ONLY.includes(`${String(w)}x${String(h)}`),
+);
+
+// The other narrowing lists (unset: everything).
+const listOf = (name: string): string[] | null => process.env[name]?.split(',') ?? null;
+const SCREENS = listOf('SBR_SWEEP_SCREENS');
+const THEMES = (['light', 'dark'] as const).filter(
+  (t) => listOf('SBR_SWEEP_THEMES')?.includes(t) ?? true,
+);
+const CHATS = (['closed', 'open'] as const).filter(
+  (c) => listOf('SBR_SWEEP_CHAT')?.includes(c) ?? true,
 );
 
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
@@ -137,11 +150,20 @@ async function axeOf(page: Page) {
   }));
 }
 
+// The review picture (SBR_SWEEP_SHOTS): light, a desktop with its strip (always shown, so "open" is
+// the same page), a phone with the sheet closed (`wanted`).
+async function review(page: Page, name: string, wanted: boolean): Promise<void> {
+  if (SHOTS === null || !wanted) return;
+  mkdirSync(SHOTS, { recursive: true });
+  await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
+}
+
 // One screen at every sweep size, both themes, chat closed and open; `kind` names a round
 // screen's key boxes (./fitMeasure ROUND_KEYS).
 export async function sweep(page: Page, screen: string, kind?: string): Promise<void> {
-  for (const theme of ['light', 'dark'] as const) {
-    for (const chat of ['closed', 'open'] as const) {
+  if (SCREENS !== null && !SCREENS.includes(screen)) return;
+  for (const theme of THEMES) {
+    for (const chat of CHATS) {
       // Switched where nothing folds: the toggles sit in the folded menu on a phone.
       await atSize(page, 1920, 1080, 16);
       await setTheme(page, theme);
@@ -171,15 +193,11 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
-        if (
-          SHOTS !== null &&
-          theme === 'light' &&
-          chat === 'open' &&
-          ['1280x720', '390x844'].includes(size)
-        ) {
-          mkdirSync(SHOTS, { recursive: true });
-          await page.screenshot({ path: path.join(SHOTS, `${screen}-${size}.png`) });
-        }
+        await review(
+          page,
+          `${screen}-${size}`,
+          theme === 'light' && chat === (w >= 960 ? 'open' : 'closed'),
+        );
       }
     }
   }

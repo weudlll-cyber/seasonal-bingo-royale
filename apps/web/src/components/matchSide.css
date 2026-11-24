@@ -186,6 +186,7 @@
 }
 
 .standings-panel .rank-list {
+  --hint-gap: 2px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
