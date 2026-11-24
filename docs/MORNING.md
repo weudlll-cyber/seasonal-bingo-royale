@@ -12,17 +12,23 @@ Pieces: 0 open sign-ups capped at 20, 1 H3 header comments, 2 T4 eliminated-cann
 
 - **Piece 2, T4 the eliminated player's browser journey** (branch `test/eliminated-cannot-mark`): `e2e/eliminatedPlayer.spec.ts` (reuses `signIn`, `hostMatch`, `joinFromLobby`, `fillAndStart`, `stopMatch`, `closeContexts` of `e2e/realGame.ts`): a royale with the fast rules, 8 players, the host drawing every 4 s; player 1 never taps and is cut after round 1 ("You're out in cut 1"); before the cut their card cells are buttons with the tap line, after it their screen has no `owner-cell-*` and no tap line, the watched cards hold no button, a click on a watched cell changes no mark, and the page sent no `mark` frame after the cut. It **passed at once** (1.7 min), so there was no fix to make; with the own-or-watching branch of `MatchScreen` switched off it fails (the watched cards are gone), restored. The e-mail verification journey stays out (the flow is not built); said in BACKLOG, whose "Audit 3" entry is closed.
 
+- Piece 2 **merged** as `2380ea7` (PR #71, CI green on `d178774`); the branch is deleted. Master's CI on piece 1's merge `3b8a58e` was green (the first "exit 1" of the watcher was GitHub's API rate limit, three watchers polling every 3 s).
+- **Piece 3a, the axe finding** (branch `feat/docked-layout`, draft PR #72, **not merged**): the drawn numbers (`DrawTicker`) are a named region and a tab stop, the standings list a named list with a tab stop (a region role would take its rows out of the list; the task said region, kept the list). `scrollRegions.test.tsx` failed first (4 of 4 cases).
+- **Piece 3b, the docked layout**: the kit's `DockedScreen` with `WebsiteChatFrame` around the lobby, the match screens and the console in website mode (`shell/DockedChat.tsx`, `shell/dock.css`); `ChatDock.tsx`, `chat.css`, the header's chat button, `sbr.chat.open` gone; standalone unchanged. The sweep on the new layout (480 measurements, fit-audit.md §8): **the chat covers 0 game text at every desktop size** (§7: up to 58); the player's and the host's screens fit above the strip **even at 1280×720** (game area 457 px above the 150 px strip); **not whole**: the spectator's (and an out player's) four watched cards at **1280×720, 1366×768 and 1536×768** (area 457–465 px; they fit from 557 px, so they need between 466 and 557 px): their box scrolls and the strip stays in sight; nothing under 14 px or 16 px was made. What would give room: the top two beside each other at those sizes, or a "show more", or a shorter header; the strip itself cannot go under 150 px (the owner's least) and is the kit's. Phones: the chat bar is inside the window in all 192 phone measurements, the sheet opens and closes; the round screens scroll inside the area as they scrolled the page, and the player's card is not whole above the bar at 375×667 and now also 360×780 (the bar takes about 70 px). axe: `scrollable-region-focusable` gone (192 of 480 before): besides 3a the shorter area made the patterns panel, the status panel and the cards' box scroll at 1280×720; they are focusable and named too; one `color-contrast` hit, the podium still fading in (first measurement of that screen, as in §7). Tests: `dockedChat.test.tsx` (rewritten), `scrollRegions.test.tsx`, `e2e/chatEmbed.spec.ts` (rewritten: strip, theme, reload, bar and sheet) and `backToWebsite.spec.ts` pass in Chromium; the website-mode sweep helper counts the game area's scroll, keeps key boxes inside it, records the chat bar and takes `SBR_SWEEP_SIZES`. The two wrong sentences (kit-adoption.md B7, fit-audit.md §7) are corrected: the kit puts the chat under the game (kit `ChatDock.tsx`).
+- **Piece 4, the start card: kept, not built** (the rule: no kit patch). The kit's `StartCard` clips its content (`.sk-start-card { overflow: hidden }`, kit `css/frames.css`; the title in the largest type) and always prints "Opens in N s" (`opensIn: number`). Bingo's waiting room is a list of up to 100 players that must scroll, a Join action and, in most matches, no start time (the host starts it, or the places fill). **Wishes for the kit:** (1) `opensIn: number | null`, no timer line when null; (2) a scrolling variant of the card (or of its special block) for lists; (3) the fit scale off for a game whose floor is 1 (Bingo). Nothing was changed in the waiting room, so no sweep for it.
+
 ### Running
 
-- Piece 2: CI on the PR.
+- Piece 3–4: CI on the draft PR #72. Piece 5 next.
 
 ### Open
 
-- Pieces 3a, 3b, 4, 5 on `feat/docked-layout` (not merged).
+- Piece 5 (the game bar and focus mode); BACKLOG's KIT-ADOPTION remainder stays in part one (B7 steps 2 and 3).
 
 ### Needs the owner's word
 
-- Nothing yet.
+- The spectator's watched cards at 1280×720, 1366×768 and 1536×768 (above): which of the options, or leave the scroll.
+- The docked layout itself (draft PR #72): the owner looks first.
 
 ## Production night of 2026-11-22/23 (started 23:13, unattended)
 
