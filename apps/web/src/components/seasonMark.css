@@ -1,0 +1,25 @@
+/**
+ * @file   apps/web/src/components/seasonMark.css
+ * @module web
+ * @brief  The look of a season mark and of the set of four (./SeasonIcon, ./SeasonSet).
+ *
+ * Responsibility: a season not earned is a white disc with a grey ring of the icon's size (never a faded
+ *                 icon, which could not be told from an earned one); the four marks of a player
+ *                 side by side. Sizes, gaps and the ring's width come from the kit's tokens
+ *                 (@seasonal/kit tokens.css).
+ * Used by:        ./SeasonIcon, ./SeasonSet
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+.season-ring {
+  display: inline-block;
+  box-sizing: border-box;
+  vertical-align: middle;
+  border: calc(var(--space-1) / 4) solid;
+  border-radius: 50%;
+}
+
+.season-set {
+  display: inline-flex;
+  gap: calc(var(--space-1) / 4);
+}

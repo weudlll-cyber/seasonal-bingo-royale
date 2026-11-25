@@ -9,7 +9,8 @@
  *                 unless the viewer prefers reduced motion; in the pause between rounds
  *                 none is highlighted, so the last number does not read as "tap now".
  *                 Where a screen caps the row's height (the player screen, ../game/arena.css)
- *                 it scrolls, and each new draw scrolls it to the newest.
+ *                 it scrolls, and each new draw scrolls it to the newest; it is a named
+ *                 region and a tab stop, so a keyboard can scroll it (WCAG 2.1.1).
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback, ../game/MatchScreen
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
@@ -45,10 +46,14 @@ export function DrawTicker({
           Speed window: {String(speedWindowMs / 1000)} s after each draw
         </p>
       ) : null}
+      {/* Scrolls where a screen caps its height: named and focusable (WCAG 2.1.1). */}
       <div
         ref={row}
         className="draw-ticker"
         data-testid="draw-ticker"
+        role="region"
+        aria-label="Drawn numbers"
+        tabIndex={0}
         style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}
       >
         {draws.map((item, i) => {

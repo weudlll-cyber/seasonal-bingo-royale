@@ -7,8 +7,9 @@
  *                 waits two frames and a moment for observers; `ROUND_KEYS` names what a round
  *                 screen must show in one window (playerFit's rule: ball, drawn numbers, the
  *                 cards or Draw next); `keysOutOf` lists those boxes not wholly inside the
- *                 window; `findingsOf` counts a probe's findings (page scroll only on a round
- *                 screen). Used by the standalone audit and the website-mode sweep alike.
+ *                 window (website mode: the game area above the chat dock); `findingsOf` counts
+ *                 a probe's findings (page scroll only on a round screen). Used by the
+ *                 standalone audit and the website-mode sweep alike.
  * Depends on:     @playwright/test, ../layoutChecks, ./fitProbe (types)
  * Used by:        ./fitAudit.spec, ./websiteSweep
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
@@ -69,7 +70,12 @@ export async function keysOutOf(
 ): Promise<string[]> {
   if (keys === undefined) return [];
   const report = await layoutReport(page, keys);
-  const { width, height } = report.view;
+  const { width } = report.view;
+  // Where the screen ends: the window, or in website mode the game area above the chat dock.
+  const areaBottom = await page.evaluate(
+    () => document.querySelector('.sk-docked-main')?.getBoundingClientRect().bottom ?? null,
+  );
+  const height = Math.min(report.view.height, areaBottom ?? report.view.height);
   return Object.entries(report.boxes)
     .filter(
       ([, b]) =>

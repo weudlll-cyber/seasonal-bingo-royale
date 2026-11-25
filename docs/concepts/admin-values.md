@@ -742,10 +742,10 @@ Built (admin-area §9 piece 6): the rows marked "admin" with a number are in **S
 
 ### Chat and website embed
 
-| id               | file:line                             | current value + unit                                            | what changing it does                                                    | who may change it | min | max | min/max reason | warning | applies        |
-| ---------------- | ------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------- | --- | --- | -------------- | ------- | -------------- |
-| chat.dockRoutes  | apps/web/src/shell/ChatDock.tsx:28    | lobby, match, host (screens)                                    | Sets the screens that show the chat beside them.                         | admin             | —   | —   | —              | no      | next page load |
-| chat.defaultOpen | apps/web/src/shell/ChatDock.tsx:32-34 | closed (until the player opens it; then remembered per browser) | Sets whether the chat starts open for a player who has never toggled it. | admin             | —   | —   | —              | no      | next page load |
+| id               | file:line                            | current value + unit                                                                   | what changing it does                                    | who may change it | min | max | min/max reason | warning | applies        |
+| ---------------- | ------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------- | ----------------- | --- | --- | -------------- | ------- | -------------- |
+| chat.dockRoutes  | apps/web/src/shell/DockedChat.tsx:27 | lobby, match, host (screens)                                                           | Sets the screens that show the chat docked under them.   | admin             | —   | —   | —              | no      | next page load |
+| chat.defaultOpen | gone with the dock (K18)             | not applicable: docked chat, always in sight on a desktop; a phone starts with the bar | (removed with the side panel: the strip is always there) | admin             | —   | —   | —              | no      | next page load |
 
 ### Quick test
 

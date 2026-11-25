@@ -53,7 +53,7 @@
   white-space: nowrap;
 }
 
-.season-item img {
+.season-item [data-season] {
   margin-right: 0.2rem;
   vertical-align: -0.2em;
 }
@@ -186,6 +186,7 @@
 }
 
 .standings-panel .rank-list {
+  --hint-gap: 2px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;

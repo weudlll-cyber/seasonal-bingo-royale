@@ -30,7 +30,13 @@ export function PatternsPanel({
   const keys = result.stagePlan[view.roundStage]?.activePatterns ?? [];
   if (keys.length === 0) return null;
   return (
-    <section className="sbr-panel side-panel" data-testid="patterns-panel">
+    <section
+      className="sbr-panel side-panel"
+      data-testid="patterns-panel"
+      aria-label="Patterns this round"
+      // Scrolls where the column is short: a named tab stop, so a keyboard can reach it.
+      tabIndex={0}
+    >
       <h3>Patterns this round</h3>
       <ul className="pattern-rows">
         {keys.map((key) => {

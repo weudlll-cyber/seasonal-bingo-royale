@@ -6,12 +6,12 @@
  * Responsibility: the kit's `AppHeader` (@seasonal/kit/react, folds when items do not fit): in
  *                 website mode first the kit's `BackLink` to the website's /games (this tab), then
  *                 emblem, wordmark, links (lobby, hosting `match.create`, leaderboard, admin
- *                 `admin.view`, dev Quick Test), chat button, account, theme toggle. Account: chip
+ *                 `admin.view`, dev Quick Test), account, theme toggle. Account: chip
  *                 "Signed in as <name> (role)" with "Sign out", or "Sign in"/"Register"
  *                 (../account; website mode one "Sign in", D37); hidden until the session is known
- *                 (`data-session`, ./header.css). The folded menu closes on a new route, sign-in
- *                 or chat opening.
- * Depends on:     react, @seasonal/kit/react (AppHeader), ./router, ./session, ./ChatDock,
+ *                 (`data-session`, ./header.css). The folded menu closes on a new route or a
+ *                 sign-in. The chat has no button here: it is docked under the game (./DockedChat).
+ * Depends on:     react, @seasonal/kit/react (AppHeader), ./router, ./session,
  *                 ./DevTools (lazy, development only), ../account/WebsiteSignIn,
  *                 ./header.css, assets/brand/emblem.webp
  * Used by:        ./AppShell
@@ -23,7 +23,6 @@ import { lazy, Suspense, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { useWebsiteSignIn } from '../account/WebsiteSignIn.js';
-import { ChatButton, type ChatDock } from './ChatDock.js';
 import { hrefOf, type Route } from './router.js';
 import { highestRole, useSession } from './session.js';
 import './header.css';
@@ -40,7 +39,6 @@ const DevSignIn = import.meta.env.DEV
 interface HeaderProps {
   readonly route: Route;
   readonly dev: boolean;
-  readonly chat: ChatDock | null;
 }
 
 // The bar's links; the server checks every call behind them.
@@ -76,21 +74,17 @@ function useAccount(): HeaderAccount | null {
   };
 }
 
-// After the links: the development Quick Test link, then the chat button (website mode).
-function NavExtra({ route, dev, chat }: HeaderProps): ReactElement {
+// After the links: the development Quick Test link.
+function NavExtra({ route, dev }: HeaderProps): ReactElement | null {
+  if (!dev || QuickTestLink === null) return null;
   return (
-    <>
-      {dev && QuickTestLink !== null ? (
-        <Suspense fallback={null}>
-          <QuickTestLink active={route.name === 'quicktest'} />
-        </Suspense>
-      ) : null}
-      <ChatButton dock={chat} />
-    </>
+    <Suspense fallback={null}>
+      <QuickTestLink active={route.name === 'quicktest'} />
+    </Suspense>
   );
 }
 
-export function Header({ route, dev, chat }: HeaderProps): ReactElement {
+export function Header({ route, dev }: HeaderProps): ReactElement {
   const session = useSession().session;
   const websiteSignIn = useWebsiteSignIn();
   const website = session?.authMode === 'website';
@@ -106,7 +100,7 @@ export function Header({ route, dev, chat }: HeaderProps): ReactElement {
           name: 'Seasonal Bingo Royale',
         }}
         links={links}
-        navExtra={<NavExtra route={route} dev={dev} chat={chat} />}
+        navExtra={<NavExtra route={route} dev={dev} />}
         account={account}
         signIn={
           websiteSignIn === null
@@ -121,8 +115,8 @@ export function Header({ route, dev, chat }: HeaderProps): ReactElement {
             </Suspense>
           ) : null
         }
-        // A new route, another account or the chat opening from the menu: its job is done.
-        closeKey={`${JSON.stringify(route)} chat ${String(chat?.open ?? false)} ${session?.account?.id ?? ''}`}
+        // A new route or another account: the folded menu has done its job.
+        closeKey={`${JSON.stringify(route)} ${session?.account?.id ?? ''}`}
         buttonClassName="sbr-btn"
       />
     </div>

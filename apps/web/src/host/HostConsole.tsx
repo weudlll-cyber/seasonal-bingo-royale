@@ -11,7 +11,7 @@
  *                 event lines, standings (active first, grouped, bounded panel), prizes, abort
  *                 with a reason (./AbortMatch); fills the window on desktop; final placement on
  *                 top at the end. Dev builds: async "Jump ahead" (./JumpAhead, lazy).
- * Depends on:     react, ../playback, ../components/*, ../game/*, ./AbortMatch,
+ * Depends on:     react, ../playback, ../components/* (ScrollBox), ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
  *                 ../shell/router
  * Used by:        ../shell/AppShell
@@ -22,6 +22,7 @@ import { lazy, Suspense, useState, type ReactElement } from 'react';
 import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
 import { PrizeList } from '../components/Playback.js';
+import { ScrollBox } from '../components/ScrollBox.js';
 import { Standings } from '../components/Standings.js';
 import { currentRecap, Interlude } from '../game/Interlude.js';
 import { BallAndNumbers } from '../game/MatchScreen.js';
@@ -148,13 +149,13 @@ function HostLive({
       <section className="host-play">
         <BallAndNumbers result={result} view={view} />
       </section>
-      <section className="host-controls">
+      <ScrollBox as="section" className="host-controls">
         <FinalNotice result={result} view={view} />
         <BetweenRounds live={live} view={view} />
         {running ? <HostDrawControls live={live} view={view} /> : null}
         {result.gameType === 'royale' ? null : <PrizeList result={result} view={view} />}
         {running ? <AbortMatch code={live.match.code} /> : null}
-      </section>
+      </ScrollBox>
       {/* At the end the final placement replaces the live standings. */}
       <aside className="host-side">
         {view.finished ? null : <Standings result={result} view={view} />}

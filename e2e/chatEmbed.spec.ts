@@ -1,22 +1,22 @@
 /**
  * @file   e2e/chatEmbed.spec.ts
  * @module e2e
- * @brief  The website's chat beside the game in website mode (07 §6), and none standalone.
+ * @brief  The website's chat docked under the game in website mode (07 §6, K18), and none standalone.
  *
  * Responsibility: behind the stand-in website (./websiteStack, serving /embed/chat), a member who
- *                 may host sees "Chat" on lobby, host console and match screen; at 1440×900 the
- *                 side panel opens with the frame of /embed/chat?room=bingo&theme=<game theme> on
- *                 the site's origin (the kit's WebsiteChatFrame), follows theme switches, stays
- *                 open after reload; at 390×844 "Chat" is in the top bar's menu (./menu), opens a
- *                 drawer and closes the menu, a tap on the dimmed page closes it. Screenshots go to
- *                 reports/screens/latest. Match aborted, account removed. Chromium only.
- * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack, ./menu
+ *                 may host has the chat in a strip under the game on lobby, host console and
+ *                 match screen from the first paint, no button to press: at 1440×900 the strip
+ *                 spans the page below the game, holds the frame of /embed/chat?room=bingo&theme=
+ *                 <game theme> on the site's origin (the kit's WebsiteChatFrame), follows theme
+ *                 switches and is there after a reload; at 390×844 the kit's bar sits at the bottom,
+ *                 opens the chat as a sheet and closes it again. Standalone: no chat, no request for
+ *                 the embed page. Match aborted, account removed. Chromium only.
+ * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
  * Spec:           docs/spec/07-integration-architecture.md §6
  */
 import { expect, test, type Page } from '@playwright/test';
 
 import { CLIENT_URL } from './devStack.js';
-import { openMenu } from './menu.js';
 import { captureThemes, PHONE, setTheme, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 
@@ -80,20 +80,24 @@ async function expectRoom(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await expect(frame(page).getByTestId('embed-theme')).toHaveText(theme);
 }
 
-test('the chat panel beside the lobby, console and match on a wide screen', async ({ page }) => {
+test('the chat strip under the lobby, console and match on a wide screen', async ({ page }) => {
   await page.setViewportSize(WIDE);
   await signInMember(page);
-  await expect(page.getByTestId('chat-frame')).toHaveCount(0);
-  await page.getByTestId('chat-toggle').click();
-  await expect(page.getByTestId('chat-panel')).toBeVisible();
+  // From the first paint, no button: the strip under the game, the page as wide as the dock.
+  await expect(page.getByTestId('chat-frame')).toBeVisible();
+  await expect(page.getByTestId('chat-toggle')).toHaveCount(0);
+  const strip = await page.getByTestId('chat-dock').boundingBox();
+  const game = await page.locator('.sk-docked-main').boundingBox();
+  expect(strip !== null && game !== null && strip.y >= game.y + game.height - 1).toBe(true);
+  expect(strip?.height).toBeGreaterThanOrEqual(150);
   await setTheme(page, 'light');
   await expectRoom(page, 'light');
   await setTheme(page, 'dark');
   await expectRoom(page, 'dark');
   await captureThemes(page, SHOTS_DIR, 'chat-1440');
-  // Remembered: open again after a reload.
+  // There again after a reload.
   await page.reload();
-  await expect(page.getByTestId('chat-panel')).toBeVisible();
+  await expect(page.getByTestId('chat-frame')).toBeVisible();
   const created = await post(page, '/matches', {
     title: 'Chat match',
     gameType: 'royale',
@@ -108,30 +112,32 @@ test('the chat panel beside the lobby, console and match on a wide screen', asyn
   try {
     await page.goto(`${stack.origin}${BASE}/#/host/${code}`);
     await expect(page.getByTestId('host-console')).toBeVisible();
-    await expect(page.getByTestId('chat-toggle')).toBeVisible();
+    await expect(page.getByTestId('chat-frame')).toBeVisible();
     await page.goto(`${stack.origin}${BASE}/#/match/${code}`);
-    await expect(page.getByTestId('chat-toggle')).toBeVisible();
-    await expect(page.getByTestId('chat-panel')).toBeVisible();
+    await expect(page.getByTestId('chat-frame')).toBeVisible();
   } finally {
     await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });
   }
 });
 
-test('a drawer on a phone that one tap closes', async ({ page }) => {
+test('a bar and a sheet on a phone', async ({ page }) => {
   await page.setViewportSize(PHONE);
   await signInMember(page);
   for (const theme of ['light', 'dark'] as const) {
     await setTheme(page, theme);
-    await openMenu(page);
-    await page.getByTestId('chat-toggle').click();
-    await expect(page.getByTestId('chat-panel')).toBeVisible();
-    await expect(page.getByTestId('menu-button')).toHaveAttribute('aria-expanded', 'false');
+    // The kit's bar at the bottom of the screen, the chat closed behind it.
+    const bar = page.getByTestId('chat-bar');
+    await expect(bar).toBeVisible();
+    const box = await bar.boundingBox();
+    expect(box !== null && box.y + box.height <= PHONE.height).toBe(true);
+    await bar.click();
+    const sheet = page.getByRole('dialog', { name: 'Chat' });
+    await expect(sheet).toBeVisible();
     await expectRoom(page, theme);
     await page.screenshot({ path: `${SHOTS_DIR}/chat-390-${theme}.jpg`, quality: 75 });
-    // One tap on the dimmed page above the drawer closes it; the bar stays.
-    await page.mouse.click(PHONE.width / 2, 40);
-    await expect(page.getByTestId('chat-panel')).toBeHidden();
-    await expect(page.getByTestId('menu-button')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Close' }).click();
+    await expect(sheet).toBeHidden();
+    await expect(bar).toBeVisible();
   }
 });
 

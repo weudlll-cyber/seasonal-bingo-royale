@@ -8,7 +8,8 @@
  *                 plus the owner's row): royale shows points and seasons, eliminated dimmed with
  *                 "out" below a divider, ranked by when they went out, with the cut and points
  *                 then (01 §7.5, D23); classic ranks by prizes (01 §3a.2). One line states how
- *                 places are decided. Names link to profiles when `profileHref` is passed. Frame:
+ *                 places are decided. The podium shows each player's four season marks like the
+ *                 rows below it (royale). Names link to profiles when `profileHref` is passed. Frame:
  *                 the kit's `ResultFrame` as a panel (`panel={{ level: 3 }}`, since v0.11.0);
  *                 ./results.css gives Bingo's one-panel look (the kit's frames.css is not loaded).
  * Depends on:     react, @seasonal/kit/react (ResultFrame), ./Podium, ./RankRow, ./Playback
@@ -25,7 +26,7 @@ import { Podium } from './Podium.js';
 import { GroupLabel, RankRow, type ProfileHref } from './RankRow.js';
 import { prizeName } from '../game/labels.js';
 import type { PlaybackView, PlayerView } from '../playback.js';
-import type { QuickTestResult } from '../types.js';
+import type { QuickTestResult, Season } from '../types.js';
 import { useScreens } from '../shell/session.js';
 import './results.css';
 
@@ -72,6 +73,7 @@ export function FinalPlacement({
             name: p.accountId,
             href: row(p).href,
             note: row(p).note,
+            seasons: seasonsOf(result, byId, p),
             own: p.isOwner,
             attrs: row(p).attrs,
           }))}
@@ -93,6 +95,15 @@ interface RankRowsProps {
   readonly row: (p: Placed) => ReturnType<typeof rowFacts> & { readonly href: string | null };
 }
 
+// A royale player's seasons (podium and rows alike); null where seasons do not exist.
+function seasonsOf(
+  result: QuickTestResult,
+  byId: ReadonlyMap<string, PlayerView>,
+  p: Placed,
+): readonly Season[] | null {
+  return result.gameType === 'royale' ? (byId.get(p.accountId)?.seasons ?? []) : null;
+}
+
 // Places from 4 as ranked rows; in a royale the players out below a divider (D23).
 function RankRows({ rest, result, byId, row }: RankRowsProps): ReactElement {
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
@@ -106,7 +117,7 @@ function RankRows({ rest, result, byId, row }: RankRowsProps): ReactElement {
           key={p.accountId}
           rank={p.place}
           name={p.accountId}
-          seasons={result.gameType === 'royale' ? (byId.get(p.accountId)?.seasons ?? []) : null}
+          seasons={seasonsOf(result, byId, p)}
           own={p.isOwner}
           {...row(p)}
         />,

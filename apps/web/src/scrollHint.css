@@ -1,0 +1,37 @@
+/**
+ * @file   apps/web/src/scrollHint.css
+ * @module web
+ * @brief  "More below": the sign on a scrolling box that its content continues.
+ *
+ * Responsibility: a strip across the bottom edge of a box marked `data-more="true"` by
+ *                 ./useScrollHint, under the docked chat only (standalone pages are as they were).
+ *                 The strip has its own opaque ground, so it is a band of its own: the last visible
+ *                 line ends above it, nothing shows behind or beside the words, and it never
+ *                 covers text or a mark (owner decision of 2026-11-24; it used to be a pill over
+ *                 the last line). It sticks to the visible bottom edge and takes no room (its
+ *                 height and the box's row gap, `--hint-gap`, are taken back by a negative margin,
+ *                 so showing it never makes the box scroll further), lets clicks through and is
+ *                 empty for a screen reader (decoration; the box itself is a named tab stop).
+ *                 Colours, sizes and the type size are kit tokens (@seasonal/kit tokens.css).
+ * Used by:        ./useScrollHint
+ * Spec:           docs/concepts/fit-audit.md §8; e2e/scrollSign.spec.ts
+ */
+
+.sk-docked [data-more='true']::after {
+  content: '↓ More below' / '';
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: var(--space-3);
+  margin: calc(-1 * var(--space-3) - var(--hint-gap, 0px)) 0 0;
+  border-top: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-small);
+  line-height: 1;
+  pointer-events: none;
+}

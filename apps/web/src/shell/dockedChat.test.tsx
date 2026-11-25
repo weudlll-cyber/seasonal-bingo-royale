@@ -1,19 +1,20 @@
 // @vitest-environment jsdom
 /**
- * @file   apps/web/src/shell/chatDock.test.tsx
+ * @file   apps/web/src/shell/dockedChat.test.tsx
  * @module web/shell
- * @brief  The website's chat beside the game in website mode (07 §6).
+ * @brief  The website's chat docked under the game in website mode (07 §6, K18).
  *
- * Responsibility: in website mode the lobby's top bar has "Chat"; the frame does not exist
- *                 before the first opening, then loads `/embed/chat?room=bingo&theme=light` on the
- *                 site's origin, sandboxed (K17) with the strict-origin referrer (the kit's
- *                 WebsiteChatFrame), follows a theme switch, stays while the panel is closed, and the open state
- *                 is remembered (and read back on the next visit). The sign-in page has no
- *                 chat. Standalone: no button, no frame, no request for the embed page.
+ * Responsibility: in website mode the lobby sits in the kit's docked screen with the chat in its
+ *                 dock from the first render (no button to press): the frame loads
+ *                 `/embed/chat?room=bingo&theme=light` on the site's origin, sandboxed (K17),
+ *                 with the strict-origin referrer, follows a theme switch, and stays the same
+ *                 element from the lobby to a match; on a phone the dock is the kit's bar. The
+ *                 sign-in page has no dock. Standalone: no dock, no frame, no request for the
+ *                 embed page, and none of the old side panel's parts.
  * Depends on:     @testing-library/react, ./AppShell, ./session
  * Spec:           docs/spec/07-integration-architecture.md §6
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from './AppShell.js';
@@ -22,7 +23,6 @@ import { SessionProvider } from './session.js';
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  window.localStorage.clear();
   window.location.hash = '';
   document.documentElement.removeAttribute('data-theme');
 });
@@ -81,15 +81,17 @@ async function renderShell(): Promise<void> {
 
 const frameSrc = (): string | null => screen.getByTestId('chat-frame').getAttribute('src');
 
-describe("the website's chat in website mode (07 §6)", () => {
-  it('opens the room in a frame made on first opening, following the theme', async () => {
+describe("the website's chat docked under the game in website mode (07 §6)", () => {
+  it('is in the dock from the first render, in the site frame, following the theme', async () => {
     serve('website');
     // As the early theme script does before the first paint.
     document.documentElement.setAttribute('data-theme', 'light');
     await renderShell();
-    const toggle = await screen.findByTestId('chat-toggle');
-    expect(screen.queryByTestId('chat-frame')).toBeNull();
-    fireEvent.click(toggle);
+    await screen.findByTestId('chat-frame');
+    // The lobby sits in the docked screen; there is no button and no side panel.
+    expect(screen.getByTestId('docked-screen').getAttribute('data-sk-view')).toBe('desktop');
+    expect(screen.queryByTestId('chat-toggle')).toBeNull();
+    expect(screen.queryByTestId('chat-panel')).toBeNull();
     // On the site's own origin; sandboxed (K17) and with the strict-origin referrer.
     expect(frameSrc()).toBe('/embed/chat?room=bingo&theme=light');
     const frame = screen.getByTestId('chat-frame');
@@ -97,42 +99,49 @@ describe("the website's chat in website mode (07 §6)", () => {
       'allow-scripts allow-same-origin allow-forms allow-popups',
     );
     expect(frame.getAttribute('referrerpolicy')).toBe('strict-origin');
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     await act(async () => {
       document.documentElement.setAttribute('data-theme', 'dark');
       await Promise.resolve();
     });
     expect(frameSrc()).toBe('/embed/chat?room=bingo&theme=dark');
-    fireEvent.click(screen.getByTestId('chat-close'));
-    expect(screen.getByTestId('chat-panel').hidden).toBe(true);
-    expect(screen.getByTestId('chat-frame')).toBeTruthy();
-    expect(window.localStorage.getItem('sbr.chat.open')).toBe('false');
   });
 
-  it('remembers an open panel for the next visit', async () => {
-    window.localStorage.setItem('sbr.chat.open', 'true');
+  it('stays the same frame from the lobby to a match', async () => {
     serve('website');
     await renderShell();
-    await screen.findByTestId('chat-toggle');
-    expect(screen.getByTestId('chat-panel').hidden).toBe(false);
+    const before = await screen.findByTestId('chat-frame');
+    await act(async () => {
+      window.location.hash = '#/match/ABC123';
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('chat-frame')).toBe(before);
   });
 
-  it('is not beside the sign-in page', async () => {
+  it('is the kit’s bar on a phone, the frame in the sheet it opens', async () => {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('innerHeight', 844);
+    serve('website');
+    await renderShell();
+    await screen.findByTestId('chat-bar');
+    expect(screen.getByTestId('docked-screen').getAttribute('data-sk-view')).toBe('phone');
+  });
+
+  it('is not under the sign-in page', async () => {
     window.location.hash = '#/sign-in';
     serve('website');
     await renderShell();
     await screen.findByTestId('sign-in');
-    expect(screen.queryByTestId('chat-toggle')).toBeNull();
+    expect(screen.queryByTestId('docked-screen')).toBeNull();
+    expect(screen.queryByTestId('chat-frame')).toBeNull();
   });
 });
 
 describe('a standalone install (07 §6)', () => {
-  it('has no chat button, no frame and asks for no embed page', async () => {
-    window.localStorage.setItem('sbr.chat.open', 'true');
+  it('has no dock, no frame and asks for no embed page', async () => {
     const sent = serve('local');
     await renderShell();
     await screen.findByTestId('sign-in');
-    expect(screen.queryByTestId('chat-toggle')).toBeNull();
+    expect(screen.queryByTestId('docked-screen')).toBeNull();
     expect(screen.queryByTestId('chat-frame')).toBeNull();
     expect(sent.some((url) => url.includes('embed'))).toBe(false);
   });

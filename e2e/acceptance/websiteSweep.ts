@@ -3,14 +3,21 @@
  * @module e2e/acceptance
  * @brief  The website-mode sweep (measurement only): a screen at ten window sizes, light and dark, chat closed and open, with axe.
  *
- * Responsibility: the baseline for the docked layout (kit K18, docs/concepts/kit-adoption.md §5
- *                 B7). `sweep` measures one game screen inside the website stand-in
- *                 (../websiteStack) at the ten sizes of the night of 2026-11-23 (six desktop, four
- *                 phone), root font 16 px, both themes, chat closed and open (dock beside the
- *                 match): fit probe (./fitProbe), round screens' key boxes (./fitMeasure) and axe
- *                 (WCAG 2 A and AA) on the game's own page, chat frame left out. One JSON line per
- *                 measurement to reports/logs/<tag>-website-sweep.jsonl; no screenshots. The
- *                 helpers sign a stand-in member in via the proxy and post with the CSRF token.
+ * Responsibility: `sweep` measures one game screen inside the website stand-in (../websiteStack) at
+ *                 the ten sizes of the night of 2026-11-23 (six desktop, four phone), root font
+ *                 16 px, both themes, chat closed and open (a phone's sheet; the desktop strip is
+ *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
+ *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out; on the results
+ *                 screen also how many places lie wholly above the strip (`places`) and, where there are standings, how many of their rows are
+ *                 whole (`standings`); both also count the ranked rows that broke onto a second line
+ *                 (`wrapped`). One JSON line
+ *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
+ *                 ("1280x720,375x667"), SBR_SWEEP_SCREENS ("player-royale,results-player"),
+ *                 SBR_SWEEP_THEMES ("light") and SBR_SWEEP_CHAT ("open") narrow the sweep;
+ *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen, size and theme for a
+ *                 review (`<screen>-<size>-<theme>.png`): the chat strip shown on a desktop, the
+ *                 game with the sheet closed on a phone.
+ *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
  * Used by:        ./fitAudit.spec
@@ -31,7 +38,7 @@ import { probe } from './fitProbe.js';
 export const BASE = '/games/bingo';
 
 // The sizes of the docked-layout baseline: six desktop windows, four phones.
-export const SWEEP_SIZES = [
+const ALL_SIZES = [
   [1280, 720],
   [1366, 768],
   [1536, 768],
@@ -44,7 +51,24 @@ export const SWEEP_SIZES = [
   [430, 932],
 ] as const;
 
+// SBR_SWEEP_SIZES="1280x720,375x667" narrows the sweep (a quick look); else all ten.
+const ONLY = process.env['SBR_SWEEP_SIZES']?.split(',') ?? null;
+export const SWEEP_SIZES = ALL_SIZES.filter(
+  ([w, h]) => ONLY === null || ONLY.includes(`${String(w)}x${String(h)}`),
+);
+
+// The other narrowing lists (unset: everything).
+const listOf = (name: string): string[] | null => process.env[name]?.split(',') ?? null;
+const SCREENS = listOf('SBR_SWEEP_SCREENS');
+const THEMES = (['light', 'dark'] as const).filter(
+  (t) => listOf('SBR_SWEEP_THEMES')?.includes(t) ?? true,
+);
+const CHATS = (['closed', 'open'] as const).filter(
+  (c) => listOf('SBR_SWEEP_CHAT')?.includes(c) ?? true,
+);
+
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
+const SHOTS = process.env['SBR_SWEEP_SHOTS'] ?? null;
 const LOG = path.join(REPO_ROOT, 'reports', 'logs', `${TAG}-website-sweep.jsonl`);
 
 export function freshSweep(): void {
@@ -80,12 +104,89 @@ export async function webPost(
   });
 }
 
-// The website's chat beside the match: opened with the dock's toggle, closed with its button.
+// The website's chat in the dock under the match. On a desktop the strip is always in sight, so
+// "closed" and "open" measure the same page. On a phone "open" is the sheet the kit's bar
+// opens, "closed" the bar alone. Called after the window has its size (the view follows it).
 async function setChat(page: Page, open: boolean): Promise<void> {
-  const panel = page.getByTestId('chat-panel');
-  if ((await panel.isVisible()) === open) return;
-  await page.getByTestId(open ? 'chat-toggle' : 'chat-close').click();
-  await expect(panel).toBeVisible({ visible: open });
+  const bar = page.getByTestId('chat-bar');
+  if (!(await bar.isVisible())) return;
+  const sheet = page.getByRole('dialog', { name: 'Chat' });
+  if ((await sheet.isVisible()) === open) return;
+  if (open) await bar.click();
+  else await sheet.getByRole('button', { name: 'Close' }).click();
+  await expect(sheet).toBeVisible({ visible: open });
+}
+
+// The docked layout's game area scrolling inside the one-window page counts as page scroll: the
+// player would have to scroll to see the whole screen (the probe measures the page itself).
+const areaOf = (page: Page): Promise<{ client: number; scroll: number } | null> =>
+  page.evaluate(() => {
+    const area = document.querySelector('.sk-docked-main');
+    return area === null ? null : { client: area.clientHeight, scroll: area.scrollHeight };
+  });
+
+// The results screen's places (podium steps and ranked rows) lying wholly inside the game area, above
+// the "More below" strip:
+// null where the screen has no final placement.
+const placesOf = (page: Page): Promise<{ whole: number; total: number; wrapped: number } | null> =>
+  page.evaluate(() => {
+    const area = document.querySelector('.sk-docked-main');
+    const places = [...document.querySelectorAll('.sk-result .podium-step, .sk-result .rank-row')];
+    // Rows that broke onto a second line: taller than 1.4 times the shortest row.
+    const wrapped = (els: Element[]): number => {
+      const h = els.map((e) => e.getBoundingClientRect().height);
+      return h.filter((x) => x > 1.4 * Math.min(...h)).length;
+    };
+    if (area === null || places.length === 0) return null;
+    // Above the "More below" strip, which has a band of its own at the bottom while it shows.
+    const sign =
+      area.getAttribute('data-more') === 'true' ? getComputedStyle(area, '::after') : null;
+    const bottom =
+      area.getBoundingClientRect().bottom - (sign === null ? 0 : parseFloat(sign.height));
+    const whole = places.filter((e) => e.getBoundingClientRect().bottom <= bottom + 0.5).length;
+    return {
+      whole,
+      total: places.length,
+      wrapped: wrapped(places.filter((e) => e.classList.contains('rank-row'))),
+    };
+  });
+
+// The standings' rows lying wholly inside their scrolling list (the strip with the viewer's own row
+// is not counted): null where the screen has no standings.
+const standingsOf = (
+  page: Page,
+): Promise<{ whole: number; total: number; wrapped: number } | null> =>
+  page.evaluate(() => {
+    const list = document.querySelector('.standings-panel .rank-list');
+    if (list === null) return null;
+    const box = list.getBoundingClientRect();
+    const sign =
+      list.getAttribute('data-more') === 'true' ? getComputedStyle(list, '::after') : null;
+    const bottom = box.bottom - (sign === null ? 0 : parseFloat(sign.height));
+    const rows = [...list.querySelectorAll(':scope > .rank-row')];
+    // Rows that broke onto a second line: taller than 1.4 times the shortest row.
+    const wrapped = (els: Element[]): number => {
+      const h = els.map((e) => e.getBoundingClientRect().height);
+      return h.filter((x) => x > 1.4 * Math.min(...h)).length;
+    };
+    const whole = rows.filter((e) => {
+      const r = e.getBoundingClientRect();
+      return r.top >= box.top - 0.5 && r.bottom <= bottom + 0.5;
+    }).length;
+    return { whole, total: rows.length, wrapped: wrapped(rows) };
+  });
+
+// A phone's chat bar: whether it lies wholly inside the window (null on a desktop, no bar).
+// Looked at only when it is shown: `boundingBox()` of a missing element waits for it, without end.
+async function barInWindow(page: Page): Promise<boolean | null> {
+  const bar = page.getByTestId('chat-bar');
+  if (!(await bar.isVisible())) return null;
+  const box = await bar.boundingBox();
+  const view = page.viewportSize();
+  if (box === null || view === null) return null;
+  return (
+    box.x >= 0 && box.y >= 0 && box.x + box.width <= view.width && box.y + box.height <= view.height
+  );
 }
 
 // axe on the game's page (WCAG 2 A and AA); the website's chat page in its frame is left out.
@@ -103,18 +204,33 @@ async function axeOf(page: Page) {
   }));
 }
 
+// The review picture (SBR_SWEEP_SHOTS, `<screen>-<size>-<theme>.png`): a desktop with its strip
+// (always shown, so "open" is the same page), a phone with the sheet closed (`wanted`).
+async function review(page: Page, name: string, wanted: boolean): Promise<void> {
+  if (SHOTS === null || !wanted) return;
+  mkdirSync(SHOTS, { recursive: true });
+  await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
+}
+
 // One screen at every sweep size, both themes, chat closed and open; `kind` names a round
 // screen's key boxes (./fitMeasure ROUND_KEYS).
 export async function sweep(page: Page, screen: string, kind?: string): Promise<void> {
-  for (const theme of ['light', 'dark'] as const) {
-    for (const chat of ['closed', 'open'] as const) {
+  if (SCREENS !== null && !SCREENS.includes(screen)) return;
+  for (const theme of THEMES) {
+    for (const chat of CHATS) {
       // Switched where nothing folds: the toggles sit in the folded menu on a phone.
       await atSize(page, 1920, 1080, 16);
       await setTheme(page, theme);
-      await setChat(page, chat === 'open');
       for (const [w, h] of SWEEP_SIZES) {
         await atSize(page, w, h, 16);
-        const p = await probe(page);
+        await setChat(page, chat === 'open');
+        const measured = await probe(page);
+        const area = await areaOf(page);
+        const bar = await barInWindow(page);
+        const places = await placesOf(page);
+        const standings = await standingsOf(page);
+        const scrolls = area !== null && area.scroll > area.client + 1;
+        const p = { ...measured, pageScroll: measured.pageScroll || scrolls };
         const keysOut = await keysOutOf(page, kind === undefined ? undefined : ROUND_KEYS[kind]);
         const round = kind !== undefined;
         const axe = await axeOf(page);
@@ -127,14 +243,18 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           chat,
           round,
           keysOut,
+          area,
+          places,
+          standings,
+          bar,
           axe,
-          findings: findingsOf(p, round, keysOut),
+          findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
+        await review(page, `${screen}-${size}-${theme}`, chat === (w >= 960 ? 'open' : 'closed'));
       }
     }
   }
   await atSize(page, 1920, 1080, 16);
-  await setChat(page, false);
   await setTheme(page, 'light');
 }

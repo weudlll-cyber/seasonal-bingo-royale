@@ -7,11 +7,11 @@
  *                 below it the current route's screen (boards and profiles: ../league); in
  *                 maintenance (./useMaintenance, shared as its context) the lobby and create
  *                 form show the maintenance page, the host console a banner (09 §4); "Verify
- *                 this match" after a match (../game/VerifyMatch); in website mode the website's
- *                 chat beside the lobby, match and console (./ChatDock). The dev-only Quick Test
- *                 (../App) loads on demand, out of production builds.
+ *                 this match" after a match (../game/VerifyMatch); in website mode the lobby,
+ *                 match and console sit in the website's chat dock (./DockedChat). The dev-only
+ *                 Quick Test (../App) loads on demand, out of production builds.
  * Depends on:     react, ./Header, ./router, ./session, ./Maintenance, ./useMaintenance,
- *                 ./ChatDock, ../App (lazy, development only), ../admin/AdminArea, ../game/*,
+ *                 ./DockedChat, ../App (lazy, development only), ../admin/AdminArea, ../game/*,
  *                 ../host/*, ../account/*, ../league/*, ./shell.css
  * Used by:        ../main
  * Spec:           docs/spec/01-game-design.md §10, §13; docs/spec/05-api-design.md §2.1, §2.2, §2.4
@@ -30,7 +30,7 @@ import { StartMatch } from '../host/StartMatch.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { LeaderboardPage } from '../league/LeaderboardPage.js';
 import { ProfilePage } from '../league/ProfilePage.js';
-import { ChatPanel, useChatDock } from './ChatDock.js';
+import { DockedChat, useChatPlace } from './DockedChat.js';
 import { Header } from './Header.js';
 import { useRoute, type QuickTestView, type Route } from './router.js';
 import { MaintenanceBanner, MaintenancePage } from './Maintenance.js';
@@ -47,17 +47,17 @@ const QuickTest = import.meta.env.DEV
 export function AppShell({ dev }: { readonly dev: boolean }): ReactElement {
   const route = useRoute();
   const maintenance = useMaintenance();
-  // Website mode: the website's chat beside the lobby, the match screens and the console.
-  const chat = useChatDock(route);
+  // Website mode: the website's chat docked under the lobby, the match screens and the console.
+  const chat = useChatPlace(route);
   // Website mode: an ended game session signs in again through the website (an idle admin).
   useWebsiteResign();
+  const screen = <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />;
   return (
     <MaintenanceContext.Provider value={maintenance}>
-      <Header route={route} dev={dev} chat={chat} />
+      <Header route={route} dev={dev} />
       <main className="shell-main">
-        <MaintainedScreen route={route} dev={dev} maintenance={maintenance} />
+        {chat === null ? screen : <DockedChat place={chat}>{screen}</DockedChat>}
       </main>
-      <ChatPanel dock={chat} />
     </MaintenanceContext.Provider>
   );
 }

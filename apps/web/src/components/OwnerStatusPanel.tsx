@@ -17,7 +17,7 @@
  */
 import { Fragment, type ReactElement, type ReactNode } from 'react';
 
-import { SeasonIcon } from './SeasonIcon.js';
+import { SEASON_MARK_SIZE, SeasonIcon } from './SeasonIcon.js';
 import {
   boostSentence,
   growthSentence,
@@ -64,6 +64,8 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
       data-points={points}
       data-rank={rank}
       aria-label={`${accountId} status`}
+      // Scrolls where the column is short: a tab stop, so a keyboard can reach it (WCAG 2.1.1).
+      tabIndex={0}
     >
       <p className="owner-status-head">
         <strong>{accountId}</strong> · {String(points)} pts · rank #{String(rank)}
@@ -143,7 +145,7 @@ function Seasons({
           <Fragment key={s}>
             {i > 0 ? ' · ' : ''}
             <span className="season-item">
-              <SeasonIcon season={s} size="1.1rem" onColor dimmed={!collected.has(s)} />
+              <SeasonIcon season={s} size={SEASON_MARK_SIZE} onColor earned={collected.has(s)} />
               {/* A collected season is ticked; an open one is its name alone. */}
               {seasonName(s)}
               {collected.has(s) ? ' ✓' : ''}

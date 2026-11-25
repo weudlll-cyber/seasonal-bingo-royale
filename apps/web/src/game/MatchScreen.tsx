@@ -11,7 +11,7 @@
  *                 for host); names link to profiles with Discord steps (../components/StepBadges);
  *                 ./MatchCancelled (D17); async matches show "While you were away" on top
  *                 (./AwaySummary, 01 §11). Remounted per code.
- * Depends on:     react, ../playback, ../components/*, ./useLiveMatch, ./ArenaCards,
+ * Depends on:     react, ../playback, ../components/* (ScrollBox), ./useLiveMatch, ./ArenaCards,
  *                 ./ArenaNotice, ./AwaySummary, ./CurrentBall, ./HostLink, ./WaitingRoom,
  *                 ./MatchCancelled, ./labels, ../league/playerHref, ./arena.css, ./game.css
  * Used by:        ../shell/AppShell; BallAndNumbers also by ../host/HostConsole
@@ -24,6 +24,7 @@ import { inPlay, OwnerStatusFor } from '../components/OwnerArea.js';
 import { PatternsPanel } from '../components/PatternsPanel.js';
 import { PrizeList } from '../components/Playback.js';
 import { RecentEvents } from '../components/RecentEvents.js';
+import { ScrollBox } from '../components/ScrollBox.js';
 import { Standings } from '../components/Standings.js';
 import { StepsByName } from '../components/StepBadges.js';
 import { playerHref } from '../league/playerHref.js';
@@ -62,6 +63,40 @@ interface ArenaProps {
   readonly follow: (name: string | null) => void;
 }
 
+interface CardsBoxProps {
+  readonly live: LiveState;
+  readonly view: PlaybackView;
+  readonly watching: boolean;
+  readonly followed: string | null;
+  readonly choose: (name: string | null) => void;
+}
+
+// The cards' box: the player's own, or the watched ones. It scrolls where the game area is short
+// (under the docked chat), so it is a named tab stop (WCAG 2.1.1).
+function CardsBox({ live, view, watching, followed, choose }: CardsBoxProps): ReactElement {
+  return (
+    <ScrollBox
+      className="arena-cards"
+      role="region"
+      aria-label={watching ? 'Watched cards' : 'Your cards'}
+      tabIndex={0}
+    >
+      {watching ? (
+        <Watching
+          live={live}
+          view={view}
+          followed={followed}
+          onBack={() => {
+            choose(null);
+          }}
+        />
+      ) : (
+        <OwnCards live={live} view={view} />
+      )}
+    </ScrollBox>
+  );
+}
+
 function Arena({ live, view, follow }: ArenaProps): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
@@ -87,22 +122,16 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
             in view at once (arena.css). */}
         <section className="arena-play">
           <BallAndNumbers result={result} view={view} />
-          <div className="arena-cards">
-            {watching ? (
-              <Watching
-                live={live}
-                view={view}
-                followed={followed}
-                onBack={() => {
-                  choose(null);
-                }}
-              />
-            ) : (
-              <OwnCards live={live} view={view} />
-            )}
-          </div>
+          <CardsBox
+            live={live}
+            view={view}
+            watching={watching}
+            followed={followed}
+            choose={choose}
+          />
         </section>
-        <aside className="arena-side">
+        {/* Where the window is short the column scrolls as a whole and says so. */}
+        <ScrollBox as="aside" className="arena-side">
           {owner !== undefined ? (
             <OwnerStatusFor result={result} view={view} owner={owner} />
           ) : null}
@@ -117,7 +146,7 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
               profileHref={playerHref}
             />
           )}
-        </aside>
+        </ScrollBox>
       </div>
     </div>
   );

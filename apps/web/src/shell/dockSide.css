@@ -1,0 +1,233 @@
+/**
+ * @file   apps/web/src/shell/dockSide.css
+ * @module web/shell
+ * @brief  The match screens' side column in the free space beside the title (website mode, desktop).
+ *
+ * Responsibility: owner decision of 2026-11-24: while the chat is docked, the side column of the
+ *                 player's and the spectator's round (status and seasons, "Patterns this round",
+ *                 standings) and the host console's right-hand column (standings) start directly
+ *                 under the LIVE badge, beside the title, the subtitle and the rules line, instead
+ *                 of at the top of the play area. The screen becomes one grid: the title block,
+ *                 the rules line and the notices stack in the first column (rows that are not
+ *                 there have no height), the play area takes the last row, and the side column
+ *                 spans every row of the last column, its top edge one badge height down. The
+ *                 patterns and the status keep their whole height; the standings take the rest;
+ *                 a column too short for them scrolls as a whole (./dock.css gives the hint).
+ *                 Nothing here applies without the dock: standalone installs keep arena.css and
+ *                 host.css as they are. Under 960 px the screens stack as before.
+ *                 Where the column holds the standings, they stand beside the patterns and the
+ *                 status and take the column's whole height.
+ *                 The standings half is wider and its rows are closer, so a row (rank, name, four
+ *                 marks, points) stays one line; a name is never cut (fit audit F7), a row too narrow
+ *                 for it wraps its figures as before.
+ *                 Owner decision of 2026-11-24: every size, gap and margin is a kit token or a whole
+ *                 number of the kit's spacing steps (@seasonal/kit tokens.css), no value of Bingo's own.
+ * Used by:        ./DockedChat
+ * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
+ */
+
+@media (min-width: 960px) {
+  .sk-docked-main {
+    /* The badge's band: the side column starts right under it. */
+    --dock-live-h: var(--space-4);
+  }
+
+  /* Player, out player and spectator: the arena as one grid (ten rows for the title block, rules
+     and notices; the play area has the eleventh). */
+  .sk-docked-main .arena {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(calc(8 * var(--space-4)), 1fr);
+    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--space-4)), 50vh), 1fr);
+    column-gap: var(--space-3);
+    row-gap: 0;
+  }
+
+  .sk-docked-main .arena:has(.interlude) {
+    grid-template-rows: repeat(10, auto) minmax(calc(13 * var(--space-4)), 1fr);
+  }
+
+  .sk-docked-main .arena-grid,
+  .sk-docked-main .arena-head {
+    display: contents;
+  }
+
+  /* Everything above the play area stacks in the first column. */
+  .sk-docked-main .arena > *,
+  .sk-docked-main .arena-head > div:first-child {
+    grid-column: 1;
+    margin-bottom: var(--space-2);
+  }
+
+  /* The rules line stays close under the title block, as it did (arena.css). */
+  .sk-docked-main .arena-head > div:first-child,
+  .sk-docked-main .host-console.fit-window > .arena-head > div:first-child {
+    margin-bottom: 0;
+  }
+
+  .sk-docked-main .arena-rules {
+    margin-top: 0;
+  }
+
+  .sk-docked-main .arena-play {
+    grid-column: 1;
+    grid-row: 11;
+  }
+
+  /* The badge (and the host link) in the second column, the side column right under it. */
+  .sk-docked-main .arena-head > .sbr-row {
+    grid-column: 2;
+    grid-row: 1;
+    align-items: center;
+    align-self: start;
+    justify-self: end;
+    height: var(--dock-live-h);
+  }
+
+  .sk-docked-main .arena-side {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    margin-top: var(--dock-live-h);
+    overflow-y: auto;
+    /* Its content never sizes the arena's rows (the column scrolls where it is too tall); without
+       this a long standings list or a status line made the game area scroll by a few pixels. */
+    contain: size;
+  }
+
+  /* Whole panels: the patterns and the status keep their height, the standings take the rest
+     (its rows scroll inside; room for its heading and the first rows at least). */
+  .sk-docked-main .arena-side {
+    --hint-gap: var(--space-1);
+  }
+
+  /* Where the column has the standings (the player's and the spectator's round, not the results
+     screen): "Patterns this round" and the status in the first half, the standings beside them in
+     the second half with the column's whole height (owner decision of 2026-11-24). The column is
+     wider for it (two panels side by side); the standings' rows scroll inside as before. */
+  .sk-docked-main .arena:has(> .arena-grid > .arena-side > .standings-panel) {
+    grid-template-columns: minmax(0, 1fr) minmax(calc(13 * var(--space-4)), 1fr);
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) {
+    display: grid;
+    /* The standings half is a little wider: a row (rank, name, four marks, points) is one line. */
+    grid-template-columns: minmax(0, 0.87fr) minmax(0, 1.13fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    column-gap: var(--space-2);
+    row-gap: var(--space-1);
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) > * {
+    grid-column: 1;
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) :is(.side-panel, .standings-panel) {
+    padding-inline: var(--space-1);
+  }
+
+  /* The standings' rows have their own side padding: the panel's is half a step, and the gap between
+     a row's parts too, so a name such as "Sweep_Player7" fits. */
+  .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
+    padding-inline: calc(var(--space-1) / 2);
+  }
+
+  .sk-docked-main .arena-side .standings-panel .rank-row {
+    gap: calc(var(--space-1) / 2);
+    padding-inline: calc(var(--space-1) / 2);
+  }
+
+  .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    min-height: 0;
+  }
+
+  /* The list's rows keep their height whatever the list's height (a grid would squeeze them). */
+  .sk-docked-main .standings-panel .rank-list {
+    grid-auto-rows: max-content;
+  }
+
+  /* A column of flex items, not a grid: the sign's negative margin takes back a flex gap, never
+     a grid's (./scrollHint.css). */
+  .sk-docked-main .host-controls {
+    --hint-gap: var(--space-1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  /* Draw next at the big button's own height and closer panels: with the strip under it the
+     controls column is 38 px short at 1280x720 otherwise, and Abort would sit under the sign. */
+  .sk-docked-main .host-draw {
+    min-height: calc(var(--space-4) + var(--space-3));
+  }
+
+  .sk-docked-main .host-controls .sbr-stack {
+    gap: var(--space-1);
+  }
+
+  .sk-docked-main .arena-side > * {
+    flex: none;
+    overflow: visible;
+  }
+
+  .sk-docked-main .arena-side > .standings-panel {
+    flex: 1 1 calc(4 * var(--space-4));
+    min-height: calc(4 * var(--space-4));
+    overflow: hidden;
+  }
+
+  /* The host console while a match runs: title and rules above the ball and the controls, the
+     standings column beside them from the badge down. */
+  .sk-docked-main .host-console.fit-window {
+    grid-template-columns: minmax(calc(5 * var(--space-4)), 0.7fr) minmax(0, 1fr) minmax(
+        calc(7 * var(--space-4)),
+        calc(9 * var(--space-4))
+      );
+    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--space-4)), 50vh), 1fr);
+    column-gap: var(--space-3);
+    row-gap: 0;
+  }
+
+  .sk-docked-main .host-console.fit-window .host-grid {
+    display: contents;
+  }
+
+  .sk-docked-main .host-console.fit-window > .arena-head {
+    display: contents;
+  }
+
+  .sk-docked-main .host-console.fit-window > .arena-head > div:first-child,
+  .sk-docked-main .host-console.fit-window > .host-rules,
+  .sk-docked-main .host-console.fit-window .host-end {
+    grid-column: 1 / 3;
+  }
+
+  .sk-docked-main .host-console.fit-window > .host-rules,
+  .sk-docked-main .host-console.fit-window .host-end {
+    margin-bottom: var(--space-2);
+  }
+
+  .sk-docked-main .host-console.fit-window > .arena-head > .sbr-badge-live {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    margin-top: calc((var(--dock-live-h) - var(--space-3)) / 2);
+  }
+
+  .sk-docked-main .host-console.fit-window .host-play {
+    grid-column: 1;
+    grid-row: 11;
+  }
+
+  .sk-docked-main .host-console.fit-window .host-controls {
+    grid-column: 2;
+    grid-row: 11;
+  }
+
+  .sk-docked-main .host-console.fit-window .host-side {
+    grid-column: 3;
+    grid-row: 1 / -1;
+    margin-top: var(--dock-live-h);
+  }
+}
