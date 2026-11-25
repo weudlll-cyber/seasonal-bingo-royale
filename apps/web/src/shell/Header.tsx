@@ -3,10 +3,11 @@
  * @module web/shell
  * @brief  The player client's top bar: the kit's AppHeader with Bingo's links, account and tools.
  *
- * Responsibility: the kit's `AppHeader` (@seasonal/kit/react, folds when items do not fit): in
- *                 website mode first the kit's `BackLink` to the website's /games (this tab), then
- *                 emblem, wordmark, links (lobby, hosting `match.create`, leaderboard, admin
- *                 `admin.view`, dev Quick Test), account, theme toggle. Account: chip
+ * Responsibility: the kit's `AppHeader` (@seasonal/kit/react, folds below 960 px and where items
+ *                 do not fit): in website mode first the kit's `BackLink` to the website's /games
+ *                 (this tab), then emblem, wordmark, links (lobby, hosting `match.create`,
+ *                 leaderboard, admin `admin.view`, dev Quick Test), account, theme toggle last (the
+ *                 kit's order, K43). Account: chip
  *                 "Signed in as <name> (role)" with "Sign out", or "Sign in"/"Register"
  *                 (../account; website mode one "Sign in", D37); hidden until the session is known
  *                 (`data-session`, ./header.css). The folded menu closes on a new route or a
@@ -118,6 +119,8 @@ export function Header({ route, dev }: HeaderProps): ReactElement {
         // A new route or another account: the folded menu has done its job.
         closeKey={`${JSON.stringify(route)} ${session?.account?.id ?? ''}`}
         buttonClassName="sbr-btn"
+        // Below 960 px always folded; from it up the measured fold decides (K40).
+        foldBelow={960}
       />
     </div>
   );

@@ -3,12 +3,15 @@
  * @module web/shell
  * @brief  Bingo's look on the kit's header (./Header, @seasonal/kit/header.css).
  *
- * Responsibility: the kit's header ports Bingo's bar; these rules keep what Bingo showed before it:
- *                 - order: back link, brand, nav, toggle, account; folded: brand, toggle, Menu;
- *                 - Bingo's chip, solid "Sign in", button padding, small type (no kit `fit.css`);
- *                 - always folded below 960 px (the kit folds only when items need a second row);
+ * Responsibility: the kit's header ports Bingo's bar; these rules keep what Bingo showed in it:
+ *                 - the Menu button hidden unfolded (it is also `.sbr-btn`, whose display would
+ *                   show it);
+ *                 - Bingo's chip, solid "Sign in", button padding;
  *                 - account hidden until the session is known (`data-session`);
- *                 - on a phone the back link's row as short as before (no 44 px row).
+ *                 - on a phone the back link's row as short as before (no 44 px row) and the
+ *                   account's row whole.
+ *                 The order of the bar (theme toggle last), the fold below 960 px (`foldBelow`),
+ *                 the folded menu and the small type's floor are the kit's (K40, K41, K43).
  *                 Colours from @sbr/ui and the kit tokens only, so light and dark both work.
  * Used by:        ./Header
  * Spec:           docs/concepts/fit-audit.md §5 item 7 (O1, O2); owner decisions of 2026-11-20
@@ -25,46 +28,14 @@
   visibility: hidden;
 }
 
-/* Bingo's order in the bar. */
-.sk-header .sk-back-link {
-  order: 0;
-}
-
-.sk-header-brand {
-  order: 1;
-}
-
-.sk-header-nav {
-  order: 2;
-}
-
-.sk-header .sk-theme-toggle {
-  order: 3;
-}
-
-.sk-header-account {
-  order: 4;
-}
-
 /* The Menu button is also .sbr-btn (inline-flex, @sbr/ui base.css after the kit's header.css):
    hidden while unfolded, shown folded, as the kit's rules mean. */
 .sk-header .sk-menu-button {
   display: none;
-  order: 2;
 }
 
 .sk-header[data-sk-folded='true'] .sk-menu-button {
   display: inline-flex;
-}
-
-.sk-header[data-sk-folded='true'] .sk-theme-toggle {
-  order: 1;
-}
-
-/* Small type where the kit's floor would decide. */
-.sk-header-brand small,
-.sk-dev-menu-hint {
-  font-size: var(--sk-font-size-small);
 }
 
 /* The account chip as Bingo's (@sbr/ui .sbr-chip), a 44 px target. */
@@ -116,52 +87,5 @@
     flex: none;
     padding-inline: 0.6rem;
     font-size: var(--sk-font-size-small);
-  }
-}
-
-/* Below 960 px always folded (phones, small tablets), as the kit folds when the items do not
-   fit (its header.css, `data-sk-folded`): brand, toggle and Menu in one row, the navigation and
-   the account in an opaque panel under the bar. From 960 px the kit's measured fold decides. */
-@media (max-width: 959px) {
-  .sk-header .sk-header-brand {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .sk-header .sk-theme-toggle {
-    order: 1;
-  }
-
-  .sk-header .sk-menu-button {
-    display: inline-flex;
-  }
-
-  .sk-header .sk-menu {
-    display: none;
-  }
-
-  .sk-header .sk-menu[data-sk-open='true'] {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: 0;
-    z-index: 30;
-    display: grid;
-    gap: var(--sk-space-2);
-    max-height: calc(100dvh - 4rem);
-    overflow-y: auto;
-    padding: var(--sk-space-2) var(--gutter);
-    border-bottom: 1px solid var(--sk-color-border);
-    background: var(--sk-color-surface);
-    box-shadow: var(--sk-shadow-raised);
-  }
-
-  .sk-header .sk-menu .sk-header-nav {
-    display: grid;
-    overflow-x: visible;
-  }
-
-  .sk-header .sk-menu .sk-header-account {
-    width: 100%;
   }
 }
