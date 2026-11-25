@@ -18,8 +18,7 @@ import type { ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance } from 'fastify';
 
 import { mailerFrom, type Mailer } from '../auth/mailer.js';
-import type { SessionEnds } from '@seasonal/kit/server';
-import type { CookieConfig } from '../auth/sessionPlugin.js';
+import type { SessionCookie, SessionEnds } from '@seasonal/kit/server';
 import type { Env } from '../config/env.js';
 import type { LiveTechnical } from '../config/technical.js';
 import { recoveryKeyFrom, seedKeyFrom } from '../config/seedKey.js';
@@ -40,7 +39,7 @@ export function registerSignIn(
   deps: {
     env: Env;
     pool: DbPool;
-    cookie: CookieConfig;
+    cookie: SessionCookie;
     sessionEnds: SessionEnds;
     accountDeleted: (accountId: string) => void;
     // The admin area's switches (guests, e-mail verification), read on every use.

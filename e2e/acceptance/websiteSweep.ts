@@ -34,6 +34,7 @@ import { setTheme } from '../screens.js';
 import type { WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe } from './fitProbe.js';
+import { FROM_THIS_SITE } from '../fromThisSite.js';
 
 export const BASE = '/games/bingo';
 
@@ -100,7 +101,7 @@ export async function webPost(
   const body = url === '/matches' ? { ...data, devTools: true } : data;
   return page.request.post(`${stack.origin}${BASE}/api/v1${url}`, {
     data: body,
-    headers: { 'x-csrf-token': session.csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
   });
 }
 

@@ -29,6 +29,7 @@ import {
 } from './realGame.js';
 import { openMenu } from './menu.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const PASSWORD = 'correct horse battery staple';
 
@@ -104,13 +105,14 @@ test('a played match shows on the profile and gives no league points with bots',
 async function removeAccount(page: Page, email: string): Promise<void> {
   const login = await page.request.post('/api/v1/auth/login', {
     data: { email, password: PASSWORD },
+    headers: FROM_THIS_SITE,
   });
   if (login.status() !== 200) return;
   const session = (await (await page.request.get('/api/v1/session')).json()) as {
     csrfToken: string | null;
   };
   const r = await page.request.delete('/api/v1/me', {
-    headers: { 'x-csrf-token': session.csrfToken ?? '' },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken ?? '' },
     data: { password: PASSWORD },
   });
   expect(r.status(), 'test account deleted').toBe(204);
@@ -150,6 +152,7 @@ test('the account page downloads the data and deletes the account', async ({ bro
     await expect(page.getByTestId('sign-in')).toBeVisible();
     const again = await page.request.post('/api/v1/auth/login', {
       data: { email, password: PASSWORD },
+      headers: FROM_THIS_SITE,
     });
     expect(again.status(), 'the deleted account cannot sign in').toBe(401);
   } finally {

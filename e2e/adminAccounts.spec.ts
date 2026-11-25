@@ -18,6 +18,7 @@ import { probe } from './acceptance/fitProbe.js';
 import { CLIENT_URL } from './devStack.js';
 import { closeContexts, post, signIn } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
@@ -53,7 +54,10 @@ test('an admin finds an account, makes it an Organizer, locks and unlocks it', a
   const shots = info.project.name === 'chromium';
   const name = `acct${String(Date.now() % 1_000_000)}`;
   const email = `${name}@example.com`;
-  const player = await request.newContext({ baseURL: CLIENT_URL });
+  const player = await request.newContext({
+    baseURL: CLIENT_URL,
+    extraHTTPHeaders: FROM_THIS_SITE,
+  });
   const registered = await player.post('/api/v1/auth/register', {
     data: { email, displayName: name, password: PASSWORD },
   });

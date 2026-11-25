@@ -19,6 +19,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { openMenu } from './menu.js';
 import { closeContexts, hostMatch, signIn, stopMatch } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const PASSWORD = 'correct horse battery staple';
 
@@ -27,13 +28,14 @@ const PASSWORD = 'correct horse battery staple';
 async function deleteAccount(page: Page, email: string): Promise<void> {
   const login = await page.request.post('/api/v1/auth/login', {
     data: { email, password: PASSWORD },
+    headers: FROM_THIS_SITE,
   });
   expect(login.status(), 'teardown signs in as the test account').toBe(200);
   const session = (await (await page.request.get('/api/v1/session')).json()) as {
     csrfToken: string | null;
   };
   const r = await page.request.delete('/api/v1/me', {
-    headers: { 'x-csrf-token': session.csrfToken ?? '' },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken ?? '' },
     data: { password: PASSWORD },
   });
   expect(r.status(), 'test account deleted').toBe(204);

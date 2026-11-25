@@ -18,14 +18,13 @@
  *                 docs/concepts/kit-adoption.md §2 (B6)
  */
 import { devSignInAccount } from '@seasonal/kit/devtools';
-import type { SessionEnds } from '@seasonal/kit/server';
+import type { SessionCookie, SessionEnds } from '@seasonal/kit/server';
 import type { FastifyInstance } from 'fastify';
 
 import { deleteAccount, ensureDevAccount } from '../../auth/accounts.js';
-import type { CookieConfig } from '../../auth/sessionPlugin.js';
 import { accountSessionIds } from '../../auth/sessions.js';
 import type { DbPool } from '../../db/pool.js';
-import { openSession } from './auth.js';
+import { openSession } from '../sessionStart.js';
 
 const DEV_ACCOUNTS = {
   host: { displayName: 'dev-host', roles: ['organizer'] },
@@ -43,7 +42,11 @@ const RULES = { accounts: DEV_ACCOUNTS, load: /^load-\d{3}$/ };
 
 export function registerDevSignIn(
   app: FastifyInstance,
-  deps: { readonly pool: DbPool; readonly cookie: CookieConfig; readonly sessionEnds: SessionEnds },
+  deps: {
+    readonly pool: DbPool;
+    readonly cookie: SessionCookie;
+    readonly sessionEnds: SessionEnds;
+  },
 ): void {
   // Starts a session: no CSRF token yet (../../auth/sessionPlugin).
   app.post('/api/v1/dev/sign-in', { config: { sessionStarter: true } }, async (request, reply) => {

@@ -19,6 +19,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { probe } from './acceptance/fitProbe.js';
 import { closeContexts, post, signIn } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
@@ -70,6 +71,7 @@ test('the owner lowers the sign-in tries and the server applies it at once', asy
     for (let i = 0; i < 7; i += 1) {
       const r = await owner.request.post('/api/v1/auth/login', {
         data: { email: `nobody-${String(i)}@example.com`, password: 'not the password' },
+        headers: FROM_THIS_SITE,
       });
       codes.push(r.status());
     }

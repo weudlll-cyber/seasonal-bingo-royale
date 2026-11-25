@@ -17,6 +17,7 @@
 import { expect, request, test, type APIRequestContext, type Page } from '@playwright/test';
 
 import { startWebsiteStack, type StubUser, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 const FORGED = {
@@ -68,7 +69,10 @@ async function signedIn(id: string): Promise<APIRequestContext> {
 
 async function post(ctx: APIRequestContext, url: string, data: unknown) {
   const session = (await (await ctx.get(`${BASE}/api/v1/session`)).json()) as { csrfToken: string };
-  return ctx.post(`${BASE}/api/v1${url}`, { data, headers: { 'x-csrf-token': session.csrfToken } });
+  return ctx.post(`${BASE}/api/v1${url}`, {
+    data,
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
+  });
 }
 
 // The browser player: "Sign in" on the leaderboard goes to the website's login first; signed

@@ -14,6 +14,7 @@ import { expect, request, test, type APIRequestContext } from '@playwright/test'
 
 import { CLIENT_URL, mailpit } from './devStack.js';
 import { openMenu } from './menu.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const OLD = 'correct horse battery staple';
 const NEW = 'another long passphrase now';
@@ -52,7 +53,10 @@ test('a forgotten password is reset through the e-mailed link; the other session
 }) => {
   const stamp = String(Date.now() % 1_000_000);
   const email = `reset-${stamp}@example.com`;
-  const other = await request.newContext({ baseURL: CLIENT_URL });
+  const other = await request.newContext({
+    baseURL: CLIENT_URL,
+    extraHTTPHeaders: FROM_THIS_SITE,
+  });
   const registered = await other.post('/api/v1/auth/register', {
     data: { email, displayName: `reset${stamp}`, password: OLD },
   });

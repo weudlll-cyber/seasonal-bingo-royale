@@ -17,6 +17,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 let stack: WebsiteStack;
@@ -70,6 +71,6 @@ test('the next action after an idle game session re-signs through the website on
   const { csrfToken } = await sessionOf(page);
   await page.request.post(`${stack.origin}${BASE}/api/v1/matches/${code}/abort`, {
     data: { reason: 'test cleanup' },
-    headers: { 'x-csrf-token': csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': csrfToken },
   });
 });

@@ -24,7 +24,8 @@ import { Writable } from 'node:stream';
 
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
-import { cookieConfig } from './auth/sessionPlugin.js';
+import { SESSION_COOKIE } from './auth/sessionPlugin.js';
+import { sessionCookie } from '@seasonal/kit/server';
 import { recoveryCodeStored, resetTwoFactor } from './auth/twoFactor.js';
 import { loadEnv } from './config/env.js';
 import { maintenanceFlag } from './config/maintenance.js';
@@ -178,7 +179,11 @@ async function loadCheck(args: readonly string[]): Promise<number> {
         players: Number(flag(args, '--players') ?? 200),
         spectators: Number(flag(args, '--spectators') ?? 50),
       };
-      const name = cookieConfig(!env.SBR_DEV, env.SBR_BASE_PATH).name;
+      const { name } = sessionCookie({
+        name: SESSION_COOKIE,
+        secure: !env.SBR_DEV,
+        basePath: env.SBR_BASE_PATH,
+      });
       console.log(JSON.stringify(await createLoadAccounts(pool, counts, name)));
       return 0;
     }

@@ -19,6 +19,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { CLIENT_URL } from './devStack.js';
 import { captureThemes, PHONE, setTheme, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 const WIDE = { width: 1440, height: 900 };
@@ -59,7 +60,7 @@ async function post(page: Page, url: string, data: unknown) {
   };
   return page.request.post(`${stack.origin}${BASE}/api/v1${url}`, {
     data,
-    headers: { 'x-csrf-token': session.csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
   });
 }
 

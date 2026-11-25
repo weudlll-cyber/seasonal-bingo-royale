@@ -106,7 +106,7 @@ Roles are bundles of permissions; code checks **permissions**, never role names.
 
 ## 7. Browser security headers
 
-Set by the app (Fastify helmet), checked in CI with a header test:
+Set by the app (Fastify helmet with the kit's `securityHeaderSet`, owner decision of 2026-11-25, K63), checked in CI with a header test:
 
 - `Content-Security-Policy` (player app): `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' wss://<host>; frame-ancestors <embed allowlist>; base-uri 'none'; form-action 'self'; object-src 'none'`
 - Admin app: same, plus `frame-ancestors 'none'` and `require-trusted-types-for 'script'`.
@@ -117,6 +117,7 @@ Set by the app (Fastify helmet), checked in CI with a header test:
 ## 8. CSRF
 
 - Session cookies are `SameSite=Lax`.
+- Every state-changing HTTP request must say where it comes from, and that must be this site (the kit's `writeCheck`, owner decision of 2026-11-25, K60): `Sec-Fetch-Site` is `same-origin` or `none`, an `Origin` has the host the request was made to (`X-Forwarded-Host` only from a trusted proxy's address), and a write naming neither is refused. The token below is a second layer: both must pass. Tools that write to the API send `Origin` (the load check, the rehearsal's scripts); the development routes without a session (`noCsrf`) are exempt.
 - Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time). The calls that create the first session (register, login, guest, and the development-only quick sign-in) have no token yet; they accept only `application/json` bodies, which a cross-site form cannot send.
 - WebSocket handshakes verify `Origin` against the configured origin plus the embed allowlist.
 - Embedded clients in third-party context use bearer tokens (no cookies) and are therefore not CSRF-exposed.

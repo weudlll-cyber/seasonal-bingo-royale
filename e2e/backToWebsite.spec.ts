@@ -21,6 +21,7 @@ import { expect, request, test, type APIRequestContext, type Page } from '@playw
 import { CLIENT_URL } from './devStack.js';
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 // The kit's BackLink: the arrow is drawn, not read, so the link is named by its words.
@@ -83,7 +84,10 @@ async function post(ctx: APIRequestContext, url: string, data: unknown) {
   const { csrfToken } = (await (await ctx.get(`${BASE}/api/v1/session`)).json()) as {
     csrfToken: string;
   };
-  return ctx.post(`${BASE}/api/v1${url}`, { data, headers: { 'x-csrf-token': csrfToken } });
+  return ctx.post(`${BASE}/api/v1${url}`, {
+    data,
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': csrfToken },
+  });
 }
 
 async function newMatch(

@@ -4,7 +4,8 @@
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
  * Responsibility: GET /session (account, permissions, CSRF token, flags, limits, sign-in mode;
- *                 website mode: the website's chat room, 07 §6), POST /auth/register and
+ *                 website mode: the website's chat room, 07 §6, and the member's own Discord
+ *                 steps for the header), POST /auth/register and
  *                 /auth/login (local mode only; in website mode players sign in through the
  *                 website, D37), /auth/logout, /auth/guest, DELETE /me (password checked first;
  *                 website mode: display name typed, D42). Login answers uniformly and verifies a
@@ -13,11 +14,12 @@
  *                 account+IP by wrong passwords only (../../auth/loginBrake, K46; 03 §13).
  *                 E-mail verification and 2FA: feature flags, off by default.
  * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
- *                 SessionEnds), ../../auth/* (loginBrake), ../../db/pool, ../../config/features
- * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
+ *                 types), ../../auth/* (loginBrake), ../../db/pool, ../../config/features,
+ *                 ../sessionStart
+ * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
-import { LIMITS, TECHNICAL_DEFAULTS, type ClientScreens } from '@sbr/contracts';
+import { LIMITS, type ClientScreens } from '@sbr/contracts';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -32,12 +34,7 @@ import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
 import { behindBrakes, LoginBrake } from '../../auth/loginBrake.js';
 import { liveRule } from '../../auth/rateLimit.js';
-import {
-  clearSessionCookie,
-  setSessionCookie,
-  type CookieConfig,
-} from '../../auth/sessionPlugin.js';
-import { RateLimiter, type SessionEnds } from '@seasonal/kit/server';
+import { RateLimiter, type SessionCookie, type SessionEnds } from '@seasonal/kit/server';
 import {
   accountSessionIds,
   createSession,
@@ -48,10 +45,11 @@ import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
 import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
+import { endCookie, giveCookie, openSession } from '../sessionStart.js';
 
 interface AuthDeps {
   readonly pool: DbPool;
-  readonly cookie: CookieConfig;
+  readonly cookie: SessionCookie;
   // The switches as they are now (../../config/features liveFeatures).
   readonly features: () => Features;
   // The screen values the client reads at page load (admin-area §8 (i)), as they are now.
@@ -97,7 +95,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       await revokeSession(deps.pool, request.session.id);
       await deps.sessionEnds.end([request.session.id]);
     }
-    clearSessionCookie(reply, deps.cookie);
+    endCookie(reply, deps.cookie);
     return reply.status(204).send();
   });
   app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
@@ -114,7 +112,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       request.headers['user-agent'] ?? null,
       lengths,
     );
-    setSessionCookie(reply, deps.cookie, token, lengths);
+    giveCookie(reply, deps.cookie, token, lengths);
     return reply.status(201).send({ kind: 'guest' });
   });
 }
@@ -161,7 +159,7 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     twoFactor: await pendingStep(request, deps),
     signedIn: s !== null && s.accountId !== null,
     kind: s?.kind ?? null,
-    account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,
+    account: await accountOf(s, deps),
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
     features: deps.features(),
@@ -172,6 +170,19 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     authMode: deps.mode,
     ...websiteParts(deps),
   };
+}
+
+// The signed-in account; website mode adds the member's own Discord steps as the website last
+// sent them (the header's badges, kit K56).
+async function accountOf(s: FastifyRequest['session'], deps: AuthDeps) {
+  if (s === null || s.accountId === null) return null;
+  const account = { id: s.accountId, displayName: s.displayName };
+  if (deps.mode !== 'website') return account;
+  const r = await deps.pool.query<{ steps: unknown }>(
+    'SELECT steps FROM sbr.accounts WHERE id = $1',
+    [s.accountId],
+  );
+  return { ...account, steps: r.rows[0]?.steps ?? [] };
 }
 
 // Website mode: the sign-in button's target (D37) and the website's chat room (07 §6).
@@ -212,33 +223,6 @@ async function login(
   return startSession(request, reply, deps, { accountId: account.id, status: 200 });
 }
 
-// A fresh session for the account, the old one ended (03 §3: rotate on login); also the
-// website sign-in's (./websiteSignIn) and the dev quick sign-in's (./devSignIn).
-export async function openSession(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  // playerDays: a member's or guest's absolute lifetime in website mode (7 days); else the
-  // Technical section's (30 unless changed).
-  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & {
-    readonly playerDays?: number;
-    readonly technical?: LiveTechnical;
-  },
-  accountId: string,
-): Promise<void> {
-  if (request.session !== null) {
-    await revokeSession(deps.pool, request.session.id);
-    await deps.sessionEnds.end([request.session.id]);
-  }
-  const lengths = sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays);
-  const { token } = await createSession(
-    deps.pool,
-    accountId,
-    request.headers['user-agent'] ?? null,
-    lengths,
-  );
-  setSessionCookie(reply, deps.cookie, token, lengths);
-}
-
 async function startSession(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -277,7 +261,7 @@ async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: Auth
   await deleteAccount(deps.pool, accountId);
   deps.accountDeleted?.(accountId);
   await deps.sessionEnds.end(sessions);
-  clearSessionCookie(reply, deps.cookie);
+  endCookie(reply, deps.cookie);
   return reply.status(204).send();
 }
 

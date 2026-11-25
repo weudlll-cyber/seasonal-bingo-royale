@@ -28,7 +28,7 @@ import {
   leagueSettingsOf,
   screenSettingsOf,
 } from '@sbr/contracts';
-import { SessionEnds } from '@seasonal/kit/server';
+import { SessionEnds, sessionCookie } from '@seasonal/kit/server';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 
 import { Presets } from '../admin/presets.js';
@@ -38,7 +38,7 @@ import { registerGameRoutes } from './gameRoutes.js';
 import { registerSignIn } from './signIn.js';
 import type { AccountFeed } from '../website/accountFeed.js';
 import type { Mailer } from '../auth/mailer.js';
-import { cookieConfig, registerSessions } from '../auth/sessionPlugin.js';
+import { registerSessions, SESSION_COOKIE } from '../auth/sessionPlugin.js';
 import { allowedOrigins, type Env } from '../config/env.js';
 import { liveSwitches, type Switches } from '../config/features.js';
 import { liveTechnical, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
@@ -165,6 +165,19 @@ const sessionEndsOf = (fastify: FastifyInstance): SessionEnds =>
     fastify.log.error({ err: error }, 'a listener of ended sessions failed');
   });
 
+// The session cookie of this install (the kit's `sessionCookie`): plain in development.
+const cookieOf = (env: Env) =>
+  sessionCookie({ name: SESSION_COOKIE, secure: !env.SBR_DEV, basePath: env.SBR_BASE_PATH });
+
+const headersOf = (env: Env) => ({
+  devPage: env.SBR_WEB_DIR === undefined,
+  mode: env.SBR_AUTH_MODE === 'website' ? ('website' as const) : ('standalone' as const),
+});
+const sessionOptions = (env: Env, technical: LiveTechnical) => ({
+  technical,
+  trustedProxies: env.SBR_TRUSTED_PROXIES,
+});
+
 export async function buildApp(deps: AppDeps): Promise<App> {
   const seedKey = seedKeyFrom(deps.env);
   const maintenance = maintenanceFlag(deps.env.SBR_DATA_DIR);
@@ -182,13 +195,13 @@ export async function buildApp(deps: AppDeps): Promise<App> {
   await match.store.checkKey();
   const fastify = createFastify(deps.env);
   // Without a built client the placeholder page shows, styled inline (./routes/placeholder).
-  await registerSecurityHeaders(fastify, { devPage: deps.env.SBR_WEB_DIR === undefined });
+  await registerSecurityHeaders(fastify, headersOf(deps.env));
   registerProblemDetails(fastify);
   await registerRouteLimits(fastify);
   registerBasics(fastify, deps, metrics);
-  const cookie = cookieConfig(!isDev, deps.env.SBR_BASE_PATH);
+  const cookie = cookieOf(deps.env);
   const sessionEnds = sessionEndsOf(fastify);
-  await registerSessions(fastify, deps.pool, cookie, loaded.technical);
+  await registerSessions(fastify, deps.pool, cookie, sessionOptions(deps.env, loaded.technical));
   // One replay per live match, for the state fetches and the live frames alike.
   const views = liveViewsOn(deps.pool, match.store);
   const accountDeleted = (id: string): void => {

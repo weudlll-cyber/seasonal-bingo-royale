@@ -16,6 +16,7 @@
 import { expect, type APIResponse, type Browser, type Page } from '@playwright/test';
 
 import { openMenu } from './menu.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 export type Who = 'host' | 'admin' | 'owner' | 'player-1' | 'player-2' | 'player-3';
 
@@ -138,7 +139,10 @@ export async function post(page: Page, path: string, data: unknown): Promise<API
     path === '/api/v1/matches' && !('preset' in d) && !('devTools' in d)
       ? { ...d, devTools: true }
       : d;
-  return page.request.post(path, { headers: { 'x-csrf-token': session.csrfToken }, data: body });
+  return page.request.post(path, {
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
+    data: body,
+  });
 }
 
 // The current number on a screen (data-item of the ball), or null before the first draw.

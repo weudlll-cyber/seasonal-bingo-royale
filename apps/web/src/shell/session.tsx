@@ -29,6 +29,7 @@ import {
 } from 'react';
 
 import {
+  type Step,
   clientScreensOf,
   SCREEN_DEFAULTS,
   type ClientLimits,
@@ -45,7 +46,12 @@ interface SessionInfo {
   // A local admin's second sign-in step still to do (D60).
   readonly twoFactor?: 'enrol' | 'code' | null;
   readonly features?: { readonly guests: boolean; readonly passwordReset?: boolean };
-  readonly account: { readonly id: string; readonly displayName: string } | null;
+  // Website mode: the member's own Discord steps, which the header shows (kit K56).
+  readonly account: {
+    readonly id: string;
+    readonly displayName: string;
+    readonly steps?: readonly Step[];
+  } | null;
   readonly permissions: readonly string[];
   readonly csrfToken: string | null;
   // D37: `website` — players sign in only through the website, at `signInPath`.

@@ -11,8 +11,7 @@
  *                 and X-Sbr-Proxy-Secret are stripped. The server runs in website mode under
  *                 /games/bingo/, trusting only the proxy. `expireSessions` idles sessions out;
  *                 `removeAccounts` deletes the stub users (D42). `close` destroys every proxy
- *                 socket (upgraded ones too) before it stops the server, so a page left open cannot
- *                 hold the shutdown.
+ *                 socket (upgraded ones too) first, so a page left open cannot hold the shutdown.
  * Depends on:     node:child_process, node:crypto, node:http, node:net, node:fs, node:os,
  *                 @playwright/test, ./devStack
  * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./acceptance/fitAudit.spec
@@ -29,6 +28,7 @@ import path from 'node:path';
 import { request } from '@playwright/test';
 
 import { databaseUrl, REPO_ROOT } from './devStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
@@ -237,7 +237,7 @@ async function removeAccounts(origin: string, ids: readonly string[]): Promise<v
     if (session.account === null) throw new Error(`${id} is not signed in`);
     const r = await ctx.delete('/games/bingo/api/v1/me', {
       data: { displayName: session.account.displayName },
-      headers: { 'x-csrf-token': session.csrfToken },
+      headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
     });
     if (r.status() !== 204) throw new Error(`account of ${id} not deleted: ${String(r.status())}`);
     await ctx.dispose();

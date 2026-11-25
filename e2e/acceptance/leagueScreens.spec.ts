@@ -16,6 +16,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
+import { FROM_THIS_SITE } from '../fromThisSite.js';
 
 const DEMO = '/api/v1/dev/demo-league';
 
@@ -38,8 +39,8 @@ const nameLayout = (page: Page) =>
 
 test('league screens: a filled board, a tie, a profile', async ({ page }) => {
   test.setTimeout(15 * 60_000);
-  await page.request.delete(DEMO);
-  const started = await page.request.post(DEMO);
+  await page.request.delete(DEMO, { headers: FROM_THIS_SITE });
+  const started = await page.request.post(DEMO, { headers: FROM_THIS_SITE });
   expect(started.status()).toBe(202);
   const { matches } = (await started.json()) as { matches: string[] };
   try {
@@ -74,6 +75,6 @@ test('league screens: a filled board, a tie, a profile', async ({ page }) => {
     await expect(page.getByTestId('profile-matches')).toHaveText('3');
     await captureLook(page, SHOTS_DIR, 'league-profile');
   } finally {
-    expect((await page.request.delete(DEMO)).status()).toBe(200);
+    expect((await page.request.delete(DEMO, { headers: FROM_THIS_SITE })).status()).toBe(200);
   }
 });

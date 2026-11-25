@@ -19,12 +19,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { probe } from './acceptance/fitProbe.js';
 import { closeContexts, post, signIn } from './realGame.js';
 import { captureLook, SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
 
-const guestSession = (page: Page) => page.request.post('/api/v1/auth/guest', { data: {} });
+const guestSession = (page: Page) =>
+  page.request.post('/api/v1/auth/guest', { data: {}, headers: FROM_THIS_SITE });
 
 // Both sizes at 100, 125 and 150 %: nothing small, cut, covered or wider than the window.
 async function expectFits(page: Page): Promise<void> {

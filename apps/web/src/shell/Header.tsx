@@ -8,7 +8,8 @@
  *                 (this tab), then emblem, wordmark, links (lobby, hosting `match.create`,
  *                 leaderboard, admin `admin.view`, dev Quick Test), account, theme toggle last (the
  *                 kit's order, K43). Account: chip
- *                 "Signed in as <name> (role)" with "Sign out", or "Sign in"/"Register"
+ *                 "Signed in as <name> (role)" (website mode: the member's step badges, K56) with
+ *                 "Sign out", or "Sign in"/"Register"
  *                 (../account; website mode one "Sign in", D37); hidden until the session is known
  *                 (`data-session`, ./header.css). The folded menu closes on a new route or a
  *                 sign-in. The chat has no button here: it is docked under the game (./DockedChat).
@@ -62,7 +63,7 @@ function useLinks(route: Route): readonly HeaderLink[] {
   ];
 }
 
-// The signed-in account as the header shows it, or null.
+// The signed-in account as the header shows it (website mode: with the member's steps), or null.
 function useAccount(): HeaderAccount | null {
   const { session, signOut, can } = useSession();
   const account = session?.account ?? null;
@@ -72,6 +73,8 @@ function useAccount(): HeaderAccount | null {
     role: highestRole(can),
     href: hrefOf({ name: 'account' }),
     onSignOut: () => void signOut(),
+    // Website mode: the member's step badges (K56); a standalone install has none.
+    ...(account.steps === undefined ? {} : { steps: account.steps }),
   };
 }
 
