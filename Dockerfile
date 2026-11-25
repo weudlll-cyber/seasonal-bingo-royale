@@ -14,7 +14,7 @@
 # Spec:           docs/spec/08-devops-architecture.md §4, docs/spec/03-security-architecture.md §18
 
 # Base pinned by digest; Renovate keeps tag and digest current.
-FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS base
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS base
 WORKDIR /app
 # CI=true keeps pnpm non-interactive and makes lefthook skip installing git hooks.
 ENV CI=true
@@ -42,7 +42,7 @@ RUN pnpm --filter @sbr/server deploy --prod --legacy /out \
   && cp -r apps/web/dist /out/web
 
 # runtime: production files only, owned by root and therefore read-only for the app user.
-FROM node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402 AS runtime
+FROM node:22.23.5-alpine@sha256:1314fb30ec37592d5845e5a160d522c0e680972aa534549940b8d73bde88481a AS runtime
 # The installed version the admin Overview shows (ops/lib/config.sh build_image: ref and commit).
 ARG SBR_VERSION=unknown
 ENV NODE_ENV=production     SBR_VERSION=$SBR_VERSION \
