@@ -14,6 +14,8 @@
 - Checks: website sweep, `console-lobby` and `waiting-room`, ten sizes, light and dark, chat closed and open (80 measurements): findings 0 and axe 0 on all desktop sizes and on the phones with the sheet closed; the 16 findings are phones with the chat sheet open, where the sheet covers the page by design (the known baseline). Standalone audit at 1280×720 and 390×844 (16, 20 and 24 px fonts): lobby, lobby-guest, console-lobby and waiting-room findings 0 (the audit measures light only). Lint, typecheck and the web tests (65 files, 302 tests) pass.
 - Pictures in `C:/Users/weudl/sbr-review/seasons/` (4): waiting room of a royale, website mode with the chat strip, 1280×720 light and dark; standalone 1280×720 light; website 390×844 light. In all four the Join button is in view and the overview shows the four seasons (closed on the phone).
 
+- End of the chain: the dev server runs on `feat/seasons-overview`, standalone (port 5390, build badge "Bingo · dev · 5390"; the client serves `src/game/SeasonsOverview.tsx`, HTTP 200). To open a royale waiting room yourself: `http://localhost:5390/#/quicktest/play` (the Quick Test page's "Test a match": Battle royale, start in N minutes, "I play along" off); this tab then shows the waiting room with the seasons overview. `C:/Users/weudl/sbr-review/docked/` is deleted. `git ls-remote --heads origin` at the end: `master` `8d20904` (merge of PR #74), `feat/seasons-overview` `30b6a82` (the commit before this note; draft PR #75), `renovate/digests-pin`, `renovate/minor-and-patch-updates`; `fix/console-phone-fit` is gone (step 3 found the cause and merged).
+
 ### Running
 
 - Nothing.
