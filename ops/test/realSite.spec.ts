@@ -102,7 +102,8 @@ test('P1 guest, join through the website, chat, a member plays and cannot host',
   await member.goto(GAME);
   await member.getByTestId(`sign-in-to-join-${s.play}`).click();
   await expect(member).toHaveURL(/\/login\?next=/);
-  await member.getByRole('link', { name: 'Register' }).click();
+  // The page's own link: the website's navigation shows a "Register" too once it has rendered.
+  await member.getByRole('paragraph').getByRole('link', { name: 'Register' }).click();
   // The login page has a Username field too: fill only once the register form is there.
   await expect(member.getByRole('heading', { name: 'Register', level: 1 })).toBeVisible();
   await member.getByLabel('Username').fill(s.member);
