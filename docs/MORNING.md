@@ -6,21 +6,26 @@
 
 - Step 1: PR #72 merged (merge commit `dd35d08`, CI of the head `996df34` green: run 45564339611); BACKLOG KIT-ADOPTION remainder and OPEN state what K18 landed and what stays open; branch deleted on origin and locally. CI of the merge SHA on master: run 45565377695 (checked before the next merge).
 - Step 2 (branch `docs/hsts-closed`): prod-readiness §8 closed with the website's reference (seasonal-entertainment master `046ec70`, PR #88, `max-age=31536000; includeSubDomains`, no preload, live at the next installer `--update`); the HSTS entry moved from BACKLOG part one to part two; OPEN aligned. Docs only, no browser checks.
-
 - Step 2: PR #73 merged (CI green: run 45565548605; merge `69e2516`); CI of the step 1 merge SHA `dd35d08` on master: success (run 45565377695). Branch deleted.
 - Step 3 (branch `fix/console-phone-fit`): **cause found.** The host console on a phone puts the newest event lines (`.arena-events`, banners such as a season collected, with the log's summary line) above the controls. They come and go with the random draws: none in all 18 local runs, but three lines with the summary are about 100 px, so Draw next's bottom moved from 541 to 652 px at 360×640 (the CI failure was 644.05 against 640.5, two lines). Reproduced deterministically by injecting three banner lines into the empty events block on master's code (Draw next bottom 652.4, over the limit). **Fix in the screen** (`apps/web/src/host/host.css`, under 960 px only): `.host-play` gives its children to the grid and the events line block moves after the controls (`order`), the standings after it; with three injected lines Draw next now ends at 533 px, the same as with none. The limit and the spec are unchanged, no retries. Proof: `playerFit.spec.ts:268` with `--repeat-each=10`, nothing else running: 10 passed. The old code cannot be made to fail by repeating alone (the banners are random: 0 of 18 local runs had any), only by the injection above (it fails, 652.4 px). The phone console's gaps changed by 16 px (the section's own gap of one step became the grid's); nothing at 960 px or more changed.
 
+- Step 3: PR #74 merged (CI green: run 45569386594; merge `8d20904`); CI of that merge SHA on master: success (run 45570680835). Branch deleted.
+- Step 4 (branch `feat/seasons-overview`, draft PR, **not merged**: the owner looks first): the seasons overview in the waiting room of a royale match. `game/SeasonsOverview.tsx` (new): a disclosure "What the seasons do", one line per season with icon and name from the match's frozen ruleset (`result.seasonEffects`, `seasonCompletePoints` of the client view that the waiting room already holds), and "Collect them all: all four give +300 (Season Complete)"; royale only (nothing in Season-Bingo and Number-Bingo); standalone and website mode alike. **Reused:** `seasonName`, `boostSentence`, `growthSentence`, `shieldSentence`, `seasonCompleteNote` (`game/seasonText.ts`), `SeasonIcon` and `SEASON_MARK_SIZE` (the one season mark), the `sbr-stack` layout. **Added:** `seasonOverviewLine` in `seasonText.ts` (a dispatcher that calls the three helpers with the effect's full duration or charges; the Autumn harvest, a bonus, a preview and "no effect" had no sentence of their own, so they got one each there, in the same words), `useDesktopWidth` (the 960 px phone breakpoint as a hook; there was none). **Placement:** the waiting room's body is a grid: on a phone the disclosure sits above the players, closed; from 960 px it is open in a column beside the players, Join and the registration line, so its height never pushes Join down. A first version above the players pushed Join to 527–591 px in the 538 px game area at 1280×720 with the chat strip (out of view); beside them Join is at 327–391 px. Kit tokens only (`game/seasonsOverview.css`), text 14 px. Test `game/seasonsOverview.test.tsx` (3: four seasons with the ruleset's numbers, a changed ruleset shows its own, absent in both other kinds; failed once before: the component did not exist). Spec: `docs/spec/01-game-design.md` §7.6 (row "Waiting room, seasons overview"); BACKLOG part one entry SEASONS-OVERVIEW; OPEN aligned.
+- Checks: website sweep, `console-lobby` and `waiting-room`, ten sizes, light and dark, chat closed and open (80 measurements): findings 0 and axe 0 on all desktop sizes and on the phones with the sheet closed; the 16 findings are phones with the chat sheet open, where the sheet covers the page by design (the known baseline). Standalone audit at 1280×720 and 390×844 (16, 20 and 24 px fonts): lobby, lobby-guest, console-lobby and waiting-room findings 0 (the audit measures light only). Lint, typecheck and the web tests (65 files, 302 tests) pass.
+- Pictures in `C:/Users/weudl/sbr-review/seasons/` (4): waiting room of a royale, website mode with the chat strip, 1280×720 light and dark; standalone 1280×720 light; website 390×844 light. In all four the Join button is in view and the overview shows the four seasons (closed on the phone).
+
 ### Running
 
-- Step 3: PR and CI.
+- Nothing.
 
 ### Open
 
-- Step 2 HSTS docs, step 3 the flaky `playerFit` console check (run 45517534835, 644.05 px against 640.5 at 360×640, passed on re-run and 4 of 4 locally), step 4 the seasons overview (draft PR, not merged).
+- Step 4 is a draft PR for the owner's look; merging it is the owner's call.
 
 ### Needs the owner's word
 
-- Nothing yet.
+- Step 4 (the seasons overview, draft PR): look at the waiting room of a royale (Quick Test page, "Test a match" at `#/quicktest/play`: Battle royale, start in N minutes, "I play along" off: this tab shows the waiting room) and decide whether to merge. The overview's wording follows the status panel ("— 8 more numbers"); if "for the next 8 numbers" is wanted, that is one sentence in `seasonText.ts`.
+- Nothing else.
 
 ## Night of 2026-11-23/24 (unattended)
 

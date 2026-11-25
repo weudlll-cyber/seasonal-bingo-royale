@@ -4,13 +4,14 @@
  * @brief  The waiting room before a match starts: rules, players, countdown, join (WP-12).
  *
  * Responsibility: show the match's title, game type, prizes (classic types) and rules in
- *                 plain words, every player who joined, the registration status
+ *                 plain words, in a royale what each season does (./SeasonsOverview, a disclosure
+ *                 under those facts), every player who joined, the registration status
  *                 (./Registration: the host, a set time with a live countdown, or places
  *                 left, or "Full"), and the 10-second countdown to the first round once it runs. A signed-in
  *                 player who has not joined yet gets a Join button while a place is left. No host link here: the host's console has its own tab
  *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
  * Depends on:     react, ../account/WebsiteSignIn, ../components/StepBadges, ../shell/http, ../shell/session, ../useSecondsUntil,
- *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration
+ *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration, ./SeasonsOverview
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
  */
@@ -24,6 +25,7 @@ import { useSession } from '../shell/session.js';
 import { useSecondsUntil } from '../useSecondsUntil.js';
 import { gameTypeName, prizeName, rulesLine } from './labels.js';
 import { RegistrationStatus } from './Registration.js';
+import { SeasonsOverview } from './SeasonsOverview.js';
 import type { LiveState } from './useLiveMatch.js';
 
 export function WaitingRoom({
@@ -51,28 +53,35 @@ export function WaitingRoom({
           </p>
         ) : null}
       </header>
-      <Countdown startsAt={live.match.startsAt} />
-      <section className="sbr-panel">
-        <h2>
-          Players {live.match.players} / {live.match.maxPlayers}
-        </h2>
-        <ul className="waiting-players" data-testid="waiting-players">
-          <StepsByName players={live.view.players}>
-            {view.standings.map((p) => (
-              <li key={p.accountId} className={p.isOwner ? 'is-me' : undefined}>
-                {p.accountId}
-                <NameSteps name={p.accountId} />
-                {p.isOwner ? ' (you)' : ''}
-              </li>
-            ))}
-          </StepsByName>
-        </ul>
-      </section>
-      {joined || live.match.full ? null : <JoinAction code={live.match.code} />}
-      <p className="sbr-muted" data-testid="start-rule">
-        {joined ? 'You are in. ' : ''}
-        <RegistrationStatus match={live.match} testId="registration" />
-      </p>
+      <div className="waiting-body">
+        {/* Royale only: what each season does once collected, from the frozen ruleset; a desktop
+            shows it beside the players and Join (./seasonsOverview.css), a phone above them. */}
+        <SeasonsOverview result={live.view} />
+        <div className="sbr-stack waiting-main">
+          <Countdown startsAt={live.match.startsAt} />
+          <section className="sbr-panel">
+            <h2>
+              Players {live.match.players} / {live.match.maxPlayers}
+            </h2>
+            <ul className="waiting-players" data-testid="waiting-players">
+              <StepsByName players={live.view.players}>
+                {view.standings.map((p) => (
+                  <li key={p.accountId} className={p.isOwner ? 'is-me' : undefined}>
+                    {p.accountId}
+                    <NameSteps name={p.accountId} />
+                    {p.isOwner ? ' (you)' : ''}
+                  </li>
+                ))}
+              </StepsByName>
+            </ul>
+          </section>
+          {joined || live.match.full ? null : <JoinAction code={live.match.code} />}
+          <p className="sbr-muted" data-testid="start-rule">
+            {joined ? 'You are in. ' : ''}
+            <RegistrationStatus match={live.match} testId="registration" />
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

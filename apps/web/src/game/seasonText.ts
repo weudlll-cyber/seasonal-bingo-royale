@@ -9,9 +9,12 @@
  *                 its last draw), the Winter shield with its margin and charges left, what a used shield did ("Your Winter shield saved
  *                 you in cut 1 (you were 2 places below the line)"), the owner's season as an
  *                 event line (the Autumn harvest with its points), and the Season Complete
- *                 note. Every number comes from the match's ruleset or the server's status.
+ *                 note, and before the match starts one overview line per season from the frozen
+ *                 ruleset (`seasonOverviewLine`). Every number comes from the match's ruleset or the
+ *                 server's status.
  * Depends on:     ../types
- * Used by:        ../components/OwnerStatusPanel, ../components/CutScreen, ../playbackScoring
+ * Used by:        ../components/OwnerStatusPanel, ../components/CutScreen, ../playbackScoring,
+ *                 ./SeasonsOverview
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13
  */
 import type { Effect, Season } from '../types.js';
@@ -62,6 +65,29 @@ export function shieldSavedLine(cut: number, placesBelow: number): string {
 // The Season Complete note under the four seasons.
 export const seasonCompleteNote = (points: number): string =>
   `all four give +${String(points)} (Season Complete)`;
+
+// What a season does once collected, before the match starts (the waiting room's overview): the
+// same sentences as the status panel, with the effect's full duration or charges from the match's
+// frozen ruleset in place of what is left. Harvest, bonus and preview have no status sentence, so
+// they get their own here, in the same words.
+export function seasonOverviewLine(season: Season, effect: Effect): string {
+  switch (effect.type) {
+    case 'multiplier':
+      return boostSentence(season, effect.factor, effect.durationDraws);
+    case 'growth':
+      return growthSentence(season, effect.durationDraws);
+    case 'shield':
+      return shieldSentence(season, effect.rankMargin, effect.charges);
+    case 'harvest':
+      return `${effectTitle(season, effect)}: +${String(effect.pointsPerMarked)} points for each marked cell in your ${effect.scope}`;
+    case 'addPoints':
+      return `${effectTitle(season, effect)}: +${String(effect.points)} points`;
+    case 'revealNext':
+      return `${effectTitle(season, effect)}: shows you the next ${String(effect.count)} ${effect.count === 1 ? 'number' : 'numbers'}`;
+    case 'none':
+      return `${seasonName(season)}: no effect of its own, it counts towards Season Complete`;
+  }
+}
 
 interface SeasonEvent {
   readonly season: Season;

@@ -1,0 +1,80 @@
+/**
+ * @file   apps/web/src/game/seasonsOverview.css
+ * @module web/game
+ * @brief  The seasons overview in the waiting room (./SeasonsOverview).
+ *
+ * Responsibility: a framed disclosure under the match's facts: its summary, one line per season
+ *                 (icon, then the sentence) and the Season Complete line, at the kit's small type
+ *                 size. Sizes, gaps, radii and colours are kit tokens (@seasonal/kit tokens.css);
+ *                 nothing here is a value of Bingo's own.
+ * Used by:        ./SeasonsOverview
+ * Spec:           docs/spec/01-game-design.md §13
+ */
+
+.seasons-overview {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  font-size: var(--font-size-small);
+}
+
+.seasons-overview summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-strong);
+}
+
+.seasons-overview ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seasons-overview li {
+  display: flex;
+  gap: var(--space-1);
+  align-items: flex-start;
+}
+
+.seasons-overview li > img,
+.seasons-overview li > .season-ring {
+  flex: none;
+}
+
+.seasons-overview p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+}
+
+/* The waiting room's body: the overview above the players on a phone (a closed disclosure), and on
+   a desktop in a column of its own beside the players, Join and the registration line, so that
+   its height never pushes Join down (owner decision of 2026-11-25: Join stays in view at 1280×720
+   with the chat strip under the game). */
+.waiting-body {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.waiting-main {
+  min-width: 0;
+}
+
+@media (min-width: 960px) {
+  .waiting-body:has(> .seasons-overview) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-3);
+    align-items: start;
+  }
+
+  .waiting-body > .seasons-overview {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .waiting-body > .waiting-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+}
