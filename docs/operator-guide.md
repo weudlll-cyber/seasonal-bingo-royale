@@ -96,7 +96,7 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files, the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened) and its recovery key (`SBR_RECOVERY_KEY`, which the admins' recovery codes are stored under), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files, the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened) and its recovery key (`SBR_RECOVERY_KEY`, which the admins' recovery codes are stored under), all encrypted with your age key. The backups are made by the Seasonal Entertainment kit's backup script (`ops/lib/kit-backup.sh`, the same in every Seasonal game) with Bingo's settings (`ops/lib/backup.sh`); `sbr` is how you use it. Backups made before that change (2026-11-25) are still restored and drilled by `sbr`. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
 
 1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
@@ -116,7 +116,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    scp $HOME\sbr-age-key.txt <you>@<VPS address>:sbr-age-key.txt
    ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
-   It restores into a throw-away database, says how many accounts, matches and events came back, and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
+   It restores into a throw-away database twice: the kit's drill compares every table's rows with the dump, then Bingo's says how many accounts, matches and events came back and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
 5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The backup's recovery key always becomes the server's, so the restored recovery codes keep working. The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
 
 ## 6. Updating and rolling back

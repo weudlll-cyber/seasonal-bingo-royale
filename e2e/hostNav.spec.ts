@@ -7,8 +7,9 @@
  *                 bots and starts it; opens the match screen and returns via "Open host console";
  *                 as a player the window shows no "Manage" and no host link. The top bar never
  *                 covers a field at the top edge on a wide screen and scrolls away on a phone; on a
- *                 phone (360 and 390 px, and at 150 % font) it is one row with one Menu button for
- *                 links and account, by keyboard too, nothing cut or past the edge. Chromium saves
+ *                 phone (360 and 390 px) it is one row with one Menu button for links and account (at
+ *                 150 % font the kit's bar takes the rows it needs, a quarter of the window at
+ *                 most, nothing covered), by keyboard too, nothing cut or past the edge. Chromium saves
  *                 create form, lobby console, lobby and waiting room, both sizes and themes, to
  *                 reports/screens/latest/.
  * Depends on:     @playwright/test, ./realGame, ./screens
@@ -160,12 +161,22 @@ test('the top bar never covers a field jumped to; on a phone it scrolls away', a
 });
 
 // In the page: the bar's height and the tops of the theme toggle and the Menu button.
-function barRow(): { height: number; toggle: number; menu: number } {
-  const top = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
+function barRow(): { height: number; toggle: number; menu: number; covered: boolean } {
+  const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+  const parts = ['.sk-header-brand', '[data-testid="menu-button"]', '[data-testid="theme-toggle"]']
+    .map(box)
+    .filter((b) => b !== undefined);
+  // Two of brand, Menu and toggle lying over each other.
+  const covered = parts.some((a, i) =>
+    parts
+      .slice(i + 1)
+      .some((b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom),
+  );
   return {
-    height: document.querySelector('.sk-header')?.getBoundingClientRect().height ?? 0,
-    toggle: top('[data-testid="theme-toggle"]'),
-    menu: top('[data-testid="menu-button"]'),
+    height: box('.sk-header')?.height ?? 0,
+    toggle: box('[data-testid="theme-toggle"]')?.top ?? -1,
+    menu: box('[data-testid="menu-button"]')?.top ?? -1,
+    covered,
   };
 }
 
@@ -203,8 +214,15 @@ test('on a phone the bar is one row and the menu holds links and account', async
     const button = page.getByTestId('menu-button');
     await expect(page.getByRole('navigation', { name: 'Main' }), where).toBeHidden();
     const bar = await page.evaluate(barRow);
-    expect(Math.abs(bar.toggle - bar.menu), `${where}: toggle and Menu on one row`).toBeLessThan(4);
-    expect(bar.height, `${where}: the bar is at most a fifth of the window`).toBeLessThan(160);
+    expect(bar.covered, `${where}: brand, Menu and toggle cover nothing of each other`).toBe(false);
+    // At 150 % the kit's folded bar takes more rows rather than cutting the brand's name (K65),
+    // and where only the Menu fits beside it the toggle takes the next row (Firefox, WebKit).
+    if (font === 16) {
+      expect(Math.abs(bar.toggle - bar.menu), `${where}: toggle and Menu on one row`).toBeLessThan(
+        4,
+      );
+    }
+    expect(bar.height, `${where}: the bar's height`).toBeLessThan(font === 16 ? 160 : 200);
     // Keyboard: Enter opens it with the focus on the first link, Escape closes it.
     await button.focus();
     await page.keyboard.press('Enter');
