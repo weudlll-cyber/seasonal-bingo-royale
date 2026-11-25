@@ -4,11 +4,12 @@
 
 ### Done
 
-- Step 1 (in progress): BACKLOG KIT-ADOPTION remainder and OPEN state what K18 landed and what stays open; PR #72 to be marked ready and merged on green CI of head.
+- Step 1: PR #72 merged (merge commit `dd35d08`, CI of the head `996df34` green: run 45564339611); BACKLOG KIT-ADOPTION remainder and OPEN state what K18 landed and what stays open; branch deleted on origin and locally. CI of the merge SHA on master: run 45565377695 (checked before the next merge).
+- Step 2 (branch `docs/hsts-closed`): prod-readiness §8 closed with the website's reference (seasonal-entertainment master `046ec70`, PR #88, `max-age=31536000; includeSubDomains`, no preload, live at the next installer `--update`); the HSTS entry moved from BACKLOG part one to part two; OPEN aligned. Docs only, no browser checks.
 
 ### Running
 
-- Step 1: waiting for CI of the PR head.
+- Step 2: PR and CI.
 
 ### Open
 
