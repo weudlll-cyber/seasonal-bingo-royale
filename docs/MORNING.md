@@ -1,5 +1,23 @@
 # Morning sheet
 
+## 2026-11-25 (unattended chain: merge #72, HSTS docs, the flaky fit test, the seasons overview)
+
+### Done
+
+- Step 1 (in progress): BACKLOG KIT-ADOPTION remainder and OPEN state what K18 landed and what stays open; PR #72 to be marked ready and merged on green CI of head.
+
+### Running
+
+- Step 1: waiting for CI of the PR head.
+
+### Open
+
+- Step 2 HSTS docs, step 3 the flaky `playerFit` console check (run 45517534835, 644.05 px against 640.5 at 360×640, passed on re-run and 4 of 4 locally), step 4 the seasons overview (draft PR, not merged).
+
+### Needs the owner's word
+
+- Nothing yet.
+
 ## Night of 2026-11-23/24 (unattended)
 
 Pieces: 0 open sign-ups capped at 20, 1 H3 header comments, 2 T4 eliminated-cannot-mark journey, 3a axe focus, 3b docked layout, 4 start card, 5 game bar and focus mode. Pieces 0–2 merge when CI is green; 3–5 stay on `feat/docked-layout` for the owner's look.
