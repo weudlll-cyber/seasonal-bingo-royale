@@ -5,10 +5,11 @@
 ### Done
 
 - Piece 1, pin and rename: `@seasonal/kit` v0.22.0 (commit `2e8ed41`) in `apps/web` and `apps/server`; v0.14.0's rename: the 48 shared tokens other than the gutter take `--sk-` (588 places in 43 files: `apps/web`, `packages/ui` and the admin mockups), seasonal colour built in code too (`types.ts` `seasonColor`). Bingo keeps its own `--gutter` (`min(var(--sk-gutter), 4.5vw)`; the 49th shared name) and `--panel-padding`: at 320 px the page margin is 14.4 px (measured), the kit's own `--sk-gutter` 16 px. The kit's own parts (header, dock) read `--sk-gutter`, which Bingo does not set: below 356 px they now get the kit's 16 px where they got Bingo's smaller value before. `designTokens.test.ts` reads the kit's tokens without the prefix. `minTextSize.test.ts` and the web tests pass (65 files, 302); the standalone fit audit (all its sizes, 588 measurements) has no finding that the earlier baselines at the same keys did not have.
+- Piece 2a, the result as the kit lays it out (K47): `frames.css` loaded (`main.tsx`), `reveal` left out; Bingo's overrides of the kit's result classes dropped (`results.css`: the panel's look, `display: contents`, the hidden reveal; `dockResults.css`: its rules on `.sk-result[...]`: padding, gap, the two-column grid, the heading's size). Bingo's own content in the frame stays (season marks, the owner's row, the podium and rows, the big line). **Places whole above the chat strip** at 1280×720, 1366×768, 1536×768, 1440×900, 1900×860, 1920×1080: 5, 4, 5, 9, 7, 17 (before: 7, 7, 7, 13, 11, 20). **The owner's floor of 7 at 1280×720 is not met** (5): the kit's frame spends a card, its padding and its heading on what Bingo's panel held in one card. Kept (no override), as the owner ruled. **Kit option that would close the gap:** a dense `ResultFrame` panel (one card for first part and "more", panel padding `--sk-space-1`, the headline on the same row as the lines, no gap between the cards). Second kit finding: the frame's headline is clamped to two lines with `overflow: hidden`; with a game's heading line height of 1.15 the descender of "Final placement" is clipped (the probe's one finding, at 1280×720): the frame should set its headline's line height.
 
 ### Running
 
-- Piece 2.
+- Piece 2b onwards.
 
 ### Open
 

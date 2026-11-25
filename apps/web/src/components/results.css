@@ -6,8 +6,9 @@
  * Responsibility: the shared look of everything that ranks or reports: rows with rank,
  *                 name, season icons and points (own row highlighted, out rows dimmed below
  *                 a divider; a name keeps its whole width, the seasons and points move to a
- *                 second line when the row is narrow), the prize rows, and the final
- *                 placement's panel on the kit's ResultFrame; the podium is in ./podium.css.
+ *                 second line when the row is narrow), the prize rows, and the final placement's
+ *                 own lines; its frame is the kit's `ResultFrame` (frames.css), the podium is in
+ *                 ./podium.css.
  *                 Colours, spacing and radii from @sbr/ui tokens only.
  * Spec:           docs/spec/01-game-design.md §7.4, §7.5, §13
  */
@@ -138,28 +139,8 @@
   letter-spacing: 0.08em;
 }
 
-/* Final placement (./FinalPlacement): the kit's ResultFrame as a panel. The kit's frames.css is
-   not loaded, so the frame is Bingo's one panel (.sbr-panel's card): its parts give their
-   children to one column (heading, own place, rule, podium, ranked rows), and the empty reveal
-   takes no room. */
-.sk-result[data-sk-variant='panel'] {
-  display: grid;
-  gap: var(--sk-space-2);
-  padding: var(--panel-padding);
-  border: 1px solid var(--sk-color-border);
-  border-radius: var(--sk-radius-card);
-  background: var(--sk-color-card);
-}
-
-.sk-result[data-sk-variant='panel']
-  :is(.sk-result-first, .sk-result-head, .sk-result-places, .sk-result-more) {
-  display: contents;
-}
-
-.sk-result[data-sk-variant='panel'] .sk-result-reveal {
-  display: none;
-}
-
+/* The final placement's own content inside the kit's ResultFrame (./FinalPlacement); the frame's
+   look is the kit's (frames.css, K47). */
 .final-own {
   margin: 0;
   font-size: var(--sk-font-size-title);

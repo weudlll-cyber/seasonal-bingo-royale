@@ -8,10 +8,11 @@
  *                 plus the owner's row): royale shows points and seasons, eliminated dimmed with
  *                 "out" below a divider, ranked by when they went out, with the cut and points
  *                 then (01 §7.5, D23); classic ranks by prizes (01 §3a.2). One line states how
- *                 places are decided. The podium shows each player's four season marks like the
+ *                 places are decided. No reveal: Bingo reveals nothing beyond its placings (the card
+ *                 and the draws are on the screen). The podium shows each player's four season marks like the
  *                 rows below it (royale). Names link to profiles when `profileHref` is passed. Frame:
  *                 the kit's `ResultFrame` as a panel (`panel={{ level: 3 }}`, since v0.11.0);
- *                 ./results.css gives Bingo's one-panel look (the kit's frames.css is not loaded).
+ *                 the frame's look is the kit's (frames.css, K47), ./results.css styles Bingo's content.
  * Depends on:     react, @seasonal/kit/react (ResultFrame), ./Podium, ./RankRow, ./Playback
  *                 (props), ../game/labels, ../playback, ../shell/session (useScreens), ../types,
  *                 ./results.css
@@ -64,8 +65,6 @@ export function FinalPlacement({
           </p>
         </>
       }
-      // Bingo reveals nothing beyond its placings: the card and the draws are on the screen.
-      reveal={null}
       placings={
         <Podium
           entries={podium.map((p) => ({

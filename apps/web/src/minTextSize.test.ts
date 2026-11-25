@@ -25,7 +25,9 @@ const here = (rel: string) =>
   );
 const ROOTS = [here('.'), here('../../../packages/ui/src')];
 // The kit's style files the client loads (its type sizes are in its tokens.css since B1).
-const KIT_CSS = ['tokens.css'].map((name) => here(`../node_modules/@seasonal/kit/css/${name}`));
+const KIT_CSS = ['tokens.css', 'frames.css'].map((name) =>
+  here(`../node_modules/@seasonal/kit/css/${name}`),
+);
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
