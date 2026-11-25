@@ -9,7 +9,9 @@
  *                 4.5:1 in both themes), and "Start a match": its numbered steps, tiles for the
  *                 game type and the preset (wrapping on a phone), the speed's three buttons,
  *                 "More choices" and the summary with "Open the lobby" (the rows of the host's
- *                 matches above: ../game/game.css own-matches). Colours and sizes from @sbr/ui tokens.
+ *                 matches above: ../game/game.css own-matches). On a phone the newest event lines
+ *                 stand under the controls, so Draw next never moves with them. Colours and sizes
+ *                 from @sbr/ui tokens.
  * Used by:        ./HostConsole, ./StartMatch, ./StartSteps, ./ThisMatchFields, ../quicktest
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/11-admin-panel.md §3.2
  */
@@ -70,6 +72,25 @@
    apply here). */
 .host-play > * {
   grid-area: auto;
+}
+
+/* Phone: the ball and the numbers, then the controls, and the newest lines under them. The lines
+   come and go with the draws (none, or three with the log's summary, about 100 px), so above the
+   controls they moved Draw next down by a random amount: past the window on a 360×640 phone
+   (CI, run 45517534835). Under the controls, Draw next stays where it is whatever the round said.
+   The section gives its children to the grid, so `order` can place them. */
+@media (max-width: 959px) {
+  .host-play {
+    display: contents;
+  }
+
+  .host-play > .arena-events {
+    order: 1;
+  }
+
+  .host-grid > .host-side {
+    order: 2;
+  }
 }
 
 .open-notice {

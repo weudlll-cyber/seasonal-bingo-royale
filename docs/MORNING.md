@@ -7,9 +7,12 @@
 - Step 1: PR #72 merged (merge commit `dd35d08`, CI of the head `996df34` green: run 45564339611); BACKLOG KIT-ADOPTION remainder and OPEN state what K18 landed and what stays open; branch deleted on origin and locally. CI of the merge SHA on master: run 45565377695 (checked before the next merge).
 - Step 2 (branch `docs/hsts-closed`): prod-readiness §8 closed with the website's reference (seasonal-entertainment master `046ec70`, PR #88, `max-age=31536000; includeSubDomains`, no preload, live at the next installer `--update`); the HSTS entry moved from BACKLOG part one to part two; OPEN aligned. Docs only, no browser checks.
 
+- Step 2: PR #73 merged (CI green: run 45565548605; merge `69e2516`); CI of the step 1 merge SHA `dd35d08` on master: success (run 45565377695). Branch deleted.
+- Step 3 (branch `fix/console-phone-fit`): **cause found.** The host console on a phone puts the newest event lines (`.arena-events`, banners such as a season collected, with the log's summary line) above the controls. They come and go with the random draws: none in all 18 local runs, but three lines with the summary are about 100 px, so Draw next's bottom moved from 541 to 652 px at 360×640 (the CI failure was 644.05 against 640.5, two lines). Reproduced deterministically by injecting three banner lines into the empty events block on master's code (Draw next bottom 652.4, over the limit). **Fix in the screen** (`apps/web/src/host/host.css`, under 960 px only): `.host-play` gives its children to the grid and the events line block moves after the controls (`order`), the standings after it; with three injected lines Draw next now ends at 533 px, the same as with none. The limit and the spec are unchanged, no retries. Proof: `playerFit.spec.ts:268` with `--repeat-each=10`, nothing else running: 10 passed. The old code cannot be made to fail by repeating alone (the banners are random: 0 of 18 local runs had any), only by the injection above (it fails, 652.4 px). The phone console's gaps changed by 16 px (the section's own gap of one step became the grid's); nothing at 960 px or more changed.
+
 ### Running
 
-- Step 2: PR and CI.
+- Step 3: PR and CI.
 
 ### Open
 
