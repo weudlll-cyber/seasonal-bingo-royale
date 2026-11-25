@@ -29,13 +29,17 @@ describe('the seasons overview', () => {
     const overview = screen.getByTestId('seasons-overview');
     expect(within(overview).getAllByRole('listitem')).toHaveLength(4);
     expect(text('spring')).toContain('Spring growth');
-    expect(text('spring')).toContain('10 more numbers');
+    expect(text('spring')).toContain('more with each mark, for 10 numbers');
+    expect(text('spring')).not.toContain('more numbers');
     expect(text('summer')).toContain('Summer boost');
-    expect(text('summer')).toContain('×1.5');
-    expect(text('summer')).toContain('8 more numbers');
+    expect(text('summer')).toContain('count ×1.5 for 8 numbers');
+    expect(text('summer')).not.toContain('more numbers');
     expect(text('autumn')).toContain('Autumn harvest: +15 points for each marked cell in your row');
     expect(text('winter')).toContain('Winter shield');
-    expect(text('winter')).toContain('at most 3 places below the line');
+    expect(text('winter')).toContain(
+      'saves you once at a cut if you are at most 3 places below the line',
+    );
+    expect(text('winter')).not.toContain('left');
     expect(screen.getByTestId('season-overview-complete').textContent).toContain(
       'all four give +300 (Season Complete)',
     );
@@ -54,12 +58,14 @@ describe('the seasons overview', () => {
           seasonEffects: {
             ...result.seasonEffects,
             summer: { type: 'multiplier', factor: 2, durationDraws: 12 },
+            winter: { type: 'shield', rankMargin: 1, charges: 2 },
           },
         }}
       />,
     );
-    expect(text('summer')).toContain('×2');
-    expect(text('summer')).toContain('12 more numbers');
+    expect(text('summer')).toContain('count ×2 for 12 numbers');
+    expect(text('winter')).toContain('saves you 2 times at a cut if you are at most 1 place below');
+    expect(text('winter')).not.toContain('left');
     expect(screen.getByTestId('season-overview-complete').textContent).toContain('+450');
   });
 

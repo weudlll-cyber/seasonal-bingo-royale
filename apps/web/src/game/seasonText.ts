@@ -6,7 +6,8 @@
  * Responsibility: one short sentence per active effect with the season's name ("Summer boost:
  *                 your marks and speed bonus count ×1.5 — 5 more numbers": patterns, the
  *                 harvest and Season Complete are not multiplied, D44; "— this number only" on
- *                 its last draw), the Winter shield with its margin and charges left, what a used shield did ("Your Winter shield saved
+ *                 its last draw), the Winter shield with its margin and charges left (the effects' words are shared parts, so the
+ *                 overview before the match reads "for 8 numbers" and never "left"), what a used shield did ("Your Winter shield saved
  *                 you in cut 1 (you were 2 places below the line)"), the owner's season as an
  *                 event line (the Autumn harvest with its points), and the Season Complete
  *                 note, and before the match starts one overview line per season from the frozen
@@ -43,18 +44,34 @@ const numbersLeft = (n: number): string =>
 
 const places = (n: number): string => `${String(n)} ${n === 1 ? 'place' : 'places'}`;
 
+// An effect's words are one part, shared by the running status ("— 5 more numbers", "— 1 left") and
+// the waiting room's overview before anyone holds a season ("for 8 numbers", nothing about what is left).
+const boostWords = (season: Season, factor: number): string =>
+  `${seasonName(season)} boost: your marks and speed bonus count ×${String(factor)}`;
+
+const growthWords = (season: Season): string =>
+  `${seasonName(season)} growth: every mark earns extra points, more with each mark`;
+
+// "saves you once …" for a one-charge shield, "… N times" for more.
+function shieldWords(season: Season, rankMargin: number, charges: number): string {
+  const times = charges === 1 ? 'once' : `${String(charges)} times`;
+  return `${seasonName(season)} shield: saves you ${times} at a cut if you are at most ${places(rankMargin)} below the line`;
+}
+
+// The effect's whole length, as the overview says it.
+const forNumbers = (n: number): string => `for ${String(n)} ${n === 1 ? 'number' : 'numbers'}`;
+
 export function boostSentence(season: Season, factor: number, remaining: number): string {
-  return `${seasonName(season)} boost: your marks and speed bonus count ×${String(factor)} — ${numbersLeft(remaining)}`;
+  return `${boostWords(season, factor)} — ${numbersLeft(remaining)}`;
 }
 
 export function growthSentence(season: Season, remaining: number): string {
-  return `${seasonName(season)} growth: every mark earns extra points, more with each mark — ${numbersLeft(remaining)}`;
+  return `${growthWords(season)} — ${numbersLeft(remaining)}`;
 }
 
-// "saves you once …" for a one-charge shield, "… N left" with the charges the player holds.
+// "… N left" with the charges the player holds.
 export function shieldSentence(season: Season, rankMargin: number, charges: number): string {
-  const times = charges === 1 ? 'once' : `${String(charges)} times`;
-  return `${seasonName(season)} shield: saves you ${times} at a cut if you are at most ${places(rankMargin)} below the line — ${String(charges)} left`;
+  return `${shieldWords(season, rankMargin, charges)} — ${String(charges)} left`;
 }
 
 export function shieldSavedLine(cut: number, placesBelow: number): string {
@@ -67,17 +84,17 @@ export const seasonCompleteNote = (points: number): string =>
   `all four give +${String(points)} (Season Complete)`;
 
 // What a season does once collected, before the match starts (the waiting room's overview): the
-// same sentences as the status panel, with the effect's full duration or charges from the match's
-// frozen ruleset in place of what is left. Harvest, bonus and preview have no status sentence, so
-// they get their own here, in the same words.
+// status panel's words for the effect (the shared parts above) with the effect's whole length or its
+// charges from the match's frozen ruleset, and no "left". Harvest, bonus and preview have no status
+// sentence, so they get their own here, in the same words.
 export function seasonOverviewLine(season: Season, effect: Effect): string {
   switch (effect.type) {
     case 'multiplier':
-      return boostSentence(season, effect.factor, effect.durationDraws);
+      return `${boostWords(season, effect.factor)} ${forNumbers(effect.durationDraws)}`;
     case 'growth':
-      return growthSentence(season, effect.durationDraws);
+      return `${growthWords(season)}, ${forNumbers(effect.durationDraws)}`;
     case 'shield':
-      return shieldSentence(season, effect.rankMargin, effect.charges);
+      return shieldWords(season, effect.rankMargin, effect.charges);
     case 'harvest':
       return `${effectTitle(season, effect)}: +${String(effect.pointsPerMarked)} points for each marked cell in your ${effect.scope}`;
     case 'addPoints':

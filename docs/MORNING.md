@@ -16,18 +16,19 @@
 
 - End of the chain: the dev server runs on `feat/seasons-overview`, standalone (port 5390, build badge "Bingo · dev · 5390"; the client serves `src/game/SeasonsOverview.tsx`, HTTP 200). To open a royale waiting room yourself: `http://localhost:5390/#/quicktest/play` (the Quick Test page's "Test a match": Battle royale, start in N minutes, "I play along" off); this tab then shows the waiting room with the seasons overview. `C:/Users/weudl/sbr-review/docked/` is deleted. `git ls-remote --heads origin` at the end: `master` `8d20904` (merge of PR #74), `feat/seasons-overview` `30b6a82` (the commit before this note; draft PR #75), `renovate/digests-pin`, `renovate/minor-and-patch-updates`; `fix/console-phone-fit` is gone (step 3 found the cause and merged).
 
+- Step 4, closing (owner decision of 2026-11-25, the overview's wording): the waiting room's "What the seasons do" no longer uses the running-status endings. A timed effect reads "Summer boost: your marks and speed bonus count ×1.5 for 8 numbers" and "Spring growth: every mark earns extra points, more with each mark, for 10 numbers"; the shield reads "Winter shield: saves you once at a cut if you are at most 3 places below the line" ("N times" when charges are more than 1), no "left"; all numbers from the frozen ruleset. In `game/seasonText.ts` each effect's words are one shared part (`boostWords`, `growthWords`, `shieldWords`) with two endings: the status panel's ("— 5 more numbers", "— 1 left"; `boostSentence`, `growthSentence`, `shieldSentence`, unchanged output, `seasonText.test.ts` and the status panel tests pass unchanged) and the overview's (`seasonOverviewLine`, `forNumbers`). `seasonsOverview.test.tsx` checks the new wording (failed on the old code, also a two-charge shield). PR #75 is marked ready and merged on green CI; SEASONS-OVERVIEW moved to BACKLOG part two (closed by PR #75), OPEN aligned. The pictures and `sbr-review/seasons/` are deleted with the stale `sbr-review/tmp/`; the dev server runs on master.
+
 ### Running
 
 - Nothing.
 
 ### Open
 
-- Step 4 is a draft PR for the owner's look; merging it is the owner's call.
+- Nothing: step 4 is merged (owner decision of 2026-11-25, after the wording change).
 
 ### Needs the owner's word
 
-- Step 4 (the seasons overview, draft PR): look at the waiting room of a royale (Quick Test page, "Test a match" at `#/quicktest/play`: Battle royale, start in N minutes, "I play along" off: this tab shows the waiting room) and decide whether to merge. The overview's wording follows the status panel ("— 8 more numbers"); if "for the next 8 numbers" is wanted, that is one sentence in `seasonText.ts`.
-- Nothing else.
+- Nothing.
 
 ## Night of 2026-11-23/24 (unattended)
 
