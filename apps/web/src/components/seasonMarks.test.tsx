@@ -42,11 +42,13 @@ describe('season marks', () => {
     expect(earned.style.opacity).toBe('');
   });
 
-  it('draws a season not earned as a white disc with a grey ring, from the kit tokens', () => {
+  it('draws a season not earned as a white disc (in both themes) with a grey ring, from the kit tokens', () => {
     render(<SeasonIcon season="autumn" size={SEASON_MARK_SIZE} onColor earned={false} />);
     const open = screen.getByRole('img', { name: 'autumn (not collected)' });
     // The disc is filled (the colour under it never shows through) and rimmed by the ring.
-    expect(open.style.background).toContain('var(--color-surface)');
+    // White in both themes: the kit's one white that no theme overrides (--color-surface and
+    // --color-on-solid both turn navy in dark mode).
+    expect(open.style.background).toContain('var(--color-on-live)');
     expect(open.style.borderColor).toContain('var(--color-border-strong)');
     expect(open.className).toContain('season-ring');
   });

@@ -132,8 +132,9 @@
   font-size: var(--font-size-small);
 }
 
-/* Season marks on a coloured step: each earned mark gets a white ring so an orange mark stays
-   visible on the orange step; a season not earned is the same disc with a ring as everywhere. */
+/* Season marks on a coloured step: each earned mark gets a white ring (--color-on-live, white in both
+   themes) so an orange mark stays visible on the orange step; a season not earned is the same disc with a
+   ring as everywhere. */
 .podium-seasons [data-earned='true'] {
-  box-shadow: 0 0 0 calc(var(--space-1) / 4) var(--color-on-solid);
+  box-shadow: 0 0 0 calc(var(--space-1) / 4) var(--color-on-live);
 }

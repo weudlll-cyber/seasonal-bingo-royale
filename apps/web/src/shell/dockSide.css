@@ -17,6 +17,9 @@
  *                 host.css as they are. Under 960 px the screens stack as before.
  *                 Where the column holds the standings, they stand beside the patterns and the
  *                 status and take the column's whole height.
+ *                 The standings half is wider and its rows are closer, so a row (rank, name, four
+ *                 marks, points) stays one line; a name is never cut (fit audit F7), a row too narrow
+ *                 for it wraps its figures as before.
  *                 Owner decision of 2026-11-24: every size, gap and margin is a kit token or a whole
  *                 number of the kit's spacing steps (@seasonal/kit tokens.css), no value of Bingo's own.
  * Used by:        ./DockedChat
@@ -85,6 +88,9 @@
     grid-row: 1 / -1;
     margin-top: var(--dock-live-h);
     overflow-y: auto;
+    /* Its content never sizes the arena's rows (the column scrolls where it is too tall); without
+       this a long standings list or a status line made the game area scroll by a few pixels. */
+    contain: size;
   }
 
   /* Whole panels: the patterns and the status keep their height, the standings take the rest
@@ -103,7 +109,8 @@
 
   .sk-docked-main .arena-side:has(> .standings-panel) {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    /* The standings half is a little wider: a row (rank, name, four marks, points) is one line. */
+    grid-template-columns: minmax(0, 0.87fr) minmax(0, 1.13fr);
     grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: var(--space-2);
     row-gap: var(--space-1);
@@ -113,15 +120,28 @@
     grid-column: 1;
   }
 
+  .sk-docked-main .arena-side:has(> .standings-panel) :is(.side-panel, .standings-panel) {
+    padding-inline: var(--space-1);
+  }
+
+  /* The standings' rows have their own side padding: the panel's is half a step, and the gap between
+     a row's parts too, so a name such as "Sweep_Player7" fits. */
+  .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
+    padding-inline: calc(var(--space-1) / 2);
+  }
+
+  .sk-docked-main .arena-side .standings-panel .rank-row {
+    gap: calc(var(--space-1) / 2);
+    padding-inline: calc(var(--space-1) / 2);
+  }
+
   .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
     grid-column: 2;
     grid-row: 1 / -1;
     min-height: 0;
   }
 
-  /* A row that wraps (a long name, the points under it) keeps its whole height: in a list that is
-     shorter than its rows the grid would squeeze them to their minimum and let the points run over
-     the next row. */
+  /* The list's rows keep their height whatever the list's height (a grid would squeeze them). */
   .sk-docked-main .standings-panel .rank-list {
     grid-auto-rows: max-content;
   }

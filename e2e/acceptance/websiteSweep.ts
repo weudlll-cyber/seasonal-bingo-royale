@@ -9,7 +9,8 @@
  *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
  *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out; on the results
  *                 screen also how many places lie wholly above the strip (`places`) and, where there are standings, how many of their rows are
- *                 whole (`standings`). One JSON line
+ *                 whole (`standings`); both also count the ranked rows that broke onto a second line
+ *                 (`wrapped`). One JSON line
  *                 per measurement to reports/logs/<tag>-website-sweep.jsonl. SBR_SWEEP_SIZES
  *                 ("1280x720,375x667"), SBR_SWEEP_SCREENS ("player-royale,results-player"),
  *                 SBR_SWEEP_THEMES ("light") and SBR_SWEEP_CHAT ("open") narrow the sweep;
@@ -127,10 +128,15 @@ const areaOf = (page: Page): Promise<{ client: number; scroll: number } | null> 
 // The results screen's places (podium steps and ranked rows) lying wholly inside the game area, above
 // the "More below" strip:
 // null where the screen has no final placement.
-const placesOf = (page: Page): Promise<{ whole: number; total: number } | null> =>
+const placesOf = (page: Page): Promise<{ whole: number; total: number; wrapped: number } | null> =>
   page.evaluate(() => {
     const area = document.querySelector('.sk-docked-main');
     const places = [...document.querySelectorAll('.sk-result .podium-step, .sk-result .rank-row')];
+    // Rows that broke onto a second line: taller than 1.4 times the shortest row.
+    const wrapped = (els: Element[]): number => {
+      const h = els.map((e) => e.getBoundingClientRect().height);
+      return h.filter((x) => x > 1.4 * Math.min(...h)).length;
+    };
     if (area === null || places.length === 0) return null;
     // Above the "More below" strip, which has a band of its own at the bottom while it shows.
     const sign =
@@ -138,12 +144,18 @@ const placesOf = (page: Page): Promise<{ whole: number; total: number } | null> 
     const bottom =
       area.getBoundingClientRect().bottom - (sign === null ? 0 : parseFloat(sign.height));
     const whole = places.filter((e) => e.getBoundingClientRect().bottom <= bottom + 0.5).length;
-    return { whole, total: places.length };
+    return {
+      whole,
+      total: places.length,
+      wrapped: wrapped(places.filter((e) => e.classList.contains('rank-row'))),
+    };
   });
 
 // The standings' rows lying wholly inside their scrolling list (the strip with the viewer's own row
 // is not counted): null where the screen has no standings.
-const standingsOf = (page: Page): Promise<{ whole: number; total: number } | null> =>
+const standingsOf = (
+  page: Page,
+): Promise<{ whole: number; total: number; wrapped: number } | null> =>
   page.evaluate(() => {
     const list = document.querySelector('.standings-panel .rank-list');
     if (list === null) return null;
@@ -152,11 +164,16 @@ const standingsOf = (page: Page): Promise<{ whole: number; total: number } | nul
       list.getAttribute('data-more') === 'true' ? getComputedStyle(list, '::after') : null;
     const bottom = box.bottom - (sign === null ? 0 : parseFloat(sign.height));
     const rows = [...list.querySelectorAll(':scope > .rank-row')];
+    // Rows that broke onto a second line: taller than 1.4 times the shortest row.
+    const wrapped = (els: Element[]): number => {
+      const h = els.map((e) => e.getBoundingClientRect().height);
+      return h.filter((x) => x > 1.4 * Math.min(...h)).length;
+    };
     const whole = rows.filter((e) => {
       const r = e.getBoundingClientRect();
       return r.top >= box.top - 0.5 && r.bottom <= bottom + 0.5;
     }).length;
-    return { whole, total: rows.length };
+    return { whole, total: rows.length, wrapped: wrapped(rows) };
   });
 
 // A phone's chat bar: whether it lies wholly inside the window (null on a desktop, no bar).

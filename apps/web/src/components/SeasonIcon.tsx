@@ -50,8 +50,9 @@ export function SeasonIcon({
         style={{
           width: size,
           height: size,
-          // A white disc with the grey ring, on any ground (kit tokens, the same in both themes).
-          background: 'var(--color-surface)',
+          // A white disc with the grey ring, on any ground and in both themes: --color-on-live is the
+          // kit's white that no theme overrides (--color-surface and --color-on-solid turn navy in dark).
+          background: 'var(--color-on-live)',
           borderColor: 'var(--color-border-strong)',
         }}
       />
