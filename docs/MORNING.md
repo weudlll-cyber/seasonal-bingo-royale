@@ -9,9 +9,11 @@
 
 - Piece 2b and 2c, the header: the kit's order, theme toggle last (K43): `header.css`'s `order` rules removed; `AppHeader foldBelow={960}` (K40) replaces Bingo's `max-width: 959px` fold block; the wordmark's and the dev menu's own small type removed (the kit's `max(floor, small)`, K41). `header.css` 167 to 91 lines. Spec 01 §13 says the order. Web tests 65 files, 302 pass.
 
+- Piece 2d, the sign-in limits on the kit's `FailureBrake` (K46): `auth/loginBrake.ts` (new) wraps it; the login route asks `braked(key)` before the password check and calls `failed(key)` on a wrong one; keys and numbers as before (`loginIp` per address, `loginAccountIp` per e-mail|address, still set in the admin area). Two points the kit's class does not take, held in Bingo's wrapper: (1) a limit changed at runtime (the kit reads its rule once, so a change starts a new brake and its counts anew; **kit wish:** `FailureBrake` takes a `RateRuleSource`); (2) concurrent guesses: a failure is counted after the hash, so a burst would pass `braked` together; a key has at most as many checks under way as its limit (**kit wish:** the brake reserves a check). The kit asks for short normalised keys; Bingo's account key holds the e-mail (at most 254 characters), as before. Test `routes/loginBrake.test.ts` (3): a correct sign-in is never braked and the limit is reached by wrong passwords only (both failed on the old code), guesses sent together are held back. A bug found while building it (the check held until the answer had left, so correct sign-ins under load braked themselves) was fixed before the first commit. Spec 03 §13 says the rule. Piece 2e: `routes/openRounds.ts` takes the kit's `openRoundsPage` since v0.11.0 (PR #67): nothing to do.
+
 ### Running
 
-- Piece 2d onwards, piece 3.
+- Piece 3 onwards.
 
 ### Open
 

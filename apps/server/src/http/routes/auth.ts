@@ -9,10 +9,11 @@
  *                 website, D37), /auth/logout, /auth/guest, DELETE /me (password checked first;
  *                 website mode: display name typed, D42). Login answers uniformly and verifies a
  *                 dummy hash for unknown e-mails, so nothing reveals whether an account exists (03
- *                 §2.1). Login and registration are rate-limited per IP and per account+IP (03
- *                 §13). E-mail verification and 2FA: feature flags, off by default.
+ *                 §2.1). Registration is rate-limited per IP; login is braked per IP and per
+ *                 account+IP by wrong passwords only (../../auth/loginBrake, K46; 03 §13).
+ *                 E-mail verification and 2FA: feature flags, off by default.
  * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
- *                 SessionEnds), ../../auth/*, ../../db/pool, ../../config/features
+ *                 SessionEnds), ../../auth/* (loginBrake), ../../db/pool, ../../config/features
  * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
@@ -29,6 +30,7 @@ import {
 } from '../../auth/accounts.js';
 import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
+import { behindBrakes, LoginBrake } from '../../auth/loginBrake.js';
 import { liveRule } from '../../auth/rateLimit.js';
 import {
   clearSessionCookie,
@@ -84,8 +86,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const live = liveLimits(deps.technical);
   const limits = {
     register: new RateLimiter(liveRule('register', live)),
-    loginIp: new RateLimiter(liveRule('loginIp', live)),
-    loginAccountIp: new RateLimiter(liveRule('loginAccountIp', live)),
+    loginIp: new LoginBrake(liveRule('loginIp', live)),
+    loginAccountIp: new LoginBrake(liveRule('loginAccountIp', live)),
     guest: new RateLimiter(liveRule('guest', live)),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps));
@@ -121,7 +123,11 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
 function registerLocalSignIn(
   app: FastifyInstance,
   deps: AuthDeps,
-  limits: Readonly<Record<'register' | 'loginIp' | 'loginAccountIp', RateLimiter>>,
+  limits: {
+    readonly register: RateLimiter;
+    readonly loginIp: LoginBrake;
+    readonly loginAccountIp: LoginBrake;
+  },
 ): void {
   app.post('/api/v1/auth/register', async (request, reply) => {
     if (!limits.register.take(request.ip).allowed) return tooMany(reply);
@@ -130,11 +136,15 @@ function registerLocalSignIn(
   app.post('/api/v1/auth/login', async (request, reply) => {
     const parsed = loginBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send(LOGIN_FAILED);
-    const key = `${parsed.data.email.toLowerCase()}|${request.ip}`;
-    if (!limits.loginIp.take(request.ip).allowed || !limits.loginAccountIp.take(key).allowed) {
-      return tooMany(reply);
-    }
-    return login(request, reply, deps, parsed.data);
+    // The address, and the account at that address: each braked by wrong passwords only (K46).
+    const keys = [
+      [limits.loginIp, request.ip],
+      [limits.loginAccountIp, `${parsed.data.email.toLowerCase()}|${request.ip}`],
+    ] as const;
+    const ran = await behindBrakes(keys, (judged) =>
+      login(request, reply, deps, { ...parsed.data, judged }),
+    );
+    return ran ? reply : tooMany(reply);
   });
 }
 
@@ -164,8 +174,7 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
   };
 }
 
-// Website mode only: where the sign-in button goes (D37) and the website's chat room, which
-// the client frames only when the server names it (07 §6).
+// Website mode: the sign-in button's target (D37) and the website's chat room (07 §6).
 function websiteParts(deps: AuthDeps) {
   if (deps.mode !== 'website') return {};
   return {
@@ -189,11 +198,12 @@ async function login(
   request: FastifyRequest,
   reply: FastifyReply,
   deps: AuthDeps,
-  body: z.infer<typeof loginBody>,
+  body: z.infer<typeof loginBody> & { readonly judged: (wrong: boolean) => void },
 ) {
   const account = await findLoginAccount(deps.pool, body.email);
   const encoded = account?.passwordHash ?? (await dummyPasswordHash());
   const valid = await verifyPassword(encoded, body.password);
+  body.judged(account === null || !valid);
   if (account === null || !valid) return reply.status(401).send(LOGIN_FAILED);
   if (deps.features().emailVerification && !account.emailVerified) {
     return reply.status(403).send({ code: 'EMAIL_NOT_VERIFIED' });
