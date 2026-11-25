@@ -15,12 +15,12 @@
 /* The cut screen */
 .cut-screen {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   justify-items: start;
-  padding: var(--space-2);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
+  padding: var(--sk-space-2);
+  border: 1px solid var(--sk-color-success);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
 }
 
 /* Desktop: one compact line (text, then the button) so the play area keeps its height. */
@@ -30,17 +30,17 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-1) var(--space-2);
+    padding: var(--sk-space-1) var(--sk-space-2);
   }
 }
 
 .cut-screen.is-out {
-  border-color: var(--color-border-strong);
+  border-color: var(--sk-color-border-strong);
 }
 
 .cut-screen-line {
   margin: 0;
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 /* Ranked rows (standings, final placement) */
@@ -69,22 +69,22 @@
 }
 
 .rank-row:nth-child(odd) {
-  background: var(--color-surface-2);
+  background: var(--sk-color-surface-2);
 }
 
 .rank-row.is-own {
-  background: var(--color-active-bg);
-  box-shadow: inset 3px 0 0 var(--color-accent);
-  font-weight: var(--font-weight-strong);
+  background: var(--sk-color-active-bg);
+  box-shadow: inset 3px 0 0 var(--sk-color-accent);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .rank-row.is-out {
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 .rank-num {
   flex: 0 0 2.1rem;
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 /* The name gets the row's free width first: it never shrinks below its own width. When
@@ -111,15 +111,15 @@
 .rank-out {
   flex: none;
   padding: 0 0.3rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-small);
+  border: 1px solid var(--sk-color-border-strong);
+  border-radius: var(--sk-radius-pill);
+  font-size: var(--sk-font-size-small);
 }
 
 /* Phones: the small type size leaves the names room next to icons and points */
 @media (max-width: 480px) {
   .rank-row {
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
   /* An out row keeps its name and "out in cut K · P pts"; its seasons no longer count. */
@@ -129,11 +129,11 @@
 }
 
 .rank-divider {
-  margin: var(--space-1) 0 2px;
-  padding-top: var(--space-1);
-  border-top: 1px solid var(--color-border-strong);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-small);
+  margin: var(--sk-space-1) 0 2px;
+  padding-top: var(--sk-space-1);
+  border-top: 1px solid var(--sk-color-border-strong);
+  color: var(--sk-color-text-muted);
+  font-size: var(--sk-font-size-small);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -144,11 +144,11 @@
    takes no room. */
 .sk-result[data-sk-variant='panel'] {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   padding: var(--panel-padding);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-card);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-color-card);
 }
 
 .sk-result[data-sk-variant='panel']
@@ -162,8 +162,8 @@
 
 .final-own {
   margin: 0;
-  font-size: var(--font-size-title);
-  font-weight: var(--font-weight-heading);
+  font-size: var(--sk-font-size-title);
+  font-weight: var(--sk-font-weight-heading);
   line-height: 1.1;
 }
 
@@ -181,28 +181,28 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.25rem var(--space-1);
-  padding: 0.35rem var(--space-1);
+  gap: 0.25rem var(--sk-space-1);
+  padding: 0.35rem var(--sk-space-1);
   border-radius: 8px;
-  background: var(--color-surface-2);
+  background: var(--sk-color-surface-2);
 }
 
 .prize-rows li.is-won {
-  box-shadow: inset 3px 0 0 var(--color-autumn);
+  box-shadow: inset 3px 0 0 var(--sk-color-autumn);
 }
 
 .prize-name {
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .prize-open {
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 .status-out {
   margin: 0.3rem 0 0;
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-strong);
+  color: var(--sk-color-text-muted);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* A member's Discord steps next to the name (./StepBadges, website mode). */

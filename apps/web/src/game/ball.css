@@ -16,7 +16,7 @@
 .ball-wrap {
   display: grid;
   justify-items: center;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .ball {
@@ -32,7 +32,7 @@
   background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-ball) 45%, #c9d1dc);
   color: var(--color-ball-ink);
   box-shadow:
-    var(--shadow-raised),
+    var(--sk-shadow-raised),
     inset 0 -8px 18px rgb(0 0 0 / 18%);
   line-height: 1;
 }
@@ -40,24 +40,24 @@
 .ball--empty {
   width: auto;
   aspect-ratio: auto;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
+  padding: var(--sk-space-2) var(--sk-space-3);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-color-surface);
+  color: var(--sk-color-text-muted);
   box-shadow: none;
 }
 
 .ball-letter {
   /* From the ball, never below the small size (a phone's ball stops growing with the font). */
-  font-size: max(var(--font-size-small), calc(var(--ball-size) * 0.17));
-  font-weight: var(--font-weight-strong);
-  color: var(--color-text-muted);
+  font-size: max(var(--sk-font-size-small), calc(var(--ball-size) * 0.17));
+  font-weight: var(--sk-font-weight-strong);
+  color: var(--sk-color-text-muted);
   filter: brightness(0.5);
 }
 
 .ball-number {
   font-size: calc(var(--ball-size) * 0.44);
-  font-weight: var(--font-weight-heading);
+  font-weight: var(--sk-font-weight-heading);
   letter-spacing: -0.03em;
 }
 
@@ -68,15 +68,15 @@
 .window-bar {
   width: min(14rem, 70%);
   height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-2);
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-color-surface-2);
   overflow: hidden;
 }
 
 .window-bar span {
   display: block;
   height: 100%;
-  background: var(--color-autumn);
+  background: var(--sk-color-autumn);
   transform-origin: left;
   animation: sbr-window linear forwards;
 }

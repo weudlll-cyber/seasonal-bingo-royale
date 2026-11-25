@@ -25,8 +25,8 @@ import { numberCard, royaleFixture, SEASON_EFFECTS } from '../test/quickTestFixt
 
 afterEach(cleanup);
 
-const SPRING = 'var(--color-spring)';
-const WINTER = 'var(--color-winter)';
+const SPRING = 'var(--sk-color-spring)';
+const WINTER = 'var(--sk-color-winter)';
 
 describe('season cells', () => {
   it('show the original season icon file and a frame in the season colour', () => {
@@ -47,7 +47,7 @@ describe('season cells', () => {
     render(<CardGrid accountId="bot-02" card={{ ...card, cells }} marks={[]} />);
     // The icon has its own season colour, so the cell keeps the card colour behind it.
     const box = screen.getByAltText('winter').parentElement;
-    expect(box?.style.background).toBe('var(--cell-bg, var(--color-surface-2))');
+    expect(box?.style.background).toBe('var(--cell-bg, var(--sk-color-surface-2))');
     expect(box?.style.border).toBe(`2px solid ${WINTER}`);
   });
 });

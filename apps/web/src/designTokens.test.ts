@@ -3,8 +3,8 @@
  * @module web
  * @brief  WCAG AA contrast of the design tokens in the light and the dark theme (01 §13).
  *
- * Responsibility: read the tokens as the page loads them (kit's shared file, then @sbr/ui's own,
- *                 which wins) and check in both themes: body and muted text 4.5:1 on the page,
+ * Responsibility: read the tokens as the page loads them (kit's shared file, `--sk-…`, then
+ *                 @sbr/ui's own; the kit's are named here without the prefix) and check in both themes: body and muted text 4.5:1 on the page,
  *                 opaque surfaces and translucent cards (composited over the base and each of the
  *                 four token glows, as the website measures) and the top bar's gradient stops;
  *                 pill and text on season colours 4.5:1; bingo card ink 7:1 (the hero element);
@@ -46,18 +46,18 @@ function parse(value: string): Rgba {
   return [Number(m[1]), Number(m[2]), Number(m[3]), m[4] === undefined ? 1 : Number(m[4]) / 100];
 }
 
-// The single-colour custom properties of a block.
+// The single-colour custom properties of a block, the kit's without their --sk- prefix.
 function colours(selector: string): Record<string, string> {
   const entries = [
     ...blockText(selector).matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|rgb\([^)]*\));/gi),
-  ].map((m): [string, string] => [m[1] ?? '', m[2] ?? '']);
+  ].map((m): [string, string] => [(m[1] ?? '').replace(/^sk-/, ''), m[2] ?? '']);
   return Object.fromEntries(entries);
 }
 
 // Every rgb()/hex colour inside one multi-part token (the glows, the gradient stops).
 function parts(selector: string, name: string): Rgba[] {
   const text = blockText(selector);
-  const start = text.indexOf(`--${name}:`);
+  const start = text.indexOf(`--sk-${name}:`);
   const body = text.slice(start, text.indexOf(';', start));
   return [...body.matchAll(/#[0-9a-f]{6}|rgb\([^)]*\)/gi)].map((m) => parse(m[0]));
 }
@@ -174,8 +174,8 @@ describe('token contrast (WCAG AA), arena and controls', () => {
     const disabled = hostCss.slice(start, hostCss.indexOf('}', start));
     // Disabled: no fading; muted text on surface-2.
     expect(disabled).toContain('opacity: 1;');
-    expect(disabled).toContain('color: var(--color-text-muted);');
-    expect(disabled).toContain('background: var(--color-surface-2);');
+    expect(disabled).toContain('color: var(--sk-color-text-muted);');
+    expect(disabled).toContain('background: var(--sk-color-surface-2);');
     for (const { set } of Object.values(THEMES)) {
       const c = (name: string) => parse(set[name] ?? '');
       // Enabled: the primary button, the solid pill.

@@ -7,9 +7,9 @@
  *                 the kit (@seasonal/kit/tokens.css, the Seasonal Entertainment style; the
  *                 kit's early theme script sets data-theme before the first paint). This file
  *                 adds what only the game has: the arena tokens (bingo card, ball), and its own
- *                 page margin and panel padding, which replace the kit's: it is loaded after
- *                 the kit's file (apps/web/src/main.tsx). Components use these custom
- *                 properties and never hard-code colours.
+ *                 page margin and panel padding (`--gutter` is the kit's `--sk-gutter`, never past a
+ *                 share of the window; the kit's own parts read `--sk-gutter`, which a game does
+ *                 not set). Components use these custom properties and never hard-code colours.
  * Spec:           docs/spec/01-game-design.md §13; assets/brand/colors.md;
  *                 docs/concepts/kit-adoption.md §2 (B1)
  */
@@ -27,6 +27,6 @@
   /* Layout. The page's side margin and a panel's padding grow with the font, but on a phone
      never past a share of the window (4.5vw is 16 px and 6.7vw 24 px at 360 px): at a large
      font the content keeps its width (fit audit F10, F11). Unchanged at the default font. */
-  --gutter: min(clamp(1rem, 0.5rem + 2vw, 2rem), 4.5vw);
-  --panel-padding: min(var(--space-3), 6.7vw);
+  --gutter: min(var(--sk-gutter), 4.5vw);
+  --panel-padding: min(var(--sk-space-3), 6.7vw);
 }

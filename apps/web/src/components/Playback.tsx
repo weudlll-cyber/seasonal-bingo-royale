@@ -61,7 +61,7 @@ export function Playback({
         />
       )}
       {allOut && !view.finished ? (
-        <p data-testid="spectator-note" style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+        <p data-testid="spectator-note" style={{ color: 'var(--sk-color-text-muted)', margin: 0 }}>
           You were eliminated – keep watching as a spectator.
         </p>
       ) : null}
@@ -93,7 +93,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
         {gameTypeName(result.gameType)}
         {showStage ? ` — stage ${String(view.currentStage + 1)} (${stage.kind})` : ''}
       </h2>
-      <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
+      <p style={{ margin: 0, color: 'var(--sk-color-text-muted)' }}>
         round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)} /{' '}
         {String(view.totalDraws)}
       </p>

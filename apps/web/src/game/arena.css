@@ -23,14 +23,14 @@
 .arena {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 .arena-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .arena-head p {
@@ -40,13 +40,13 @@
 .arena-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 .arena-side {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   min-width: 0;
 }
 
@@ -62,7 +62,7 @@
     'cards cards'
     'events events';
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   min-width: 0;
 }
 
@@ -117,7 +117,7 @@
 
 @media (max-width: 640px) {
   .arena {
-    gap: var(--space-2);
+    gap: var(--sk-space-2);
   }
 
   /* Title and host link/LIVE on one line while both fit, else the link and LIVE wrap under
@@ -126,7 +126,7 @@
   .arena > .arena-head {
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem var(--space-1);
+    gap: 0.25rem var(--sk-space-1);
   }
 
   .arena > .arena-head > div:first-child {
@@ -137,14 +137,14 @@
     flex: 1 0 auto;
     max-width: 100%;
     margin: 0;
-    font-size: var(--font-size-lead);
+    font-size: var(--sk-font-size-lead);
     overflow-wrap: anywhere;
   }
 
   .arena > .arena-head [data-testid='arena-progress'] {
     order: 1;
     flex-basis: 100%;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
   .arena > .arena-head .sbr-row {
@@ -155,7 +155,7 @@
 
   .arena > .arena-head .sbr-btn {
     padding: 0 0.6rem;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
   /* Never more than a quarter of the width: at a large font the ball does not push the
@@ -165,7 +165,7 @@
   }
 
   .arena-ticker p {
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 }
 
@@ -183,7 +183,7 @@
   .arena {
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: var(--sk-space-2);
   }
 
   .arena-grid {
@@ -250,7 +250,7 @@
   .arena-side {
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--sk-space-1);
     min-height: 0;
     overflow: hidden;
   }
@@ -270,6 +270,6 @@
 
   .arena-rules {
     order: 0;
-    margin-top: calc(0.25rem - var(--space-2));
+    margin-top: calc(0.25rem - var(--sk-space-2));
   }
 }

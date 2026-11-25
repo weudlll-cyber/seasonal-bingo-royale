@@ -22,9 +22,9 @@
 
 .shell-main {
   width: 100%;
-  max-width: var(--content-width);
+  max-width: var(--sk-content-width);
   margin: 0 auto;
-  padding: var(--space-3) var(--gutter) var(--space-4);
+  padding: var(--sk-space-3) var(--gutter) var(--sk-space-4);
 }
 
 /* A live screen fills the window below the top bar (PLAYER-CLARITY): the page is one window
@@ -44,8 +44,8 @@
     flex-direction: column;
     min-height: 0;
     max-width: 96rem;
-    padding-top: var(--space-2);
-    padding-bottom: var(--space-2);
+    padding-top: var(--sk-space-2);
+    padding-bottom: var(--sk-space-2);
   }
 
   #root:has(.fit-window) .fit-window {
@@ -57,14 +57,14 @@
 /* Maintenance (sbr maintenance on): the page instead of the lobby, the host's banner */
 .maintenance-page {
   max-width: 36rem;
-  margin: var(--space-4) auto;
+  margin: var(--sk-space-4) auto;
   text-align: center;
 }
 
 .maintenance-banner {
-  margin: 0 0 var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-autumn);
-  border-radius: var(--radius);
-  background: var(--color-warning-surface);
+  margin: 0 0 var(--sk-space-2);
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border: 1px solid var(--sk-color-autumn);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-warning-surface);
 }

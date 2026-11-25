@@ -11,8 +11,8 @@
  */
 .interlude {
   display: grid;
-  gap: var(--space-2);
-  border-left: 4px solid var(--color-accent);
+  gap: var(--sk-space-2);
+  border-left: 4px solid var(--sk-color-accent);
 }
 
 .interlude-head {
@@ -20,7 +20,7 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .interlude-head h3 {
@@ -36,13 +36,13 @@
 
 .interlude-lead {
   margin: 0;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .interlude-names {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -50,18 +50,18 @@
 
 .interlude-names li {
   padding: 0.1rem 0.5rem;
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
 }
 
 .interlude-names li.is-own {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--sk-color-accent);
 }
 
 .interlude-facts {
   margin: 0;
   font-size: 1.2rem;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .interlude-nav {
@@ -70,5 +70,5 @@
 
 .interlude-countdown {
   margin-left: auto;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }

@@ -21,15 +21,15 @@
 
 @media (min-width: 960px) {
   .sk-docked-main .sk-result[data-sk-variant='panel'] {
-    gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
+    gap: var(--sk-space-1);
+    padding: var(--sk-space-1) var(--sk-space-2);
   }
 
   /* The heading and the big line share one row (the heading's room is its own width); everything
      else spans the panel. */
   .sk-docked-main .sk-result[data-sk-variant='panel'] {
     grid-template-columns: auto minmax(0, 1fr);
-    column-gap: var(--space-2);
+    column-gap: var(--sk-space-2);
   }
 
   .sk-docked-main .sk-result[data-sk-variant='panel'] :is(h3, .final-own) {
@@ -42,16 +42,16 @@
 
   .sk-docked-main .sk-result[data-sk-variant='panel'] h3 {
     margin: 0;
-    font-size: var(--font-size-body);
+    font-size: var(--sk-font-size-body);
   }
 
   .sk-docked-main .sk-result .final-own {
-    font-size: var(--font-size-lead);
+    font-size: var(--sk-font-size-lead);
   }
 
   .sk-docked-main .sk-result .final-rule {
     margin: 0;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
   /* The podium in its narrow form (rows, ../components/podium.css): one line a step. Their gap
@@ -66,19 +66,19 @@
      steps lower (the first still the tallest) so the ranked rows come into view. */
   @container not (max-width: 46rem) {
     .sk-docked-main .sk-result .podium-place {
-      font-size: var(--font-size-lead);
+      font-size: var(--sk-font-size-lead);
     }
 
     .sk-docked-main .sk-result .podium-step--1 {
-      min-height: calc(2 * var(--space-4) + var(--space-3));
+      min-height: calc(2 * var(--sk-space-4) + var(--sk-space-3));
     }
 
     .sk-docked-main .sk-result .podium-step--2 {
-      min-height: calc(2 * var(--space-4) + var(--space-1));
+      min-height: calc(2 * var(--sk-space-4) + var(--sk-space-1));
     }
 
     .sk-docked-main .sk-result .podium-step--3 {
-      min-height: calc(2 * var(--space-4));
+      min-height: calc(2 * var(--sk-space-4));
     }
   }
 
@@ -92,7 +92,7 @@
   }
 
   .sk-docked-main .sk-result .rank-row {
-    min-height: var(--space-3);
+    min-height: var(--sk-space-3);
     padding-block: 0;
   }
 
@@ -100,28 +100,28 @@
      the empty room under it allows: larger steps between its blocks and inside them. Only here;
      the player's, the spectator's and the console's columns keep their tight spacing. */
   .sk-docked-main .arena:has(.sk-result) .arena-side {
-    --hint-gap: var(--space-3);
-    gap: var(--space-3);
+    --hint-gap: var(--sk-space-3);
+    gap: var(--sk-space-3);
   }
 
   .sk-docked-main .arena:has(.sk-result) .owner-status {
-    gap: var(--space-2);
+    gap: var(--sk-space-2);
   }
 
   .sk-docked-main .arena:has(.sk-result) .effect-line {
-    gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
+    gap: var(--sk-space-1);
+    padding: var(--sk-space-1) var(--sk-space-2);
   }
 
   .sk-docked-main .arena:has(.sk-result) .side-panel {
-    padding: var(--space-2) var(--space-3);
+    padding: var(--sk-space-2) var(--sk-space-3);
   }
 
   .sk-docked-main .arena:has(.sk-result) .side-panel h3 {
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--sk-space-1);
   }
 
   .sk-docked-main .arena:has(.sk-result) .pattern-rows {
-    gap: var(--space-1);
+    gap: var(--sk-space-1);
   }
 }

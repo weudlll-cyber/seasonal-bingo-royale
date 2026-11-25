@@ -24,12 +24,12 @@
 }
 
 .test-intro {
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .test-choices {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 @media (min-width: 640px) {
@@ -41,20 +41,20 @@
 .test-choice {
   display: grid;
   align-content: start;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   min-height: 9rem;
-  color: var(--color-text);
+  color: var(--sk-color-text);
   text-decoration: none;
   border: 2px solid transparent;
 }
 
 .test-choice strong {
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .test-choice:hover,
 .test-choice:focus-visible {
-  border-color: var(--color-accent);
+  border-color: var(--sk-color-accent);
 }
 
 .test-number {
@@ -62,10 +62,10 @@
 }
 
 .test-steps {
-  padding: var(--space-2);
-  border-left: 4px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
+  padding: var(--sk-space-2);
+  border-left: 4px solid var(--sk-color-border-strong);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
 }
 
 .test-steps ol {
@@ -81,7 +81,7 @@
 
 .seed-grid {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 .seed-settings,

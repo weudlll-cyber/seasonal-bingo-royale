@@ -20,12 +20,12 @@
 .own-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 19rem), 1fr));
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   justify-items: center;
 }
 
 .live-card {
-  --card-padding: min(var(--space-2), 4.5vw);
+  --card-padding: min(var(--sk-space-2), 4.5vw);
   --cell-size: min(
     clamp(2.9rem, 15vw, 4.1rem),
     calc((100vw - 2 * var(--gutter) - 2 * var(--card-padding) - 24px) / 5)
@@ -38,16 +38,16 @@
   --cell-ink: var(--color-bingo-card-ink);
   --cell-marked-bg: var(--color-bingo-card-marked);
   --cell-marked-ink: var(--color-bingo-card-marked-ink);
-  --cell-marked-ring: var(--color-autumn);
+  --cell-marked-ring: var(--sk-color-autumn);
 
   display: grid;
   justify-items: center;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   padding: var(--card-padding);
-  border-radius: var(--radius-card);
+  border-radius: var(--sk-radius-card);
   background: var(--color-bingo-card);
   color: var(--color-bingo-card-ink);
-  box-shadow: var(--shadow-raised);
+  box-shadow: var(--sk-shadow-raised);
 }
 
 .live-card > div {
@@ -58,7 +58,7 @@
   margin: 0;
   min-height: 1.4em;
   color: var(--color-bingo-card-ink);
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* Phones and tablets: the own card also takes its cells from the window's height, so on

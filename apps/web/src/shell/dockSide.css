@@ -29,21 +29,21 @@
 @media (min-width: 960px) {
   .sk-docked-main {
     /* The badge's band: the side column starts right under it. */
-    --dock-live-h: var(--space-4);
+    --dock-live-h: var(--sk-space-4);
   }
 
   /* Player, out player and spectator: the arena as one grid (ten rows for the title block, rules
      and notices; the play area has the eleventh). */
   .sk-docked-main .arena {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(calc(8 * var(--space-4)), 1fr);
-    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--space-4)), 50vh), 1fr);
-    column-gap: var(--space-3);
+    grid-template-columns: minmax(0, 1.7fr) minmax(calc(8 * var(--sk-space-4)), 1fr);
+    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--sk-space-4)), 50vh), 1fr);
+    column-gap: var(--sk-space-3);
     row-gap: 0;
   }
 
   .sk-docked-main .arena:has(.interlude) {
-    grid-template-rows: repeat(10, auto) minmax(calc(13 * var(--space-4)), 1fr);
+    grid-template-rows: repeat(10, auto) minmax(calc(13 * var(--sk-space-4)), 1fr);
   }
 
   .sk-docked-main .arena-grid,
@@ -55,7 +55,7 @@
   .sk-docked-main .arena > *,
   .sk-docked-main .arena-head > div:first-child {
     grid-column: 1;
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--sk-space-2);
   }
 
   /* The rules line stays close under the title block, as it did (arena.css). */
@@ -96,7 +96,7 @@
   /* Whole panels: the patterns and the status keep their height, the standings take the rest
      (its rows scroll inside; room for its heading and the first rows at least). */
   .sk-docked-main .arena-side {
-    --hint-gap: var(--space-1);
+    --hint-gap: var(--sk-space-1);
   }
 
   /* Where the column has the standings (the player's and the spectator's round, not the results
@@ -104,7 +104,7 @@
      the second half with the column's whole height (owner decision of 2026-11-24). The column is
      wider for it (two panels side by side); the standings' rows scroll inside as before. */
   .sk-docked-main .arena:has(> .arena-grid > .arena-side > .standings-panel) {
-    grid-template-columns: minmax(0, 1fr) minmax(calc(13 * var(--space-4)), 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(calc(13 * var(--sk-space-4)), 1fr);
   }
 
   .sk-docked-main .arena-side:has(> .standings-panel) {
@@ -112,8 +112,8 @@
     /* The standings half is a little wider: a row (rank, name, four marks, points) is one line. */
     grid-template-columns: minmax(0, 0.87fr) minmax(0, 1.13fr);
     grid-template-rows: auto auto minmax(0, 1fr);
-    column-gap: var(--space-2);
-    row-gap: var(--space-1);
+    column-gap: var(--sk-space-2);
+    row-gap: var(--sk-space-1);
   }
 
   .sk-docked-main .arena-side:has(> .standings-panel) > * {
@@ -121,18 +121,18 @@
   }
 
   .sk-docked-main .arena-side:has(> .standings-panel) :is(.side-panel, .standings-panel) {
-    padding-inline: var(--space-1);
+    padding-inline: var(--sk-space-1);
   }
 
   /* The standings' rows have their own side padding: the panel's is half a step, and the gap between
      a row's parts too, so a name such as "Sweep_Player7" fits. */
   .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
-    padding-inline: calc(var(--space-1) / 2);
+    padding-inline: calc(var(--sk-space-1) / 2);
   }
 
   .sk-docked-main .arena-side .standings-panel .rank-row {
-    gap: calc(var(--space-1) / 2);
-    padding-inline: calc(var(--space-1) / 2);
+    gap: calc(var(--sk-space-1) / 2);
+    padding-inline: calc(var(--sk-space-1) / 2);
   }
 
   .sk-docked-main .arena-side:has(> .standings-panel) > .standings-panel {
@@ -149,20 +149,20 @@
   /* A column of flex items, not a grid: the sign's negative margin takes back a flex gap, never
      a grid's (./scrollHint.css). */
   .sk-docked-main .host-controls {
-    --hint-gap: var(--space-1);
+    --hint-gap: var(--sk-space-1);
     display: flex;
     flex-direction: column;
-    gap: var(--space-1);
+    gap: var(--sk-space-1);
   }
 
   /* Draw next at the big button's own height and closer panels: with the strip under it the
      controls column is 38 px short at 1280x720 otherwise, and Abort would sit under the sign. */
   .sk-docked-main .host-draw {
-    min-height: calc(var(--space-4) + var(--space-3));
+    min-height: calc(var(--sk-space-4) + var(--sk-space-3));
   }
 
   .sk-docked-main .host-controls .sbr-stack {
-    gap: var(--space-1);
+    gap: var(--sk-space-1);
   }
 
   .sk-docked-main .arena-side > * {
@@ -171,20 +171,20 @@
   }
 
   .sk-docked-main .arena-side > .standings-panel {
-    flex: 1 1 calc(4 * var(--space-4));
-    min-height: calc(4 * var(--space-4));
+    flex: 1 1 calc(4 * var(--sk-space-4));
+    min-height: calc(4 * var(--sk-space-4));
     overflow: hidden;
   }
 
   /* The host console while a match runs: title and rules above the ball and the controls, the
      standings column beside them from the badge down. */
   .sk-docked-main .host-console.fit-window {
-    grid-template-columns: minmax(calc(5 * var(--space-4)), 0.7fr) minmax(0, 1fr) minmax(
-        calc(7 * var(--space-4)),
-        calc(9 * var(--space-4))
+    grid-template-columns: minmax(calc(5 * var(--sk-space-4)), 0.7fr) minmax(0, 1fr) minmax(
+        calc(7 * var(--sk-space-4)),
+        calc(9 * var(--sk-space-4))
       );
-    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--space-4)), 50vh), 1fr);
-    column-gap: var(--space-3);
+    grid-template-rows: repeat(10, auto) minmax(min(calc(8 * var(--sk-space-4)), 50vh), 1fr);
+    column-gap: var(--sk-space-3);
     row-gap: 0;
   }
 
@@ -204,7 +204,7 @@
 
   .sk-docked-main .host-console.fit-window > .host-rules,
   .sk-docked-main .host-console.fit-window .host-end {
-    margin-bottom: var(--space-2);
+    margin-bottom: var(--sk-space-2);
   }
 
   .sk-docked-main .host-console.fit-window > .arena-head > .sbr-badge-live {
@@ -212,7 +212,7 @@
     grid-row: 1;
     align-self: start;
     justify-self: end;
-    margin-top: calc((var(--dock-live-h) - var(--space-3)) / 2);
+    margin-top: calc((var(--dock-live-h) - var(--sk-space-3)) / 2);
   }
 
   .sk-docked-main .host-console.fit-window .host-play {

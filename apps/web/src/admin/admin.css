@@ -27,17 +27,17 @@
 
 .admin-matches {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .admin-match {
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
+  padding: var(--sk-space-2);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
 }
 
 .admin-match-head {
@@ -45,13 +45,13 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   overflow-wrap: anywhere;
 }
 
 .admin-match-facts {
   margin: 0;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 /* The admin area's own navigation (./AdminNav) and a preset's tabs (./PresetEditor): chips,
@@ -59,7 +59,7 @@
 .admin-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .admin-nav a {
@@ -68,15 +68,15 @@
 
 .admin-nav a[aria-current='page'],
 .admin-nav button[aria-pressed='true'] {
-  background: var(--color-solid);
-  color: var(--color-on-solid);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
 }
 
 /* A switch (./AdminSwitches): the box, then its name and what changing it does */
 .admin-switch {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .admin-switch input {
@@ -88,13 +88,13 @@
 
 .admin-switch-what {
   display: block;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 /* The History (./AdminHistory): one entry per change, newest first */
 .admin-history {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -103,15 +103,15 @@
 /* A preset's value (./PresetEditor): its name and warning, the input with its unit, then
    what it does and its limits */
 .admin-field {
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  padding-top: var(--sk-space-2);
+  border-top: 1px solid var(--sk-color-border);
   overflow-wrap: anywhere;
 }
 
 .admin-field-input {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .admin-field-input .sbr-input,
@@ -125,16 +125,16 @@
 }
 
 .admin-warning {
-  padding: var(--space-1);
-  border-radius: var(--radius);
-  background: var(--color-warning-surface);
-  color: var(--color-text);
-  font-size: var(--font-size-small);
+  padding: var(--sk-space-1);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-warning-surface);
+  color: var(--sk-color-text);
+  font-size: var(--sk-font-size-small);
 }
 
 /* An account's actions (./AccountCard): buttons that wrap on a phone */
 .admin-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }

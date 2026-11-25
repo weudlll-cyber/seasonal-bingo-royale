@@ -20,7 +20,7 @@ import { seasonColor, type Season } from '../types.js';
 import './seasonMark.css';
 
 // One size for a player's season marks wherever they show (a kit type size, one step above 0.85rem).
-export const SEASON_MARK_SIZE = 'var(--font-size-body)';
+export const SEASON_MARK_SIZE = 'var(--sk-font-size-body)';
 
 interface SeasonIconProps {
   readonly season: Season;
@@ -50,10 +50,10 @@ export function SeasonIcon({
         style={{
           width: size,
           height: size,
-          // A white disc with the grey ring, on any ground and in both themes: --color-on-live is the
-          // kit's white that no theme overrides (--color-surface and --color-on-solid turn navy in dark).
-          background: 'var(--color-on-live)',
-          borderColor: 'var(--color-border-strong)',
+          // A white disc with the grey ring, on any ground and in both themes: --sk-color-on-live is the
+          // kit's white that no theme overrides (--sk-color-surface and --sk-color-on-solid turn navy in dark).
+          background: 'var(--sk-color-on-live)',
+          borderColor: 'var(--sk-color-border-strong)',
         }}
       />
     );

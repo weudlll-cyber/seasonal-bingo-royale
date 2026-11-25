@@ -15,7 +15,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: end;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -27,9 +27,9 @@
   align-content: start;
   gap: 0.15rem;
   min-width: 0;
-  padding: var(--space-1) 0.4rem var(--space-2);
-  border-radius: var(--radius) var(--radius) 0 0;
-  color: var(--color-on-season);
+  padding: var(--sk-space-1) 0.4rem var(--sk-space-2);
+  border-radius: var(--sk-radius) var(--sk-radius) 0 0;
+  color: var(--sk-color-on-season);
   text-align: center;
 }
 
@@ -37,29 +37,29 @@
 .podium-step--1 {
   order: 2;
   min-height: 9rem;
-  background: var(--color-autumn);
+  background: var(--sk-color-autumn);
 }
 
 .podium-step--2 {
   order: 1;
   min-height: 7.5rem;
-  background: var(--color-winter);
+  background: var(--sk-color-winter);
 }
 
 .podium-step--3 {
   order: 3;
   min-height: 6.5rem;
-  background: var(--color-spring);
+  background: var(--sk-color-spring);
 }
 
 .podium-step.is-own {
-  outline: 3px solid var(--color-text);
+  outline: 3px solid var(--sk-color-text);
   outline-offset: 2px;
 }
 
 .podium-place {
-  font-size: var(--font-size-title);
-  font-weight: var(--font-weight-heading);
+  font-size: var(--sk-font-size-title);
+  font-weight: var(--sk-font-weight-heading);
   line-height: 1;
 }
 
@@ -67,7 +67,7 @@
   /* One line, never broken inside the name ("dev-" / "player-2"): a podium too narrow for
      its names shows rows instead (below). */
   white-space: nowrap;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* A podium too narrow for three names of up to 24 characters side by side (46rem: phones,
@@ -88,10 +88,10 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0 var(--space-1);
+    gap: 0 var(--sk-space-1);
     min-height: 0;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius);
+    padding: var(--sk-space-1) var(--sk-space-2);
+    border-radius: var(--sk-radius);
     text-align: left;
   }
 
@@ -114,7 +114,7 @@
   }
 
   .podium-place {
-    font-size: var(--font-size-lead);
+    font-size: var(--sk-font-size-lead);
   }
 
   .podium-name {
@@ -129,12 +129,12 @@
 }
 
 .podium-note {
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
-/* Season marks on a coloured step: each earned mark gets a white ring (--color-on-live, white in both
+/* Season marks on a coloured step: each earned mark gets a white ring (--sk-color-on-live, white in both
    themes) so an orange mark stays visible on the orange step; a season not earned is the same disc with a
    ring as everywhere. */
 .podium-seasons [data-earned='true'] {
-  box-shadow: 0 0 0 calc(var(--space-1) / 4) var(--color-on-live);
+  box-shadow: 0 0 0 calc(var(--sk-space-1) / 4) var(--sk-color-on-live);
 }

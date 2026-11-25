@@ -1,5 +1,23 @@
 # Morning sheet
 
+## Kit 0.22 (branch `feat/kit-0.22`, draft PR, NOT merged: the owner looks first)
+
+### Done
+
+- Piece 1, pin and rename: `@seasonal/kit` v0.22.0 (commit `2e8ed41`) in `apps/web` and `apps/server`; v0.14.0's rename: the 48 shared tokens other than the gutter take `--sk-` (588 places in 43 files: `apps/web`, `packages/ui` and the admin mockups), seasonal colour built in code too (`types.ts` `seasonColor`). Bingo keeps its own `--gutter` (`min(var(--sk-gutter), 4.5vw)`; the 49th shared name) and `--panel-padding`: at 320 px the page margin is 14.4 px (measured), the kit's own `--sk-gutter` 16 px. The kit's own parts (header, dock) read `--sk-gutter`, which Bingo does not set: below 356 px they now get the kit's 16 px where they got Bingo's smaller value before. `designTokens.test.ts` reads the kit's tokens without the prefix. `minTextSize.test.ts` and the web tests pass (65 files, 302); the standalone fit audit (all its sizes, 588 measurements) has no finding that the earlier baselines at the same keys did not have.
+
+### Running
+
+- Piece 2.
+
+### Open
+
+- Pieces 2 to 8.
+
+### Needs the owner's word
+
+- Nothing yet.
+
 ## 2026-11-25 (unattended chain: merge #72, HSTS docs, the flaky fit test, the seasons overview)
 
 ### Done

@@ -46,10 +46,10 @@ describe('season marks', () => {
     render(<SeasonIcon season="autumn" size={SEASON_MARK_SIZE} onColor earned={false} />);
     const open = screen.getByRole('img', { name: 'autumn (not collected)' });
     // The disc is filled (the colour under it never shows through) and rimmed by the ring.
-    // White in both themes: the kit's one white that no theme overrides (--color-surface and
-    // --color-on-solid both turn navy in dark mode).
-    expect(open.style.background).toContain('var(--color-on-live)');
-    expect(open.style.borderColor).toContain('var(--color-border-strong)');
+    // White in both themes: the kit's one white that no theme overrides (--sk-color-surface and
+    // --sk-color-on-solid both turn navy in dark mode).
+    expect(open.style.background).toContain('var(--sk-color-on-live)');
+    expect(open.style.borderColor).toContain('var(--sk-color-border-strong)');
     expect(open.className).toContain('season-ring');
   });
 

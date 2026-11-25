@@ -64,16 +64,16 @@
 /* Small type where the kit's floor would decide. */
 .sk-header-brand small,
 .sk-dev-menu-hint {
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 /* The account chip as Bingo's (@sbr/ui .sbr-chip), a 44 px target. */
 .sk-header-chip {
   gap: 0.35rem;
   padding: 0.2rem 0.7rem;
-  background: var(--color-surface-2);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-strong);
+  background: var(--sk-color-surface-2);
+  font-size: var(--sk-font-size-small);
+  font-weight: var(--sk-font-weight-strong);
   white-space: normal;
 }
 
@@ -85,12 +85,12 @@
 /* Signed out, "Sign in" is the solid button (@sbr/ui .sbr-btn--primary). */
 .sk-header-account > a.sk-bar-button:first-child {
   border-color: transparent;
-  background: var(--color-solid);
-  color: var(--color-on-solid);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
 }
 
 .sk-header-account > a.sk-bar-button:first-child:hover {
-  background: var(--color-solid);
+  background: var(--sk-color-solid);
   opacity: 0.88;
 }
 
@@ -115,7 +115,7 @@
   .sk-header-account .sk-bar-button.sbr-btn {
     flex: none;
     padding-inline: 0.6rem;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 }
 
@@ -147,13 +147,13 @@
     left: 0;
     z-index: 30;
     display: grid;
-    gap: var(--space-2);
+    gap: var(--sk-space-2);
     max-height: calc(100dvh - 4rem);
     overflow-y: auto;
-    padding: var(--space-2) var(--gutter);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface);
-    box-shadow: var(--shadow-raised);
+    padding: var(--sk-space-2) var(--gutter);
+    border-bottom: 1px solid var(--sk-color-border);
+    background: var(--sk-color-surface);
+    box-shadow: var(--sk-shadow-raised);
   }
 
   .sk-header .sk-menu .sk-header-nav {

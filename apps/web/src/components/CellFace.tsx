@@ -44,8 +44,8 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
   // CSS variables with the Quick Test's values as fallbacks: the live card sets them to
   // the design tokens (the card as the hero element, packages/ui).
   const base = isFree
-    ? 'var(--cell-free-bg, var(--color-border-strong))'
-    : 'var(--cell-bg, var(--color-surface-2))';
+    ? 'var(--cell-free-bg, var(--sk-color-border-strong))'
+    : 'var(--cell-bg, var(--sk-color-surface-2))';
   const background = base;
   return {
     width: 'var(--cell-size, 2.6rem)',
@@ -57,12 +57,12 @@ export function cellBoxStyle(card: Card, index: number, marked: boolean): CSSPro
     borderRadius: 'var(--cell-radius, 0.25rem)',
     border: season === null ? '2px solid transparent' : `2px solid ${seasonColor(season)}`,
     // Marked cells get a filled tone and a check outline, not only a colour change.
-    background: marked ? 'var(--cell-marked-bg, var(--color-solid))' : background,
+    background: marked ? 'var(--cell-marked-bg, var(--sk-color-solid))' : background,
     // The live card sets --cell-*; the Quick Test's cards fall back to the theme tokens.
     color: marked
-      ? 'var(--cell-marked-ink, var(--color-on-solid))'
-      : 'var(--cell-ink, var(--color-text))',
-    boxShadow: marked ? 'inset 0 0 0 3px var(--cell-marked-ring, var(--color-accent))' : 'none',
+      ? 'var(--cell-marked-ink, var(--sk-color-on-solid))'
+      : 'var(--cell-ink, var(--sk-color-text))',
+    boxShadow: marked ? 'inset 0 0 0 3px var(--cell-marked-ring, var(--sk-color-accent))' : 'none',
     cursor: 'pointer',
     padding: 0,
   };

@@ -19,14 +19,14 @@
   /* Two cards high: each with its padding, a heading of up to two lines and the letters. */
   .sk-docked-main .watch-cards:not(.is-following) .watch-card.live-card {
     --cell-size: max(
-      var(--space-3),
+      var(--sk-space-3),
       min(
-        calc(var(--space-4) + var(--space-2)),
-        calc((50cqh - 2 * var(--space-4) - 2 * var(--space-2)) / 5),
-        calc((50cqw - 2 * var(--space-2)) / 5)
+        calc(var(--sk-space-4) + var(--sk-space-2)),
+        calc((50cqh - 2 * var(--sk-space-4) - 2 * var(--sk-space-2)) / 5),
+        calc((50cqw - 2 * var(--sk-space-2)) / 5)
       )
     );
-    --cell-font: max(var(--font-size-body), calc(var(--cell-size) * 0.36));
+    --cell-font: max(var(--sk-font-size-body), calc(var(--cell-size) * 0.36));
   }
 
   .sk-docked-main .watch-cards:not(.is-following) .watch-card > div {
@@ -34,7 +34,7 @@
   }
 
   .sk-docked-main .watch-card [data-testid='bingo-letter'] {
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
     line-height: 1;
   }
 
@@ -44,19 +44,19 @@
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    column-gap: var(--space-1);
+    column-gap: var(--sk-space-1);
   }
 
   .sk-docked-main .arena:has(.watch-cards:not(.is-following)) .arena-head h1 {
-    font-size: var(--font-size-lead);
+    font-size: var(--sk-font-size-lead);
   }
 
   .sk-docked-main .arena:has(.watch-cards:not(.is-following)) :is(.arena-head p, .arena-rules) {
     margin: 0;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
   .sk-docked-main .arena:has(.watch-cards:not(.is-following)) .arena-rules {
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--sk-space-1);
   }
 }

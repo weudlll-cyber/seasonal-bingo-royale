@@ -15,11 +15,11 @@
   display: inline-block;
   box-sizing: border-box;
   vertical-align: middle;
-  border: calc(var(--space-1) / 4) solid;
+  border: calc(var(--sk-space-1) / 4) solid;
   border-radius: 50%;
 }
 
 .season-set {
   display: inline-flex;
-  gap: calc(var(--space-1) / 4);
+  gap: calc(var(--sk-space-1) / 4);
 }

@@ -42,7 +42,7 @@ export function DrawTicker({
   return (
     <div>
       {showWindow ? (
-        <p style={{ margin: '0 0 0.25rem', color: 'var(--color-text-muted)' }}>
+        <p style={{ margin: '0 0 0.25rem', color: 'var(--sk-color-text-muted)' }}>
           Speed window: {String(speedWindowMs / 1000)} s after each draw
         </p>
       ) : null}
@@ -68,8 +68,8 @@ export function DrawTicker({
                 padding: '0.1rem 0.4rem',
                 borderRadius: '0.25rem',
                 // Theme tokens: the newest on Autumn, the others on the inset surface.
-                background: i === newest ? 'var(--color-autumn)' : 'var(--color-surface-2)',
-                color: i === newest ? 'var(--color-on-season)' : 'var(--color-text)',
+                background: i === newest ? 'var(--sk-color-autumn)' : 'var(--sk-color-surface-2)',
+                color: i === newest ? 'var(--sk-color-on-season)' : 'var(--sk-color-text)',
                 minWidth: '2rem',
                 textAlign: 'center',
               }}

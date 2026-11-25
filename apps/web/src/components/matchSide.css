@@ -31,10 +31,10 @@
   align-items: flex-start;
   gap: 0.4rem;
   padding: 0.1rem 0.45rem;
-  border-left: 4px solid var(--color-border-strong);
+  border-left: 4px solid var(--sk-color-border-strong);
   border-radius: 6px;
-  background: var(--color-surface-2);
-  font-size: var(--font-size-small);
+  background: var(--sk-color-surface-2);
+  font-size: var(--sk-font-size-small);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -45,7 +45,7 @@
 }
 
 .season-list {
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
   line-height: 1.35;
 }
 
@@ -59,19 +59,19 @@
 }
 
 .season-note {
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 /* Patterns this round: one line per pattern */
 .side-panel,
 .standings-panel {
-  padding: var(--space-1) var(--space-2);
+  padding: var(--sk-space-1) var(--sk-space-2);
 }
 
 .side-panel h3,
 .standings-panel h3 {
   margin: 0 0 0.2rem;
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .pattern-rows {
@@ -80,7 +80,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 .pattern-rows li {
@@ -93,11 +93,11 @@
 }
 
 .pattern-rows li.is-mine {
-  background: var(--color-active-bg);
+  background: var(--sk-color-active-bg);
 }
 
 .pattern-points {
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 .pattern-first {
@@ -105,8 +105,8 @@
 }
 
 .pattern-tick {
-  color: var(--color-success);
-  font-weight: var(--font-weight-strong);
+  color: var(--sk-color-success);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* The newest event lines and the whole log */
@@ -127,13 +127,13 @@
 .recent-lines li {
   padding: 0.2rem 0.5rem;
   border-radius: 6px;
-  background: var(--color-surface-2);
-  font-size: var(--font-size-small);
+  background: var(--sk-color-surface-2);
+  font-size: var(--sk-font-size-small);
   overflow-wrap: anywhere;
 }
 
 .recent-lines li:first-child {
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* A line of a round before the newest one. */
@@ -147,29 +147,29 @@
   align-items: center;
   gap: 0.4rem;
   margin: 0.15rem 0 2px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-strong);
+  color: var(--sk-color-text-muted);
+  font-size: var(--sk-font-size-small);
+  font-weight: var(--sk-font-weight-strong);
   line-height: 1.2;
 }
 
 .round-separator::after {
   content: '';
   flex: 1;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--sk-color-border);
 }
 
 .match-log summary {
   cursor: pointer;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-small);
+  color: var(--sk-color-text-muted);
+  font-size: var(--sk-font-size-small);
 }
 
 .match-log [data-testid='match-log'] {
   max-height: 12rem;
   margin-top: 0.25rem;
   overflow-y: auto;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 .match-log ol {
@@ -197,13 +197,13 @@
   flex: none;
   margin-top: 2px;
   padding-top: 2px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--sk-color-border);
 }
 
 .rank-group {
   padding: 0 0.4rem 2px;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-small);
+  color: var(--sk-color-text-muted);
+  font-size: var(--sk-font-size-small);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }

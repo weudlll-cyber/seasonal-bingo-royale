@@ -116,6 +116,6 @@ describe('minimum text size', () => {
 
   it('gives `small` the small size', () => {
     const base = readFileSync(here('../../../packages/ui/src/base.css'), 'utf8');
-    expect(base).toMatch(/\nsmall \{[^}]*font-size: var\(--font-size-small\);/);
+    expect(base).toMatch(/\nsmall \{[^}]*font-size: var\(--sk-font-size-small\);/);
   });
 });

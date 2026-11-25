@@ -16,11 +16,11 @@
 .page-head {
   display: grid;
   gap: 0.35rem;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--sk-space-3);
 }
 
 .page-head h1 {
-  font-size: var(--font-size-title);
+  font-size: var(--sk-font-size-title);
 }
 
 .page-head p {
@@ -30,15 +30,15 @@
 /* Organizer: the three steps */
 .step {
   display: grid;
-  gap: var(--space-2);
-  margin-bottom: var(--space-3);
+  gap: var(--sk-space-2);
+  margin-bottom: var(--sk-space-3);
 }
 
 .step h2 {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .step-num {
@@ -47,34 +47,34 @@
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
-  background: var(--color-solid);
-  color: var(--color-on-solid);
-  font-size: var(--font-size-small);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
+  font-size: var(--sk-font-size-small);
 }
 
 .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .tile {
   display: grid;
   gap: 0.3rem;
-  padding: var(--space-2);
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-card);
+  padding: var(--sk-space-2);
+  border: 2px solid var(--sk-color-border);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-color-card);
   cursor: pointer;
 }
 
 .tile strong {
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .tile[aria-checked='true'] {
-  border-color: var(--color-solid);
-  box-shadow: var(--shadow-raised);
+  border-color: var(--sk-color-solid);
+  box-shadow: var(--sk-shadow-raised);
 }
 
 .tile .sbr-chip {
@@ -95,7 +95,7 @@
 .choices {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .segmented {
@@ -105,23 +105,23 @@
 }
 
 .segmented .sbr-btn[aria-pressed='true'] {
-  background: var(--color-solid);
-  color: var(--color-on-solid);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
 }
 
 .range {
   width: 100%;
-  accent-color: var(--color-text);
+  accent-color: var(--sk-color-text);
 }
 
 details.more {
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  padding: var(--sk-space-2);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius);
 }
 
 details.more summary {
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
   cursor: pointer;
 }
 
@@ -132,18 +132,18 @@ details.more summary {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-raised);
+  gap: var(--sk-space-2);
+  padding: var(--sk-space-2);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-color-surface);
+  box-shadow: var(--sk-shadow-raised);
 }
 
 /* Admin pages */
 .admin-layout {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 @media (min-width: 960px) {
@@ -170,29 +170,29 @@ details.more summary {
 .admin-nav a {
   display: flex;
   align-items: center;
-  min-height: var(--hit-target);
+  min-height: var(--sk-hit-target);
   padding: 0 0.95rem;
-  border-radius: var(--radius-pill);
-  font-weight: var(--font-weight-strong);
+  border-radius: var(--sk-radius-pill);
+  font-weight: var(--sk-font-weight-strong);
   text-decoration: none;
   white-space: nowrap;
 }
 
 .admin-nav a[aria-current='page'] {
-  background: var(--color-solid);
-  color: var(--color-on-solid);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
 }
 
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .cards .sbr-panel h2,
 .sbr-panel h2 {
-  font-size: var(--font-size-lead);
-  margin-bottom: var(--space-1);
+  font-size: var(--sk-font-size-lead);
+  margin-bottom: var(--sk-space-1);
 }
 
 .list {
@@ -208,9 +208,9 @@ details.more summary {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   padding: 0.6rem 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--sk-color-border);
 }
 
 .list li:last-child {
@@ -221,49 +221,49 @@ details.more summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  min-height: var(--hit-target);
+  gap: var(--sk-space-2);
+  min-height: var(--sk-hit-target);
 }
 
 .switch input {
   width: 1.4rem;
   height: 1.4rem;
-  accent-color: var(--color-text);
+  accent-color: var(--sk-color-text);
 }
 
 .tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--sk-space-2);
 }
 
 .tabs a {
   padding: 0.4rem 0.9rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border);
+  border-radius: var(--sk-radius-pill);
+  border: 1px solid var(--sk-color-border);
   text-decoration: none;
-  font-weight: var(--font-weight-strong);
-  font-size: var(--font-size-small);
+  font-weight: var(--sk-font-weight-strong);
+  font-size: var(--sk-font-size-small);
 }
 
 .tabs a[aria-current='page'] {
-  background: var(--color-solid);
-  color: var(--color-on-solid);
+  background: var(--sk-color-solid);
+  color: var(--sk-color-on-solid);
 }
 
 /* One value row: name and description | value | limits */
 .value-row {
   display: grid;
-  gap: var(--space-1);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--sk-space-1);
+  padding: var(--sk-space-2) 0;
+  border-bottom: 1px solid var(--sk-color-border);
 }
 
 @media (min-width: 760px) {
   .value-row {
     grid-template-columns: minmax(0, 1.6fr) minmax(10rem, 0.8fr);
-    column-gap: var(--space-3);
+    column-gap: var(--sk-space-3);
   }
 }
 
@@ -272,7 +272,7 @@ details.more summary {
 }
 
 .value-row h3 {
-  font-size: var(--font-size-body);
+  font-size: var(--sk-font-size-body);
 }
 
 .value-row p {
@@ -292,28 +292,28 @@ details.more summary {
 }
 
 .limits {
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
+  font-size: var(--sk-font-size-small);
+  color: var(--sk-color-text-muted);
 }
 
 .warning {
   grid-column: 1 / -1;
   margin: 0;
-  padding: var(--space-1) var(--space-2);
-  border-left: 4px solid var(--color-autumn);
-  border-radius: var(--radius);
-  background: var(--color-warning-surface);
-  font-size: var(--font-size-small);
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border-left: 4px solid var(--sk-color-autumn);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-warning-surface);
+  font-size: var(--sk-font-size-small);
 }
 
 .applies {
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-strong);
+  font-size: var(--sk-font-size-small);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .changed {
-  border-left: 4px solid var(--color-winter);
-  padding-left: var(--space-2);
+  border-left: 4px solid var(--sk-color-winter);
+  padding-left: var(--sk-space-2);
 }
 
 .save-bar {
@@ -321,14 +321,14 @@ details.more summary {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
+  gap: var(--sk-space-2);
+  margin-top: var(--sk-space-2);
 }
 
 /* History */
 .history {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -343,7 +343,7 @@ details.more summary {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .diff {
@@ -352,15 +352,15 @@ details.more summary {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 .diff del {
-  color: var(--color-danger);
+  color: var(--sk-color-danger);
 }
 
 .diff ins {
-  color: var(--color-success);
+  color: var(--sk-color-success);
   text-decoration: none;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
