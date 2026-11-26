@@ -81,9 +81,9 @@ export function freshSweep(): void {
 }
 
 // A member of the stand-in website, signed in through its proxy; lands on the lobby.
-export async function signInMember(page: Page, stack: WebsiteStack, id: string): Promise<void> {
-  const name = stack.users.get(id)?.name ?? '';
-  await page.context().addCookies([{ name: 'stub_user', value: id, url: stack.origin }]);
+export async function signInMember(page: Page, stack: WebsiteStack, id: number): Promise<void> {
+  const name = stack.memberName(id);
+  await page.context().addCookies([stack.cookieOf(id)]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
   await expect(page.getByTestId('signed-in-as')).toContainText(name, { timeout: 30_000 });
 }

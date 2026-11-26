@@ -35,13 +35,7 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('9031', {
-    id: '9031',
-    name: 'Chat Member',
-    roles: 'member',
-    verified: true,
-    canHost: true,
-  });
+  stack.addMember({ id: 9031, name: 'Chat Member', role: 'member', canHost: true });
 });
 
 test.afterAll(async ({ browserName }) => {
@@ -52,7 +46,7 @@ test.afterAll(async ({ browserName }) => {
 
 // The member signs in through the website's proxy and lands on the lobby.
 async function signInMember(page: Page): Promise<void> {
-  await page.context().addCookies([{ name: 'stub_user', value: '9031', url: stack.origin }]);
+  await page.context().addCookies([stack.cookieOf(9031)]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Chat_Member');
 }
@@ -83,8 +77,8 @@ async function expectRoom(page: Page, theme: 'light' | 'dark'): Promise<void> {
   expect(await element.getAttribute('referrerpolicy')).toBe('strict-origin');
   const loaded = page.frames().map((f) => f.url());
   expect(loaded).toContain(`${stack.origin}/embed/chat?room=bingo&theme=${theme}`);
-  await expect(frame(page).getByTestId('embed-room')).toHaveText('Website chat · room bingo');
-  await expect(frame(page).getByTestId('embed-theme')).toHaveText(theme);
+  // The kit's stand-in frame, which speaks the website's messages.
+  await expect(frame(page).getByText('chat (stand-in)')).toBeVisible();
 }
 
 test('the chat strip under the lobby, console and match on a wide screen', async ({ page }) => {

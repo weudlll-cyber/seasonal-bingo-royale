@@ -433,12 +433,12 @@ test('fit: a guest in website mode', async ({ browser }) => {
 
 // The website-mode sweep (./websiteSweep): the stand-in website's members, a context each.
 const MEMBERS = [
-  ['9101', 'Sweep_Host'],
-  ['9102', 'Sweep_Player'],
-  ['9103', 'Sweep_Watcher'],
+  [9101, 'Sweep_Host'],
+  [9102, 'Sweep_Player'],
+  [9103, 'Sweep_Watcher'],
 ] as const;
 
-async function memberPage(browser: Browser, stack: WebsiteStack, id: string): Promise<Page> {
+async function memberPage(browser: Browser, stack: WebsiteStack, id: number): Promise<Page> {
   const context = await browser.newContext({ bypassCSP: true, colorScheme: 'light' });
   const page = await context.newPage();
   await signInMember(page, stack, id);
@@ -544,15 +544,15 @@ test('fit: every match screen in website mode (the docked layout baseline, K18)'
   freshSweep();
   const stack = await startWebsiteStack();
   for (const [id, name] of MEMBERS) {
-    stack.users.set(id, { id, name, roles: 'member', verified: true, canHost: true });
+    stack.addMember({ id, name, role: 'member', canHost: true });
   }
-  const host = await memberPage(browser, stack, '9101');
+  const host = await memberPage(browser, stack, 9101);
   const codes: string[] = [];
   try {
     codes.push(await webMatch(host, stack, 'royale'));
-    const player = await memberPage(browser, stack, '9102');
+    const player = await memberPage(browser, stack, 9102);
     await webLobby(host, player, stack, codes[0] ?? '');
-    const watcher = await memberPage(browser, stack, '9103');
+    const watcher = await memberPage(browser, stack, 9103);
     await watcher.goto(`${stack.origin}${BASE}/#/match/${codes[0] ?? ''}`);
     await expect(watcher.getByTestId('watch-cards')).toBeVisible({ timeout: 30_000 });
     await webRoyale(host, player, watcher);

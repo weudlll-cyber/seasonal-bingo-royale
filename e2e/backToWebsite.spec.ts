@@ -35,20 +35,8 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('9051', {
-    id: '9051',
-    name: 'Back Host',
-    roles: 'member',
-    verified: true,
-    canHost: true,
-  });
-  stack.users.set('9052', {
-    id: '9052',
-    name: 'Back Player',
-    roles: 'member',
-    verified: true,
-    canHost: false,
-  });
+  stack.addMember({ id: 9051, name: 'Back Host', role: 'member', canHost: true });
+  stack.addMember({ id: 9052, name: 'Back Player', role: 'member', canHost: false });
 });
 
 test.afterAll(async ({ browserName }) => {
@@ -58,8 +46,8 @@ test.afterAll(async ({ browserName }) => {
 });
 
 // A website member signed in to the game in this page (through the stand-in's proxy).
-async function signIn(page: Page, id: string, hash: string): Promise<void> {
-  await page.context().addCookies([{ name: 'stub_user', value: id, url: stack.origin }]);
+async function signIn(page: Page, id: number, hash: string): Promise<void> {
+  await page.context().addCookies([stack.cookieOf(id)]);
   await page.goto(
     `${stack.origin}${BASE}/auth/website?next=${encodeURIComponent(`${BASE}/${hash}`)}`,
   );
@@ -68,8 +56,10 @@ async function signIn(page: Page, id: string, hash: string): Promise<void> {
 }
 
 // The same member as an API client, for the host's steps.
-async function apiOf(id: string): Promise<APIRequestContext> {
-  const cookie = { name: 'stub_user', value: id, domain: '127.0.0.1', path: '/', expires: -1 };
+async function apiOf(id: number): Promise<APIRequestContext> {
+  // The website's cookie in the context's jar, beside the game's own once it signs in.
+  const { name, value } = stack.cookieOf(id);
+  const cookie = { name, value, domain: '127.0.0.1', path: '/', expires: -1 };
   const ctx = await request.newContext({
     baseURL: stack.origin,
     storageState: {
@@ -137,9 +127,9 @@ test('a realtime royale played through, with the way back on the match screen al
   page,
 }) => {
   test.setTimeout((FULL ? 75 : 15) * 60_000);
-  const host = await apiOf('9051');
+  const host = await apiOf(9051);
   const code = await newMatch(host, 'Royale', FULL ? {} : { testProfile: 'fast' });
-  await signIn(page, '9052', `#/match/${code}`);
+  await signIn(page, 9052, `#/match/${code}`);
   await page.goto(`${stack.origin}${BASE}/`);
   await page.getByTestId(`join-${code}`).click();
   await expect(page.getByTestId('waiting-room')).toBeVisible();
@@ -167,9 +157,9 @@ test('every main screen shows the way back at the top left (screenshots for the 
   browser,
 }) => {
   test.setTimeout(10 * 60_000);
-  const host = await apiOf('9051');
+  const host = await apiOf(9051);
   const code = await newMatch(host, 'Screens', { testProfile: 'fast' });
-  await signIn(page, '9051', '#/');
+  await signIn(page, 9051, '#/');
   const shots: [string, string, string][] = [
     ['lobby', '#/', 'lobby-match-' + code],
     ['host-new', '#/host/new', 'start-title'],
@@ -187,7 +177,7 @@ test('every main screen shows the way back at the top left (screenshots for the 
     }
     // The match as its player, while it runs.
     const player = await (await browser.newContext()).newPage();
-    await signIn(player, '9052', '#/');
+    await signIn(player, 9052, '#/');
     await player.getByTestId(`join-${code}`).click();
     expect((await post(host, `/matches/${code}/bots`, { upTo: 8 })).ok()).toBe(true);
     expect((await post(host, `/matches/${code}/start`, {})).ok()).toBe(true);

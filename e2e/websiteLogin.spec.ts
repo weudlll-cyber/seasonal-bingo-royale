@@ -16,7 +16,7 @@
  */
 import { expect, request, test, type APIRequestContext, type Page } from '@playwright/test';
 
-import { startWebsiteStack, type StubUser, type WebsiteStack } from './websiteStack.js';
+import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
@@ -32,17 +32,10 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  // 9001 may start games; 9009 has no verified e-mail address.
+  // 9001 may start games (9009 is unverified for the league below).
   for (let n = 1; n <= 9; n += 1) {
-    const id = `90${String(n).padStart(2, '0')}`;
-    const user: StubUser = {
-      id,
-      name: `Web Player ${String(n).padStart(2, '0')}`,
-      roles: 'member',
-      verified: n !== 9,
-      canHost: n === 1,
-    };
-    stack.users.set(id, user);
+    const name = `Web Player ${String(n).padStart(2, '0')}`;
+    stack.addMember({ id: 9000 + n, name, role: 'member', canHost: n === 1 });
   }
 });
 
@@ -53,13 +46,14 @@ test.afterAll(async ({ browserName }) => {
 });
 
 // A website user signed in to the game (through the proxy), as an API client.
-async function signedIn(id: string): Promise<APIRequestContext> {
+async function signedIn(id: number): Promise<APIRequestContext> {
+  // The website's cookie in the context's jar, beside the game's own once it signs in.
+  const { name, value } = stack.cookieOf(id);
+  const cookie = { name, value, domain: '127.0.0.1', path: '/', expires: -1 };
   const ctx = await request.newContext({
     baseURL: stack.origin,
     storageState: {
-      cookies: [{ name: 'stub_user', value: id, domain: '127.0.0.1', path: '/', expires: -1 }].map(
-        (c) => ({ ...c, httpOnly: false, secure: false, sameSite: 'Lax' as const }),
-      ),
+      cookies: [{ ...cookie, httpOnly: false, secure: false, sameSite: 'Lax' as const }],
       origins: [],
     },
   });
@@ -75,16 +69,15 @@ async function post(ctx: APIRequestContext, url: string, data: unknown) {
   });
 }
 
-// The browser player: "Sign in" on the leaderboard goes to the website's login first; signed
-// in there as 9002, the login sends back to the sign-in route and on to the leaderboard (D43).
+// The browser player: "Sign in" on the leaderboard goes to the website's login, which signs
+// in 9002 and sends back to the sign-in route and on to the leaderboard (D43).
 async function browserSignIn(page: Page): Promise<void> {
+  stack.signInAs(9002);
   await page.goto(`${stack.origin}${BASE}/#/leaderboard`);
+  const login = page.waitForRequest((r) => new URL(r.url()).pathname === '/login');
   await page.getByTestId('sign-in').click();
-  await expect(page.locator('body')).toHaveText('website login');
-  const back = new URL(page.url()).searchParams.get('next') ?? '';
+  const back = new URL((await login).url()).searchParams.get('next') ?? '';
   expect(decodeURIComponent(back)).toBe(`${BASE}/auth/website?next=${BASE}/#/leaderboard`);
-  await page.context().addCookies([{ name: 'stub_user', value: '9002', url: stack.origin }]);
-  await page.reload();
   await expect(page).toHaveURL(`${stack.origin}${BASE}/#/leaderboard`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Web_Player_02 (player)');
   await expect(page.getByTestId('register')).toHaveCount(0);
@@ -101,7 +94,7 @@ test('website users sign in through the website and get league points when verif
 }) => {
   test.setTimeout(8 * 60_000);
   await browserSignIn(page);
-  const host = await signedIn('9001');
+  const host = await signedIn(9001);
   const created = await post(host, '/matches', {
     title: 'Website league',
     gameType: 'royale',
@@ -122,8 +115,9 @@ test('website users sign in through the website and get league points when verif
     await page.getByTestId(`join-${code}`).click();
     await expect(page.getByTestId('waiting-room')).toBeVisible();
     const others = [host];
-    for (const id of ['9003', '9004', '9005', '9006', '9007', '9008', '9009'])
-      others.push(await signedIn(id));
+    for (let id = 9003; id <= 9009; id += 1) others.push(await signedIn(id));
+    // The stand-in's members are all verified: this one's account loses it after signing in.
+    stack.unverify(9009);
     for (const ctx of others)
       expect((await post(ctx, `/matches/${code}/join`, {})).ok()).toBe(true);
     expect((await post(host, `/matches/${code}/start`, {})).ok()).toBe(true);
@@ -134,7 +128,9 @@ test('website users sign in through the website and get league points when verif
             .status,
         {
           timeout: 6 * 60_000,
-          intervals: [5_000],
+          // Under the 5 s the stand-in keeps an idle connection: a poll every 5 s reused one just
+          // as it closed (ECONNRESET).
+          intervals: [2_000],
         },
       )
       .toBe('finished');
@@ -156,7 +152,10 @@ test('forged identity headers sign nobody in', async () => {
   expect(session.signedIn).toBe(false);
   const signIn = await ctx.get(`${BASE}/auth/website`, { maxRedirects: 0 });
   expect(signIn.status()).toBe(302);
-  expect(signIn.headers()['location']).toBe(`${BASE}/auth/website/login`);
+  // To the website a visitor it knows nothing of is a guest: the app sends them to log in.
+  expect(signIn.headers()['location']).toBe(
+    `${BASE}/auth/website/login?next=${encodeURIComponent(`${BASE}/`)}`,
+  );
   expect(signIn.headers()['set-cookie']).toBeUndefined();
   await ctx.dispose();
 });
