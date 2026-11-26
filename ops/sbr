@@ -46,6 +46,11 @@ export SK_ADMIN_ROOT="$SBR_ROOT" SK_ADMIN_IMAGE_REPO=sbr-app SK_ADMIN_IMAGE_KEY=
 export SK_ADMIN_REF_KEY=SBR_REF SK_ADMIN_STACK_FILES="${STACK_FILES[*]}"
 SK_ADMIN_DEFAULT_ENV=$(env_value "$SBR_ETC/install.conf" SBR_ENV)
 export SK_ADMIN_DEFAULT_ENV
+# Stack files kept by an older sbr hold no kit folder (that update brought it), and the kit's
+# rollback copies every named one: an empty folder stands for it, and the new one stays.
+for kept in "$SBR_STATE"/*/stack; do
+  if [[ -d $kept && ! -d $kept/kit ]]; then install -d "$kept/kit"; fi
+done
 # The kit's library: its info, warn and die are the ones used from here on.
 # shellcheck source=kit/lib/admin.sh
 source "$HERE/kit/lib/admin.sh"
