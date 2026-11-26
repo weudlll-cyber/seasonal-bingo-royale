@@ -72,7 +72,7 @@ The script (idempotent, re-runnable):
 5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin; the fetch prunes branches deleted upstream) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
 6. Starts the stack and waits for `/readyz`; there is no separate migrate step: the app applies pending migrations on start (checksummed, `apps/server/src/db/migrator.ts`) and does not answer ready before.
 7. The first admin is created with `sbr admin create-super` (password asked inside the app container, never echoed or logged; roles `super_admin` and `organizer`). The one-time **bootstrap token** and the page `https://<host>/admin/setup?token=…` where the first `super_admin` sets password and 2FA wait for the admin app (WP-19).
-8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 20 MB per service, spec 08 §6); prints the next steps (website: a short summary of the applied route and the checks through the website's proxy; firewall; how to pull backups).
+8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 20 MB per service, spec 08 §6); prints the next steps (website: a short summary of the applied route and the checks through the website's proxy; how to pull backups). A standalone install first sets up the server's security with the kit's host baseline (§8, K88).
 
 **Website installs (D37).** The app runs with `SBR_AUTH_MODE=website` and the installer writes the game's own route file for the website's mode (mode 0600: it holds the proxy secret), never editing the website's files. It generates the proxy secret `SBR_WEBSITE_PROXY_SECRET` once (kept in `/etc/sbr/<env>.env` like the other secrets, never printed); the route file sends it to the app in `X-Sbr-Proxy-Secret` on the sign-in route only, after the authorize call (07 §2.3):
 
@@ -127,7 +127,7 @@ With an IP address instead of a domain, Caddy uses its internal CA (`default_sni
 
 ## 9. Hardening checklist for the operator (in `docs/operator-guide.md`)
 
-- SSH keys only, root login off (`PermitRootLogin no`; the operator works with `sudo` and pulls backups as a user in the group `sbr-backup`), `unattended-upgrades` on, `ufw` allowing 22/80/443 only, fail2ban for SSH.
+- SSH keys only, root login off (`PermitRootLogin no`; the operator works with `sudo` and pulls backups as a user in the group `sbr-backup`): by hand, the installer only reports what SSH allows. `unattended-upgrades` on, `ufw` allowing SSH's ports, 80 and 443, fail2ban for SSH: set up by the installer on a standalone server (the kit's host baseline); a website install leaves the host to the website's installer.
 - Docker daemon: `live-restore`, `userns-remap` optional, log rotation.
 - Domain: CAA record for the ACME CA, DNSSEC if the registrar supports it.
 - A CDN or Cloudflare proxy in front is not supported for now (owner decision 2026-11-04, audit-3 S3; 03 §13 layer 3): every visitor would share the CDN's rate limits. Point DNS straight at the server (with Cloudflare: “DNS only”).

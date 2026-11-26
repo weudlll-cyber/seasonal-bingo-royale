@@ -12,7 +12,8 @@
 #                 through the website, D37), start the stack, wait for /readyz, install the backup
 #                 timer. Re-runs keep earlier answers, never switch type unconfirmed. SMTP password
 #                 only from a file or hidden prompt; --trusted-proxies adds ranges ("none" removes).
-# Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
+#                 The kit's security baseline runs on a standalone server.
+# Depends on:     ops/lib/*.sh, ops/kit/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
 #                 ops/compose.website-nginx.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8
 #
@@ -35,6 +36,8 @@ source "$OPS/lib/common.sh"
 source "$OPS/lib/host.sh"
 # shellcheck source=kit/lib/operator.sh
 source "$OPS/kit/lib/operator.sh"
+# shellcheck source=kit/lib/host-baseline.sh
+source "$OPS/kit/lib/host-baseline.sh"
 # shellcheck source=lib/website.sh
 source "$OPS/lib/website.sh"
 # shellcheck source=kit/lib/website-route.sh
@@ -138,6 +141,17 @@ ask_smtp() {
   ask SBR_SMTP_FROM "Sender address" "$from"
 }
 
+# The server's basic security (K88): standalone, the firewall (SSH's real ports, 80, 443),
+# automatic security updates and a fail2ban jail for SSH, each added only where missing; in
+# website mode the website's installer owns the host and nothing changes.
+secure_host() {
+  if [[ $SBR_DRY_RUN == 1 ]]; then
+    info "  would set up the server's security baseline ($SBR_TYPE)"
+    return 0
+  fi
+  sk_host_baseline "$SBR_TYPE" || die "the server's security baseline failed (above)"
+}
+
 # Where the source comes from: the flag, the last install, this checkout's origin, else the
 # public repository; the ref: the flag, the last install, else master.
 default_source() {
@@ -157,7 +171,6 @@ next_steps() {
     info "  1. Create the first admin:  sudo sbr admin create-super"
     info "  2. Open https://$(url_host "$SBR_ADDRESS")/"
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && warn "with an IP address the certificate comes from Caddy's own CA: browsers warn until you point a domain here and re-run with --address <domain>"
-    info "  3. Firewall: allow 22, 80 and 443 only (docs/operator-guide.md)."
   else
     # No create-super here: it refuses in website mode (D41, D37).
     info "  1. The website's admins are the game's admins; members may host once the website allows it (Admin -> Users)."
@@ -196,6 +209,7 @@ main() {
   install_prereqs
   ask_common
   install_docker
+  secure_host
   if [[ $SBR_TYPE == standalone ]]; then check_ports "$SBR_ENV"; else detect_website; fi
   info "Preparing the app"
   default_source

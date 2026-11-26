@@ -164,12 +164,10 @@ sudo sbr maintenance off
 ## 7. Hardening checklist
 
 1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `backup-pull` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
-2. Automatic security updates: `apt install unattended-upgrades` (on by default on Ubuntu 24.04).
-3. Firewall: allow only 22, 80 and 443 — `ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw enable`. (With the website installed, keep the website's own ports too, see its DEPLOYMENT.md.)
-4. fail2ban for SSH: `apt install fail2ban`.
-5. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
-6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
-7. No CDN in front: a CDN or Cloudflare proxy in front of the game is not supported for now. Behind it every visitor would share the same rate limits. Point your domain's DNS straight at the server (with Cloudflare: “DNS only”, the grey cloud). The installer's `--trusted-proxies <range>,…` is only for a proxy of your own in front of the website; `--trusted-proxies none` removes the ranges again.
+2. Firewall, automatic security updates and fail2ban: a **standalone** install sets them up itself (the Seasonal kit's host baseline): it allows the ports SSH really uses, 80 and 443 and turns `ufw` on, turns on `unattended-upgrades`, and adds a fail2ban jail for SSH. It only adds what is missing, never changes the SSH configuration, and says what SSH allows. If your hosting provider has its own firewall, allow the same ports there. In a **website** install the website's installer owns the server's security and the game changes nothing.
+3. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
+4. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
+5. No CDN in front: a CDN or Cloudflare proxy in front of the game is not supported for now. Behind it every visitor would share the same rate limits. Point your domain's DNS straight at the server (with Cloudflare: “DNS only”, the grey cloud). The installer's `--trusted-proxies <range>,…` is only for a proxy of your own in front of the website; `--trusted-proxies none` removes the ranges again.
 
 ## 8. Removing the game
 
