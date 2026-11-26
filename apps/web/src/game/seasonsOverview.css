@@ -38,7 +38,7 @@
   align-items: flex-start;
 }
 
-.seasons-overview li > img,
+.seasons-overview li > .sk-season-icon,
 .seasons-overview li > .season-ring {
   flex: none;
 }

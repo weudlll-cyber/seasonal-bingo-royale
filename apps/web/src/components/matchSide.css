@@ -39,7 +39,7 @@
   overflow-wrap: anywhere;
 }
 
-.effect-line img {
+.effect-line .sk-season-icon {
   flex: none;
   margin-top: 0.1rem;
 }

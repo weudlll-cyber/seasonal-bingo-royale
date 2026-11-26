@@ -9,7 +9,7 @@
  *                 column letter, a season's colour token, milliseconds as seconds.
  * Depends on:     @sbr/contracts
  * Used by:        ./quicktest/*, ./playback, ./manualMarking, ./components/*, ./game/*, ./host/*,
- *                 ./api, ./drawControl, ./playbackScoring, ./playbackTypes, ./seasonIcons,
+ *                 ./api, ./drawControl, ./playbackScoring, ./playbackTypes,
  *                 ./useDrawTicker, ./test/quickTestFixture
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §5, §13
  */

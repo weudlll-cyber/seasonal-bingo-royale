@@ -23,6 +23,7 @@ import '@seasonal/kit/header.css';
 import '@seasonal/kit/dock.css';
 // The result's frame (the final placement, ./components/FinalPlacement).
 import '@seasonal/kit/frames.css';
+import '@seasonal/kit/seasons.css';
 import '@sbr/ui/base.css';
 import '@seasonal/kit/motion.css';
 import '@sbr/ui/motion.css';

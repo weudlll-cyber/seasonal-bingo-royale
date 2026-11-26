@@ -31,9 +31,9 @@ describe('season marks', () => {
         <SeasonIcon season="winter" size={SEASON_MARK_SIZE} onColor earned={false} />
       </>,
     );
-    const earned = screen.getByRole('img', { name: 'spring' });
-    const open = screen.getByRole('img', { name: 'winter (not collected)' });
-    expect(earned.tagName).toBe('IMG');
+    const earned = screen.getByRole('img', { name: 'Spring' });
+    const open = screen.getByRole('img', { name: 'Winter (not collected)' });
+    expect(earned.className).toContain('sk-season-icon');
     expect(open.tagName).toBe('SPAN');
     expect(open.className).toContain('season-ring');
     // The same size, and no faded icon anywhere.
@@ -44,7 +44,7 @@ describe('season marks', () => {
 
   it('draws a season not earned as a white disc (in both themes) with a grey ring, from the kit tokens', () => {
     render(<SeasonIcon season="autumn" size={SEASON_MARK_SIZE} onColor earned={false} />);
-    const open = screen.getByRole('img', { name: 'autumn (not collected)' });
+    const open = screen.getByRole('img', { name: 'Autumn (not collected)' });
     // The disc is filled (the colour under it never shows through) and rimmed by the ring.
     // White in both themes: the kit's one white that no theme overrides (--sk-color-surface and
     // --sk-color-on-solid both turn navy in dark mode).

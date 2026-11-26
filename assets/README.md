@@ -8,8 +8,7 @@ Source assets. Build steps copy optimized versions into the apps; files here are
 
 | File | Origin in the website repo | Used for |
 |---|---|---|
-| `seasons/spring.svg`, `summer.svg`, `autumn.svg`, `winter.svg` | `client/src/assets/seasons/` (optimized) | Season cells, effect badges, announcements |
-| `seasons/source/*.svg` | `client/src/assets/seasons/source/` (originals) | Source for re-exports |
+| `seasons/source/*.svg` | `client/src/assets/seasons/source/` (originals) | Source for re-exports; the optimized icons the game shows are the shared kit's (`@seasonal/kit/seasons.css`, the same files) |
 | `brand/logo.svg` | `client/src/assets/seasonal-tokens.svg` | Source for the app icon until one is supplied (no longer in the top bar) |
 | `brand/colors.md` | `client/src/styles/tokens.css` | The four season colours |
 

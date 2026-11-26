@@ -62,7 +62,7 @@ describe('ranked rows', () => {
   it('names a season draw in the ticker next to its icon', () => {
     render(<DrawTicker draws={[5, 104]} speedWindowMs={3000} />);
     expect(screen.getByTestId('draw-ticker').textContent).toBe('B 5Winter');
-    expect(screen.getByAltText('winter')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Winter' })).toBeTruthy();
   });
 
   it('hides the match log while it is empty', () => {

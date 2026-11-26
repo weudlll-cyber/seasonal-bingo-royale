@@ -31,14 +31,14 @@ const SPRING = 'var(--sk-color-spring)';
 const WINTER = 'var(--sk-color-winter)';
 
 describe('season cells', () => {
-  it('show the original season icon file and a frame in the season colour', () => {
+  it("show the season's icon and a frame in the season colour", () => {
     render(<CardGrid accountId="bot-02" card={numberCard(0)} marks={[]} />);
-    const icon = screen.getAllByAltText('spring')[0];
-    expect(icon?.getAttribute('src')).toMatch(/assets\/seasons\/spring\.svg/);
+    const icon = screen.getAllByRole('img', { name: 'Spring' })[0];
+    expect(icon?.getAttribute('data-sk-season')).toBe('spring');
     expect(icon?.parentElement?.parentElement?.style.border).toContain(SPRING);
-    const winter = screen.getAllByAltText('winter');
+    const winter = screen.getAllByRole('img', { name: 'Winter' });
     expect(winter).toHaveLength(1);
-    expect(winter[0]?.getAttribute('src')).toMatch(/assets\/seasons\/winter\.svg/);
+    expect(winter[0]?.getAttribute('data-sk-season')).toBe('winter');
   });
 
   it('show a classicSeasons symbol as its icon on the card, framed in its season colour', () => {
@@ -48,7 +48,7 @@ describe('season cells', () => {
     );
     render(<CardGrid accountId="bot-02" card={{ ...card, cells }} marks={[]} />);
     // The icon has its own season colour, so the cell keeps the card colour behind it.
-    const box = screen.getByAltText('winter').parentElement;
+    const box = screen.getByRole('img', { name: 'Winter' }).parentElement;
     expect(box?.style.background).toBe('var(--cell-bg, var(--sk-color-surface-2))');
     expect(box?.style.border).toBe(`2px solid ${WINTER}`);
   });
@@ -90,8 +90,12 @@ describe('OwnerStatusPanel', () => {
     expect(screen.getByTestId('effect-shield').textContent).toBe(
       'Winter shield: saves you once at a cut if you are at most 3 places below the line — 1 left',
     );
-    expect(within(screen.getByTestId('effect-shield')).getByAltText('winter')).toBeTruthy();
-    expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
+    expect(
+      within(screen.getByTestId('effect-shield')).getByRole('img', { name: 'Winter' }),
+    ).toBeTruthy();
+    expect(
+      within(screen.getByTestId('effect-growth')).getByRole('img', { name: 'Spring' }),
+    ).toBeTruthy();
   });
 
   it('names the seasons of the match, collected ones ticked, and what all four give', () => {

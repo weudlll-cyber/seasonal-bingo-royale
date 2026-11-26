@@ -3,24 +3,32 @@
  * @module web
  * @brief  One original season icon, optionally on its season colour, or its white disc with a ring (01 §13).
  *
- * Responsibility: render the delivered SVG for a season with an accessible name, so
- *                 colour is never the only carrier of meaning (WCAG, 01 §13). A season not
- *                 earned (`earned={false}`) is a white disc with a grey ring of the same size, with the
- *                 name "<season> (not collected)", never a faded icon. `SEASON_MARK_SIZE` is the one
+ * Responsibility: one element per season, drawn by the kit's stylesheet (`.sk-season-icon`, the
+ *                 website's four drawings, K83) and named, so colour is never the only carrier of
+ *                 meaning (WCAG, 01 §13): "Spring" and so on, optionally on its season colour or as
+ *                 a dark silhouette (the kit's one-colour form). A season not earned
+ *                 (`earned={false}`) is a white disc with a grey ring of the same size, named
+ *                 "<Season> (not collected)", never a faded icon. `SEASON_MARK_SIZE` is the one
  *                 size of a player's season marks on every screen (a kit token).
- * Depends on:     react, ../seasonIcons, ../types, ./seasonMark.css
+ * Depends on:     react, ../types, ./seasonMark.css; @seasonal/kit/seasons.css (../main)
  * Used by:        ./CellFace, ./OwnerStatusPanel, ./DrawTicker, ./SeasonSet, ../game/CurrentBall,
  *                 ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';
 
-import { SEASON_ICON_URLS } from '../seasonIcons.js';
 import { seasonColor, type Season } from '../types.js';
 import './seasonMark.css';
 
 // One size for a player's season marks wherever they show (a kit type size, one step above 0.85rem).
 export const SEASON_MARK_SIZE = 'var(--sk-font-size-body)';
+
+const NAMES: Readonly<Record<Season, string>> = {
+  spring: 'Spring',
+  summer: 'Summer',
+  autumn: 'Autumn',
+  winter: 'Winter',
+};
 
 interface SeasonIconProps {
   readonly season: Season;
@@ -43,7 +51,7 @@ export function SeasonIcon({
     return (
       <span
         role="img"
-        aria-label={`${season} (not collected)`}
+        aria-label={`${NAMES[season]} (not collected)`}
         className="season-ring"
         data-season={season}
         data-earned="false"
@@ -58,19 +66,21 @@ export function SeasonIcon({
       />
     );
   return (
-    <img
-      src={SEASON_ICON_URLS[season]}
-      alt={season}
+    <span
+      role="img"
+      aria-label={NAMES[season]}
+      className="sk-season-icon"
+      data-sk-season={season}
+      data-sk-mono={ink ? '' : undefined}
       data-season={season}
       data-earned="true"
       style={{
         width: size,
         height: size,
-        display: 'inline-block',
-        verticalAlign: 'middle',
         borderRadius: '50%',
-        background: onColor ? seasonColor(season) : 'transparent',
-        filter: ink ? 'brightness(0)' : undefined,
+        // The silhouette is the text colour filling the drawing's shape.
+        ...(ink ? { color: 'var(--sk-color-on-season)' } : {}),
+        ...(onColor && !ink ? { backgroundColor: seasonColor(season) } : {}),
       }}
     />
   );
