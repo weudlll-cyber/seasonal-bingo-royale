@@ -55,4 +55,6 @@ done
 # shellcheck source=kit/lib/admin.sh
 source "$HERE/kit/lib/admin.sh"
 
-sk_admin_main "$@"
+# On one line, read whole before it runs: a rollback overwrites this very file, and bash
+# would read on in the other version.
+sk_admin_main "$@"; exit
