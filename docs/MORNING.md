@@ -11,9 +11,11 @@
 
 - **Piece 2, the look.** (a) The kit's three header looks (K96); the organizer's header at 1280×720 in website mode with three badges is one row (`chatEmbed.spec.ts`). (b) The final placement uses the kit's dense result frame (K93). **Places whole above the chat strip** (website mode, 16 px, 20 players; player / spectator / host console): 1280×720 **8 / 8 / 8** (floor 7 met; v0.22.0: 5, before the kit: 7), 1366×768 7 / 7 / 8, 1536×768 8 / 8 / 8, 1440×900 12 each, 1900×860 11 each, 1920×1080 20 each. No row wraps, no finding. (c) The in-match Standings and the result rows show names without badges (2026-11-26); every Standings row is one line. (d) The Firefox sign-in failure is fixed at its cause: the account row shows once the development menu has loaded (`headerDevReady.test.tsx`); the kit's `header-dev.css` only lays the menu out.
 
+- **Piece 3, the update path.** Built with piece 1: `sbr update` installs the kit's `ops/` folder whole (`/opt/sbr/kit/`), added by a commit of its own (`ff6d090`), so an older install updates to that commit, confirms, then updates further; the new `sbr` stops and names the installer where the folder is missing. docs/GO-LIVE.md says what a first install puts in place; operator guide §6 the two steps. **Merge without squashing**, or `ff6d090` is gone from master.
+
 ### Running
 
-- Piece 3 (the update path), piece 4 (rehearsal), piece 5 (the owner's look).
+- Piece 4 (rehearsal), piece 5 (the owner's look). From here (owner decision of 2026-11-26) all changes are built first, then one round of the real checks.
 
 ### Needs the owner's word
 
