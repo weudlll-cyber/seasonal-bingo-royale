@@ -4,7 +4,8 @@
 #
 # Responsibility: the app image (built from a git ref until a release image exists) runs as uid
 #                 10001 on a read-only root, /tmp in memory, one writable volume (uploads,
-#                 maintenance flag); PostgreSQL on an internal network, no published port.
+#                 maintenance flag); PostgreSQL on an internal network, no published port, its root
+#                 read-only too and only the four capabilities it needs (kit K89).
 #                 Standalone installs add Caddy (profile "standalone"); website installs
 #                 (ops/compose.website.yml on top) publish no port, the app joins the website's
 #                 network. Logs: `local` driver, 5 x 20 MB. Caps per spec 08 §4 from the env file
@@ -36,6 +37,8 @@ services:
       # migrates with DATABASE_URL, still the superuser's, until the next sbr update converts it.
       DATABASE_URL: ${SBR_MIGRATION_DATABASE_URL:-${DATABASE_URL:?set DATABASE_URL in the env file}}
     read_only: true
+    tmpfs:
+      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -100,10 +103,22 @@ services:
       POSTGRES_USER: sbr
       POSTGRES_DB: sbr
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in the env file}
-    # As the app: no process may gain privileges (audit-3 O2); the image's own user switch
-    # at start needs its default capabilities, so none are dropped.
+    # As the app: a read-only root and no new privileges (audit-3 O2). The image gives its files
+    # to its own user and switches to it, which needs these four of the dropped capabilities
+    # (kit OPERATIONS.md "Container hardening", K89).
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
     volumes:
       - pgdata:/var/lib/postgresql/data
     # Over TCP: on a fresh volume the image's temporary init server answers on the socket only,
