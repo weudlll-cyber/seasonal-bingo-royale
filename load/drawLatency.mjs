@@ -14,8 +14,10 @@
  * Depends on:     ./devDefaults.mjs, ./common.mjs, ./drawRun.mjs
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
+import { inBatches } from '@seasonal/kit/testing';
+
 import './devDefaults.mjs';
-import { BASE, inBatches, signIn } from './common.mjs';
+import { BASE, signIn, WRITES_FROM } from './common.mjs';
 import { runDrawCheck } from './drawRun.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
@@ -49,7 +51,7 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
   } finally {
     const removed = await (
-      await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE' })
+      await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE', headers: WRITES_FROM })
     ).json();
     console.log(`load accounts removed: ${String(removed.deleted)}`);
   }

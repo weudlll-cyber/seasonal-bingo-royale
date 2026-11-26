@@ -16,17 +16,19 @@
  */
 import './devDefaults.mjs';
 import { io } from 'socket.io-client';
+import { inBatches } from '@seasonal/kit/testing';
 
 import {
   BASE,
   call,
   errors,
   fail,
-  inBatches,
   ORIGIN,
+  serverFigures,
   signIn,
   SOCKET,
   watchServer,
+  WRITES_FROM,
 } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
@@ -96,14 +98,13 @@ async function main() {
   const server = watchServer();
   await call(host, 'POST', `/matches/${code}/start`, {});
   await new Promise((r) => setTimeout(r, MINUTES * 60_000));
-  await server.stop();
+  const load = await server.stop();
   socket.disconnect();
   await call(host, 'POST', `/matches/${code}/abort`, { reason: 'load check done' });
   const removed = await (
-    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE' })
+    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE', headers: WRITES_FROM })
   ).json();
   const perDraw = (key) => Math.round((record[key] - start[key]) / Math.max(1, record.draws));
-  const cpu = server.samples.map((s) => s.cpuPct);
   console.log(
     JSON.stringify(
       {
@@ -116,10 +117,7 @@ async function main() {
           watchBlock: perDraw('watchBytes'),
           watchedCards: perDraw('cardBytes'),
         },
-        serverCpuPercent: {
-          avg: cpu.reduce((a, b) => a + b, 0) / Math.max(1, cpu.length),
-          max: Math.max(...cpu),
-        },
+        ...serverFigures(load),
         errors,
         accountsRemoved: removed.deleted,
       },
