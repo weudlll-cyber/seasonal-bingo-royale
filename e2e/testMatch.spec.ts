@@ -15,9 +15,10 @@
  * Spec:           docs/spec/01-game-design.md §7.6 (D16), §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { expect, test } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { closeContexts, stopMatch } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 // The first page of a run is slow (the dev server compiles on demand).
 const SETTLE_MS = 20_000;

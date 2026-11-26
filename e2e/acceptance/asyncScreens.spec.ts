@@ -15,9 +15,10 @@
  * Spec:           docs/spec/01-game-design.md §7.6 (D31, D33, D34), §11
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { closeContexts, post, signIn, stopMatch } from '../realGame.js';
-import { captureLook, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 
 const ASYNC = {
   title: 'Slow royale',

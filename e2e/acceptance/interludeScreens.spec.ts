@@ -15,6 +15,7 @@
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
  */
 import { expect, test, type Page } from '@playwright/test';
+import { DESKTOP, PHONE } from '@seasonal/kit/testing';
 
 import {
   closeContexts,
@@ -26,7 +27,7 @@ import {
   signIn,
   stopMatch,
 } from '../realGame.js';
-import { captureThemes, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
+import { captureThemes, SHOTS_DIR } from '../screens.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);

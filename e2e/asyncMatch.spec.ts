@@ -16,9 +16,10 @@
  *                 docs/spec/06-realtime-architecture.md §6
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { closeContexts, fillAndStart, joinFromLobby, post, signIn, stopMatch } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 const DAY_MS = 86_400_000;
 

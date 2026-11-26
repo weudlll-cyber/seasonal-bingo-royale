@@ -5,24 +5,22 @@
  *
  * Responsibility: scan every stylesheet and component of the client and @sbr/ui, and the
  *                 @seasonal/kit style files the client loads (KIT_CSS), for fixed font sizes and
- *                 check the floor: the value, the first argument of max()/clamp(), or a var()
- *                 fallback. Text keeps 0.875rem (14 px), card numbers (--cell-font) 1rem; sizes
- *                 computed from a box are left to the e2e fit checks. `small` gets the small size,
- *                 never `smaller`. No text is cut with an ellipsis, and a podium name never breaks
- *                 inside its step (the podium turns into rows).
- * Depends on:     nothing (reads the source files)
+ *                 check the floor: text keeps 0.875rem (14 px; the kit's `findSmallText`), card
+ *                 numbers (--cell-font) 1rem; sizes computed from a box are left to the e2e fit
+ *                 checks. `small` gets the small size, never `smaller`. No text is cut with an
+ *                 ellipsis, and a podium name never breaks inside its step (the podium turns into
+ *                 rows).
+ * Depends on:     @seasonal/kit/testing (reads the source files)
  * Spec:           docs/concepts/fit-audit.md §3 (F1–F7), §5 items 1, 2 and 6
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+import { findSmallText } from '@seasonal/kit/testing';
 import { describe, expect, it } from 'vitest';
 
-const here = (rel: string) =>
-  path.resolve(
-    path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
-    rel,
-  );
+const here = (rel: string) => path.resolve(path.dirname(fileURLToPath(import.meta.url)), rel);
 const ROOTS = [here('.'), here('../../../packages/ui/src')];
 // The kit's style files the client loads (its type sizes are in its tokens.css since B1).
 const KIT_CSS = ['tokens.css', 'frames.css'].map((name) =>
@@ -83,10 +81,7 @@ function fontSizes(names: RegExp): { where: string; value: string }[] {
 
 describe('minimum text size', () => {
   it('writes no text size below 14 px', () => {
-    const below = fontSizes(/(font-size|fontSize|--font-size-[\w-]+):\s*('[^']*'|[^;\n]+)/g)
-      .filter(({ value }) => (floorPx(value) ?? 99) < 14)
-      .map(({ where, value }) => `${where} ${value}`);
-    expect(below).toEqual([]);
+    expect(findSmallText([...ROOTS, ...KIT_CSS])).toEqual([]);
   });
 
   it('writes no card number below 16 px (own card and watched cards)', () => {

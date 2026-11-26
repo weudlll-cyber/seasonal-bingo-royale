@@ -3,169 +3,81 @@
  * @module web
  * @brief  WCAG AA contrast of the design tokens in the light and the dark theme (01 §13).
  *
- * Responsibility: read the tokens as the page loads them (kit's shared file, `--sk-…`, then
- *                 @sbr/ui's own; the kit's are named here without the prefix) and check in both themes: body and muted text 4.5:1 on the page,
- *                 opaque surfaces and translucent cards (composited over the base and each of the
- *                 four token glows, as the website measures) and the top bar's gradient stops;
- *                 pill and text on season colours 4.5:1; bingo card ink 7:1 (the hero element);
+ * Responsibility: name the colour pairs Bingo draws and check them with the kit's guard
+ *                 (`findLowContrast`: the tokens as the page loads them, the kit's shared file,
+ *                 then @sbr/ui's own, both themes, translucent layers composited): body and muted
+ *                 text 4.5:1 on the page, opaque surfaces and translucent cards over the base and
+ *                 the page's glows, text on the top bar's gradient; the solid pill, danger,
+ *                 success and text on season colours 4.5:1; bingo card ink 7:1 (the hero element);
  *                 Draw next 4.5:1 enabled and disabled; the kit's motion file turns every
  *                 animation off under prefers-reduced-motion.
- * Depends on:     @seasonal/kit/tokens.css, @seasonal/kit/motion.css, @sbr/ui/tokens.css (raw),
- *                 ./host/host.css
+ * Depends on:     @seasonal/kit/testing, @seasonal/kit/tokens.css, @seasonal/kit/motion.css,
+ *                 @sbr/ui/tokens.css (raw), ./host/host.css
  * Spec:           docs/spec/01-game-design.md §13 (WCAG 2.2 AA)
  */
 import { readFileSync } from 'node:fs';
 
+import { findLowContrast, type ContrastPair } from '@seasonal/kit/testing';
 import { describe, expect, it } from 'vitest';
 
 import motionCss from '@seasonal/kit/motion.css?raw';
 import kitTokensCss from '@seasonal/kit/tokens.css?raw';
 import gameTokensCss from '@sbr/ui/tokens.css?raw';
 
-type Rgba = readonly [number, number, number, number];
-
 // In the page's order: the game's file is loaded after the kit's (apps/web/src/main.tsx).
-const SOURCES = [kitTokensCss, gameTokensCss];
+const CSS = [kitTokensCss, gameTokensCss];
+const shortOf = (pairs: readonly ContrastPair[]): string[] => findLowContrast({ css: CSS, pairs });
 
-// The text of one block in every token file, in load order (a later value wins).
-function blockText(selector: string): string {
-  return SOURCES.map((css) => {
-    const start = css.indexOf(`${selector} {`);
-    return start < 0 ? '' : css.slice(start, css.indexOf('\n}', start));
-  }).join('\n');
-}
+const BASE = '--sk-color-background';
+const GLOWS = '--sk-page-background';
+const CARD = '--sk-color-card';
 
-// A colour as #rrggbb or rgb(r g b / a%).
-function parse(value: string): Rgba {
-  const hex = /#([0-9a-f]{6})/i.exec(value)?.[1];
-  if (hex !== undefined) {
-    return [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).concat(1) as unknown as Rgba;
-  }
-  const m = /rgb\((\d+) (\d+) (\d+)(?: \/ (\d+)%)?\)/.exec(value);
-  if (m === null) throw new Error(`not a colour: ${value}`);
-  return [Number(m[1]), Number(m[2]), Number(m[3]), m[4] === undefined ? 1 : Number(m[4]) / 100];
-}
-
-// The single-colour custom properties of a block, the kit's without their --sk- prefix.
-function colours(selector: string): Record<string, string> {
-  const entries = [
-    ...blockText(selector).matchAll(/--([\w-]+):\s*(#[0-9a-f]{6}|rgb\([^)]*\));/gi),
-  ].map((m): [string, string] => [(m[1] ?? '').replace(/^sk-/, ''), m[2] ?? '']);
-  return Object.fromEntries(entries);
-}
-
-// Every rgb()/hex colour inside one multi-part token (the glows, the gradient stops).
-function parts(selector: string, name: string): Rgba[] {
-  const text = blockText(selector);
-  const start = text.indexOf(`--sk-${name}:`);
-  const body = text.slice(start, text.indexOf(';', start));
-  return [...body.matchAll(/#[0-9a-f]{6}|rgb\([^)]*\)/gi)].map((m) => parse(m[0]));
-}
-
-// A translucent colour laid over an opaque one.
-function over(top: Rgba, base: Rgba): Rgba {
-  const a = top[3];
-  return [0, 1, 2]
-    .map((i) => (top[i] ?? 0) * a + (base[i] ?? 0) * (1 - a))
-    .concat(1) as unknown as Rgba;
-}
-
-function luminance(c: Rgba): number {
-  const channel = (v: number) => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(c[0]) + 0.7152 * channel(c[1]) + 0.0722 * channel(c[2]);
-}
-
-function contrast(a: Rgba, b: Rgba): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number];
-  return (hi + 0.05) / (lo + 0.05);
-}
-
-const THEMES = {
-  light: { selector: ':root', set: colours(':root') },
-  dark: {
-    selector: ":root[data-theme='dark']",
-    set: { ...colours(':root'), ...colours(":root[data-theme='dark']") },
-  },
-} as const;
-
-// Everything text sits on in a theme: page, surfaces, cards over the base and each glow.
-function backgrounds(theme: keyof typeof THEMES): [string, Rgba][] {
-  const { selector, set } = THEMES[theme];
-  const c = (name: string) => parse(set[name] ?? '');
-  const base = c('color-background');
-  const glows = parts(selector, 'page-background')
-    .filter((g) => g[3] < 1)
-    .map((g) => over(g, base));
-  const list: [string, Rgba][] = [
-    ['page', base],
-    ['surface', c('color-surface')],
-    ['surface-2', c('color-surface-2')],
-    ['card', over(c('color-card'), base)],
-    ...glows.map((g, i): [string, Rgba] => [`glow ${String(i + 1)}`, g]),
-    ...glows.map((g, i): [string, Rgba] => [
-      `card on glow ${String(i + 1)}`,
-      over(c('color-card'), g),
-    ]),
-  ];
-  return list;
-}
+// Everything body and muted text sit on: page, surfaces, cards over the base and the glows.
+const BACKGROUNDS = [
+  [BASE],
+  ['--sk-color-surface'],
+  ['--sk-color-surface-2'],
+  [BASE, CARD],
+  [BASE, GLOWS],
+  [BASE, GLOWS, CARD],
+];
 
 describe('token contrast (WCAG AA), light and dark', () => {
-  it.each(['light', 'dark'] as const)('%s: text and muted text keep 4.5:1 everywhere', (theme) => {
-    const set = THEMES[theme].set;
-    for (const [where, bg] of backgrounds(theme)) {
-      for (const text of ['color-text', 'color-text-muted']) {
-        expect(
-          contrast(parse(set[text] ?? ''), bg),
-          `${theme}: ${text} on ${where}`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
-    }
+  it('keeps text and muted text at 4.5:1 everywhere', () => {
+    const pairs = ['--sk-color-text', '--sk-color-text-muted'].flatMap((text) =>
+      BACKGROUNDS.map((on) => ({ text, on })),
+    );
+    expect(shortOf(pairs)).toEqual([]);
   });
 
-  it.each(['light', 'dark'] as const)(
-    '%s: the top bar, the solid pill, danger and success',
-    (theme) => {
-      const { selector, set } = THEMES[theme];
-      const text = parse(set['color-text'] ?? '');
-      const stops = parts(selector, 'sidebar-background');
-      // Dark: the translucent token tints lie over the bar's own opaque colour (the last part).
-      const opaque = stops.at(-1) ?? [0, 0, 0, 1];
-      for (const stop of stops) {
-        expect(
-          contrast(text, stop[3] < 1 ? over(stop, opaque) : stop),
-          `${theme}: bar text`,
-        ).toBeGreaterThanOrEqual(4.5);
-      }
-      expect(
-        contrast(parse(set['color-on-solid'] ?? ''), parse(set['color-solid'] ?? '')),
-      ).toBeGreaterThanOrEqual(4.5);
-      for (const status of ['color-danger', 'color-success']) {
-        for (const bg of ['color-surface', 'color-surface-2']) {
-          expect(
-            contrast(parse(set[status] ?? ''), parse(set[bg] ?? '')),
-            `${theme}: ${status} on ${bg}`,
-          ).toBeGreaterThanOrEqual(4.5);
-        }
-      }
-    },
-  );
+  it('keeps the top bar, the solid pill, danger and success readable', () => {
+    const status = ['--sk-color-danger', '--sk-color-success'].flatMap((text) =>
+      ['--sk-color-surface', '--sk-color-surface-2'].map((on) => ({ text, on: [on] })),
+    );
+    expect(
+      shortOf([
+        // The bar's gradient stops over the page (in the dark theme its tints are translucent).
+        { text: '--sk-color-text', on: [BASE, '--sk-sidebar-background'] },
+        { text: '--sk-color-on-solid', on: ['--sk-color-solid'] },
+        ...status,
+      ]),
+    ).toEqual([]);
+  });
 });
 
 describe('token contrast (WCAG AA), arena and controls', () => {
   it('keeps text on every season colour and the bingo card ink readable', () => {
-    const set = THEMES.light.set;
-    const c = (name: string) => parse(set[name] ?? '');
-    for (const season of ['spring', 'summer', 'autumn', 'winter']) {
-      expect(contrast(c('color-on-season'), c(`color-${season}`))).toBeGreaterThanOrEqual(4.5);
-    }
-    expect(contrast(c('color-bingo-card-ink'), c('color-bingo-card'))).toBeGreaterThanOrEqual(7);
+    const seasons = ['spring', 'summer', 'autumn', 'winter'].map((season) => ({
+      text: '--sk-color-on-season',
+      on: [`--sk-color-${season}`],
+    }));
     expect(
-      contrast(c('color-bingo-card-marked-ink'), c('color-bingo-card-marked')),
-    ).toBeGreaterThanOrEqual(7);
+      shortOf([
+        ...seasons,
+        { text: '--color-bingo-card-ink', on: ['--color-bingo-card'], min: 7 },
+        { text: '--color-bingo-card-marked-ink', on: ['--color-bingo-card-marked'], min: 7 },
+      ]),
+    ).toEqual([]);
   });
 
   it("keeps the host's Draw next at 4.5:1 enabled and disabled, in both themes", () => {
@@ -176,12 +88,13 @@ describe('token contrast (WCAG AA), arena and controls', () => {
     expect(disabled).toContain('opacity: 1;');
     expect(disabled).toContain('color: var(--sk-color-text-muted);');
     expect(disabled).toContain('background: var(--sk-color-surface-2);');
-    for (const { set } of Object.values(THEMES)) {
-      const c = (name: string) => parse(set[name] ?? '');
-      // Enabled: the primary button, the solid pill.
-      expect(contrast(c('color-on-solid'), c('color-solid'))).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(c('color-text-muted'), c('color-surface-2'))).toBeGreaterThanOrEqual(4.5);
-    }
+    expect(
+      shortOf([
+        // Enabled: the primary button, the solid pill.
+        { text: '--sk-color-on-solid', on: ['--sk-color-solid'] },
+        { text: '--sk-color-text-muted', on: ['--sk-color-surface-2'] },
+      ]),
+    ).toEqual([]);
   });
 
   it('switches every animation off under prefers-reduced-motion', () => {

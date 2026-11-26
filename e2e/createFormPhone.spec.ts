@@ -11,9 +11,9 @@
  * Spec:           docs/spec/01-game-design.md §13
  */
 import { expect, test } from '@playwright/test';
+import { PHONE } from '@seasonal/kit/testing';
 
 import { closeContexts, signIn } from './realGame.js';
-import { PHONE } from './screens.js';
 
 // The native arrow of a closed dropdown takes about this much of its inner width.
 const ARROW_PX = 24;

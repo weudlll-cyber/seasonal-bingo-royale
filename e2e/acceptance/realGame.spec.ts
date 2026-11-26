@@ -16,6 +16,7 @@
  * Spec:           docs/spec/12-testing-strategy.md §4, §8; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { DESKTOP, PHONE } from '@seasonal/kit/testing';
 
 import {
   closeContexts,
@@ -30,7 +31,7 @@ import { COMBOS, FIELD, title, type Combo } from './combos.js';
 import { checkCuts, type ServerResult } from './cuts.js';
 import { handlePending, newPlayer, onNewDraw, type LivePlayer } from './livePlayer.js';
 import { checkPlayer, liveSnap, type LiveSnap } from './liveSnap.js';
-import { captureThemes, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
+import { captureThemes, SHOTS_DIR } from '../screens.js';
 import {
   checkCutButton,
   checkDrawCountdown,

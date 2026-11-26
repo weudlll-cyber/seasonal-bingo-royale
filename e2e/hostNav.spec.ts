@@ -16,6 +16,7 @@
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §13
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook, DESKTOP, PHONE } from '@seasonal/kit/testing';
 
 import {
   closeContexts,
@@ -26,7 +27,7 @@ import {
   stopMatch,
 } from './realGame.js';
 import { openMenu } from './menu.js';
-import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 // "Start a match" with the start rules: a start time an hour ahead (local, as the field takes it).
 async function shootCreateForm(page: Page): Promise<void> {

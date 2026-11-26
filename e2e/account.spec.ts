@@ -15,10 +15,11 @@
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §13
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { openMenu } from './menu.js';
 import { closeContexts, hostMatch, signIn, stopMatch } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const PASSWORD = 'correct horse battery staple';

@@ -20,9 +20,10 @@
  * Spec:           docs/spec/07-integration-architecture.md §6; docs/spec/01-game-design.md §13
  */
 import { expect, test, type Page } from '@playwright/test';
+import { PHONE, setTheme } from '@seasonal/kit/testing';
 
 import { CLIENT_URL } from './devStack.js';
-import { captureThemes, PHONE, setTheme, SHOTS_DIR } from './screens.js';
+import { captureThemes, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 

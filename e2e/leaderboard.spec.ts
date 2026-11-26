@@ -18,6 +18,7 @@
 import { readFileSync } from 'node:fs';
 
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import {
   closeContexts,
@@ -28,7 +29,7 @@ import {
   stopMatch,
 } from './realGame.js';
 import { openMenu } from './menu.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const PASSWORD = 'correct horse battery staple';

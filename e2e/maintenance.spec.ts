@@ -18,6 +18,7 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { REPO_ROOT } from './devStack.js';
 import {
@@ -29,7 +30,7 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 // The server runs in apps/server with SBR_DATA_DIR ./data (apps/server/src/config/env.ts).
 const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');

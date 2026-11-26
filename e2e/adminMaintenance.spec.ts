@@ -13,9 +13,10 @@
  * Spec:           docs/concepts/admin-area.md §4 (Overview), §9 piece 1; docs/spec/09-deployment-architecture.md §4
  */
 import { expect, test } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { closeContexts, post, signIn } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);

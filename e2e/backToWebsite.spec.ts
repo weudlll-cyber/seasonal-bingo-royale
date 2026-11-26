@@ -17,9 +17,10 @@
 import path from 'node:path';
 
 import { expect, request, test, type APIRequestContext, type Page } from '@playwright/test';
+import { captureLook, DESKTOP, PHONE } from '@seasonal/kit/testing';
 
 import { CLIENT_URL } from './devStack.js';
-import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 

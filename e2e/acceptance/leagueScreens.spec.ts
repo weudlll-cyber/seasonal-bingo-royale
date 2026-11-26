@@ -14,8 +14,9 @@
  * Spec:           docs/spec/01-game-design.md §10 (D28, D29)
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook, DESKTOP, PHONE } from '@seasonal/kit/testing';
 
-import { captureLook, DESKTOP, PHONE, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 import { FROM_THIS_SITE } from '../fromThisSite.js';
 
 const DEMO = '/api/v1/dev/demo-league';

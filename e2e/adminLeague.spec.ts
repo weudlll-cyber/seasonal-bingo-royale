@@ -15,11 +15,12 @@
  * Spec:           docs/concepts/admin-area.md §4 (League), §6, §9 piece 5
  */
 import { expect, request, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { probe } from './acceptance/fitProbe.js';
 import { CLIENT_URL } from './devStack.js';
 import { closeContexts, post, signIn } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {

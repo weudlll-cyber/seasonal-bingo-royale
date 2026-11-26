@@ -14,9 +14,10 @@
  * Spec:           docs/concepts/fit-audit.md (O1); owner's fault list of 2026-11-21 (a)
  */
 import { expect, test, type Page } from '@playwright/test';
+import { setTheme } from '@seasonal/kit/testing';
 
 import { closeContexts, signIn } from './realGame.js';
-import { setTheme, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);

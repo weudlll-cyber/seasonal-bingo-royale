@@ -19,6 +19,7 @@ import { appendFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { setTheme } from '@seasonal/kit/testing';
 
 import { REPO_ROOT } from '../devStack.js';
 import {
@@ -32,7 +33,7 @@ import {
   stopMatch,
   type Who,
 } from '../realGame.js';
-import { setTheme, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 import { startWebsiteStack, type WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe, type Probe } from './fitProbe.js';

@@ -28,9 +28,9 @@ import path from 'node:path';
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type APIResponse, type Page } from '@playwright/test';
+import { setTheme } from '@seasonal/kit/testing';
 
 import { REPO_ROOT } from '../devStack.js';
-import { setTheme } from '../screens.js';
 import type { WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe } from './fitProbe.js';

@@ -18,10 +18,11 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook, DESKTOP } from '@seasonal/kit/testing';
 
 import { REPO_ROOT } from '../devStack.js';
 import { closeContexts, drawNext, hostMatch, signIn, stopMatch } from '../realGame.js';
-import { captureLook, DESKTOP, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 import { liveSnap } from './liveSnap.js';
 
 const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');
