@@ -11,17 +11,17 @@
  *                 "Signed in as <name> (role)" (website mode: the member's step badges, K56) with
  *                 "Sign out", or "Sign in"/"Register"
  *                 (../account; website mode one "Sign in", D37); hidden until the session is known
- *                 (`data-session`, ./header.css). The folded menu closes on a new route or a
+ *                 (`data-session`, ./header.css; in development also until the dev tools have loaded). The folded menu closes on a new route or a
  *                 sign-in. The chat has no button here: it is docked under the game (./DockedChat).
  * Depends on:     react, @seasonal/kit/react (AppHeader), ./router, ./session,
- *                 ./DevTools (lazy, development only), ../account/WebsiteSignIn,
+ *                 ./DevTools (loaded on demand, development only), ../account/WebsiteSignIn,
  *                 ./header.css, assets/brand/emblem.webp
  * Used by:        ./AppShell
  * Spec:           docs/spec/01-game-design.md §13; docs/spec/05-api-design.md §2.1, §2.4;
  *                 Seasonal Entertainment docs/GAME-INTEGRATION.md §8
  */
 import { AppHeader, type HeaderAccount, type HeaderLink } from '@seasonal/kit/react';
-import { lazy, Suspense, type ReactElement } from 'react';
+import { useEffect, useState, type ReactElement } from 'react';
 
 import emblem from '../../../../assets/brand/emblem.webp';
 import { useWebsiteSignIn } from '../account/WebsiteSignIn.js';
@@ -30,17 +30,30 @@ import { highestRole, useSession } from './session.js';
 import './header.css';
 
 // Development tools load on demand. A production build replaces import.meta.env.DEV with
-// false, so these imports and everything behind them stay out of the bundle (audit B).
-const QuickTestLink = import.meta.env.DEV
-  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.QuickTestLink })))
-  : null;
-const DevSignIn = import.meta.env.DEV
-  ? lazy(() => import('./DevTools.js').then((m) => ({ default: m.DevSignIn })))
-  : null;
+// false, so this import and everything behind it stays out of the bundle (audit B).
+const loadDevTools = import.meta.env.DEV ? () => import('./DevTools.js') : null;
+
+type DevTools = typeof import('./DevTools.js');
 
 interface HeaderProps {
   readonly route: Route;
   readonly dev: boolean;
+}
+
+// The development tools once they are there, or null (never in production).
+function useDevTools(wanted: boolean): DevTools | null {
+  const [tools, setTools] = useState<DevTools | null>(null);
+  useEffect(() => {
+    if (!wanted || loadDevTools === null) return undefined;
+    let live = true;
+    void loadDevTools().then((loaded) => {
+      if (live) setTools(loaded);
+    });
+    return () => {
+      live = false;
+    };
+  }, [wanted]);
+  return tools;
 }
 
 // The bar's links; the server checks every call behind them.
@@ -78,24 +91,18 @@ function useAccount(): HeaderAccount | null {
   };
 }
 
-// After the links: the development Quick Test link.
-function NavExtra({ route, dev }: HeaderProps): ReactElement | null {
-  if (!dev || QuickTestLink === null) return null;
-  return (
-    <Suspense fallback={null}>
-      <QuickTestLink active={route.name === 'quicktest'} />
-    </Suspense>
-  );
-}
-
 export function Header({ route, dev }: HeaderProps): ReactElement {
   const session = useSession().session;
+  const tools = useDevTools(dev);
+  // The account row shows only once everything in it is there: a menu arriving later moved
+  // "Sign in" under the pointer (a click then landed beside it).
+  const ready = session !== null && (!dev || loadDevTools === null || tools !== null);
   const websiteSignIn = useWebsiteSignIn();
   const website = session?.authMode === 'website';
   const account = useAccount();
   const links = useLinks(route);
   return (
-    <div className="sbr-header" data-session={session === null ? 'loading' : 'known'}>
+    <div className="sbr-header" data-session={ready ? 'known' : 'loading'}>
       <AppHeader
         websiteMode={website}
         brand={{
@@ -104,7 +111,10 @@ export function Header({ route, dev }: HeaderProps): ReactElement {
           name: 'Seasonal Bingo Royale',
         }}
         links={links}
-        navExtra={<NavExtra route={route} dev={dev} />}
+        // After the links: the development Quick Test link.
+        navExtra={
+          tools === null ? null : <tools.QuickTestLink active={route.name === 'quicktest'} />
+        }
         account={account}
         signIn={
           websiteSignIn === null
@@ -112,13 +122,7 @@ export function Header({ route, dev }: HeaderProps): ReactElement {
             : { href: websiteSignIn }
         }
         // The server has no quick sign-in in website mode (D37).
-        devTools={
-          dev && DevSignIn !== null && !website ? (
-            <Suspense fallback={null}>
-              <DevSignIn />
-            </Suspense>
-          ) : null
-        }
+        devTools={tools === null || website ? null : <tools.DevSignIn />}
         // A new route or another account: the folded menu has done its job.
         closeKey={`${JSON.stringify(route)} ${session?.account?.id ?? ''}`}
         buttonClassName="sk-btn"

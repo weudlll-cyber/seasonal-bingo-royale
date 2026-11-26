@@ -7,12 +7,12 @@
  *                 "Sign in as admin" (the admin area's Admin) / "Sign in as owner" / "Sign in as
  *                 player 1/2/3" and a hint that one window holds one sign-in (05 §2.1), and the
  *                 navigation link to the Quick Test; `useDevSignIn` for the test page's
- *                 "Sign in as host". Loaded on demand by ./AppShell only
+ *                 "Sign in as host". Loaded on demand by ./Header only
  *                 when Vite's DEV flag is set, so a production bundle contains neither
  *                 these parts nor the quick sign-in call (POST /dev/sign-in).
  * Depends on:     react, @seasonal/kit/react/dev (DevSignIn), ./http, ./router, ./session,
  *                 ../game/socket
- * Used by:        ./AppShell (lazy import), ../quicktest/TestMatch (development only)
+ * Used by:        ./Header (loaded on demand), ../quicktest/TestMatch (development only)
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/01-game-design.md §13
  */
 import { DevSignIn as KitDevSignIn } from '@seasonal/kit/react/dev';
