@@ -3,15 +3,14 @@
 # @module ops
 # @brief  Website installs: put the game's route file in place, apply it with a rollback, check it through the proxy.
 #
-# Responsibility: nginx mode: <routes dir>/bingo.conf (0600), `nginx -t`; on failure the previous
-#                 file is back (or the new one removed) and it stops with nginx's error, else
-#                 reload. Own-Caddy mode with the checkout known (install.conf INSTALL_DIR):
-#                 deploy/site/routes/bingo.caddy (0600) once Caddy has /etc/caddy/routes mounted,
-#                 `caddy validate`, restore on failure, else reload; without the checkout (older
-#                 website) /opt/sbr/routes and the manual steps of docs/operator-guide.md. No other
-#                 website file is touched. remove_route_file undoes it. final_checks go through the
+# Responsibility: the kit's route step with Bingo's settings (it writes the file 0600, checks the
+#                 proxy, puts the earlier file back on a refusal, else reloads): nginx mode
+#                 <routes dir>/bingo.conf; own-Caddy mode with the checkout known (install.conf
+#                 INSTALL_DIR) deploy/site/routes/bingo.caddy once Caddy has /etc/caddy/routes
+#                 mounted; without the checkout /opt/sbr/routes and the manual steps of
+#                 docs/operator-guide.md. remove_route_file undoes it. final_checks go through the
 #                 real proxy: game 200, sign-in to /login?next=, authorize 204 (older: 401), feed.
-# Depends on:     ./common.sh, ./website.sh, ./websiteRoute.sh, docker, nginx, curl
+# Depends on:     ./common.sh, ./website.sh, ../kit/lib/website-route.sh, docker, nginx, curl
 # Used by:        ops/install.sh, ops/sbr (update, uninstall)
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
 
@@ -20,87 +19,86 @@ caddy_route_target() {
   [[ -n ${SBR_SITE_DIR:-} ]] && printf '%s/deploy/site/routes/bingo.caddy' "$SBR_SITE_DIR"
 }
 
-# restore_file <target> <saved copy or empty>: the previous file back, or the new one removed.
-restore_file() {
-  if [[ -n $2 ]]; then mv -f "$2" "$1"; else rm -f "$1"; fi
+# header_names <env>: HEADERS (all identity headers, in order) and SECRET: the env file's
+# names, else the app's defaults (07 §2.3).
+header_names() {
+  local file="$SBR_ETC/$1.env" key name
+  # A dry run has written no env file: the route file it would write is not shown anyway.
+  SECRET=$(env_value "$file" SBR_WEBSITE_PROXY_SECRET)
+  SECRET=${SECRET:-unset-in-a-dry-run}
+  HEADERS=()
+  for key in ID:X-Acting-User-Id NAME:X-Acting-User ROLES:X-Acting-User-Roles \
+    EMAIL_VERIFIED:X-Acting-User-Email-Verified CAN_HOST:X-Acting-User-Can-Host \
+    STEPS:X-Acting-User-Steps GUEST:X-Acting-Guest; do
+    name=$(env_value "$file" "SBR_WEBSITE_HEADER_${key%%:*}")
+    HEADERS+=("${name:-${key#*:}}")
+  done
 }
 
-# keep_copy <target>: a copy of the current file beside it (not *.conf, so nginx never reads
-# it), or nothing when there is none.
-keep_copy() {
-  [[ -f $1 ]] || return 0
-  cp -p "$1" "$1.sbr-previous"
-  printf '%s' "$1.sbr-previous"
-}
-
-apply_nginx_route() {
-  local env=$1 target="$SBR_WEBSITE_ROUTES_DIR/bingo.conf" saved error
-  saved=$(keep_copy "$target")
-  write_nginx_route "$env" | put_file "$target" 0600
-  if ! error=$(nginx -t 2>&1); then
-    restore_file "$target" "$saved"
-    nginx -t -q 2>/dev/null || warn "nginx -t still fails after putting the previous route file back: check the website's nginx"
-    die "the game's route file made nginx -t fail, so it was rolled back (the website is unchanged): $error"
+# route_settings <env>: Bingo's settings of the kit's route step (../kit/lib/website-route.sh,
+# K72), exported: its names, the app and the website as the website's proxy reaches them, the
+# route file and the proxy's check and reload. In own-Caddy mode they need the website's Caddy.
+route_settings() {
+  local env=$1 caddy check
+  header_names "$env"
+  export SK_ROUTE_GAME=bingo SK_ROUTE_BASE=/games/bingo SK_ROUTE_SECRET_HEADER=$SECRET_HEADER
+  export SK_ROUTE_SECRET=$SECRET SK_ROUTE_IDENTITY_HEADERS="${HEADERS[*]}"
+  export SK_ROUTE_WEBSITE=$SBR_WEBSITE_UPSTREAM SK_ROUTE_AUTHORIZE=$SBR_WEBSITE_AUTHORIZE_PATH
+  export SK_ROUTE_MODE=$SBR_WEBSITE_MODE
+  if [[ $SBR_WEBSITE_MODE == nginx ]]; then
+    export SK_ROUTE_APP=127.0.0.1:$SBR_APP_PORT SK_ROUTE_FILE=$SBR_WEBSITE_ROUTES_DIR/bingo.conf
+    export SK_ROUTE_CHECK_CMD='nginx -t -q' SK_ROUTE_RELOAD_CMD='systemctl reload nginx'
+    return 0
   fi
-  [[ -z $saved ]] || rm -f "$saved"
-  systemctl reload nginx
-  info "  route file: $target, nginx reloaded"
+  caddy=$(website_caddy)
+  check="docker exec $caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
+  export SK_ROUTE_APP=sbr-bingo-$env:3000 SK_ROUTE_FILE=$(caddy_route_target)
+  export SK_ROUTE_CHECK_CMD="$check >/dev/null"
+  export SK_ROUTE_RELOAD_CMD="docker exec $caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null"
 }
 
 apply_caddy_route() {
-  local env=$1 target caddy saved error
-  target=$(caddy_route_target)
+  local caddy
   caddy=$(website_caddy)
   [[ -n $caddy ]] || die "the website's Caddy is not running"
   docker inspect -f '{{range .Mounts}}{{.Destination}} {{end}}' "$caddy" | grep -qw /etc/caddy/routes ||
     die "the website's Caddy has no /etc/caddy/routes yet: run the website installer again with --update, then this installer"
-  saved=$(keep_copy "$target")
-  install -d -m 0755 "${target%/*}"
-  write_caddy_route "$env" | put_file "$target" 0600
-  if ! error=$(docker exec "$caddy" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile 2>&1); then
-    restore_file "$target" "$saved"
-    die "the game's route file made caddy validate fail, so it was rolled back (the website is unchanged): $(tail -3 <<<"$error")"
-  fi
-  [[ -z $saved ]] || rm -f "$saved"
-  docker exec "$caddy" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
-  info "  route file: $target, Caddy reloaded"
+  route_settings "$1"
+  install -d -m 0755 "${SK_ROUTE_FILE%/*}"
+  sk_route_install || die "the game's route file was not applied (message above); the website is unchanged"
 }
 
 # apply_route_file <env>: the route file in place and live (dry run: shown only).
 apply_route_file() {
-  header_names "$1"
   if [[ $SBR_DRY_RUN == 1 ]]; then
     info "  would write the game's route file and reload the website's $SBR_WEBSITE_MODE"
   elif [[ $SBR_WEBSITE_MODE == nginx ]]; then
-    apply_nginx_route "$1"
+    route_settings "$1"
+    sk_route_install || die "the game's route file was not applied (message above); the website is unchanged"
   elif [[ -n $(caddy_route_target) ]]; then
     apply_caddy_route "$1"
   else
-    write_caddy_route "$1" | put_file "$SBR_ROOT/routes/bingo.caddy" 0600
+    # No checkout to write into: the file for the manual steps.
+    route_settings "$1"
+    sk_route_caddy | put_file "$SBR_ROOT/routes/bingo.caddy" 0600
     warn "the website's checkout is unknown (no INSTALL_DIR in $SEASONAL_ETC/install.conf): add $SBR_ROOT/routes/bingo.caddy by hand (docs/operator-guide.md, \"Website by hand\")"
   fi
 }
 
 # remove_route_file <env>: the game's own route file gone, the website reloaded and still valid.
 remove_route_file() {
-  local file="$SBR_ETC/$1.env" target caddy
-  if [[ $(env_value "$file" SBR_WEBSITE_MODE) == nginx ]]; then
-    rm -f "$(env_value "$file" SBR_WEBSITE_ROUTES_DIR)/bingo.conf"
-    if nginx -t -q 2>/dev/null; then systemctl reload nginx; else warn "nginx -t fails: check the website's nginx"; fi
-    return 0
-  fi
+  local env=$1 file="$SBR_ETC/$1.env"
   rm -f "$SBR_ROOT/routes/bingo.caddy"
-  SBR_SITE_DIR=$(env_value "$file" SBR_SITE_DIR)
-  target=$(caddy_route_target)
-  caddy=$(website_caddy)
-  [[ -n $target ]] || { warn "remove bingo.caddy from the website checkout's deploy/site/routes/ and reload its Caddy yourself"; return 0; }
-  rm -f "$target"
-  [[ -n $caddy ]] || return 0
-  if docker exec "$caddy" caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1; then
-    docker exec "$caddy" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
-  else
-    warn "caddy validate fails: check the website's Caddy"
+  load_route_values "$file"
+  if [[ $SBR_WEBSITE_MODE != nginx ]]; then
+    if [[ -z $(caddy_route_target) ]]; then
+      warn "remove bingo.caddy from the website checkout's deploy/site/routes/ and reload its Caddy yourself"
+      return 0
+    fi
+    [[ -n $(website_caddy) ]] || { rm -f "$(caddy_route_target)"; return 0; }
   fi
+  route_settings "$env"
+  sk_route_remove || warn "the website's proxy did not reload: check it"
 }
 
 # through <url path> [curl options]: the website's answer for this server, by its own name

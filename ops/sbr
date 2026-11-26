@@ -24,14 +24,20 @@ set -euo pipefail
 shopt -s inherit_errexit
 
 HERE=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+# The kit's scripts (./kit) came in an update of their own: an update that skipped it ran the
+# old installer, which did not bring them.
+if [[ ! -f $HERE/kit/backup.sh ]]; then
+  echo "STOP: this install lacks the kit's scripts: run ops/install.sh again from $HERE/src" >&2
+  exit 1
+fi
 # shellcheck source=lib/common.sh
 source "$HERE/lib/common.sh"
 # shellcheck source=lib/config.sh
 source "$HERE/lib/config.sh"
 # shellcheck source=lib/website.sh
 source "$HERE/lib/website.sh"
-# shellcheck source=lib/websiteRoute.sh
-source "$HERE/lib/websiteRoute.sh"
+# shellcheck source=kit/lib/website-route.sh
+source "$HERE/kit/lib/website-route.sh"
 # shellcheck source=lib/websiteApply.sh
 source "$HERE/lib/websiteApply.sh"
 # shellcheck source=lib/backup.sh

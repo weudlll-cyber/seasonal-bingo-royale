@@ -21,7 +21,7 @@ const REPO = fileURLToPath(new URL('../../..', import.meta.url));
 function nextSteps(type: 'standalone' | 'website'): string {
   const script = [
     'set -euo pipefail',
-    'for lib in common website websiteRoute websiteApply; do source "ops/lib/$lib.sh"; done',
+    'for lib in common website websiteApply; do source "ops/lib/$lib.sh"; done',
     `eval "$(sed -n '/^next_steps() {/,/^}/p' ops/install.sh)"`,
     `SBR_TYPE=${type} SBR_DRY_RUN=1 SBR_CHANGES=3 SBR_ENV=prod SBR_ADDRESS=bingo.example.org`,
     'SBR_WEBSITE_DOMAIN=example.org SBR_WEBSITE_MODE=nginx SBR_WEBSITE_ROUTES_DIR=/etc/seasonal/routes',

@@ -176,4 +176,4 @@ When all is good: set the Bingo card to `available`.
   sudo sbr rollback
   ```
 - **The website's update in step 3 went wrong:** follow the website's guide (`docs/DEPLOYMENT.md`, "Status, uninstall, rollback" and "Restoring"). It needs the snapshot it printed (`/var/backups/seasonal-install/<time>`) or the backup from step 1.4.
-- **Bingo's data must come back from a backup:** operator guide §5 step 5 (`sudo sbr restore <file> --identity <key file>`; `sbr` runs the kit's backup script, `ops/lib/kit-backup.sh`). On a new server, add `--force-env`. The rehearsal restores a backup into a fresh server this way.
+- **Bingo's data must come back from a backup:** operator guide §5 step 5 (`sudo sbr restore <file> --identity <key file>`; `sbr` runs the kit's backup script, `/opt/sbr/kit/backup.sh`). On a new server, add `--force-env`. The rehearsal restores a backup into a fresh server this way.

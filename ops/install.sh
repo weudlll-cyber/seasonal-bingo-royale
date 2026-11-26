@@ -34,8 +34,8 @@ source "$OPS/lib/common.sh"
 source "$OPS/lib/host.sh"
 # shellcheck source=lib/website.sh
 source "$OPS/lib/website.sh"
-# shellcheck source=lib/websiteRoute.sh
-source "$OPS/lib/websiteRoute.sh"
+# shellcheck source=kit/lib/website-route.sh
+source "$OPS/kit/lib/website-route.sh"
 # shellcheck source=lib/websiteApply.sh
 source "$OPS/lib/websiteApply.sh"
 # shellcheck source=lib/config.sh

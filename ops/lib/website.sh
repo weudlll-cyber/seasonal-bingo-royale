@@ -10,7 +10,7 @@
 #                 idle, warning). Caddy mode trusts every subnet of that network; nginx mode
 #                 publishes one loopback port (site-local-port, else 3800 with a warning) as
 #                 authorize upstream and trusts only the app's own subnet. Reads install.conf
-#                 (BINGO=yes required). Route file: ./websiteRoute.sh, ./websiteApply.sh.
+#                 (BINGO=yes required). Route file: ./websiteApply.sh.
 # Used by:        ops/install.sh, ops/sbr (status, update)
 # Spec:           docs/spec/09-deployment-architecture.md §1, §3, §8; docs/spec/07-integration-architecture.md §2.3
 
@@ -100,16 +100,11 @@ refresh_website() {
   local env=$1 file="$SBR_ETC/$1.env"
   [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]] || return 0
   set_env_value "$file" SBR_WEBSITE_SYNC_TOKEN "$(sync_token)"
-  SBR_WEBSITE_MODE=$(env_value "$file" SBR_WEBSITE_MODE)
-  SBR_WEBSITE_UPSTREAM=$(env_value "$file" SBR_WEBSITE_UPSTREAM)
-  SBR_WEBSITE_AUTHORIZE_PATH=$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH)
-  SBR_WEBSITE_ROUTES_DIR=$(env_value "$file" SBR_WEBSITE_ROUTES_DIR)
-  SBR_APP_PORT=$(env_value "$file" SBR_APP_PORT)
+  load_route_values "$file"
   if [[ $SBR_WEBSITE_MODE == nginx ]]; then
     SBR_WEBSITE_UPSTREAM=127.0.0.1:$(site_local_port)
     set_env_value "$file" SBR_WEBSITE_UPSTREAM "$SBR_WEBSITE_UPSTREAM"
   fi
-  SBR_SITE_DIR=$(env_value "$file" SBR_SITE_DIR)
   apply_route_file "$env"
 }
 
@@ -205,6 +200,15 @@ authorize_status() {
     [[ -n $caddy ]] && code=$(docker exec "$caddy" wget -S -q -O /dev/null -T 5 --header 'X-Original-Method: GET' "$url" 2>&1 | awk '/HTTP\//{print $2; exit}' || true)
   fi
   [[ -n ${code:-} && $code != 000 ]] && printf '%s' "$code" || printf 'no answer'
+}
+
+# load_route_values <env file>: what the route file is written from, as the install saved it.
+load_route_values() {
+  local key
+  for key in SBR_WEBSITE_MODE SBR_WEBSITE_UPSTREAM SBR_WEBSITE_AUTHORIZE_PATH \
+    SBR_WEBSITE_ROUTES_DIR SBR_APP_PORT SBR_SITE_DIR; do
+    printf -v "$key" '%s' "$(env_value "$1" "$key")"
+  done
 }
 
 # check_proxy <env>: sbr status's line on the proxy in front (nginx port, or the website's

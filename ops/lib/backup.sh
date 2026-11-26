@@ -3,8 +3,8 @@
 # @module ops
 # @brief  Bingo's backups on the kit's backup script: settings, restore, drill, timer.
 #
-# Responsibility: the kit's script (./kit-backup.sh, a verbatim copy of @seasonal/kit's
-#                 ops/backup.sh, K61) does the dump, the encryption to the operator's age public
+# Responsibility: the kit's script (../kit/backup.sh, in the verbatim copy of @seasonal/kit's
+#                 ops folder, K61, K71) does the dump, the encryption to the operator's age public
 #                 key, the retention (14 newest, 8 weekly), the one-transaction database restore,
 #                 the uploads and its drill; here are Bingo's SK_BACKUP_* settings and what stays
 #                 Bingo's: SBR_SEED_KEY and SBR_RECOVERY_KEY travel as the backup's secret files
@@ -15,13 +15,13 @@
 #                 (uploads.tar, seed.key, recovery.key, no manifest); the drill also opens one
 #                 stored match secret with the backup's seed key. Timer 03:30.
 # Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
-#                 cleanup, stop_app), ./config.sh (apply_db_roles), ./kit-backup.sh, age, docker
+#                 cleanup, stop_app), ./config.sh (apply_db_roles), ../kit/backup.sh, age, docker
 # Used by:        ops/sbr, ops/install.sh (timer)
 # Spec:           docs/spec/09-deployment-architecture.md §6; docs/spec/03-security-architecture.md §15
 
 PG_IMAGE=postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
 BACKUP_GROUP=sbr-backup
-KIT_BACKUP=$(dirname "${BASH_SOURCE[0]}")/kit-backup.sh
+KIT_BACKUP=$(dirname "${BASH_SOURCE[0]}")/../kit/backup.sh
 
 # kit_settings <env>: Bingo's settings of the kit's script, exported (call in a subshell).
 kit_settings() {
@@ -41,7 +41,7 @@ kit_settings() {
 kit() (
   kit_settings "$1"
   shift
-  # shellcheck source=ops/lib/kit-backup.sh
+  # shellcheck source=ops/kit/backup.sh
   SK_BACKUP_SOURCE_ONLY=1 source "$KIT_BACKUP"
   "$@"
 )
