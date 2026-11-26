@@ -71,7 +71,8 @@ export function AdminOverview(): ReactElement {
         setLoad({ kind: 'ready', value });
       })
       .catch((e: unknown) => {
-        if (e instanceof ApiError) setLoad({ kind: 'refused' });
+        // A refusal only: no answer at all (status 0) leaves the page loading.
+        if (e instanceof ApiError && e.status !== 0) setLoad({ kind: 'refused' });
       });
   }, []);
   useEffect(reload, [reload]);
