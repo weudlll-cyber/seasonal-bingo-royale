@@ -40,8 +40,9 @@ interface HeaderProps {
   readonly dev: boolean;
 }
 
-// The development tools once they are there, or null (never in production).
-function useDevTools(wanted: boolean): DevTools | null {
+// The development tools once they are there (else null; never in production), and whether
+// nothing is still to come.
+function useDevTools(wanted: boolean): { tools: DevTools | null; settled: boolean } {
   const [tools, setTools] = useState<DevTools | null>(null);
   useEffect(() => {
     if (!wanted || loadDevTools === null) return undefined;
@@ -53,7 +54,7 @@ function useDevTools(wanted: boolean): DevTools | null {
       live = false;
     };
   }, [wanted]);
-  return tools;
+  return { tools, settled: !wanted || loadDevTools === null || tools !== null };
 }
 
 // The bar's links; the server checks every call behind them.
@@ -93,10 +94,10 @@ function useAccount(): HeaderAccount | null {
 
 export function Header({ route, dev }: HeaderProps): ReactElement {
   const session = useSession().session;
-  const tools = useDevTools(dev);
+  const { tools, settled } = useDevTools(dev);
   // The account row shows only once everything in it is there: a menu arriving later moved
   // "Sign in" under the pointer (a click then landed beside it).
-  const ready = session !== null && (!dev || loadDevTools === null || tools !== null);
+  const ready = session !== null && settled;
   const websiteSignIn = useWebsiteSignIn();
   const website = session?.authMode === 'website';
   const account = useAccount();

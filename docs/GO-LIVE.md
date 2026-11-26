@@ -55,20 +55,21 @@ git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo
 
 It asks three things:
 
-| Question                                   | Your answer             |
-| ------------------------------------------ | ----------------------- |
-| `Environment [prod/staging] [prod]:`       | press **Enter** (prod)  |
-| `Admin e-mail (certificates and notices):` | your e-mail address     |
-| `Your age public key for backups (age1…):` | your public key `age1…` |
+| Question                                      | Your answer                                                                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Environment [prod/staging] [prod]:`          | press **Enter** (prod)                                                                                                                          |
+| `Operator e-mail (certificates and contact):` | your e-mail address (only when the server has none yet in `/etc/seasonal/operator.env`; else it says `using <address> from …` and asks nothing) |
+| `Your age public key for backups (age1…):`    | your public key `age1…`                                                                                                                         |
 
 It asks nothing else. It takes the website's mode (nginx or the website's own Caddy) and the domain from the website's record.
 
-Expected output, in this order (from the rehearsal; your values differ):
+Expected output, in this order (from the rehearsal; your values differ; the `host:` line and the operator question are newer than that rehearsal):
 
 ```
 Checking the server
   system: ubuntu 24.04
   …
+host: website mode: the website's installer owns this server's security; nothing changed
   website: nginx mode, domain <website domain>, the app trusts 172.30.249.0/24
 Preparing the app
   image source: built on this server from /root/sbr at master (no signed release image yet)
@@ -177,4 +178,6 @@ When all is good: set the Bingo card to `available`.
   ```
 - **The website's update in step 3 went wrong:** follow the website's guide (`docs/DEPLOYMENT.md`, "Status, uninstall, rollback" and "Restoring"). It needs the snapshot it printed (`/var/backups/seasonal-install/<time>`) or the backup from step 1.4.
 - **Bingo's data must come back from a backup:** operator guide §5 step 5 (`sudo sbr restore <file> --identity <key file>`; `sbr` runs the kit's backup script, `/opt/sbr/kit/backup.sh`). On a new server, add `--force-env`.
-- **A first install** runs `ops/install.sh`, which puts everything in place, the kit's folder `/opt/sbr/kit/` included. **An install made before the kit's folder existed** (none exists in production) updates in two steps, because `sbr update` runs the installed version's file list: first to the commit that only added the folder (`feat(ops): sbr update installs the kit's whole ops folder`), `sudo sbr confirm`, then to the newer ref; or run the installer again from `/opt/sbr/src`. The rehearsal restores a backup into a fresh server this way.
+  **What a first install puts in place** (`ops/install.sh`): Bingo's stack files and scripts in `/opt/sbr` (the kit's folder `/opt/sbr/kit/` included, which `sbr`, the backups and the route file run from), the `sbr` command, the settings in `/etc/sbr`, the operator's address in `/etc/seasonal/operator.env`, the database roles, the containers, the route file in the website's proxy, the backup keys as secret files and the nightly backup timer. In website mode it changes no firewall, update or SSH setting (a standalone server gets those from the same installer). Nothing has to be done in a certain order afterwards: every later `sbr update` installs the whole new version.
+
+**Updating an older install.** **An install made before the kit's folder existed** (none exists in production) updates in two steps, because `sbr update` runs the installed version's file list: first to the commit that only added the folder (`feat(ops): sbr update installs the kit's whole ops folder`), `sudo sbr confirm`, then to the newer ref; or run the installer again from `/opt/sbr/src`. The rehearsal restores a backup into a fresh server this way.

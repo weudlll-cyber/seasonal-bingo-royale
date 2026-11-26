@@ -9,9 +9,11 @@
 - **What changes for you to notice:** a restore through `sbr` asks `[y/N]`, refuses a differing seed **or recovery** key without `--force-env`, and **leaves the game stopped if it fails** (the kit's behaviour; before, the game was started again). Backups made before 25 November 2026 are first written again with `sbr rewrite_backup`. Season icons are named "Spring" and so on. A disabled button is muted, a disabled field looks locked. On a phone the own card is a little smaller where the window's height decides it.
 - **Where the kit's way cost something:** its stand-in's members are all e-mail-verified (the league test marks one test account unverified in its own database), its login has no page of its own, and its chat frame shows no room or theme; it keeps idle connections for 5 s, so the spec polls faster.
 
+- **Piece 2, the look.** (a) The kit's three header looks (K96); the organizer's header at 1280×720 in website mode with three badges is one row (`chatEmbed.spec.ts`). (b) The final placement uses the kit's dense result frame (K93). **Places whole above the chat strip** (website mode, 16 px, 20 players; player / spectator / host console): 1280×720 **8 / 8 / 8** (floor 7 met; v0.22.0: 5, before the kit: 7), 1366×768 7 / 7 / 8, 1536×768 8 / 8 / 8, 1440×900 12 each, 1900×860 11 each, 1920×1080 20 each. No row wraps, no finding. (c) The in-match Standings and the result rows show names without badges (2026-11-26); every Standings row is one line. (d) The Firefox sign-in failure is fixed at its cause: the account row shows once the development menu has loaded (`headerDevReady.test.tsx`); the kit's `header-dev.css` only lays the menu out.
+
 ### Running
 
-- Piece 2 (the look), piece 3 (the update path), piece 4 (rehearsal), piece 5 (the owner's look).
+- Piece 3 (the update path), piece 4 (rehearsal), piece 5 (the owner's look).
 
 ### Needs the owner's word
 

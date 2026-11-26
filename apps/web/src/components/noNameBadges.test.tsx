@@ -56,6 +56,40 @@ function badged(events?: number) {
 
 const badges = () => document.querySelectorAll('img[src^="/media/step-icons/"]').length;
 
+// The leaderboard's and a profile's answers, the player with the steps.
+function serveLeague(): void {
+  const period = {
+    id: 'p',
+    kind: 'season',
+    name: 'Autumn 2026',
+    status: 'active',
+    minPlayers: 8,
+  };
+  const figures = { points: 10, wins: 1, seasonCompletes: 0 };
+  const row = { rank: 1, displayName: 'carla', isYou: false, steps: STEPS, ...figures };
+  const profile = {
+    displayName: 'carla',
+    steps: STEPS,
+    matchesPlayed: 1,
+    bestPlacement: 1,
+    badges: [],
+    recentMatches: [],
+    corrections: [],
+    ...figures,
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => {
+      const body = url.endsWith('/leaderboards')
+        ? { items: [period] }
+        : url.includes('/players/')
+          ? profile
+          : { items: [row], nextCursor: null };
+      return Promise.resolve(new Response(JSON.stringify(body)));
+    }),
+  );
+}
+
 describe('step badges beside names', () => {
   it('shows none in the standings of a running round', async () => {
     serveMatch(matchSummary({ status: 'running' }), badged(2));
@@ -92,36 +126,7 @@ describe('step badges beside names', () => {
   });
 
   it('keeps them on the leaderboard and on a profile', async () => {
-    const period = {
-      id: 'p',
-      kind: 'season',
-      name: 'Autumn 2026',
-      status: 'active',
-      minPlayers: 8,
-    };
-    const figures = { points: 10, wins: 1, seasonCompletes: 0 };
-    const row = { rank: 1, displayName: 'carla', isYou: false, steps: STEPS, ...figures };
-    const profile = {
-      displayName: 'carla',
-      steps: STEPS,
-      matchesPlayed: 1,
-      bestPlacement: 1,
-      badges: [],
-      recentMatches: [],
-      corrections: [],
-      ...figures,
-    };
-    vi.stubGlobal(
-      'fetch',
-      vi.fn((url: string) => {
-        const body = url.endsWith('/leaderboards')
-          ? { items: [period] }
-          : url.includes('/players/')
-            ? profile
-            : { items: [row], nextCursor: null };
-        return Promise.resolve(new Response(JSON.stringify(body)));
-      }),
-    );
+    serveLeague();
     await show(<LeaderboardPage periodId={null} />);
     expect(await screen.findByTestId('league-row-carla')).toBeTruthy();
     expect(badges()).toBeGreaterThan(0);

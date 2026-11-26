@@ -23,7 +23,12 @@ const devTools = vi.hoisted(() => {
   const held = new Promise<void>((resolve) => {
     release = resolve;
   });
-  return { held, release: () => release() };
+  return {
+    held,
+    release: () => {
+      release();
+    },
+  };
 });
 vi.mock('./DevTools.js', async (original) => {
   await devTools.held;
