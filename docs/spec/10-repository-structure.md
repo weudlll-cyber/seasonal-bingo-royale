@@ -74,7 +74,7 @@ seasonal-bingo-royale/
 │  │           quicktest/ (dev page "Test a match": chooser, test match, seed check)
 │  │           main.tsx  App.tsx  api.ts  types.ts  drawControl.ts  manualMarking.ts
 │  │           playback.ts  playbackScoring.ts  playbackTypes.ts  seasonIcons.ts
-│  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts  useSecondsUntil.ts
+│  │           standingsOrder.ts  useDrawTicker.ts  useReducedMotion.ts
 │  │           motion.css
 │  │           league/ (leaderboard and profile pages, profile links)
 │  │           chat/  embed/  strings.ts  (planned)

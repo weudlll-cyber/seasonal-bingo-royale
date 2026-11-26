@@ -13,7 +13,7 @@
  *                 interval or outside a minute to a day are not sent, a message says why (D12).
  * Depends on:     react, ../components/DrawModeSwitch, ../game/labels, ../game/socket,
  *                 ../game/useLiveMatch (types), ../playback (types), ../types,
- *                 ../useSecondsUntil, ./asyncTiming (minutesProblem), ./TimingFields
+ *                 ../shell/session, ./asyncTiming (minutesProblem), ./TimingFields
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §5 (D8, D12, D13), §7 (D21); docs/spec/06-realtime-architecture.md §4.1
  */
@@ -21,13 +21,13 @@ import { useEffect, useState, type ReactElement } from 'react';
 
 import { DrawModeSwitch } from '../components/DrawModeSwitch.js';
 import { intervalText, problemText } from '../game/labels.js';
-import { useSecondsUntil } from '../useSecondsUntil.js';
 import { minutesProblem } from './asyncTiming.js';
 import { intervalProblem } from './TimingFields.js';
 import { intent } from '../game/socket.js';
 import type { LiveState } from '../game/useLiveMatch.js';
 import type { PlaybackView } from '../playback.js';
 import type { DomainEventLike } from '../types.js';
+import { useServerCountdown } from '../shell/session.js';
 
 // The latest draw's speed window is still open: no speedWindowClosed after it yet.
 export function windowOpen(events: readonly DomainEventLike[]): boolean {
@@ -117,7 +117,7 @@ function useDrawNext(
   const [pressedAt, setPressedAt] = useState<number | null>(null);
   const pending = pressedAt !== null && live.view.events.length <= pressedAt;
   // D13: locked until the next number would have come under timed draws.
-  const left = useSecondsUntil(live.match.nextDrawAt);
+  const left = useServerCountdown(live.match.nextDrawAt);
   const canDraw =
     live.match.settings.drawMode === 'host' &&
     !pending &&

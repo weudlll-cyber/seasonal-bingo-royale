@@ -11,7 +11,7 @@
  *                 — you can keep watching"; the button reads "Keep playing" or "Watch" (D15). A new cut
  *                 scrolls into view. It never pauses playback: an eliminated owner keeps
  *                 watching the spectator view to the end.
- * Depends on:     react, ../game/seasonText, ../playback, ../useReducedMotion, ../useSecondsUntil
+ * Depends on:     react, ../game/seasonText, ../playback, ../useReducedMotion, ../shell/session
  * Used by:        ./Playback, ../game/ArenaNotice
  * Spec:           docs/spec/01-game-design.md §7.4, §13; docs/spec/15-implementation-plan.md WP-08
  */
@@ -20,7 +20,7 @@ import { useEffect, useRef, useState, type ReactElement } from 'react';
 import { shieldSavedLine } from '../game/seasonText.js';
 import type { CutView } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
-import { useSecondsUntil } from '../useSecondsUntil.js';
+import { useServerCountdown } from '../shell/session.js';
 
 interface CutScreenProps {
   readonly cut: CutView | null;
@@ -31,7 +31,7 @@ interface CutScreenProps {
 export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactElement | null {
   const reduced = useReducedMotion();
   const [closed, setClosed] = useState(0);
-  const left = useSecondsUntil(nextRoundAt);
+  const left = useServerCountdown(nextRoundAt);
   const box = useRef<HTMLElement>(null);
   const shown = cut?.number ?? 0;
   // A new cut comes into view, also for a player scrolled down to their card.

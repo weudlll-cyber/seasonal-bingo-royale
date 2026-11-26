@@ -24,7 +24,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Playback } from '../components/Playback.js';
 import { HostConsole } from '../host/HostConsole.js';
 import { playbackAt } from '../playback.js';
-import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
+import { matchSummary, renderInSession, serveMatch, show } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { Interlude } from './Interlude.js';
 import { CALM_CARD_MS, planInterlude } from './interludePlan.js';
@@ -138,11 +138,12 @@ function passCards(count: number): void {
 }
 
 describe('the interlude over the pause (D14, D20)', () => {
-  it('advances by itself in a timed pause and ends with the countdown', () => {
+  it('advances by itself in a timed pause and ends with the countdown', async () => {
     vi.useFakeTimers();
     motion(false);
     const at = Date.now() + 25_000;
-    render(
+    serveMatch(matchSummary());
+    await renderInSession(
       <Interlude recap={RECAP} pause={{ kind: 'wait', ms: 25_000 }} nextRoundAt={at} me={null} />,
     );
     expect(screen.getByTestId('interlude-countdown').textContent).toBe('Next round in 25 s');

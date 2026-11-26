@@ -10,7 +10,7 @@
  *                 left, or "Full"), and the 10-second countdown to the first round once it runs. A signed-in
  *                 player who has not joined yet gets a Join button while a place is left. No host link here: the host's console has its own tab
  *                 (Manage in the lobby, the test page opens it; QUICKTEST-GUIDE-2).
- * Depends on:     react, ../account/WebsiteSignIn, ../components/StepBadges, ../shell/http, ../shell/session, ../useSecondsUntil,
+ * Depends on:     react, ../account/WebsiteSignIn, ../components/StepBadges, ../shell/http, ../shell/session, ../shell/session,
  *                 ../playback (types), ./useLiveMatch, ./labels, ./Registration, ./SeasonsOverview
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §3a, §5, §6; docs/spec/05-api-design.md §2.3
@@ -21,8 +21,7 @@ import { useSignInToPlay } from '../account/WebsiteSignIn.js';
 import { NameSteps, StepsByName } from '../components/StepBadges.js';
 import type { PlaybackView } from '../playback.js';
 import { api } from '../shell/http.js';
-import { useSession } from '../shell/session.js';
-import { useSecondsUntil } from '../useSecondsUntil.js';
+import { useServerCountdown, useSession } from '../shell/session.js';
 import { gameTypeName, prizeName, rulesLine } from './labels.js';
 import { RegistrationStatus } from './Registration.js';
 import { SeasonsOverview } from './SeasonsOverview.js';
@@ -117,7 +116,7 @@ function JoinAction({ code }: { readonly code: string }): ReactElement | null {
 
 // The real countdown before the first round (10 s; a set time shows in the registration line).
 function Countdown({ startsAt }: { readonly startsAt: number | null }): ReactElement | null {
-  const left = useSecondsUntil(startsAt);
+  const left = useServerCountdown(startsAt);
   if (left === null) return null;
   return (
     <p className="countdown" data-testid="countdown" aria-live="polite">

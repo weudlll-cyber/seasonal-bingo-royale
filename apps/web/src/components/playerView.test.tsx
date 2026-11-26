@@ -21,6 +21,8 @@ import { CutScreen } from './CutScreen.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
+import { SessionProvider } from '../shell/session.js';
+import { serveWithLimits } from '../test/matchFixture.js';
 import { numberCard, royaleFixture, SEASON_EFFECTS } from '../test/quickTestFixture.js';
 
 afterEach(cleanup);
@@ -179,12 +181,14 @@ describe('CutScreen', () => {
     owners: [{ accountId: 'owner-01', outcome }],
   });
 
-  it('tells a survivor when the next round starts, an eliminated owner the cut they went out in', () => {
+  it('tells a survivor when the next round starts, an eliminated owner the cut they went out in', async () => {
     const nextRoundAt = Date.now() + 6_000;
-    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} nextRoundAt={nextRoundAt} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain(
-      "You're through — next round in 6 s",
-    );
+    // In a session: its answer names the server's time, which the countdown counts on.
+    serveWithLimits();
+    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} nextRoundAt={nextRoundAt} />, {
+      wrapper: SessionProvider,
+    });
+    expect(await screen.findByText(/You're through — next round in 6 s/)).toBeTruthy();
     expect(screen.queryByText('Watch')).toBeNull();
     fireEvent.click(screen.getByText('Keep playing'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();

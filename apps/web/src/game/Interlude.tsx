@@ -13,7 +13,7 @@
  *                 nothing.
  * Depends on:     react, @sbr/contracts (types), ../playback (types), ../shell/session
  *                 (useScreens, the card time), ../useReducedMotion,
- *                 ../useSecondsUntil, ./interludePlan, ./InterludeCards, ./labels,
+ *                 ../shell/session, ./interludePlan, ./InterludeCards, ./labels,
  *                 ./interlude.css
  * Used by:        ./ArenaNotice, ../host/HostConsole, ../components/Playback (Quick Test)
  * Spec:           docs/spec/01-game-design.md §7 (D14, D20), §13
@@ -23,12 +23,11 @@ import { useEffect, useMemo, useState, type ReactElement } from 'react';
 
 import type { PlaybackView } from '../playback.js';
 import { useReducedMotion } from '../useReducedMotion.js';
-import { useSecondsUntil } from '../useSecondsUntil.js';
 import { planInterlude, type InterludePlan, type Pause } from './interludePlan.js';
 import { RecapCardBody } from './InterludeCards.js';
 import { nextRoundLine, RECAP_TITLE, recapStep } from './labels.js';
 import './interlude.css';
-import { useScreens } from '../shell/session.js';
+import { useScreens, useServerCountdown } from '../shell/session.js';
 
 // The recap of the round just played while the screen is in the pause after it (D20): a
 // live match sends it only then, the Quick Test sends every round's.
@@ -155,7 +154,7 @@ function StepButton({ label, testId, disabled, onStep }: StepButtonProps): React
 
 // The existing countdown to the next round, at the end of a timed pause.
 function NextRound({ at }: { readonly at: number | null }): ReactElement | null {
-  const left = useSecondsUntil(at);
+  const left = useServerCountdown(at);
   if (left === null || left === 0) return null;
   return (
     <span className="interlude-countdown" data-testid="interlude-countdown">

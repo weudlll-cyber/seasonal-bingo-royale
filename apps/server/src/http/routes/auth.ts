@@ -162,6 +162,8 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     account: await accountOf(s, deps),
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
+    // The server's clock, for the client's countdowns (kit K69).
+    serverTime: Date.now(),
     features: deps.features(),
     // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
     limits: LIMITS,
