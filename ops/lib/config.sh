@@ -8,8 +8,9 @@
 #                 once (openssl rand), public URL, trusted proxies, sign-in mode (website installs:
 #                 D37), route settings, proxy secret, database role passwords (audit-3 S1;
 #                 apply_db_roles, convert_db_roles for older installs); operator keys kept. Also
-#                 writes install.conf, copies compose files, Caddyfile and sbr CLI to /opt/sbr
-#                 (save_stack/restore_stack keep the previous for rollback), builds the app image
+#                 writes install.conf, copies compose files, Caddyfile, the library, the kit's
+#                 ops folder and the sbr CLI to /opt/sbr (save_stack/restore_stack keep the
+#                 previous for rollback), builds the app image
 #                 from a git ref unless that commit's exists, drops older images.
 # Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (update)
@@ -187,24 +188,33 @@ install_files() {
     [[ -f $path ]] || continue
     put_file "$SBR_ROOT/lib/${path##*/}" 0644 <"$path"
   done
+  # The kit's operations folder whole, its layout kept (its scripts load lib/ beside
+  # themselves, kit docs/ADOPTION.md "Since v0.25.0").
+  for path in "$from"/kit/*.sh "$from"/kit/lib/*; do
+    [[ -f $path ]] || continue
+    put_file "$SBR_ROOT/kit/${path#"$from/kit/"}" 0644 <"$path"
+  done
   put_file "$SBR_ROOT/sbr" 0755 <"$from/sbr"
   [[ -L /usr/local/bin/sbr ]] || run ln -sf "$SBR_ROOT/sbr" /usr/local/bin/sbr
 }
 
 # The stack files an update replaces (install_files): kept for a rollback (audit O1).
-STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr)
+STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr kit)
 
 # save_stack <dir>: copies the installed stack files to <dir>/stack.
 save_stack() {
   rm -rf "$1/stack"
   install -d -m 0700 "$1/stack"
-  (cd "$SBR_ROOT" && cp -a "${STACK_FILES[@]}" "$1/stack/")
+  # An install made before a stack file existed has none to keep.
+  (cd "$SBR_ROOT" && for file in "${STACK_FILES[@]}"; do
+    [[ ! -e $file ]] || cp -a "$file" "$1/stack/"
+  done)
 }
 
 # restore_stack <dir>: puts the stack files saved by save_stack back.
 restore_stack() {
   [[ -d $1/stack ]] || return 0
-  (cd "$1/stack" && cp -a "${STACK_FILES[@]}" "$SBR_ROOT/")
+  (cd "$1/stack" && cp -a ./. "$SBR_ROOT/")
   rm -rf "$1/stack"
 }
 
