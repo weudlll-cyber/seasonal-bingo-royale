@@ -143,13 +143,16 @@ const envSchema = z.object({
   SBR_WEBSITE_FEED_INTERVAL_MS: z.coerce.number().int().min(1_000).default(120_000),
   // The secret the game's proxy route sends in X-Sbr-Proxy-Secret with the identity headers
   // (website mode needs it; the installer generates it). No other process knows it.
-  SBR_WEBSITE_PROXY_SECRET: z.string().min(32).max(256).optional(),
+  // A standalone install's env file holds both website lines empty (ops/lib/config.sh).
+  SBR_WEBSITE_PROXY_SECRET: unsetIfEmpty(z.string().min(32).max(256).optional()),
   // The website's login page; the return path is appended URL-encoded (D43). A path on the
   // website's own origin, never another site.
-  SBR_WEBSITE_LOGIN_PATH: z
-    .string()
-    .regex(/^\/(?![/\\])[\x21-\x7e]*$/, 'a path on the website, e.g. /login?next=')
-    .default('/login?next='),
+  SBR_WEBSITE_LOGIN_PATH: unsetIfEmpty(
+    z
+      .string()
+      .regex(/^\/(?![/\\])[\x21-\x7e]*$/, 'a path on the website, e.g. /login?next=')
+      .default('/login?next='),
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;
