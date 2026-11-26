@@ -416,3 +416,11 @@ Text covered with the chat open (probe "overlap" items, light theme; the desktop
 - **Results places whole** above the strip: 7, 7, 7, 13, 11, 20 (the same count as before, measured stricter now: a row under the strip does not count).
 - **Not-earned marks in the dark theme:** the tokens give a dark disc (`--color-surface`) with a grey-blue ring (`--color-border-strong`): different from the coloured icons at a glance, on the coloured podium steps a dark disc with a ring, readable.
 - **Standalone, 1280×720** (pages, a royale, a classic round): see the standalone line of §8.2; nothing standalone was touched (the new rules sit under `.sk-docked-main` / `.sk-docked`); the SeasonIcon, SeasonSet and podium changes apply to standalone too (same look everywhere), they do not change any size.
+
+### 8.4 Large fonts: the match screens stack (2026-11-26, owner decision)
+
+At a 32 px root font and 1280×720 the docked player round's title, status lines and side column lay over each other: the layouts asked the window's pixels, and the side column's minimum (13 spacing steps) was 1040 px there.
+
+- **Rule:** the desktop layouts apply from 48 root-font widths of page (`page` container, `shell/shell.css`; 01 §13). 16 to 24 px are unchanged at every desktop size; 32 px stacks up to 1536 px wide.
+- **Also:** the docked side column's panels keep their text height (`shell/dockSide.css`), and a phone's own card is bounded by its box's width (`game/liveCard.css`).
+- **Measured** with `SBR_SWEEP_FONTS` (website sweep) and `SBR_FIT_FONTS` (standalone audit); results in MORNING.md, "Kit 0.22". The probe does not report a partial overlap under a quarter of the smaller box; `e2e/chatEmbed.spec.ts` checks the boxes themselves.

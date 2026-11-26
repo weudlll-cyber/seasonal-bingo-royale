@@ -5,7 +5,7 @@
  *
  * Responsibility: `sweep` measures one game screen inside the website stand-in (../websiteStack) at
  *                 the ten sizes of the night of 2026-11-23 (six desktop, four phone), root font
- *                 16 px, both themes, chat closed and open (a phone's sheet; the desktop strip is
+ *                 16 px (or SBR_SWEEP_FONTS, "16,32"), both themes, chat closed and open (a phone's sheet; the desktop strip is
  *                 always there): fit probe (./fitProbe), round screens' key boxes (./fitMeasure)
  *                 and axe (WCAG 2 A and AA) on the game's page, chat frame left out; on the results
  *                 screen also how many places lie wholly above the strip (`places`) and, where there are standings, how many of their rows are
@@ -16,7 +16,7 @@
  *                 SBR_SWEEP_THEMES ("light") and SBR_SWEEP_CHAT ("open") narrow the sweep;
  *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen, size and theme for a
  *                 review (`<screen>-<size>-<theme>.png`): the chat strip shown on a desktop, the
- *                 game with the sheet closed on a phone.
+ *                 game with the sheet closed on a phone (a font other than 16 is in the name).
  *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
  *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
@@ -67,6 +67,9 @@ const THEMES = (['light', 'dark'] as const).filter(
 const CHATS = (['closed', 'open'] as const).filter(
   (c) => listOf('SBR_SWEEP_CHAT')?.includes(c) ?? true,
 );
+
+// SBR_SWEEP_FONTS="16,32": the root font sizes swept (unset: the browser's own 16 px).
+const FONTS = (listOf('SBR_SWEEP_FONTS') ?? ['16']).map(Number);
 
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
 const SHOTS = process.env['SBR_SWEEP_SHOTS'] ?? null;
@@ -222,8 +225,10 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
       // Switched where nothing folds: the toggles sit in the folded menu on a phone.
       await atSize(page, 1920, 1080, 16);
       await setTheme(page, theme);
-      for (const [w, h] of SWEEP_SIZES) {
-        await atSize(page, w, h, 16);
+      for (const [w, h, font] of SWEEP_SIZES.flatMap(([w, h]) =>
+        FONTS.map((f) => [w, h, f] as const),
+      )) {
+        await atSize(page, w, h, font);
         await setChat(page, chat === 'open');
         const measured = await probe(page);
         const area = await areaOf(page);
@@ -240,6 +245,7 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           ...p,
           screen,
           size,
+          font,
           theme,
           chat,
           round,
@@ -252,7 +258,8 @@ export async function sweep(page: Page, screen: string, kind?: string): Promise<
           findings: findingsOf(p, round, keysOut) + (bar === false ? 1 : 0),
         };
         appendFileSync(LOG, `${JSON.stringify(sample)}\n`);
-        await review(page, `${screen}-${size}-${theme}`, chat === (w >= 960 ? 'open' : 'closed'));
+        const shot = font === 16 ? `${screen}-${size}` : `${screen}-${size}-${String(font)}`;
+        await review(page, `${shot}-${theme}`, chat === (w >= 960 ? 'open' : 'closed'));
       }
     }
   }

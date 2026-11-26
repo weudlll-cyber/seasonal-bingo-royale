@@ -6,8 +6,11 @@
  * Responsibility: a centred main column under the top bar (the kit's header, its look
  *                 ./header.css). On desktop a live screen (.fit-window: the arena, the running
  *                 host console) fills the window below the bar exactly, so the page does not
- *                 scroll during a round. The maintenance page and banner. Colours come from
+ *                 scroll during a round; the `page` container the match screens' desktop layouts
+ *                 ask (a large font stacks them). The maintenance page and banner. Colours come from
  *                 @sbr/ui.
+ * Used by:        ./AppShell; the `page` container: ../game/arena.css, ../game/watch.css,
+ *                 ../host/host.css, ./dockSide.css, ./dockWatch.css, ./dockResults.css
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -48,9 +51,20 @@
     padding-bottom: var(--sk-space-2);
   }
 
-  #root:has(.fit-window) .fit-window {
-    flex: 1 1 auto;
-    min-height: 0;
+  /* The match screens' desktop layouts ask this width in root-font steps, not the window's
+     pixels: `@container page (min-width: 48rem)` is a desktop whose page is wide enough for
+     columns at the reader's font (48 rem: 768 px at 16, 1536 px at 32). Narrower, at a large
+     font, they stack as on a phone and the page or the game area scrolls (owner decisions of
+     2026-11-20 and 2026-11-26). Defined from 960 px only, so no phone matches it. */
+  .shell-main {
+    container: page / inline-size;
+  }
+
+  @container page (min-width: 48rem) {
+    #root:has(.fit-window) .fit-window {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
   }
 }
 

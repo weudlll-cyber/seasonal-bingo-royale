@@ -3,8 +3,9 @@
  * @module web/host
  * @brief  The host's screens: console grid, Draw next, "Start a match".
  *
- * Responsibility: the host console in three columns from 960 px (filling the window while
- *                 the match runs, so the page does not scroll), the open-match
+ * Responsibility: the host console in three columns on a wide enough desktop page (`page`
+ *                 container, ../shell/shell.css; else stacked), filling the window while
+ *                 the match runs, so the page does not scroll; the open-match
  *                 notice, the big Draw next (readable when disabled: muted text on surface-2,
  *                 4.5:1 in both themes), and "Start a match": its numbered steps, tiles for the
  *                 game type and the preset (wrapping on a phone), the speed's three buttons,
@@ -25,7 +26,7 @@
 /* Desktop: ball, numbers and the newest lines | the controls | the standings. While the
    match runs the console fills the window below the top bar (../shell/shell.css
    .fit-window): each column scrolls on its own, the standings take the full height. */
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   .host-grid {
     grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1fr) minmax(18rem, 22rem);
     align-items: start;

@@ -10,7 +10,7 @@
  *                 reports/logs/fit-<group>.jsonl; findings saved light and dark to
  *                 reports/screens/latest/, passing ones only as references. Matches aborted, no
  *                 account created. SBR_ACCEPTANCE=1, Chromium, one worker (toggles maintenance).
- *                 SBR_FIT_SIZES/_TAG/_DOM tune the run.
+ *                 SBR_FIT_SIZES/_FONTS/_TAG/_DOM tune the run.
  * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../devStack,
  *                 ../websiteStack, ./fitMeasure, ./fitProbe, ./screenPlay, ./websiteSweep
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
@@ -61,7 +61,8 @@ const SIZES = ALL_SIZES.filter(([w, h]) => ONLY?.includes(`${String(w)}x${String
 const TAG = process.env['SBR_FIT_TAG'] ?? 'fit';
 // SBR_FIT_DOM=1 also saves each screen's page (its styles included) to reports/logs/fit-dom/.
 const DOM = path.join(REPO_ROOT, 'reports', 'logs', 'fit-dom');
-const FONTS = [16, 20, 24] as const;
+// SBR_FIT_FONTS="16,32" measures those root font sizes instead.
+const FONTS = (process.env['SBR_FIT_FONTS'] ?? '16,20,24').split(',').map(Number);
 const REFERENCE = new Set(['390x844', '1920x1080']);
 
 interface Sample extends Probe {

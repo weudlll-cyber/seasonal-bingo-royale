@@ -3,8 +3,9 @@
  * @module web/game
  * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
  *
- * Responsibility: the arena layout (stacked on phones, ball and drawn numbers above the
- *                 card; from 960 px the arena fills the window below the top bar: ball, drawn
+ * Responsibility: the arena layout (stacked on phones and at a large font, ball and drawn
+ *                 numbers above the card; on a wide enough desktop page (`page` container,
+ *                 ../shell/shell.css) the arena fills the window below the top bar: ball, drawn
  *                 numbers and the newest lines beside the card, which takes its cell size from
  *                 the space it has, the side column beside them with the standings filling the
  *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
@@ -175,7 +176,7 @@
    card, which takes its cell size from its box (container units), so it is always whole.
    In the side column the standings take the rest of the height and scroll inside; the
    other panels scroll inside themselves when the window is short. */
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   /* A column: title, rules and whatever notices there are, then the play area with the
      rest of the height (never less than 20rem or half the window, whichever is smaller: at
      a large font the rem floor alone pushed the round past the window, fit audit F12; a

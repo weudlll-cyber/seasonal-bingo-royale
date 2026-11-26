@@ -9,10 +9,15 @@
  *                 spans the page below the game, holds the frame of /embed/chat?room=bingo&theme=
  *                 <game theme> on the site's origin (the kit's WebsiteChatFrame), follows theme
  *                 switches and is there after a reload; at 390×844 the kit's bar sits at the bottom,
- *                 opens the chat as a sheet and closes it again. Standalone: no chat, no request for
- *                 the embed page. Match aborted, account removed. Chromium only.
+ *                 opens the chat as a sheet and closes it again. At 1280×720 with a 32 px root font
+ *                 the player's round and the host console stack (the side column below the play
+ *                 area, no heading or line wider than its box); at 16 px it stands beside. At
+ *                 1900×860 it stays beside at 32 px with no panel's text running into the next;
+ *                 on phones at 32 px the player's card is no wider than its box.
+ *                 Standalone: no chat, no request for the embed page. Matches aborted, account
+ *                 removed. Chromium only.
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
- * Spec:           docs/spec/07-integration-architecture.md §6
+ * Spec:           docs/spec/07-integration-architecture.md §6; docs/spec/01-game-design.md §13
  */
 import { expect, test, type Page } from '@playwright/test';
 
@@ -116,6 +121,106 @@ test('the chat strip under the lobby, console and match on a wide screen', async
     await expect(page.getByTestId('chat-frame')).toBeVisible();
     await page.goto(`${stack.origin}${BASE}/#/match/${code}`);
     await expect(page.getByTestId('chat-frame')).toBeVisible();
+  } finally {
+    await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });
+  }
+});
+
+// Where a match screen's side column stands (below the play area, or beside it), the headings
+// and lines whose words reach past their own box, and the side panels shorter than their text.
+const columnsOf = (page: Page, play: string, side: string) =>
+  page.evaluate(
+    ([a, b]) => {
+      const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+      const [left, right] = [box(a ?? ''), box(b ?? '')];
+      const texts = [...document.querySelectorAll<HTMLElement>('.sk-docked-main :is(h1, h2, p)')];
+      const panels = [
+        ...document.querySelectorAll<HTMLElement>('.arena-side > :not(.standings-panel)'),
+      ];
+      return {
+        short: panels
+          .filter((t) => t.scrollHeight > t.clientHeight + 1)
+          .map((t) => t.textContent.slice(0, 40)),
+        below: left !== undefined && right !== undefined && right.top >= left.bottom - 1,
+        beside: left !== undefined && right !== undefined && right.left >= left.right - 1,
+        spilling: texts
+          .filter((t) => t.clientWidth > 0 && t.scrollWidth > t.clientWidth + 1)
+          .map((t) => t.textContent.slice(0, 40)),
+      };
+    },
+    [play, side],
+  );
+
+// 16 px: the side column beside the play area; 32 px: below it, no text past its box.
+async function expectAdapts(page: Page, play: string, side: string): Promise<void> {
+  for (const font of [16, 32]) {
+    await atFont(page, font);
+    const what = `${play} at ${String(font)} px`;
+    await expect
+      .poll(() => columnsOf(page, play, side), { message: what })
+      .toEqual({ below: font === 32, beside: font === 16, spilling: [], short: [] });
+  }
+}
+
+const atFont = (page: Page, font: number) =>
+  page.evaluate((px) => {
+    document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
+  }, font);
+
+// How far the player's card reaches past the width of its box (0: it fits).
+const cardOverhang = (page: Page) =>
+  page.evaluate(() => {
+    const box = document.querySelector('.arena-cards')?.getBoundingClientRect();
+    const card = document.querySelector('.own-cards .live-card')?.getBoundingClientRect();
+    if (box === undefined || card === undefined) return -1;
+    return Math.max(0, Math.round(card.right - box.right), Math.round(box.left - card.left));
+  });
+
+// A wide window keeps the columns at 32 px, with every side panel as tall as its text; on a
+// phone the player's card fits the width (the game area scrolls up and down).
+async function expectRoomAndCard(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 1900, height: 860 });
+  await atFont(page, 32);
+  await expect
+    .poll(() => columnsOf(page, '.arena-play', '.arena-side'), { message: 'wide at 32 px' })
+    .toEqual({ below: false, beside: true, spilling: [], short: [] });
+  for (const size of [PHONE, { width: 360, height: 780 }]) {
+    await page.setViewportSize(size);
+    await expect
+      .poll(() => cardOverhang(page), { message: `card at ${String(size.width)} px, 32 px font` })
+      .toBe(0);
+  }
+}
+
+test('at a large font the match screens stack under the dock', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await signInMember(page);
+  const created = await post(page, '/matches', {
+    title: 'Large font royale',
+    gameType: 'royale',
+    drawMode: 'host',
+    missedNumbers: { kind: 'noAutoMark' },
+    countsForLeaderboard: false,
+    maxPlayers: 10,
+    startRule: { kind: 'host' },
+    roundPause: { kind: 'host' },
+    testProfile: 'fast',
+    devTools: true,
+  });
+  expect(created.status()).toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  try {
+    expect((await post(page, `/matches/${code}/join`, {})).status()).toBe(204);
+    expect((await post(page, `/matches/${code}/bots`, { upTo: 10 })).status()).toBeLessThan(300);
+    await page.goto(`${stack.origin}${BASE}/#/host/${code}`);
+    await page.getByTestId('start-match').click();
+    // After the 10 s countdown before the first round.
+    await expect(page.getByTestId('host-draw-next')).toBeVisible({ timeout: 30_000 });
+    await expectAdapts(page, '.host-controls', '.host-side');
+    await page.goto(`${stack.origin}${BASE}/#/match/${code}`);
+    await expect(page.getByTestId('arena')).toBeVisible();
+    await expectAdapts(page, '.arena-play', '.arena-side');
+    await expectRoomAndCard(page);
   } finally {
     await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });
   }

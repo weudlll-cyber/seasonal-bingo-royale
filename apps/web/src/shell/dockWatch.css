@@ -15,7 +15,7 @@
  * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
  */
 
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   /* Two cards high: each with its padding, a heading of up to two lines and the letters. */
   .sk-docked-main .watch-cards:not(.is-following) .watch-card.live-card {
     --cell-size: max(

@@ -19,7 +19,7 @@
  * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
  */
 
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   .sk-docked-main .sk-result .final-own {
     font-size: var(--sk-font-size-lead);
   }

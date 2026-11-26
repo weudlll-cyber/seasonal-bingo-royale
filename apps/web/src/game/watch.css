@@ -102,10 +102,10 @@
   }
 }
 
-/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
+/* Desktop (the `page` container, ../shell/shell.css): 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
    never gets smaller than its 16 px number needs (rem floors grow with the font): rather
    than the numbers shrinking or touching, the play area's box scrolls (fit audit F5, F15). */
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   .watch-card.live-card {
     /* Two cards high: each with padding, a heading of up to two lines and the letters. */
     --cell-size: max(1.6rem, min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5)));

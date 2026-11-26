@@ -14,7 +14,8 @@
  *                 patterns and the status keep their whole height; the standings take the rest;
  *                 a column too short for them scrolls as a whole (./dock.css gives the hint).
  *                 Nothing here applies without the dock: standalone installs keep arena.css and
- *                 host.css as they are. Under 960 px the screens stack as before.
+ *                 host.css as they are. Under 960 px, and on a desktop page too narrow for the
+ *                 reader's font (the `page` container, ./shell.css), the screens stack.
  *                 Where the column holds the standings, they stand beside the patterns and the
  *                 status and take the column's whole height.
  *                 The standings half is wider and its rows are closer, so a row (rank, name, four
@@ -26,7 +27,7 @@
  * Spec:           docs/concepts/kit-adoption.md §8; docs/concepts/fit-audit.md §8
  */
 
-@media (min-width: 960px) {
+@container page (min-width: 48rem) {
   .sk-docked-main {
     /* The badge's band: the side column starts right under it. */
     --dock-live-h: var(--sk-space-4);
@@ -111,7 +112,9 @@
     display: grid;
     /* The standings half is a little wider: a row (rank, name, four marks, points) is one line. */
     grid-template-columns: minmax(0, 0.87fr) minmax(0, 1.13fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
+    /* Never squeezed under their text: at a large font an auto row shrank and its panel's text
+       ran into the next one; the column scrolls instead. */
+    grid-template-rows: max-content max-content minmax(0, 1fr);
     column-gap: var(--sk-space-2);
     row-gap: var(--sk-space-1);
   }

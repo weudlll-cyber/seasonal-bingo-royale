@@ -25,14 +25,38 @@
 - Piece 8, the look (website sweep and standalone audit of the result and the player's round, light and dark, 16 px and 32 px root font, at 360×780, 390×844, 1280×720; the player had three step badges; throwaway specs, not committed). **16 px:** header order back, brand, Menu, toggle (folded), nothing covered, nothing past the window; results places whole above the strip 5 at 1280×720 (floor 7 not met, see piece 2a), 6 at 390×844, 5 at 360×780; findings: the clipped descender of "Final placement" at 1280×720 (kit headline), and at 360×780 the player's card ends below the game area (it scrolls and says so). **Found with the pictures:** (1) with three step badges the header **folds into Menu at 1280×720** (organizer; without badges it stays unfolded; unfolded again from 1366): the kit's measured fold. (2) The player's own Standings row wraps its points onto a second line when the member has step badges beside the name (the one-line fix of 2026-11-25 was measured without badges). **200 % font:** (3) at 1280×720 the player round's **title and status text lie over each other** and the first column is about 140 px: the side column's minimum `13 × --sk-space-4` is 1040 px there (`shell/dockSide.css`, on master since PR #72; not from this branch; a one-line fix: cap it with `min(…, 55%)`; not changed, the owner looks first); the results screen shows no place above the strip. (4) On phones the kit's chat bar text stays 14 px while the page's text doubles (kit). (5) Phones: the player's card is wider than 390 px (sideways scroll, standalone and website). 200 % was not measured on master before, so (5) and the standalone page scrolls are not compared. Standalone, 16 px: findings only the "Final placement" descender at 1280×720 and the phone round's page scroll (as before).
 - Pictures (18) in `C:/Users/weudl/sbr-review/kit22/`: results and player round at 1280×720 and 390×844, light and dark; both at 1280×720 with 200 %; header at both sizes and the open menu at 390×844.
 
+### Fix round of 2026-11-26: stopped after piece 1
+
+The owner stopped the round: the kit planning will tag a release that carries Bingo's findings (live `FailureBrake` with a reserve, restore order, dense `ResultFrame`, badges that give way before the header folds, Menu and toggle as one group, chat bar text that follows the font size), and Bingo moves once, onto that release, later. Only the piece in hand was finished. Nothing more changes on this branch until a new block.
+
+**Done: piece 1, large fonts.**
+
+- The match screens' desktop layouts (player, spectator, results, host console; standalone and docked) now ask the page's width in root-font steps: a `page` container on `.shell-main` from 960 px (`shell/shell.css`), `@container page (min-width: 48rem)` in `arena.css`, `watch.css`, `host.css`, `dockSide.css`, `dockWatch.css`, `dockResults.css` and for `.fit-window` in `shell.css`. At 32 px they stack up to 1536 px wide (side column below the play area, the page or the game area scrolls); 16, 20 and 24 px are as before. At 1900 and 1920 px they keep their columns, and the side panels no longer shrink under their text (`dockSide.css`: `max-content` rows; the seasons note ran under "Patterns this round" at 1900×860).
+- The player's card on a phone is never wider than its box (`liveCard.css`): it hung 36 px past it at 390 px and 32 px font. The rule was Bingo's and is the same on `master` `d7d841e` apart from token names (compared in the source; `master` was not run).
+- Test: `e2e/chatEmbed.spec.ts` "at a large font the match screens stack under the dock", failed before each of the three changes; it and `playerFit.spec.ts` pass in Chromium.
+- Website sweep (console, player, spectator, three results screens; six desktop sizes, 360×780, 390×844; 16 and 32 px; light and dark; 24 px in the run before the last two changes): desktop axe 0, no sideways scroll, no overlap but one probe flag on the ball cut at the scroll edge (console, 1366×768, 32 px). Standalone royale audit (1280×720, 1366×768, 1920×1080, 390×844; 16 and 32 px): no overlap on desktop; at 32 px the round pages scroll.
+- What it costs at 200 % on 1280×720: under the chat strip only the title and the ball are in view, the card is reached by scrolling; no result place is above the strip.
+- Pictures in `C:/Users/weudl/sbr-review/kit22/`, retaken: player round and results at 1280×720 light (normal and 200 %), player round at 390×844 at 200 % (its card is below the fold; the test measures it). The other pictures there are from before this round.
+
+**Stopped: piece 5, the Firefox failure (cause found, not fixed).** The trace of run 45701234922 shows no sign-in request at all, so `FailureBrake` is not involved. Playwright aimed at "Sign in"; the lazily loaded "Dev sign-in" menu then arrived and pushed the account links left; the pointer was over "Register" when it clicked down or up, so neither link was activated (the last screencast frame shows `#/register` under the pointer). Development builds only. Proposed fix: keep the account row hidden until the dev menu has loaded (`shell/Header.tsx`). A test that holds the module back is drafted.
+
+**Not started:** piece 2 (one badge in the header) and piece 3 (no badges beside names): no source change; their drafted tests, with piece 5's, are outside the repo in `C:/Users/weudl/sbr-review/kit22-stopped/`. Piece 4 (keep the kit's result frame) needed no code; kit-adoption §9 was not edited. For piece 2 when it comes: the website orders no step across its three ladders, so "highest" needs the owner's word (the first as sent is the simple choice). For piece 3: the leaderboard, the profile and the waiting room show badges beside names too.
+
+**Noticed, left alone:**
+
+- Phones, 32 px: the spectator's watched cards scroll sideways in a row that is no tab stop (axe `scrollable-region-focusable`, `.watch-grid`); standalone, the host-link row in the player's header and the console's controls are wider than 390 px.
+- After the root font changes on an open page the console's game area can scroll by a few pixels at 16 px (also measured before this round's changes; none when only 16 px is measured; cause not traced).
+- The fit probe misses a partial overlap under a quarter of the smaller box (the 200 % title overlap), so the new test measures boxes instead.
+- The kit's result headline is clipped at the descenders, and its chat bar text stays 14 px (both among the kit's findings).
+
 ### Running
 
-- CI on the branch's last head (looked at once, at the end of the chain).
+- CI on the branch's last head.
 
 ### Open
 
 - Kit wishes (docs/concepts/kit-adoption.md §9): dense `ResultFrame` and headline line height; folded header keeps Menu and toggle together; `FailureBrake` with a live rule and a reservation; backup restore refusing a differing secret before replacing the database; chat bar text growing with the font.
-- The points (1) to (5) of piece 8.
+- The points (1), (2) and (4) of piece 8; (3) and the card of (5) are fixed (fix round above).
 
 ### Needs the owner's word
 
