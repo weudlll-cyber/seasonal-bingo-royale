@@ -65,7 +65,7 @@ export function ThisMatchFields({ preset, values, set }: ChoiceProps): ReactElem
       <PlayersField preset={preset} values={values} set={set} />
       <SpeedField preset={preset} values={values} set={set} />
       {website ? (
-        <label className="sbr-row">
+        <label className="sbr-row start-check">
           <input
             type="checkbox"
             data-testid="create-website"
@@ -156,7 +156,7 @@ function MoreChoices({ preset, values, set }: ChoiceProps): ReactElement {
           />
         </fieldset>
       ) : null}
-      <label className="sbr-row">
+      <label className="sbr-row start-check">
         <input
           type="checkbox"
           data-testid="create-leaderboard"
@@ -168,7 +168,7 @@ function MoreChoices({ preset, values, set }: ChoiceProps): ReactElement {
         Counts for the league
       </label>
       {import.meta.env.DEV && live && preset.gameType === 'royale' ? (
-        <label className="sbr-row">
+        <label className="sbr-row start-check">
           <input
             type="checkbox"
             data-testid="create-fast"

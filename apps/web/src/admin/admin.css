@@ -66,10 +66,25 @@
   text-decoration: none;
 }
 
+/* The section links and a preset's tabs: 44 px targets. */
+.admin-nav :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sk-hit-target);
+}
+
 .admin-nav a[aria-current='page'],
 .admin-nav button[aria-pressed='true'] {
   background: var(--sk-color-solid);
   color: var(--sk-color-on-solid);
+}
+
+/* A yes/no value (./ValueField): a 44 px target around the box. */
+.admin-check {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--sk-hit-target);
+  min-height: var(--sk-hit-target);
 }
 
 /* A switch (./AdminSwitches): the box, then its name and what changing it does */

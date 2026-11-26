@@ -76,14 +76,17 @@ function FieldInput(props: {
   const f = props.field;
   if (f.kind === 'boolean')
     return (
-      <input
-        id={props.id}
-        type="checkbox"
-        checked={props.value === true}
-        onChange={(e) => {
-          props.onChange(e.target.checked);
-        }}
-      />
+      // Wrapped in a label of its own: the tap target is 44 px, not the box's 20.
+      <label className="admin-check">
+        <input
+          id={props.id}
+          type="checkbox"
+          checked={props.value === true}
+          onChange={(e) => {
+            props.onChange(e.target.checked);
+          }}
+        />
+      </label>
     );
   if (f.kind === 'text') return <TextInput {...props} />;
   if (f.kind === 'choice')

@@ -7,17 +7,17 @@
  *                 comment and saves; the History shows "1st place: … → …". A player the spec
  *                 registers gets a correction of +15 with its reason; the League page lists it and
  *                 the profile shows it. The page fits 1280×720 and a 390×844 phone at 100, 125 and
- *                 150 % (./acceptance/fitProbe). It changes the league table of the whole server,
+ *                 150 % (./fits). It changes the league table of the whole server,
  *                 so it runs alone after the other specs of its browser (TIMING); value restored
  *                 and account deleted (with its correction) at the end, also on failure. Chromium
  *                 saves admin-5-league-* and admin-5-profile-*.
- * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens, ./acceptance/fitProbe
+ * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens, ./fits
  * Spec:           docs/concepts/admin-area.md §4 (League), §6, §9 piece 5
  */
-import { expect, request, test, type Page } from '@playwright/test';
+import { expect, request, test } from '@playwright/test';
 import { captureLook } from '@seasonal/kit/testing';
 
-import { probe } from './acceptance/fitProbe.js';
+import { expectFits } from './fits.js';
 import { CLIENT_URL } from './devStack.js';
 import { closeContexts, post, signIn } from './realGame.js';
 import { SHOTS_DIR } from './screens.js';
@@ -28,28 +28,6 @@ test.afterEach(async ({ browser }) => {
 });
 
 const PASSWORD = 'correct horse battery staple';
-
-// Both sizes at 100, 125 and 150 %, from the top: nothing small, cut, covered or too wide.
-async function expectFits(page: Page): Promise<void> {
-  for (const size of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    for (const font of [16, 20, 24]) {
-      await page.setViewportSize(size);
-      await page.evaluate((px) => {
-        document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-        window.scrollTo(0, 0);
-      }, font);
-      const p = await probe(page);
-      const what = `${String(size.width)} px at ${String(font)} px`;
-      expect([p.smallText, p.cut, p.overlaps, p.hScroll], what).toEqual([[], [], [], false]);
-    }
-  }
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-  });
-}
 
 test('an admin changes the league points and corrects a player', async ({ browser }, info) => {
   const shots = info.project.name.startsWith('chromium');
@@ -85,7 +63,7 @@ test('an admin changes the league points and corrects a player', async ({ browse
     await admin.getByTestId('correction-add').click();
     const listed = admin.locator('[data-testid^="correction-"]').filter({ hasText: name });
     await expect(listed).toContainText('+15 points — Points of the broken match');
-    await expectFits(admin);
+    await expectFits(admin, 'admin league');
     if (shots) await captureLook(admin, SHOTS_DIR, 'admin-5-league', listed);
     await admin.getByRole('link', { name: 'History', exact: true }).click();
     await expect(admin.getByTestId('admin-history')).toContainText(

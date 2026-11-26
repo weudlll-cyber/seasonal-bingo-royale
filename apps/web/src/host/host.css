@@ -261,6 +261,11 @@
   gap: var(--sk-space-2);
 }
 
+/* A checkbox with its words: the whole row is the 44 px target. */
+.start-check {
+  min-height: var(--sk-hit-target);
+}
+
 .start-more summary {
   min-height: var(--sk-hit-target);
   display: flex;
