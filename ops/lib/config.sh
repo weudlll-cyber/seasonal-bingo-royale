@@ -12,7 +12,8 @@
 #                 ops folder and the sbr CLI to /opt/sbr (the admin command keeps and restores
 #                 STACK_FILES for a rollback), builds the app image
 #                 from a git ref unless that commit's exists.
-# Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
+# Depends on:     ./common.sh (put_file, run, env_value, url_host), ../kit/lib/db-roles.sh, git,
+#                 docker, openssl
 # Used by:        ops/install.sh, ops/sbr (./hooks.sh)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
 
@@ -143,11 +144,10 @@ convert_db_roles() {
 }
 
 # apply_db_roles <env>: the owner and app roles with the env file's passwords and the schema
-# owned by the owner (./db-roles.sql), as the superuser over the database container's local
-# socket. The passwords go into the script with bash's own substitution and reach psql on
-# standard input: never on a command line, never printed.
+# owned by the owner (the kit's ../kit/lib/db-roles.sh, K90), as the superuser over the database
+# container's local socket; the passwords reach psql on standard input only.
 apply_db_roles() {
-  local file="$SBR_ETC/$1.env" owner app sql
+  local file="$SBR_ETC/$1.env" owner app
   if [[ $SBR_DRY_RUN == 1 ]]; then
     info "  would set up the database roles sbr_owner and sbr_app"
     return 0
@@ -156,11 +156,8 @@ apply_db_roles() {
   app=$(env_value "$file" SBR_DB_APP_PASSWORD)
   [[ -n $owner && -n $app ]] || die "the env file has no database role passwords"
   compose "$1" up -d --wait postgres
-  sql=$(<"$SBR_ROOT/lib/db-roles.sql")
-  sql=${sql//__OWNER_PASSWORD__/$owner}
-  sql=${sql//__APP_PASSWORD__/$app}
-  printf '%s\n' "$sql" |
-    compose "$1" exec -T postgres psql -X -q -o /dev/null -v ON_ERROR_STOP=1 -U sbr -d sbr
+  SK_DB_PREFIX=sbr SK_DB_OWNER_PASSWORD=$owner SK_DB_APP_PASSWORD=$app \
+    sk_db_roles_apply compose "$1" exec -T postgres psql -X -q -o /dev/null -v ON_ERROR_STOP=1 -U sbr -d sbr
 }
 
 write_record() {
@@ -182,9 +179,9 @@ install_files() {
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
   put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
-  # Every file of the library, so a version that adds one brings it along (an update
+  # Every script of the library, so a version that adds one brings it along (an update
   # installs the new version's files with the CLI it replaces); none is ever removed here.
-  for path in "$from"/lib/*.sh "$from"/lib/*.sql; do
+  for path in "$from"/lib/*.sh; do
     [[ -f $path ]] || continue
     put_file "$SBR_ROOT/lib/${path##*/}" 0644 <"$path"
   done

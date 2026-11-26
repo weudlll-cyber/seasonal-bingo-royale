@@ -46,6 +46,8 @@ source "$OPS/kit/lib/website-route.sh"
 source "$OPS/lib/websiteApply.sh"
 # shellcheck source=lib/config.sh
 source "$OPS/lib/config.sh"
+# shellcheck source=kit/lib/db-roles.sh
+source "$OPS/kit/lib/db-roles.sh"
 # shellcheck source=lib/backup.sh
 source "$OPS/lib/backup.sh"
 

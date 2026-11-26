@@ -26,6 +26,8 @@ fi
 source "$HERE/lib/common.sh"
 # shellcheck source=lib/config.sh
 source "$HERE/lib/config.sh"
+# shellcheck source=kit/lib/db-roles.sh
+source "$HERE/kit/lib/db-roles.sh"
 # shellcheck source=lib/website.sh
 source "$HERE/lib/website.sh"
 # shellcheck source=kit/lib/website-route.sh

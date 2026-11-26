@@ -8,11 +8,11 @@
  *                 account, never prints it; standalone only, website installs refuse (D41).
  *                 `check-seed-key` opens a stored v2 sealed seed; `check-recovery-code --name`
  *                 checks a stdin code against unused recovery codes (read only; exit 1 on none).
- *                 `migrate` applies migrations as schema owner, grants the app role (./db/roles);
+ *                 `migrate` applies migrations as schema owner, grants the app role (the kit's, ./db/appRole);
  *                 non-zero exit blocks start. `loadcheck preflight|accounts|cleanup` serves
  *                 `sbr loadcheck` (12 §5).
  * Depends on:     ./config/env, ./config/seedKey, ./config/maintenance, ./db/pool,
- *                 ./db/migrator, ./db/roles, ./auth/accounts, ./auth/password,
+ *                 ./db/migrator, ./db/appRole, ./auth/accounts, ./auth/password,
  *                 ./auth/sessionPlugin, ./loadcheck/accounts, ./match/runtime,
  *                 ./match/sealedSeedCheck
  * Used by:        ops/sbr (docker compose exec app node dist/cli.js …), ops/lib/backup.sh (drill),
@@ -22,17 +22,18 @@
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
 
+import { grantAppRole, sessionCookie } from '@seasonal/kit/server';
+
 import { registerAccount } from './auth/accounts.js';
 import { passwordProblem } from './auth/password.js';
 import { SESSION_COOKIE } from './auth/sessionPlugin.js';
-import { sessionCookie } from '@seasonal/kit/server';
 import { recoveryCodeStored, resetTwoFactor } from './auth/twoFactor.js';
 import { loadEnv } from './config/env.js';
 import { maintenanceFlag } from './config/maintenance.js';
 import { recoveryKeyFrom, seedKeyFrom } from './config/seedKey.js';
+import { APP_ROLE_GRANTS } from './db/appRole.js';
 import { migrate } from './db/migrator.js';
 import { createPool } from './db/pool.js';
-import { grantAppRole } from './db/roles.js';
 import { createLoadAccounts, loadCheckRefusal, removeLoadCheck } from './loadcheck/accounts.js';
 import { createMatchRuntime } from './match/runtime.js';
 import { openOneSealedSeed } from './match/sealedSeedCheck.js';
@@ -150,7 +151,7 @@ async function migrateAsOwner(): Promise<number> {
   const pool = createPool(loadEnv().DATABASE_URL);
   try {
     const applied = await migrate(pool);
-    const granted = await grantAppRole(pool);
+    const granted = await grantAppRole(pool, APP_ROLE_GRANTS);
     console.log(
       `${String(applied.length)} migrations applied${applied.length > 0 ? `: ${applied.join(', ')}` : ''}; ` +
         (granted
