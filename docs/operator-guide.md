@@ -34,7 +34,7 @@ There is no signed release image yet, so the installer builds the game on the se
    ```
    git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh
    ```
-3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
+3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates and as the contact; asked once and kept in `/etc/seasonal/operator.env` for every Seasonal installer on the server, `--email` wins); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
 4. Wait until it says **Done**. It installs Docker if needed, builds the game, starts it and checks that it answers.
 5. Create the first admin (section 4), then open `https://<your domain>/`.
 
