@@ -45,6 +45,12 @@ export interface Member {
   readonly role: 'member' | 'organiser' | 'admin';
   // The website lets this member start games (X-Acting-User-Can-Host, 2026-11-04).
   readonly canHost?: boolean;
+  // The member's Discord steps, as the website sends them.
+  readonly steps?: readonly {
+    readonly ladder: 'holder' | 'farmer' | 'investor';
+    readonly name: string;
+    readonly icon: string;
+  }[];
 }
 
 export interface WebsiteStack {

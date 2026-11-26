@@ -36,6 +36,18 @@ test.beforeAll(async ({ browserName }) => {
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
   stack.addMember({ id: 9031, name: 'Chat Member', role: 'member', canHost: true });
+  // An organizer with the three step badges a member can have.
+  const step = (ladder: 'holder' | 'farmer' | 'investor', name: string, hex: string) => ({
+    ladder,
+    name,
+    icon: `/media/step-icons/${hex.repeat(32)}.webp`,
+  });
+  const steps = [
+    step('holder', 'Golden', 'a'),
+    step('farmer', 'Farmer Bronze', 'b'),
+    step('investor', 'Level 2 Investor', 'c'),
+  ];
+  stack.addMember({ id: 9032, name: 'Badged Organizer', role: 'member', canHost: true, steps });
 });
 
 test.afterAll(async ({ browserName }) => {
@@ -219,6 +231,20 @@ test('at a large font the match screens stack under the dock', async ({ page }) 
   } finally {
     await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });
   }
+});
+
+// Owner decisions of 2026-11-23 and 2026-11-26: the organizer's bar is one row at 1280×720,
+// also with three step badges (the kit lets them give way before the bar would fold, K94).
+test("the organizer's header with three badges stays one row", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.context().addCookies([stack.cookieOf(9032)]);
+  await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
+  await expect(page.getByTestId('signed-in-as')).toContainText('Badged_Organizer (organizer)');
+  const bar = page.getByTestId('app-header');
+  await expect
+    .poll(async () => (await bar.boundingBox())?.height ?? 0, { message: 'one row' })
+    .toBeLessThan(90);
+  await expect(bar.locator('.sk-header-step')).toHaveCount(3);
 });
 
 test('a bar and a sheet on a phone', async ({ page }) => {

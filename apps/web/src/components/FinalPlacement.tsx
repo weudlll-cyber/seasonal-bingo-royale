@@ -11,7 +11,7 @@
  *                 places are decided. No reveal: Bingo reveals nothing beyond its placings (the card
  *                 and the draws are on the screen). The podium shows each player's four season marks like the
  *                 rows below it (royale). Names link to profiles when `profileHref` is passed. Frame:
- *                 the kit's `ResultFrame` as a panel (`panel={{ level: 3 }}`, since v0.11.0);
+ *                 the kit's `ResultFrame` as a dense panel (`panel={{ level: 3 }}`, `dense`, K93);
  *                 the frame's look is the kit's (frames.css, K47), ./results.css styles Bingo's content.
  * Depends on:     react, @seasonal/kit/react (ResultFrame), ./Podium, ./RankRow, ./Playback
  *                 (props), ../game/labels, ../playback, ../shell/session (useScreens), ../types,
@@ -52,6 +52,8 @@ export function FinalPlacement({
     <ResultFrame
       game="bingo"
       panel={{ level: 3 }}
+      // One card of small padding, the headline on one row with its lines (K93).
+      dense
       headline="Final placement"
       lines={
         <>
