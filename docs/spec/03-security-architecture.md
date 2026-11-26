@@ -174,7 +174,7 @@ Uploaded images are never fetched from URLs — only direct uploads.
 
 | Route class | Default |
 |---|---|
-| Login | 5 / 15 min per account+IP, 20 / 15 min per IP; **only wrong passwords count** (owner decision of 2026-11-24, kit `FailureBrake`, K46): a braked key is refused before its password is checked, a correct sign-in is never counted, and a key has at most as many checks under way as its limit (guesses sent together would otherwise all pass before the first failure is counted); a limit changed in the settings starts the counts anew; then exponential back-off; CAPTCHA-free by design (no third-party CAPTCHA), uses progressive delay instead |
+| Login | 5 / 15 min per account+IP, 20 / 15 min per IP; **only wrong passwords count** (owner decision of 2026-11-24, kit `FailureBrake`, K46): a braked key is refused before its password is checked, a correct sign-in is never counted, and every check reserves a place on its keys, so failures and checks under way together never exceed the limit (the kit's `reserve`, K92: guesses sent together would otherwise all pass before the first failure is counted); a limit changed in the settings applies at once to the counts already held; then exponential back-off; CAPTCHA-free by design (no third-party CAPTCHA), uses progressive delay instead |
 | Registration | 5 / h per IP |
 | Password reset | 3 / h per account, 10 / h per IP |
 | General API | 120 / min per session |

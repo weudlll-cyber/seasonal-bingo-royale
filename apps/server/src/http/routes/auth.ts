@@ -11,15 +11,21 @@
  *                 website mode: display name typed, D42). Login answers uniformly and verifies a
  *                 dummy hash for unknown e-mails, so nothing reveals whether an account exists (03
  *                 §2.1). Registration is rate-limited per IP; login is braked per IP and per
- *                 account+IP by wrong passwords only (../../auth/loginBrake, K46; 03 §13).
+ *                 account+IP by wrong passwords only (K46; 03 §13).
  *                 E-mail verification and 2FA: feature flags, off by default.
  * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
- *                 types), ../../auth/* (loginBrake), ../../db/pool, ../../config/features,
+ *                 types), ../../auth/* (rateLimit: behindBrakes), ../../db/pool, ../../config/features,
  *                 ../sessionStart
  * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
 import { LIMITS, type ClientScreens } from '@sbr/contracts';
+import {
+  FailureBrake,
+  RateLimiter,
+  type SessionCookie,
+  type SessionEnds,
+} from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -32,9 +38,7 @@ import {
 } from '../../auth/accounts.js';
 import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
-import { behindBrakes, LoginBrake } from '../../auth/loginBrake.js';
-import { liveRule } from '../../auth/rateLimit.js';
-import { RateLimiter, type SessionCookie, type SessionEnds } from '@seasonal/kit/server';
+import { behindBrakes, liveRule } from '../../auth/rateLimit.js';
 import {
   accountSessionIds,
   createSession,
@@ -84,8 +88,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const live = liveLimits(deps.technical);
   const limits = {
     register: new RateLimiter(liveRule('register', live)),
-    loginIp: new LoginBrake(liveRule('loginIp', live)),
-    loginAccountIp: new LoginBrake(liveRule('loginAccountIp', live)),
+    loginIp: new FailureBrake(liveRule('loginIp', live)),
+    loginAccountIp: new FailureBrake(liveRule('loginAccountIp', live)),
     guest: new RateLimiter(liveRule('guest', live)),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps));
@@ -123,8 +127,8 @@ function registerLocalSignIn(
   deps: AuthDeps,
   limits: {
     readonly register: RateLimiter;
-    readonly loginIp: LoginBrake;
-    readonly loginAccountIp: LoginBrake;
+    readonly loginIp: FailureBrake;
+    readonly loginAccountIp: FailureBrake;
   },
 ): void {
   app.post('/api/v1/auth/register', async (request, reply) => {

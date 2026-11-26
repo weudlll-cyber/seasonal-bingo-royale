@@ -94,6 +94,15 @@ describe('the sign-in brake', () => {
     expect(await signIn(app, 'right', 'z@b.cd')).toBe(200);
   });
 
+  it('lets failures and checks under way fill the limit together', async () => {
+    const app = await server();
+    for (let i = 0; i < LIMIT - 1; i += 1) expect(await signIn(app, 'wrong')).toBe(401);
+    const before = checked.passwords;
+    await Promise.all(Array.from({ length: 20 }, () => signIn(app, 'wrong')));
+    // One try was left in the window: one more password is checked, however many arrive.
+    expect(checked.passwords).toBe(before + 1);
+  });
+
   it('holds back guesses sent at the same time', async () => {
     const app = await server();
     const codes = await Promise.all(Array.from({ length: 40 }, () => signIn(app, 'wrong')));

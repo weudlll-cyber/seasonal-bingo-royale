@@ -8,8 +8,10 @@
  *                 the kit's `RateLimiter` (@seasonal/kit/server, since v0.11.0): soft lockout,
  *                 a retry delay, idle keys forgotten, the clock injectable. `liveRule` gives it
  *                 a rule it reads on every request, so a limit changed in the admin area's
- *                 Technical section applies at once. A Redis-backed adapter is the scale-out
- *                 step (02 §8).
+ *                 Technical section applies at once. The password sign-in's limits are the kit's
+ *                 `FailureBrake` with the same live rules: `behindBrakes` reserves a place for
+ *                 each key before the check and ends it as failed or passed (K46, K92). A
+ *                 Redis-backed adapter is the scale-out step (02 §8).
  * Depends on:     @seasonal/kit/server (types)
  * Used by:        ./sessionPlugin, ../config/technical, ../http/routes/adminTechnical,
  *                 ../http/routes/auth, ../http/routes/health, ../http/routes/passwordReset,
@@ -17,7 +19,10 @@
  *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/03-security-architecture.md §13
  */
-import type { RateRule, RateRuleSource } from '@seasonal/kit/server';
+import type { FailureBrake, RateRule, RateRuleSource } from '@seasonal/kit/server';
+
+// One try held on a brake until it is ended (the kit does not export its type).
+type Attempt = NonNullable<ReturnType<FailureBrake['reserve']>>;
 
 // Defaults of 03 §13; the admin area's Technical section changes the limits (not the windows)
 // at runtime (`liveRule`).
@@ -57,4 +62,46 @@ export type TechnicalRule = Exclude<keyof typeof RATE_RULES, 'anonymous'>;
 export function liveRule(name: TechnicalRule, limits?: LiveLimits): RateRuleSource {
   if (limits === undefined) return RATE_RULES[name];
   return () => ({ limit: limits()[name], windowMs: RATE_RULES[name].windowMs });
+}
+
+export type BrakeKey = readonly [FailureBrake, string];
+
+// A place on every key's brake, or null when one is braked (those already taken are given back).
+function reserved(keys: readonly BrakeKey[]): readonly Attempt[] | null {
+  const taken: Attempt[] = [];
+  for (const [brake, key] of keys) {
+    const attempt = brake.reserve(key);
+    if (attempt === null) {
+      for (const earlier of taken) earlier.passed();
+      return null;
+    }
+    taken.push(attempt);
+  }
+  return taken;
+}
+
+// One password check behind the brakes: false, and no check, when a key is braked. `judged(wrong)`
+// is called as soon as the password has been judged: a wrong one becomes a failure on every key,
+// a right one gives the places back. Waiting for the answer instead would hold the places until it
+// has left, and correct sign-ins in a row would brake themselves.
+export async function behindBrakes(
+  keys: readonly BrakeKey[],
+  check: (judged: (wrong: boolean) => void) => PromiseLike<unknown>,
+): Promise<boolean> {
+  const attempts = reserved(keys);
+  if (attempts === null) return false;
+  // Only an attempt's first ending counts (the kit's rule).
+  const judged = (wrong: boolean): void => {
+    for (const attempt of attempts) {
+      if (wrong) attempt.failed();
+      else attempt.passed();
+    }
+  };
+  try {
+    await check(judged);
+  } finally {
+    // A check that threw before judging ends here too.
+    judged(false);
+  }
+  return true;
 }
