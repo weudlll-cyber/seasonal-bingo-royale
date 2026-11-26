@@ -185,18 +185,3 @@
   color: var(--sk-color-text-muted);
   font-weight: var(--sk-font-weight-strong);
 }
-
-/* A member's Discord steps next to the name (./StepBadges, website mode). */
-.step-badges {
-  display: inline-flex;
-  gap: 0.15rem;
-  margin-inline-start: 0.3rem;
-  vertical-align: middle;
-}
-
-.step-badge img {
-  display: block;
-  width: 1rem;
-  height: 1rem;
-  object-fit: contain;
-}

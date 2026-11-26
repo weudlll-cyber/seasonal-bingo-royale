@@ -11,12 +11,13 @@
  *                 with neighbours when it is further down. States the counting rule (03 §11)
  *                 with the period's player minimum. A narrow board (a phone, a large font)
  *                 shows each row's figures as one line under the name (./league.css).
- * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/http, ../shell/router, ../shell/session,
+ * Depends on:     react, @sbr/contracts (types), @seasonal/kit/react (StepBadges), ../shell/http, ../shell/router, ../shell/session,
  *                 ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.4;
  *                 docs/spec/03-security-architecture.md §11
  */
+import { StepBadges } from '@seasonal/kit/react';
 import type {
   LeaderboardAround,
   LeaderboardPage as Page,
@@ -26,7 +27,6 @@ import type {
 } from '@sbr/contracts';
 import { useState, type ReactElement } from 'react';
 
-import { StepBadges } from '../components/StepBadges.js';
 import { api } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';

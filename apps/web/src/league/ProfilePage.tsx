@@ -10,15 +10,15 @@
  *                 match) exactly as sent — no e-mail, no real name (01 §10) — and the corrections
  *                 of the player's league points with their reasons (admin-area §4). An unknown
  *                 name says so.
- * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../game/labels,
+ * Depends on:     react, @sbr/contracts (types), @seasonal/kit/react (StepBadges), ../game/labels,
  *                 ../shell/router, ./useApiGet, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
 import type { LeagueOutcome, PlayerProfile, ProfileMatch } from '@sbr/contracts';
+import { StepBadges } from '@seasonal/kit/react';
 import type { ReactElement } from 'react';
 
-import { StepBadges } from '../components/StepBadges.js';
 import { pointsDelta } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { useApiGet } from './useApiGet.js';
