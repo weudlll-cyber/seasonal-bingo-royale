@@ -172,6 +172,8 @@ const cookieOf = (env: Env) =>
 const headersOf = (env: Env) => ({
   devPage: env.SBR_WEB_DIR === undefined,
   mode: env.SBR_AUTH_MODE === 'website' ? ('website' as const) : ('standalone' as const),
+  // Served over https (the public address says so): insecure requests are upgraded.
+  secure: env.SBR_PUBLIC_URL?.startsWith('https:') === true,
 });
 const sessionOptions = (env: Env, technical: LiveTechnical) => ({
   technical,

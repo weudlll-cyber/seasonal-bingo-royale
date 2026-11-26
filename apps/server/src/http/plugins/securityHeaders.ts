@@ -19,12 +19,19 @@ import helmet from '@fastify/helmet';
 import { securityHeaderSet } from '@seasonal/kit/server';
 import type { FastifyInstance } from 'fastify';
 
-// `devPage`: the development placeholder page (./routes/placeholder) styles itself inline.
+interface HeaderOptions {
+  // The development placeholder page (./routes/placeholder) styles itself inline.
+  readonly devPage: boolean;
+  readonly mode: 'website' | 'standalone';
+  // Served over https.
+  readonly secure: boolean;
+}
+
 export async function registerSecurityHeaders(
   app: FastifyInstance,
-  { devPage, mode }: { readonly devPage: boolean; readonly mode: 'website' | 'standalone' },
+  { devPage, mode, secure }: HeaderOptions,
 ): Promise<void> {
-  const set = securityHeaderSet({ mode, inlineStyles: devPage, blobImages: true });
+  const set = securityHeaderSet({ mode, inlineStyles: devPage, blobImages: true, secure });
   await app.register(helmet, {
     // frame-ancestors stays 'self' until the embed allowlist exists (07 §3.4); a website install
     // is on the website's own origin. The admin app (apps/admin) will raise its own stricter CSP
