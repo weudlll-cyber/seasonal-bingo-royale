@@ -11,6 +11,7 @@
  */
 .interlude {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sk-space-2);
   border-left: 4px solid var(--sk-color-accent);
 }

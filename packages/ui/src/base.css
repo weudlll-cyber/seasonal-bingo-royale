@@ -72,6 +72,9 @@ a {
 
 .sbr-stack {
   display: grid;
+  /* Never wider than the stack: at a large font a child's longest line would else push the
+     page sideways on a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sk-space-2);
 }
 

@@ -160,6 +160,8 @@
 }
 
 .match-log summary {
+  min-height: var(--sk-hit-target);
+  align-content: center;
   cursor: pointer;
   color: var(--sk-color-text-muted);
   font-size: var(--sk-font-size-small);

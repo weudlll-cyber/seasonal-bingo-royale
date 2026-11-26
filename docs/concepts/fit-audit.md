@@ -424,3 +424,11 @@ At a 32 px root font and 1280×720 the docked player round's title, status lines
 - **Rule:** the desktop layouts apply from 48 root-font widths of page (`page` container, `shell/shell.css`; 01 §13). 16 to 24 px are unchanged at every desktop size; 32 px stacks up to 1536 px wide.
 - **Also:** the docked side column's panels keep their text height (`shell/dockSide.css`), and a phone's own card is bounded by its box's width (`game/liveCard.css`).
 - **Measured** with `SBR_SWEEP_FONTS` (website sweep) and `SBR_FIT_FONTS` (standalone audit); results in MORNING.md, "Kit 0.22". The probe does not report a partial overlap under a quarter of the smaller box; `e2e/chatEmbed.spec.ts` checks the boxes themselves.
+
+## 9. The kit's sweep over the match screens (2026-11-26)
+
+`SBR_SWEEP_KIT=1` makes the audit look at the same screens with the kit's `sweep` (K67) instead of measuring them (`e2e/acceptance/kitSweep.ts`): the six desktop sizes, 360×780, 390×844 and 430×932, root font 16 and 32 px, light and dark, the website screens (the lobby and the open menu included) and the standalone ones. Findings go to `reports/logs/<tag>-kit-sweep.log`.
+
+```
+SBR_ACCEPTANCE=1 SBR_SWEEP_KIT=1 pnpm exec playwright test -c e2e/playwright.config.ts e2e/acceptance/fitAudit.spec.ts --project=chromium
+```

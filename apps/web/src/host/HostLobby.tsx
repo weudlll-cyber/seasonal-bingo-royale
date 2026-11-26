@@ -77,7 +77,7 @@ function WebsiteBox(props: {
   readonly call: (path: string, body: unknown) => void;
 }): ReactElement {
   return (
-    <label className="sbr-row">
+    <label className="sbr-row host-website">
       <input
         type="checkbox"
         data-testid="host-website"

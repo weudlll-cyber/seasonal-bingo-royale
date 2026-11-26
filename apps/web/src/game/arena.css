@@ -90,6 +90,8 @@
   box-sizing: border-box;
   height: 1.75rem;
   line-height: 1.55rem;
+  /* A number never breaks in its box (at a large font it ran over the next row). */
+  white-space: nowrap;
 }
 
 .arena-cards {
@@ -189,6 +191,12 @@
   .arena:has(.interlude) .arena-grid {
     flex-basis: 32rem;
     min-height: 32rem;
+  }
+
+  /* At the end the own card keeps cells of 44 px; the finished screen may scroll. */
+  .arena:has(.sk-result) .arena-grid {
+    flex-basis: calc(8 * var(--sk-hit-target));
+    min-height: calc(8 * var(--sk-hit-target));
   }
 
   .arena-play {

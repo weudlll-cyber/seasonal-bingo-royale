@@ -20,6 +20,8 @@
 }
 
 .seasons-overview summary {
+  min-height: var(--sk-hit-target);
+  align-content: center;
   cursor: pointer;
   font-weight: var(--sk-font-weight-strong);
 }

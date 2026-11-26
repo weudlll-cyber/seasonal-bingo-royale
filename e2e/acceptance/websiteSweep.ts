@@ -17,9 +17,11 @@
  *                 SBR_SWEEP_SHOTS=<folder> saves one picture per screen, size and theme for a
  *                 review (`<screen>-<size>-<theme>.png`): the chat strip shown on a desktop, the
  *                 game with the sheet closed on a phone (a font other than 16 is in the name).
- *                 Helpers sign a stand-in member in via the proxy and post with the CSRF token.
+ *                 With SBR_SWEEP_KIT=1 a screen is looked at with the kit's sweep instead
+ *                 (./kitSweep). Helpers sign a stand-in member in via the proxy and post with the
+ *                 CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
- *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe
+ *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe, ./kitSweep
  * Used by:        ./fitAudit.spec
  * Spec:           docs/concepts/fit-audit.md §7; docs/spec/01-game-design.md §13
  */
@@ -34,6 +36,7 @@ import { REPO_ROOT } from '../devStack.js';
 import type { WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe } from './fitProbe.js';
+import { KIT_SWEEP, kitLooks } from './kitSweep.js';
 import { FROM_THIS_SITE } from '../fromThisSite.js';
 
 export const BASE = '/games/bingo';
@@ -218,7 +221,10 @@ async function review(page: Page, name: string, wanted: boolean): Promise<void> 
 
 // One screen at every sweep size, both themes, chat closed and open; `kind` names a round
 // screen's key boxes (./fitMeasure ROUND_KEYS).
-export async function sweep(page: Page, screen: string, kind?: string): Promise<void> {
+export const sweep = (page: Page, screen: string, kind?: string): Promise<void> =>
+  KIT_SWEEP ? kitLooks(page, `website-${screen}`) : measured(page, screen, kind);
+
+async function measured(page: Page, screen: string, kind?: string): Promise<void> {
   if (SCREENS !== null && !SCREENS.includes(screen)) return;
   for (const theme of THEMES) {
     for (const chat of CHATS) {

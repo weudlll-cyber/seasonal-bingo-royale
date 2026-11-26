@@ -10,9 +10,10 @@
  *                 reports/logs/fit-<group>.jsonl; findings saved light and dark to
  *                 reports/screens/latest/, passing ones only as references. Matches aborted, no
  *                 account created. SBR_ACCEPTANCE=1, Chromium, one worker (toggles maintenance).
- *                 SBR_FIT_SIZES/_FONTS/_TAG/_DOM tune the run.
+ *                 SBR_FIT_SIZES/_FONTS/_TAG/_DOM tune the run; SBR_SWEEP_KIT=1 runs the kit's
+ *                 sweep on the same screens instead (./kitSweep).
  * Depends on:     node:fs, node:path, @playwright/test, ../realGame, ../screens, ../devStack,
- *                 ../websiteStack, ./fitMeasure, ./fitProbe, ./screenPlay, ./websiteSweep
+ *                 ../websiteStack, ./fitMeasure, ./fitProbe, ./kitSweep, ./screenPlay, ./websiteSweep
  * Spec:           docs/concepts/fit-audit.md; docs/spec/01-game-design.md §13
  */
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -37,6 +38,7 @@ import { SHOTS_DIR } from '../screens.js';
 import { startWebsiteStack, type WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe, type Probe } from './fitProbe.js';
+import { KIT_SWEEP, kitLooks, openMenu } from './kitSweep.js';
 import { tapCurrent } from './screenPlay.js';
 import { BASE, freshSweep, signInMember, sweep, webPost } from './websiteSweep.js';
 
@@ -103,6 +105,7 @@ async function shoot(page: Page, name: string, dark: boolean): Promise<void> {
 
 // Every size and font of one screen; `kind` names a round screen's key boxes.
 async function measure(page: Page, group: string, screen: string, kind?: string): Promise<void> {
+  if (KIT_SWEEP) return kitLooks(page, `standalone-${screen}`);
   if (await hasToggle(page)) await setTheme(page, 'light');
   if (process.env['SBR_FIT_DOM'] === '1') {
     mkdirSync(DOM, { recursive: true });
@@ -202,6 +205,7 @@ const FLOORS = [
 ] as const;
 
 async function cardComparison(page: Page): Promise<void> {
+  if (KIT_SWEEP) return;
   writeFileSync(path.join(LOGS, `${TAG}-cards.jsonl`), '');
   for (const [w, h] of SIZES) {
     for (const [floor, rem] of FLOORS) {
@@ -438,6 +442,19 @@ const MEMBERS = [
   [9103, 'Sweep_Watcher'],
 ] as const;
 
+// The header's worst case: all three of a member's Discord steps.
+const STEPS = (
+  [
+    ['holder', 'Golden', 'a'],
+    ['farmer', 'Farmer Bronze', 'b'],
+    ['investor', 'Level 2 Investor', 'c'],
+  ] as const
+).map(([ladder, name, hex]) => ({
+  ladder,
+  name,
+  icon: `/media/step-icons/${hex.repeat(32)}.webp`,
+}));
+
 async function memberPage(browser: Browser, stack: WebsiteStack, id: number): Promise<Page> {
   const context = await browser.newContext({ bypassCSP: true, colorScheme: 'light' });
   const page = await context.newPage();
@@ -544,11 +561,13 @@ test('fit: every match screen in website mode (the docked layout baseline, K18)'
   freshSweep();
   const stack = await startWebsiteStack();
   for (const [id, name] of MEMBERS) {
-    stack.addMember({ id, name, role: 'member', canHost: true });
+    stack.addMember({ id, name, role: 'member', canHost: true, steps: STEPS });
   }
   const host = await memberPage(browser, stack, 9101);
   const codes: string[] = [];
   try {
+    await sweep(host, 'header-lobby');
+    if (KIT_SWEEP) await kitLooks(host, 'website-header-menu', openMenu);
     codes.push(await webMatch(host, stack, 'royale'));
     const player = await memberPage(browser, stack, 9102);
     await webLobby(host, player, stack, codes[0] ?? '');

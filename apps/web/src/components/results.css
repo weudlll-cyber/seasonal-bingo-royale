@@ -98,6 +98,16 @@
   overflow-wrap: anywhere;
 }
 
+/* A name that can be tapped (a profile, a card to follow) is a 44 px target. */
+.rank-name > a,
+.rank-name-btn,
+.podium-name > a {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--sk-hit-target);
+  min-height: var(--sk-hit-target);
+}
+
 .rank-seasons {
   flex: none;
   margin-left: auto;

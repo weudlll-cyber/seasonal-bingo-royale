@@ -104,7 +104,8 @@ function Header({ result, view }: PlaybackProps): ReactElement {
 // One row per ticked prize: its name, then "open" or the winners and the deciding draw.
 export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   return (
-    <section className="sk-panel">
+    // It scrolls where the column is short: a named tab stop (WCAG 2.1.1).
+    <section className="sk-panel" aria-label="Prizes" tabIndex={0}>
       <h3>Prizes</h3>
       <ul className="prize-rows" data-testid="prize-list">
         {result.tickedPrizes.map((key) => {

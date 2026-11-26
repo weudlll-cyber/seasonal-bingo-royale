@@ -71,6 +71,17 @@
     padding-block: 0;
   }
 
+  /* Here a linked name is one line high, under the 44 px target: with taller rows fewer than
+     the 7 places the owner asks for would be whole at 1280×720 (decision of 2026-11-24). */
+  .sk-docked-main .sk-result :is(.rank-name, .podium-name) > a {
+    min-height: 0;
+  }
+
+  /* The own card keeps cells of 44 px; the finished screen may scroll. */
+  .sk-docked-main .arena:has(.sk-result) .arena-play {
+    min-height: calc(8 * var(--sk-hit-target));
+  }
+
   /* The side column of the results screen (status, winter shield, seasons, patterns) is loose, as
      the empty room under it allows: larger steps between its blocks and inside them. Only here;
      the player's, the spectator's and the console's columns keep their tight spacing. */

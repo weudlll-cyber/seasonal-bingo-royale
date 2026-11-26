@@ -20,7 +20,13 @@
 /* Host console */
 .host-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sk-space-3);
+}
+
+/* The website listing's tick is a whole 44 px row (../host/HostLobby). */
+.host-website {
+  min-height: var(--sk-hit-target);
 }
 
 /* Desktop: ball, numbers and the newest lines | the controls | the standings. While the

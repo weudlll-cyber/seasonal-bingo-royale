@@ -52,7 +52,8 @@ export function WatchCards({ watch, view, followed, onBack }: WatchCardsProps): 
           Back to the top 4
         </button>
       ) : null}
-      <div className="watch-grid">
+      {/* On a phone the cards scroll sideways: a named tab stop (WCAG 2.1.1). */}
+      <div className="watch-grid" role="group" aria-label="Watched cards" tabIndex={0}>
         {names.map((name) => {
           const player = view.standings.find((p) => p.accountId === name);
           return player === undefined ? null : (
