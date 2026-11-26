@@ -2,20 +2,19 @@
 /**
  * @file   apps/web/src/components/StepBadges.test.tsx
  * @module web
- * @brief  Discord steps show next to a ranked name, from the website's own origin (2026-11-04).
+ * @brief  Discord steps show next to a listed name, from the website's own origin (2026-11-04).
  *
- * Responsibility: a ranked row of a player with steps shows the kit's badges, one per step whose
+ * Responsibility: a listed name of a player with steps shows the kit's badges, one per step whose
  *                 icon is the website's own file, named by the step; a player without steps shows
  *                 none.
- * Depends on:     @testing-library/react, ./RankRow, ./StepBadges, ../types (types)
+ * Depends on:     @testing-library/react, ./StepBadges, ../types (types)
  * Spec:           docs/spec/07-integration-architecture.md §2.3
  */
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import type { PlayerSummary } from '../types.js';
-import { RankRow } from './RankRow.js';
-import { StepsByName } from './StepBadges.js';
+import { NameSteps, StepsByName } from './StepBadges.js';
 
 afterEach(cleanup);
 
@@ -30,10 +29,6 @@ const player = (accountId: string, steps?: PlayerSummary['steps']): PlayerSummar
   ...(steps === undefined ? {} : { steps }),
 });
 
-const row = (name: string) => (
-  <RankRow rank={1} name={name} note="10 pts" seasons={null} own={false} out={false} attrs={{}} />
-);
-
 const ICON = '/media/step-icons/0123456789abcdef0123456789abcdef.webp';
 
 describe('Discord steps next to a name', () => {
@@ -44,10 +39,10 @@ describe('Discord steps next to a name', () => {
     ];
     render(
       <StepsByName players={[player('Gina', steps), player('Otto')]}>
-        <ul>
-          {row('Gina')}
-          {row('Otto')}
-        </ul>
+        <p>
+          <NameSteps name="Gina" />
+          <NameSteps name="Otto" />
+        </p>
       </StepsByName>,
     );
     expect(screen.getAllByTestId('steps')).toHaveLength(1);

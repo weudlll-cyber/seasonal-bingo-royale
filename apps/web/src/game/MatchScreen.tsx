@@ -8,7 +8,7 @@
  *                 (newest 3 event lines, cards via ./ArenaCards: own with taps, or for out players
  *                 and spectators the top 4 or one followed player, D24); above it ./ArenaNotice
  *                 (final placement, cut, final's fresh start, round recap, quiet hours, waiting
- *                 for host); names link to profiles with Discord steps (../components/StepBadges);
+ *                 for host); names link to profiles;
  *                 ./MatchCancelled (D17); async matches show "While you were away" on top
  *                 (./AwaySummary, 01 §11). Remounted per code.
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ./useLiveMatch, ./ArenaCards,
@@ -26,7 +26,6 @@ import { PrizeList } from '../components/Playback.js';
 import { RecentEvents } from '../components/RecentEvents.js';
 import { ScrollBox } from '../components/ScrollBox.js';
 import { Standings } from '../components/Standings.js';
-import { StepsByName } from '../components/StepBadges.js';
 import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { OwnCards, Watching } from './ArenaCards.js';
@@ -49,11 +48,7 @@ export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   const view = playbackAt(live.view, live.view.events.length);
   if (live.match.status === 'lobby') return <WaitingRoom live={live} view={view} />;
   if (live.match.status === 'aborted') return <MatchCancelled live={live} />;
-  return (
-    <StepsByName players={live.view.players}>
-      <Arena live={live} view={view} follow={follow} />
-    </StepsByName>
-  );
+  return <Arena live={live} view={view} follow={follow} />;
 }
 
 interface ArenaProps {
