@@ -1,0 +1,12 @@
+-- @file   ops/lib/db-roles.sql
+-- @module ops
+-- @brief  A stand-in for older installs' updates: this file holds no statement.
+--
+-- Responsibility: `sbr update` of the versions before the kit's admin command (up to commit
+--                 ff6d090) takes a new version only where it holds this file, and runs the file
+--                 it installed against the database. The roles are the kit's now
+--                 (ops/kit/lib/db-roles.sql, run by the new `sbr`); an install reaching this
+--                 version has had them applied by its older script. Goes once no install from
+--                 before the kit's admin command is left.
+-- Used by:        an older install's ops/sbr (the check and apply_db_roles)
+-- Spec:           docs/spec/09-deployment-architecture.md §4

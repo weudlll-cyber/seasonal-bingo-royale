@@ -16,6 +16,7 @@
   - Neither role is a superuser or may create roles or databases; both search `sbr, public` first.
   - The app starts with `SBR_MIGRATIONS=check` and refuses to start while a migration is missing.
   - `ops/kit/lib/db-roles.sql` (the kit's, sent by `sk_db_roles_apply`) creates the roles (as the container's superuser, which also makes the backups) and gives an older install's schema to the owner.
+  - `ops/lib/db-roles.sql` holds no statement: the `sbr update` of an install from before the kit's admin command takes a new version only where that file exists (and runs it). It goes once no such install is left.
   - There is no `sbr_readonly`: backups use the superuser over the container's local socket.
 
 ## 2. Entity overview
