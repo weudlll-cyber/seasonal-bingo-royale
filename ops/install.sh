@@ -5,7 +5,8 @@
 #
 # Responsibility: ask (or take from flags) the install type (standalone with its own domain and
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
-#                 /games/bingo), environment, address, admin e-mail, optional SMTP (standalone only)
+#                 /games/bingo), environment, address, operator e-mail (the kit's, kept for every
+#                 Seasonal installer), optional SMTP (standalone only)
 #                 and age public key; install Docker if missing, build the image from a git ref,
 #                 write /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only
 #                 through the website, D37), start the stack, wait for /readyz, install the backup
@@ -32,6 +33,8 @@ OPS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$OPS/lib/common.sh"
 # shellcheck source=lib/host.sh
 source "$OPS/lib/host.sh"
+# shellcheck source=kit/lib/operator.sh
+source "$OPS/kit/lib/operator.sh"
 # shellcheck source=lib/website.sh
 source "$OPS/lib/website.sh"
 # shellcheck source=kit/lib/website-route.sh
@@ -101,11 +104,23 @@ ask_common() {
   fi
   # A re-run keeps what the last run wrote, unless a flag says otherwise (audit O4).
   read_saved_answers "$SBR_ENV"
-  ask SBR_ADMIN_EMAIL "Admin e-mail (certificates and notices)"
+  operator_address
   ask SBR_AGE_RECIPIENT "Your age public key for backups (age1…)"
   [[ $SBR_AGE_RECIPIENT == age1* ]] || die "an age public key starts with age1 (age-keygen prints it)"
   # Mail exists only standalone (password reset, D60): a website install asks nothing about it.
   [[ ${SBR_YES:-0} == 1 || -n ${SMTP_FLAG:-} || $SBR_TYPE == website ]] || ask_smtp
+}
+
+# The operator's contact address (certificates and notices), one for every Seasonal installer
+# on this server (K85, /etc/seasonal/operator.env): --email or the saved answer wins, else the
+# file's, else asked once. A dry run writes nothing.
+operator_address() {
+  if [[ $SBR_DRY_RUN == 1 ]]; then
+    ask SBR_ADMIN_EMAIL "Operator e-mail (certificates and contact)"
+    return 0
+  fi
+  SBR_ADMIN_EMAIL=$(sk_operator_email "${SBR_ADMIN_EMAIL:-}") ||
+    die "no operator e-mail address (above)"
 }
 
 # SMTP asked with the saved values as defaults; an empty answer keeps what is saved.
