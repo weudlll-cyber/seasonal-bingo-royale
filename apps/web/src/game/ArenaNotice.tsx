@@ -66,12 +66,12 @@ export function ArenaNotice({
         />
       )}
       {live.match.quietUntil !== null ? (
-        <p className="sbr-panel" role="status" data-testid="quiet-hours">
+        <p className="sk-panel" role="status" data-testid="quiet-hours">
           Quiet hours — the next number comes {whenText(live.match.quietUntil, Date.now())}.
         </p>
       ) : null}
       {live.match.waitingForHost ? (
-        <p className="sbr-panel" role="status" data-testid="waiting-for-host">
+        <p className="sk-panel" role="status" data-testid="waiting-for-host">
           Waiting for the host to start round {view.currentRound + 2}
         </p>
       ) : null}

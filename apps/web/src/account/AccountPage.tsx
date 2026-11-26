@@ -33,10 +33,10 @@ export function AccountPage(): ReactElement {
   const name = session?.account?.displayName ?? null;
   if (deleted) {
     return (
-      <section className="sbr-panel sbr-stack account-page" data-testid="account-deleted">
+      <section className="sk-panel sbr-stack account-page" data-testid="account-deleted">
         <h1>Account deleted</h1>
         <p>Your account and your personal data have been deleted. Thank you for playing.</p>
-        <a className="sbr-btn" href={hrefOf({ name: 'lobby' })}>
+        <a className="sk-btn" href={hrefOf({ name: 'lobby' })}>
           To the lobby
         </a>
       </section>
@@ -44,17 +44,17 @@ export function AccountPage(): ReactElement {
   }
   if (name === null) {
     return (
-      <section className="sbr-panel sbr-stack account-page" data-testid="account-page">
+      <section className="sk-panel sbr-stack account-page" data-testid="account-page">
         <h1>Your account</h1>
         <p>Sign in to see your account.</p>
-        <a className="sbr-btn sbr-btn--primary" href={websiteSignIn ?? hrefOf({ name: 'signIn' })}>
+        <a className="sk-btn sk-btn--primary" href={websiteSignIn ?? hrefOf({ name: 'signIn' })}>
           Sign in
         </a>
       </section>
     );
   }
   return (
-    <section className="sbr-panel sbr-stack account-page" data-testid="account-page">
+    <section className="sk-panel sbr-stack account-page" data-testid="account-page">
       <h1>Your account</h1>
       <p>
         Signed in as <strong>{name}</strong> ·{' '}
@@ -96,7 +96,7 @@ function DownloadData(): ReactElement {
       <p className="sbr-muted">
         One file (JSON) with your account, the matches you played, your league points and badges.
       </p>
-      <button type="button" className="sbr-btn" data-testid="download-data" onClick={download}>
+      <button type="button" className="sk-btn" data-testid="download-data" onClick={download}>
         Download my data
       </button>
       <FormError text={error} testId="download-error" />
@@ -123,7 +123,7 @@ function DeleteAccount({ onDeleted }: { readonly onDeleted: () => void }): React
       ) : (
         <button
           type="button"
-          className="sbr-btn sbr-btn--danger"
+          className="sk-btn sk-btn--danger"
           data-testid="delete-account"
           onClick={() => {
             setAsked(true);
@@ -172,13 +172,13 @@ function DeleteForm(props: {
       <div className="sbr-row">
         <button
           type="submit"
-          className="sbr-btn sbr-btn--danger"
+          className="sk-btn sk-btn--danger"
           data-testid="delete-confirm"
           disabled={busy || value === ''}
         >
           Delete for good
         </button>
-        <button type="button" className="sbr-btn" onClick={props.onCancel}>
+        <button type="button" className="sk-btn" onClick={props.onCancel}>
           Keep my account
         </button>
       </div>

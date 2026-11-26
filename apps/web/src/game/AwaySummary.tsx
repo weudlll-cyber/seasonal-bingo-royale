@@ -98,14 +98,14 @@ export function AwaySummary({ code }: { readonly code: string }): ReactElement |
   if (summary === null) return null;
   return (
     <section
-      className="sbr-panel away-summary"
+      className="sk-panel away-summary"
       data-testid="away-summary"
       data-draws={summary.draws}
       aria-label="While you were away"
     >
       <div className="away-summary__head">
         <h2>While you were away</h2>
-        <button type="button" className="sbr-btn" data-testid="away-dismiss" onClick={dismiss}>
+        <button type="button" className="sk-btn" data-testid="away-dismiss" onClick={dismiss}>
           Dismiss
         </button>
       </div>

@@ -61,7 +61,7 @@ export function DevSignIn(): ReactElement {
     <KitDevSignIn
       identities={DEV_IDENTITIES}
       onSignIn={(as) => devSignIn(as as DevIdentity)}
-      buttonClassName="sbr-btn"
+      buttonClassName="sk-btn"
     />
   );
 }

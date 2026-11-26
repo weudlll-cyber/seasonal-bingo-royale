@@ -29,7 +29,7 @@ export function SettingsValues(props: {
   const [draft, setDraft] = useState<Draft>(new Map());
   const [comment, setComment] = useState('');
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby={`${props.idPrefix}-values-title`}>
+    <section className="sk-panel sbr-stack" aria-labelledby={`${props.idPrefix}-values-title`}>
       <h2 id={`${props.idPrefix}-values-title`}>{props.title}</h2>
       <p className="sbr-muted">{props.intro}</p>
       {props.fields.map((f) => (
@@ -43,10 +43,10 @@ export function SettingsValues(props: {
           }}
         />
       ))}
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Comment for the History (optional)</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={comment}
           data-testid={`${props.idPrefix}-comment`}
           onChange={(e) => {
@@ -56,7 +56,7 @@ export function SettingsValues(props: {
       </label>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={draft.size === 0}
         data-testid={`${props.idPrefix}-save`}
         onClick={() => {

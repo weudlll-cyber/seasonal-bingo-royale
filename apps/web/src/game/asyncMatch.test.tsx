@@ -108,7 +108,7 @@ describe('an asynchronous match on screen', () => {
     expect(screen.getByTestId('current-ball')).toBeTruthy();
     expect(document.body.textContent).not.toContain('Speed window');
     expect(document.querySelector('.window-bar')).toBeNull();
-    expect(document.querySelector('.sbr-badge-live')?.textContent).toBe('In progress');
+    expect(document.querySelector('.sk-badge-live')?.textContent).toBe('In progress');
   });
 });
 

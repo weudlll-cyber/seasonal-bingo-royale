@@ -36,7 +36,7 @@ export function AbortMatch({ code, path, onDone }: AbortMatchProps): ReactElemen
       }}
     >
       <input
-        className="sbr-input"
+        className="sk-input"
         style={{ flex: '1 1 12rem' }}
         placeholder="Reason (shown to players)"
         value={reason}
@@ -47,7 +47,7 @@ export function AbortMatch({ code, path, onDone }: AbortMatchProps): ReactElemen
         }}
         data-testid="abort-reason"
       />
-      <button type="submit" className="sbr-btn sbr-btn--danger" data-testid="abort-match">
+      <button type="submit" className="sk-btn sk-btn--danger" data-testid="abort-match">
         Abort match
       </button>
     </form>

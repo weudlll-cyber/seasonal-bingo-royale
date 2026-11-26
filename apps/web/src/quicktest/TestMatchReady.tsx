@@ -95,7 +95,7 @@ export function OpenedPanel({
       </p>
       <div className="sbr-row">
         <a
-          className="sbr-btn sbr-btn--primary"
+          className="sk-btn sk-btn--primary"
           href={hrefOf({ name: 'host', code })}
           target="_blank"
           rel="noopener"
@@ -103,10 +103,10 @@ export function OpenedPanel({
         >
           Open host console
         </a>
-        <a className="sbr-btn" href={hrefOf({ name: 'match', code })} data-testid="test-match-go">
+        <a className="sk-btn" href={hrefOf({ name: 'match', code })} data-testid="test-match-go">
           Go to the waiting room
         </a>
-        <button type="button" className="sbr-btn" data-testid="test-match-new" onClick={onNew}>
+        <button type="button" className="sk-btn" data-testid="test-match-new" onClick={onNew}>
           New test match
         </button>
       </div>

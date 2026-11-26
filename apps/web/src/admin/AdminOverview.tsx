@@ -79,7 +79,7 @@ export function AdminOverview(): ReactElement {
   if (load.kind === 'loading') return <p className="sbr-muted">Loading the Overview…</p>;
   if (load.kind === 'refused') {
     return (
-      <p className="sbr-panel" data-testid="admin-refused">
+      <p className="sk-panel" data-testid="admin-refused">
         This page is for Admins.
       </p>
     );
@@ -94,7 +94,7 @@ export function AdminOverview(): ReactElement {
       </p>
       <MaintenancePanel value={maintenance} />
       <AdminSwitches value={switches} />
-      <section className="sbr-panel sbr-stack" aria-labelledby="admin-matches-title">
+      <section className="sk-panel sbr-stack" aria-labelledby="admin-matches-title">
         <h2 id="admin-matches-title">Open and running matches</h2>
         {matches.length === 0 ? <p className="sbr-muted">No match is open or running.</p> : null}
         <ul className="admin-matches">
@@ -113,7 +113,7 @@ function MatchRow({ match, onAborted }: { match: OpenMatch; onAborted: () => voi
     <li className="admin-match sbr-stack" data-testid={`admin-match-${match.code}`}>
       <div className="admin-match-head">
         <strong>{match.title}</strong>
-        <span className="sbr-chip">{state}</span>
+        <span className="sk-chip">{state}</span>
       </div>
       <p className="sbr-muted admin-match-facts">
         {gameTypeName(match.gameType)}
@@ -145,7 +145,7 @@ function MaintenancePanel({ value }: { readonly value: Maintenance }): ReactElem
       });
   };
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="admin-maintenance-title">
+    <section className="sk-panel sbr-stack" aria-labelledby="admin-maintenance-title">
       <h2 id="admin-maintenance-title">Maintenance</h2>
       <p data-testid="admin-maintenance-state">
         {state.on
@@ -156,10 +156,10 @@ function MaintenancePanel({ value }: { readonly value: Maintenance }): ReactElem
         While it is on, nobody can create or start a match; running matches finish.
       </p>
       {state.on ? null : (
-        <label className="sbr-field">
+        <label className="sk-field">
           <span>Reason for players (optional)</span>
           <input
-            className="sbr-input"
+            className="sk-input"
             value={reason}
             data-testid="admin-maintenance-reason"
             onChange={(e) => {
@@ -171,7 +171,7 @@ function MaintenancePanel({ value }: { readonly value: Maintenance }): ReactElem
       {error === null ? null : <p className="lobby-error">{error}</p>}
       <button
         type="button"
-        className={state.on ? 'sbr-btn' : 'sbr-btn sbr-btn--danger'}
+        className={state.on ? 'sk-btn' : 'sk-btn sk-btn--danger'}
         data-testid="admin-maintenance-toggle"
         onClick={toggle}
       >

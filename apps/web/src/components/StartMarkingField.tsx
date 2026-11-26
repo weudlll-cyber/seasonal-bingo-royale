@@ -50,7 +50,7 @@ export function StartMarkingField({ value, onChange }: StartMarkingFieldProps): 
     <fieldset>
       <legend>Marking</legend>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid="marking-mode"
         aria-label="Marking"
         value={value.mode}
@@ -79,7 +79,7 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
   return (
     <>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid="missed-numbers"
         aria-label="Missed numbers"
         value={value.missed}
@@ -94,7 +94,7 @@ export function MissedField({ value, onChange }: StartMarkingFieldProps): ReactE
         <label className="sbr-row">
           <span>Seconds before a missed number is marked for me</span>
           <input
-            className="sbr-input"
+            className="sk-input"
             type="number"
             data-testid="missed-delay"
             min={range.min / 1000}

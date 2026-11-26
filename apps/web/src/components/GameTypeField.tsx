@@ -24,10 +24,10 @@ export function GameTypeField({
   readonly testId: string;
 }): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>Game type</span>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid={testId}
         value={value}
         onChange={(e) => {

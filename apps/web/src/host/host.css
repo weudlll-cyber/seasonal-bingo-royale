@@ -234,8 +234,8 @@
   margin: 0;
 }
 
-.start-tile .sbr-chip,
-.start-one .sbr-chip {
+.start-tile .sk-chip,
+.start-one .sk-chip {
   justify-self: start;
 }
 
@@ -249,11 +249,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--sk-space-1);
-}
-
-.start-segmented .sbr-btn[aria-pressed='true'] {
-  background: var(--sk-color-solid);
-  color: var(--sk-color-on-solid);
 }
 
 .start-more {

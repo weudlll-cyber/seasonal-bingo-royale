@@ -210,7 +210,7 @@
     margin-bottom: var(--sk-space-2);
   }
 
-  .sk-docked-main .host-console.fit-window > .arena-head > .sbr-badge-live {
+  .sk-docked-main .host-console.fit-window > .arena-head > .sk-badge-live {
     grid-column: 3;
     grid-row: 1;
     align-self: start;

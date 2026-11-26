@@ -85,7 +85,7 @@ export function RoundPauseField({
     <fieldset>
       <legend>Between rounds</legend>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid="create-round-pause"
         aria-label="Between rounds"
         value={value.kind}
@@ -100,7 +100,7 @@ export function RoundPauseField({
         <label className="sbr-row">
           Seconds to wait
           <input
-            className="sbr-input"
+            className="sk-input"
             style={{ width: '6rem' }}
             type="number"
             min={range.min / 1000}
@@ -182,7 +182,7 @@ export function StartRuleField({
     <fieldset>
       <legend>Start</legend>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid="create-start-rule"
         aria-label="Start"
         value={value.kind}
@@ -199,7 +199,7 @@ export function StartRuleField({
         <label className="sbr-row">
           Start time
           <input
-            className="sbr-input"
+            className="sk-input"
             style={{ width: 'auto' }}
             type="datetime-local"
             value={value.local}

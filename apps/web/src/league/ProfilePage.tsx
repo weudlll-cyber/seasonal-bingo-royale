@@ -27,7 +27,7 @@ import './league.css';
 export function ProfilePage({ displayName }: { readonly displayName: string }): ReactElement {
   const loaded = useApiGet<PlayerProfile>(api, `/players/${encodeURIComponent(displayName)}`);
   return (
-    <section className="sbr-panel sbr-stack league-page" data-testid="profile-page">
+    <section className="sk-panel sbr-stack league-page" data-testid="profile-page">
       {loaded.kind === 'ready' ? (
         <Profile p={loaded.value} />
       ) : (
@@ -44,7 +44,7 @@ export function ProfilePage({ displayName }: { readonly displayName: string }): 
           )}
         </>
       )}
-      <a className="sbr-btn league-back" href={hrefOf({ name: 'leaderboard', periodId: null })}>
+      <a className="sk-btn league-back" href={hrefOf({ name: 'leaderboard', periodId: null })}>
         To the leaderboard
       </a>
     </section>
@@ -80,7 +80,7 @@ function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
           <span className="sbr-muted">No badges yet.</span>
         ) : (
           p.badges.map((b) => (
-            <span key={b.id} className="sbr-chip">
+            <span key={b.id} className="sk-chip">
               {b.name} ×{b.count}
             </span>
           ))

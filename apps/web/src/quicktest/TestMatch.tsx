@@ -42,7 +42,7 @@ export function TestMatchSection(): ReactElement {
   // A failed step; kept here, so one after the match exists shows beside its code.
   const [error, setError] = useState<string | null>(null);
   return (
-    <section className="sbr-panel sbr-stack test-section" data-testid="test-match">
+    <section className="sk-panel sbr-stack test-section" data-testid="test-match">
       <h2>Play a test match</h2>
       <p>
         A live match on this server with bots. This tab becomes your player screen, exactly as
@@ -81,7 +81,7 @@ function SignInFirst(): ReactElement {
       <p>A test match is created by the dev host. Sign in as the host to set one up.</p>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         data-testid="test-match-sign-in-host"
         onClick={() => void devSignIn('host')}
       >
@@ -141,7 +141,7 @@ function TestMatchForm(props: FormProps): ReactElement {
       <SetupError error={error} />
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        className="sk-btn sk-btn--primary sk-btn--big"
         data-testid="test-match-create"
         disabled={busy || held || tooShort !== null}
       >
@@ -167,7 +167,7 @@ function StartField({ values, onValues }: ValuesProps): ReactElement | null {
     <fieldset>
       <legend>Start</legend>
       <select
-        className="sbr-select"
+        className="sk-select"
         aria-label="Start"
         data-testid="test-match-start"
         value={choice}
@@ -188,7 +188,7 @@ function StartField({ values, onValues }: ValuesProps): ReactElement | null {
         <label className="sbr-row">
           Minutes
           <input
-            className="sbr-input test-number"
+            className="sk-input test-number"
             type="number"
             min={2}
             max={60}
@@ -209,12 +209,12 @@ function BotsField({ values, onValues }: ValuesProps): ReactElement | null {
   if (limits === null) return null;
   const { min, max } = botLimits(values.playAlong, limits.players);
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>
         Bots ({String(min)}–{String(max)}; they mark automatically)
       </span>
       <input
-        className="sbr-input test-number"
+        className="sk-input test-number"
         type="number"
         min={min}
         max={max}

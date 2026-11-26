@@ -1,16 +1,14 @@
 /**
  * @file   packages/ui/src/base.css
  * @module ui
- * @brief  Base styles and the small set of shared components (buttons, panels, fields).
+ * @brief  The page's base styles and the game's layout helpers.
  *
  * Responsibility: the Seasonal Entertainment website's look on the tokens (the kit's
- *                 @seasonal/kit/tokens.css and ./tokens.css):
- *                 the page background with its four token glows (fixed while the page
- *                 scrolls), type, a visible accent focus ring on every control, buttons as
- *                 pills (primary solid, secondary glass with a hairline) and fields at least
- *                 44 px high (--sk-hit-target), panels as translucent cards with the card radius,
- *                 chips and the LIVE badge. Layout works from 360 px phone width up; nothing
- *                 here sets colours of its own.
+ *                 @seasonal/kit/tokens.css and ./tokens.css): the page background with its four
+ *                 token glows (fixed while the page scrolls), type, a visible accent focus ring,
+ *                 muted and screen-reader-only text, a stack and a row. Buttons, panels, fields,
+ *                 chips and the LIVE badge are the kit's (components.css, K95). Layout works from
+ *                 360 px phone width up; nothing here sets colours of its own.
  * Spec:           docs/spec/01-game-design.md §13; Seasonal Entertainment docs/DESIGN.md
  */
 
@@ -72,18 +70,6 @@ a {
   white-space: nowrap;
 }
 
-/* Panels: translucent cards with the card radius, so the page glow shows through */
-.sbr-panel {
-  background: var(--sk-color-card);
-  border: 1px solid var(--sk-color-border);
-  border-radius: var(--sk-radius-card);
-  padding: var(--panel-padding);
-}
-
-.sbr-panel--inset {
-  background: var(--sk-color-surface-2);
-}
-
 .sbr-stack {
   display: grid;
   gap: var(--sk-space-2);
@@ -94,114 +80,4 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sk-space-1);
-}
-
-/* Buttons */
-.sbr-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: var(--sk-hit-target);
-  padding: 0 1.1rem;
-  border: 1px solid var(--sk-color-border);
-  border-radius: var(--sk-radius-pill);
-  background: var(--sk-color-glass);
-  color: var(--sk-color-text);
-  font: inherit;
-  font-weight: var(--sk-font-weight-strong);
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    background var(--sk-duration-fast) var(--sk-ease-out),
-    transform var(--sk-duration-fast) var(--sk-ease-out);
-}
-
-.sbr-btn:hover:not(:disabled) {
-  background: var(--sk-color-active-bg);
-}
-
-.sbr-btn:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.sbr-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.sbr-btn--primary {
-  border-color: transparent;
-  background: var(--sk-color-solid);
-  color: var(--sk-color-on-solid);
-}
-
-.sbr-btn--primary:hover:not(:disabled) {
-  background: var(--sk-color-solid);
-  opacity: 0.88;
-}
-
-.sbr-btn--danger {
-  border-color: var(--sk-color-danger);
-  color: var(--sk-color-danger);
-  background: transparent;
-}
-
-.sbr-btn--big {
-  min-height: 4rem;
-  padding: 0 2rem;
-  font-size: var(--sk-font-size-lead);
-}
-
-/* Fields */
-.sbr-field {
-  display: grid;
-  gap: 0.35rem;
-  font-weight: var(--sk-font-weight-strong);
-}
-
-.sbr-field > span {
-  font-size: var(--sk-font-size-small);
-  color: var(--sk-color-text-muted);
-}
-
-.sbr-input,
-.sbr-select {
-  min-height: var(--sk-hit-target);
-  width: 100%;
-  padding: 0 0.85rem;
-  border: 1px solid var(--sk-color-border-strong);
-  border-radius: var(--sk-radius);
-  background: var(--sk-color-surface);
-  color: var(--sk-color-text);
-  font: inherit;
-}
-
-/* Placeholders (e.g. a default value shown in an empty field) stay readable: 4.5:1 */
-.sbr-input::placeholder {
-  color: var(--sk-color-text-muted);
-  opacity: 1;
-}
-
-/* Chips and badges */
-.sbr-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.7rem;
-  border-radius: var(--sk-radius-pill);
-  background: var(--sk-color-surface-2);
-  border: 1px solid var(--sk-color-border);
-  font-size: var(--sk-font-size-small);
-  font-weight: var(--sk-font-weight-strong);
-}
-
-.sbr-badge-live {
-  padding: 0.15rem 0.55rem;
-  border-radius: var(--sk-radius-pill);
-  background: var(--sk-color-live);
-  color: var(--sk-color-on-live);
-  font-size: var(--sk-font-size-small);
-  font-weight: var(--sk-font-weight-heading);
-  letter-spacing: 0.06em;
 }

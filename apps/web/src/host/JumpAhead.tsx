@@ -55,7 +55,7 @@ export function JumpAhead({ code }: { readonly code: string }): ReactElement {
         <button
           key={j.ms}
           type="button"
-          className="sbr-btn"
+          className="sk-btn"
           disabled={busy}
           onClick={() => {
             jump(j.label, j.ms);

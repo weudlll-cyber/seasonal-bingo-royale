@@ -67,6 +67,10 @@ const STATUS = {
   seasons: ['spring', 'summer'] as const,
 };
 
+// A season's icon inside one effect's sentence.
+const iconIn = (testId: string, name: string) =>
+  within(screen.getByTestId(testId)).getByRole('img', { name });
+
 describe('OwnerStatusPanel', () => {
   it('says each active effect in a sentence with its season and the ruleset numbers', () => {
     render(
@@ -90,12 +94,8 @@ describe('OwnerStatusPanel', () => {
     expect(screen.getByTestId('effect-shield').textContent).toBe(
       'Winter shield: saves you once at a cut if you are at most 3 places below the line — 1 left',
     );
-    expect(
-      within(screen.getByTestId('effect-shield')).getByRole('img', { name: 'Winter' }),
-    ).toBeTruthy();
-    expect(
-      within(screen.getByTestId('effect-growth')).getByRole('img', { name: 'Spring' }),
-    ).toBeTruthy();
+    expect(iconIn('effect-shield', 'Winter')).toBeTruthy();
+    expect(iconIn('effect-growth', 'Spring')).toBeTruthy();
   });
 
   it('names the seasons of the match, collected ones ticked, and what all four give', () => {

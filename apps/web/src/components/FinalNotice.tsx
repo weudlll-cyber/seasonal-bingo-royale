@@ -45,7 +45,7 @@ export function FinalNotice({
       </p>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         onClick={() => {
           setClosed(true);
         }}

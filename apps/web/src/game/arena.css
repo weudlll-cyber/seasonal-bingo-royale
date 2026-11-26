@@ -110,12 +110,6 @@
   margin: 0;
 }
 
-/* The player's header (not the host console's): the host link and LIVE stay one compact
-   line beside the title on a phone. */
-.arena > .arena-head .sbr-btn {
-  white-space: nowrap;
-}
-
 @media (max-width: 640px) {
   .arena {
     gap: var(--sk-space-2);
@@ -148,15 +142,11 @@
     font-size: var(--sk-font-size-small);
   }
 
+  /* LIVE goes under the host link where the two do not fit side by side (a large font). */
   .arena > .arena-head .sbr-row {
-    flex-wrap: nowrap;
+    justify-content: flex-end;
     gap: 0.4rem;
     margin-left: auto;
-  }
-
-  .arena > .arena-head .sbr-btn {
-    padding: 0 0.6rem;
-    font-size: var(--sk-font-size-small);
   }
 
   /* Never more than a quarter of the width: at a large font the ball does not push the

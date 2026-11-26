@@ -35,7 +35,7 @@ export function Watching({
   const watch = live.view.watch;
   if (watch === undefined || watch.top.length === 0) {
     return (
-      <p className="sbr-panel sbr-muted" data-testid="spectating">
+      <p className="sk-panel sbr-muted" data-testid="spectating">
         You are watching this match.
       </p>
     );

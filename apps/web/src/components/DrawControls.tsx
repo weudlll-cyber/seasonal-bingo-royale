@@ -32,10 +32,10 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
   const { control, effectiveSec, canDraw, onChange, onDrawNext } = props;
   const hostMode = control.mode === 'host';
   return (
-    <section className="sbr-panel sbr-stack" role="group" aria-label="Draw control">
+    <section className="sk-panel sbr-stack" role="group" aria-label="Draw control">
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary host-draw"
+        className="sk-btn sk-btn--primary host-draw"
         data-testid="draw-next"
         disabled={!hostMode || !canDraw}
         onClick={onDrawNext}
@@ -58,7 +58,7 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
         <label className="sbr-row">
           Seconds between timed draws
           <input
-            className="sbr-input"
+            className="sk-input"
             style={{ width: '6rem' }}
             type="number"
             data-testid="draw-interval"
@@ -74,7 +74,7 @@ export function DrawControls(props: DrawControlsProps): ReactElement {
       )}
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         onClick={() => {
           onChange({ ...control, skipped: true });
         }}

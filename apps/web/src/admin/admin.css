@@ -129,8 +129,8 @@
   gap: var(--sk-space-1);
 }
 
-.admin-field-input .sbr-input,
-.admin-field-input .sbr-select {
+.admin-field-input .sk-input,
+.admin-field-input .sk-select {
   max-width: 12rem;
 }
 

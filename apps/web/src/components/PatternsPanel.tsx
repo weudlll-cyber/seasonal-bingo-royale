@@ -31,7 +31,7 @@ export function PatternsPanel({
   if (keys.length === 0) return null;
   return (
     <section
-      className="sbr-panel side-panel"
+      className="sk-panel side-panel"
       data-testid="patterns-panel"
       aria-label="Patterns this round"
       // Scrolls where the column is short: a named tab stop, so a keyboard can reach it.

@@ -32,7 +32,7 @@ export function MatchCancelled({
   const ended = live.view.events.find((e): e is Aborted => e.type === 'matchAborted');
   const by = ended?.by === 'system' ? 'the system' : 'the host';
   return (
-    <section className="sbr-panel sbr-stack" data-testid="match-cancelled">
+    <section className="sk-panel sbr-stack" data-testid="match-cancelled">
       {titled ? <h1>{live.match.title}</h1> : null}
       {/* One paragraph: who ended it, then the reason on the next line. */}
       <p>

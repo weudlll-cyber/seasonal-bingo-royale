@@ -51,7 +51,7 @@ export function MyMatches({
   if (matches.length === 0) return null;
   const now = Date.now();
   return (
-    <section className="sbr-panel sbr-stack" data-testid="my-matches" aria-label="My matches">
+    <section className="sk-panel sbr-stack" data-testid="my-matches" aria-label="My matches">
       <h2>My matches</h2>
       <ul className="own-matches">
         {matches.map((m) => (
@@ -70,7 +70,7 @@ export function MyMatches({
               )}
             </span>
             <a
-              className="sbr-btn sbr-btn--primary"
+              className="sk-btn sk-btn--primary"
               href={hrefOf({ name: 'match', code: m.code })}
               data-testid={`my-open-${m.code}`}
             >

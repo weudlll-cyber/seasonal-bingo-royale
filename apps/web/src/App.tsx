@@ -41,7 +41,7 @@ function Chooser(): ReactElement {
       </header>
       <nav className="test-choices" aria-label="Ways to test">
         <a
-          className="sbr-panel test-choice"
+          className="sk-panel test-choice"
           href={hrefOf({ name: 'quicktest', view: 'play' })}
           data-testid="choose-play"
         >
@@ -52,7 +52,7 @@ function Chooser(): ReactElement {
           </span>
         </a>
         <a
-          className="sbr-panel test-choice"
+          className="sk-panel test-choice"
           href={hrefOf({ name: 'quicktest', view: 'seed' })}
           data-testid="choose-seed"
         >

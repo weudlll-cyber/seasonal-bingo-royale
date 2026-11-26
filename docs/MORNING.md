@@ -1,5 +1,22 @@
 # Morning sheet
 
+## Kit 0.34 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### Done
+
+- **Piece 1, the pin and every "Migration, per game" line from v0.23.0 to v0.34.0** (`7c1e97f`; one commit per step). Test tools and guards (K66); the sweep in the admin and start-match specs (K67: found and fixed the 29 px admin section links, the 24 px checkbox rows and the 20 px yes/no boxes); step badges (K68); countdowns on the server's clock, the session answer names `serverTime` (K69); the kit's API client and `useApiGet` (K70); `sbr update` installs the kit's whole `ops/` folder, as an update of its own (`ff6d090`); backups and the website route file from that folder (K71, K72); load helpers (K73); the website stand-in (K74); `secure` headers over https; season icons (K83); the operator address (K85); `sbr` on the kit's admin command (K87); the host baseline (K88); container hardening (K89); database roles (K90, with v0.34.0's TEMPORARY); `FailureBrake` with `reserve` (K92); base components and header looks (K95, K96).
+- **A fault found and fixed, older than this chain:** since the v0.22.0 server parts every write of `sbr loadcheck` and of the development load scripts was refused (they named an origin other than the host they called). Test `loadOrigin.test.ts`.
+- **What changes for you to notice:** a restore through `sbr` asks `[y/N]`, refuses a differing seed **or recovery** key without `--force-env`, and **leaves the game stopped if it fails** (the kit's behaviour; before, the game was started again). Backups made before 25 November 2026 are first written again with `sbr rewrite_backup`. Season icons are named "Spring" and so on. A disabled button is muted, a disabled field looks locked. On a phone the own card is a little smaller where the window's height decides it.
+- **Where the kit's way cost something:** its stand-in's members are all e-mail-verified (the league test marks one test account unverified in its own database), its login has no page of its own, and its chat frame shows no room or theme; it keeps idle connections for 5 s, so the spec polls faster.
+
+### Running
+
+- Piece 2 (the look), piece 3 (the update path), piece 4 (rehearsal), piece 5 (the owner's look).
+
+### Needs the owner's word
+
+- Nothing yet.
+
 ## Kit 0.22 (branch `feat/kit-0.22`, draft PR, NOT merged: the owner looks first)
 
 ### Done

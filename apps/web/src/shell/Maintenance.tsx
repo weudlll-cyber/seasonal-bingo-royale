@@ -19,7 +19,7 @@ import type { MaintenanceState } from './useMaintenance.js';
 
 export function MaintenancePage({ state }: { readonly state: MaintenanceState }): ReactElement {
   return (
-    <section className="sbr-panel sbr-stack maintenance-page" data-testid="maintenance-page">
+    <section className="sk-panel sbr-stack maintenance-page" data-testid="maintenance-page">
       <h1>Maintenance — we&apos;ll be back shortly</h1>
       {state.reason === null ? null : <p data-testid="maintenance-reason">{state.reason}</p>}
       <p className="sbr-muted">

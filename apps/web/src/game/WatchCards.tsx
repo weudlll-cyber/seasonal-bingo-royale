@@ -48,7 +48,7 @@ export function WatchCards({ watch, view, followed, onBack }: WatchCardsProps): 
         </p>
       ) : null}
       {following ? (
-        <button type="button" className="sbr-btn watch-back" onClick={onBack}>
+        <button type="button" className="sk-btn watch-back" onClick={onBack}>
           Back to the top 4
         </button>
       ) : null}

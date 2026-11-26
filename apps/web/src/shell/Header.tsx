@@ -121,7 +121,7 @@ export function Header({ route, dev }: HeaderProps): ReactElement {
         }
         // A new route or another account: the folded menu has done its job.
         closeKey={`${JSON.stringify(route)} ${session?.account?.id ?? ''}`}
-        buttonClassName="sbr-btn"
+        buttonClassName="sk-btn"
         // Below 960 px always folded; from it up the measured fold decides (K40).
         foldBelow={960}
       />

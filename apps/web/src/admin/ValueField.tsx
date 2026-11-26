@@ -93,7 +93,7 @@ function FieldInput(props: {
     return (
       <select
         id={props.id}
-        className="sbr-select"
+        className="sk-select"
         value={String(props.value)}
         onChange={(e) => {
           props.onChange(e.target.value);
@@ -108,7 +108,7 @@ function FieldInput(props: {
   return (
     <input
       id={props.id}
-      className="sbr-input"
+      className="sk-input"
       type="number"
       step="any"
       min={f.min === undefined ? undefined : f.min / f.scale}
@@ -131,7 +131,7 @@ function TextInput(props: {
   return (
     <input
       id={props.id}
-      className="sbr-input"
+      className="sk-input"
       maxLength={props.field.max}
       value={typeof props.value === 'string' ? props.value : ''}
       onChange={(e) => {

@@ -16,7 +16,7 @@
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/concepts/fit-audit.md
  */
 import AxeBuilder from '@axe-core/playwright';
-import type { Page } from '@playwright/test';
+import { test, type Page } from '@playwright/test';
 import { axeFinder, setTheme, sweep, type AxeFinder } from '@seasonal/kit/testing';
 
 import { probe } from './acceptance/fitProbe.js';
@@ -39,6 +39,8 @@ export async function expectFits(page: Page, name: string): Promise<void> {
     shown.evaluate(() => {
       window.scrollTo(0, 0);
     });
+  // Twelve looks, each with axe: the test gets their time on top of its own.
+  test.setTimeout(test.info().timeout + 90_000);
   try {
     await sweep(page, [{ name, open }], {
       axe: withOwnRules,

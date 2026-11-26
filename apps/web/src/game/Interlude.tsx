@@ -65,7 +65,7 @@ export function Interlude({ recap, pause, nextRoundAt, me }: InterludeProps): Re
   const card = plan.cards[index] ?? 'facts';
   return (
     <section
-      className="sbr-panel interlude"
+      className="sk-panel interlude"
       data-testid="interlude"
       aria-label="Round recap"
       aria-live="polite"
@@ -142,7 +142,7 @@ function StepButton({ label, testId, disabled, onStep }: StepButtonProps): React
   return (
     <button
       type="button"
-      className="sbr-btn"
+      className="sk-btn"
       data-testid={testId}
       disabled={disabled}
       onClick={onStep}

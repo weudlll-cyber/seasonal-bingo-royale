@@ -9,6 +9,7 @@
 @import url('../../../apps/web/node_modules/@seasonal/kit/css/tokens.css');
 @import url('../../../packages/ui/src/tokens.css');
 @import url('../../../apps/web/node_modules/@seasonal/kit/css/shell.css');
+@import url('../../../apps/web/node_modules/@seasonal/kit/css/components.css');
 @import url('../../../packages/ui/src/base.css');
 @import url('../../../apps/web/src/shell/shell.css');
 @import url('../../../apps/web/src/host/host.css');
@@ -77,7 +78,7 @@
   box-shadow: var(--sk-shadow-raised);
 }
 
-.tile .sbr-chip {
+.tile .sk-chip {
   justify-self: start;
 }
 
@@ -104,7 +105,7 @@
   gap: 0.25rem;
 }
 
-.segmented .sbr-btn[aria-pressed='true'] {
+.segmented .sk-btn[aria-pressed='true'] {
   background: var(--sk-color-solid);
   color: var(--sk-color-on-solid);
 }
@@ -189,8 +190,8 @@ details.more summary {
   gap: var(--sk-space-2);
 }
 
-.cards .sbr-panel h2,
-.sbr-panel h2 {
+.cards .sk-panel h2,
+.sk-panel h2 {
   font-size: var(--sk-font-size-lead);
   margin-bottom: var(--sk-space-1);
 }

@@ -77,7 +77,7 @@ export function AdminHistory(): ReactElement {
         ))}
       </ol>
       {last?.more === true ? (
-        <button type="button" className="sbr-btn" onClick={older}>
+        <button type="button" className="sk-btn" onClick={older}>
           Show older
         </button>
       ) : null}
@@ -105,7 +105,7 @@ function HistoryItem(props: {
       {e.undoable ? (
         <button
           type="button"
-          className="sbr-btn"
+          className="sk-btn"
           onClick={() => {
             props.onUndo(e.id);
           }}

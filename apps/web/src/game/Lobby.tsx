@@ -92,7 +92,7 @@ export function Lobby(): ReactElement {
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
       {matches === null ? <p className="sbr-muted">Loading…</p> : null}
       {matches?.length === 0 ? (
-        <p className="sbr-panel sbr-muted" data-testid="lobby-empty">
+        <p className="sk-panel sbr-muted" data-testid="lobby-empty">
           No match is open right now.{can('match.create') ? ' Host one with “Host a match”.' : ''}
         </p>
       ) : null}
@@ -140,20 +140,20 @@ export function manageable(m: MatchSummary): boolean {
 function LobbyItem({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): ReactElement {
   const done = m.status === 'finished' || m.status === 'aborted';
   return (
-    <li className="sbr-panel lobby-item" data-testid={`lobby-match-${m.code}`}>
+    <li className="sk-panel lobby-item" data-testid={`lobby-match-${m.code}`}>
       <div className="lobby-item-head">
         <h2>{m.title}</h2>
         {m.status === 'running' ? (
-          <span className="sbr-badge-live">{runningBadge(m.mode)}</span>
+          <span className="sk-badge-live">{runningBadge(m.mode)}</span>
         ) : null}
       </div>
       <p className="sbr-row">
-        <span className="sbr-chip">{gameTypeName(m.gameType)}</span>
-        <span className="sbr-chip">
+        <span className="sk-chip">{gameTypeName(m.gameType)}</span>
+        <span className="sk-chip">
           {m.players} / {m.maxPlayers} players
         </span>
-        <span className="sbr-chip">{statusName(m)}</span>
-        <span className="sbr-chip" data-testid={`code-${m.code}`}>
+        <span className="sk-chip">{statusName(m)}</span>
+        <span className="sk-chip" data-testid={`code-${m.code}`}>
           Code {m.code}
         </span>
       </p>
@@ -165,7 +165,7 @@ function LobbyItem({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): React
       ) : null}
       <div className="sbr-row">
         <LobbyAction match={m} canJoin={canJoin} onJoin={onJoin} signIn={signIn} />
-        <a className="sbr-btn" href={`#/match/${m.code}`}>
+        <a className="sk-btn" href={`#/match/${m.code}`}>
           {done ? 'View' : 'Watch'}
         </a>
       </div>
@@ -180,7 +180,7 @@ function LobbyAction({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): Rea
     <>
       {manageable(m) ? (
         <a
-          className="sbr-btn sbr-btn--primary"
+          className="sk-btn sk-btn--primary"
           href={hrefOf({ name: 'host', code: m.code })}
           data-testid={`manage-${m.code}`}
         >
@@ -189,7 +189,7 @@ function LobbyAction({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): Rea
       ) : m.status === 'lobby' && !m.full && canJoin ? (
         <button
           type="button"
-          className="sbr-btn sbr-btn--primary"
+          className="sk-btn sk-btn--primary"
           data-testid={`join-${m.code}`}
           onClick={() => {
             onJoin(m.code);
@@ -199,7 +199,7 @@ function LobbyAction({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): Rea
         </button>
       ) : m.status === 'lobby' && !m.full && signIn !== null ? (
         <a
-          className="sbr-btn sbr-btn--primary"
+          className="sk-btn sk-btn--primary"
           href={signIn}
           data-testid={`sign-in-to-join-${m.code}`}
         >

@@ -48,7 +48,7 @@ export function Simulation(): ReactElement {
       <div className="seed-grid">
         {/* Settings on the left (on a phone above): the form until a run, then its folded
             line and the one live draw control. */}
-        <div className="sbr-panel sbr-stack seed-settings">
+        <div className="sk-panel sbr-stack seed-settings">
           <div hidden={!formOpen}>
             <StartForm onStart={run} busy={busy} />
           </div>
@@ -131,7 +131,7 @@ function RunLine({
       </span>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         data-testid="simulation-change"
         onClick={() => {
           onToggle(!formOpen);

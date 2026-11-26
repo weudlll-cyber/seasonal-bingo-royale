@@ -108,7 +108,7 @@ export function AccountCard(props: {
           <button
             key={label}
             type="button"
-            className="sbr-btn"
+            className="sk-btn"
             onClick={() => {
               props.onAct({ accountId: x.id, path, body, label: `${done} (${x.displayName})` });
             }}

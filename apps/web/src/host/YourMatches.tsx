@@ -21,7 +21,7 @@ export function YourMatches(): ReactElement | null {
   const mine = (matches ?? []).filter(manageable);
   if (mine.length === 0) return null;
   return (
-    <section className="sbr-panel sbr-stack" data-testid="your-matches" aria-label="Your matches">
+    <section className="sk-panel sbr-stack" data-testid="your-matches" aria-label="Your matches">
       <h2>Your matches</h2>
       <ul className="own-matches">
         {mine.map((m) => (
@@ -35,7 +35,7 @@ export function YourMatches(): ReactElement | null {
               </span>
             </span>
             <a
-              className="sbr-btn sbr-btn--primary"
+              className="sk-btn sk-btn--primary"
               href={hrefOf({ name: 'host', code: m.code })}
               data-testid={`your-manage-${m.code}`}
             >

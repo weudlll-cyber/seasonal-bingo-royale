@@ -73,7 +73,7 @@ export function HostDrawControls({
   const paused = view.roundOver;
   return (
     <section
-      className="sbr-panel sbr-stack"
+      className="sk-panel sbr-stack"
       aria-label="Draw control"
       data-testid="host-draw-controls"
     >
@@ -81,7 +81,7 @@ export function HostDrawControls({
       {hostMode && !paused ? (
         <button
           type="button"
-          className="sbr-btn sbr-btn--primary host-draw"
+          className="sk-btn sk-btn--primary host-draw"
           data-testid="host-draw-next"
           disabled={!canDraw}
           onClick={drawNext}
@@ -220,7 +220,7 @@ function IntervalField({
     <label className="sbr-row">
       {minutes ? 'Minutes between timed draws' : 'Seconds between timed draws'}
       <input
-        className="sbr-input"
+        className="sk-input"
         style={{ width: '6rem' }}
         type="number"
         min={1}

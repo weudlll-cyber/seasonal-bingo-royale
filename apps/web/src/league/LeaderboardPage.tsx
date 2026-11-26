@@ -37,7 +37,7 @@ export function LeaderboardPage({ periodId }: { readonly periodId: string | null
   const items = periods.kind === 'ready' ? periods.value.items : [];
   const period = items.find((p) => p.id === periodId) ?? items[0];
   return (
-    <section className="sbr-panel sbr-stack league-page" data-testid="leaderboard-page">
+    <section className="sk-panel sbr-stack league-page" data-testid="leaderboard-page">
       <header className="league-head">
         <h1>Leaderboard</h1>
         {items.length > 1 && period !== undefined ? (
@@ -57,10 +57,10 @@ function PeriodSelect(props: {
   readonly selected: string;
 }): ReactElement {
   return (
-    <label className="sbr-field league-period">
+    <label className="sk-field league-period">
       <span>Board</span>
       <select
-        className="sbr-select"
+        className="sk-select"
         value={props.selected}
         data-testid="leaderboard-period"
         onChange={(e) => {
@@ -105,7 +105,7 @@ function Board({ period }: { readonly period: LeaderboardPeriod }): ReactElement
         <BoardTable rows={rows} testId="leaderboard-rows" />
       )}
       {next === null ? null : (
-        <button type="button" className="sbr-btn" onClick={loadMore}>
+        <button type="button" className="sk-btn" onClick={loadMore}>
           Show more
         </button>
       )}

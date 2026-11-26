@@ -108,7 +108,7 @@ function ConsoleHead({
         <DevJump live={live} />
       </div>
       {live.match.status === 'running' ? (
-        <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+        <span className="sk-badge-live">{runningBadge(live.match.mode)}</span>
       ) : null}
     </header>
   );
@@ -212,7 +212,7 @@ function StartNextRound({
 }): ReactElement {
   const [note, setNote] = useState<string | null>(null);
   return (
-    <section className="sbr-panel sbr-stack" data-testid="host-next-round-panel">
+    <section className="sk-panel sbr-stack" data-testid="host-next-round-panel">
       <p>
         {timed
           ? `The round is over. Round ${String(round)} starts after the pause, or now if you start it.`
@@ -220,7 +220,7 @@ function StartNextRound({
       </p>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        className="sk-btn sk-btn--primary sk-btn--big"
         data-testid={timed ? 'host-next-round-now' : 'host-next-round'}
         onClick={() => {
           void intent('round.next', { code }).then((a) => {
@@ -237,10 +237,10 @@ function StartNextRound({
 
 function NotYourMatch({ code }: { readonly code: string }): ReactElement {
   return (
-    <section className="sbr-panel sbr-stack" data-testid="not-your-match">
+    <section className="sk-panel sbr-stack" data-testid="not-your-match">
       <h1>Only the host can run this match</h1>
       <p className="sbr-muted">You are signed in with another account. You can watch the match.</p>
-      <a className="sbr-btn sbr-btn--primary" href={hrefOf({ name: 'match', code })}>
+      <a className="sk-btn sk-btn--primary" href={hrefOf({ name: 'match', code })}>
         Watch the match
       </a>
     </section>

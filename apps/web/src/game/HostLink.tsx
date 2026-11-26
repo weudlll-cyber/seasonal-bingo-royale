@@ -19,7 +19,7 @@ export function HostLink({ match }: { readonly match: MatchSummary }): ReactElem
   if (match.youHost !== true) return null;
   return (
     <a
-      className="sbr-btn sbr-btn--primary"
+      className="sk-btn sk-btn--primary"
       href={hrefOf({ name: 'host', code: match.code })}
       // D25: the console in a new tab; the player screen stays where it is.
       target="_blank"

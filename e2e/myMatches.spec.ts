@@ -85,10 +85,10 @@ test('one player, two matches, a tab each (D39)', async ({ browser }, info) => {
     );
     const tab2 = await session.newPage();
     await tab2.goto(`/#/match/${slow}`);
-    await expect(tab2.locator('.sbr-badge-live')).toHaveText('In progress');
+    await expect(tab2.locator('.sk-badge-live')).toHaveText('In progress');
     const dismiss = tab2.getByTestId('away-dismiss');
     if (await dismiss.isVisible()) await dismiss.click();
-    await expect(tab1.locator('.sbr-badge-live')).toHaveText('LIVE', { timeout: 20_000 });
+    await expect(tab1.locator('.sk-badge-live')).toHaveText('LIVE', { timeout: 20_000 });
     // The realtime tab keeps drawing; the asynchronous tab holds its hour of numbers.
     await expect.poll(() => currentItem(tab1), { timeout: 20_000 }).not.toBeNull();
     const slowDrawn = await drawnOn(tab2);

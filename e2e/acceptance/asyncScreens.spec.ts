@@ -73,7 +73,7 @@ test('an asynchronous match: player, console, away summary, lobby cancelled', as
     await jump(host, code, '1 hour');
     await player.goto(`/#/match/${code}`);
     await expect(player.getByTestId('current-ball')).toHaveAttribute('data-item', /\d+/);
-    await expect(player.locator('.sbr-badge-live')).toHaveText('In progress');
+    await expect(player.locator('.sk-badge-live')).toHaveText('In progress');
     // The first visit may already summarise the hour; the picture shows the screen itself.
     const dismiss = player.getByTestId('away-dismiss');
     if (await dismiss.isVisible()) await dismiss.click();

@@ -46,7 +46,7 @@ export function HostLobby({
       });
   };
   return (
-    <section className="sbr-panel sbr-stack">
+    <section className="sk-panel sbr-stack">
       <OpenNotice match={live.match} />
       <h2>
         Players {live.match.players} / {live.match.maxPlayers}
@@ -133,7 +133,7 @@ function StartControls({
         <div className="sbr-row">
           <button
             type="button"
-            className="sbr-btn sbr-btn--primary sbr-btn--big"
+            className="sk-btn sk-btn--primary sk-btn--big"
             data-testid="start-match"
             disabled={held}
             onClick={() => {
@@ -177,7 +177,7 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
       <label className="sbr-row">
         Fill with
         <input
-          className="sbr-input"
+          className="sk-input"
           style={{ width: '6rem' }}
           type="number"
           min={players?.min}
@@ -192,7 +192,7 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
       </label>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         data-testid="fill-bots"
         onClick={() => {
           onFill(bots);

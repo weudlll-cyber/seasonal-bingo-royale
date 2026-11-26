@@ -104,7 +104,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
 // One row per ticked prize: its name, then "open" or the winners and the deciding draw.
 export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   return (
-    <section className="sbr-panel">
+    <section className="sk-panel">
       <h3>Prizes</h3>
       <ul className="prize-rows" data-testid="prize-list">
         {result.tickedPrizes.map((key) => {

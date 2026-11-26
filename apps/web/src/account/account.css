@@ -41,7 +41,7 @@
   border-top: 1px solid var(--sk-color-border);
 }
 
-.account-part > .sbr-btn {
+.account-part > .sk-btn {
   justify-self: start;
 }
 

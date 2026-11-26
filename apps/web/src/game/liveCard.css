@@ -63,7 +63,7 @@
 
 /* Phones and tablets: the own card also takes its cells from the window's height, so on
    a 360×640 phone the whole card is in view below the bar, the title and the ball
-   (28rem: what sits above the cells and around them). The floor keeps room for the
+   (30rem: what sits above the cells and around them, the kit's buttons included). The floor keeps room for the
    16 px numbers: at a large font the card may end below the window instead, but it is
    never wider than its box (owner decision of 2026-11-26): the width's share bounds the
    floor too. */
@@ -71,7 +71,7 @@
   .own-cards .live-card {
     --cell-size: min(
       calc((100cqw - 2 * var(--card-padding) - 24px) / 5),
-      max(2.2rem, min(clamp(2.9rem, 15vw, 4.1rem), calc((100svh - 28rem) / 5)))
+      max(2.2rem, min(clamp(2.9rem, 15vw, 4.1rem), calc((100svh - 30rem) / 5)))
     );
   }
 }

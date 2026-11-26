@@ -57,7 +57,7 @@ export function Standings({ result, view, onFollow, profileHref }: StandingsProp
     />
   );
   return (
-    <section className="sbr-panel standings-panel" data-testid="standings-panel">
+    <section className="sk-panel standings-panel" data-testid="standings-panel">
       <h3>Standings</h3>
       {/* The rows scroll inside the panel: a list with a name and a tab stop, so a keyboard can
           scroll it (WCAG 2.1.1); a region role would take the rows out of the list. */}

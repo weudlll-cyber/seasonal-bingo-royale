@@ -57,7 +57,7 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
       ))}
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         onClick={() => {
           setClosed(cut.number);
         }}

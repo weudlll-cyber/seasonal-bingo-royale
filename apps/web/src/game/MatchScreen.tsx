@@ -208,7 +208,7 @@ function ArenaHeader({
       <div className="sbr-row">
         <HostLink match={live.match} />
         {live.match.status === 'running' ? (
-          <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+          <span className="sk-badge-live">{runningBadge(live.match.mode)}</span>
         ) : null}
       </div>
     </header>

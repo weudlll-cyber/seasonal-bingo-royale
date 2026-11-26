@@ -45,7 +45,7 @@ export function WaitingRoom({
         {live.match.prizes.length > 0 ? (
           <p className="sbr-row">
             {live.match.prizes.map((p) => (
-              <span key={p} className="sbr-chip">
+              <span key={p} className="sk-chip">
                 {prizeName(p)}
               </span>
             ))}
@@ -58,7 +58,7 @@ export function WaitingRoom({
         <SeasonsOverview result={live.view} />
         <div className="sbr-stack waiting-main">
           <Countdown startsAt={live.match.startsAt} />
-          <section className="sbr-panel">
+          <section className="sk-panel">
             <h2>
               Players {live.match.players} / {live.match.maxPlayers}
             </h2>
@@ -94,7 +94,7 @@ function JoinAction({ code }: { readonly code: string }): ReactElement | null {
     return (
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        className="sk-btn sk-btn--primary sk-btn--big"
         data-testid="join-match"
         onClick={() => void api(`/matches/${code}/join`, { method: 'POST', body: {} })}
       >
@@ -104,11 +104,7 @@ function JoinAction({ code }: { readonly code: string }): ReactElement | null {
   }
   if (signIn === null) return null;
   return (
-    <a
-      className="sbr-btn sbr-btn--primary sbr-btn--big"
-      href={signIn}
-      data-testid="sign-in-to-join"
-    >
+    <a className="sk-btn sk-btn--primary sk-btn--big" href={signIn} data-testid="sign-in-to-join">
       Sign in to join
     </a>
   );

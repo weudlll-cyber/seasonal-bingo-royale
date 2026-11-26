@@ -22,7 +22,7 @@ export function SignIn(): ReactElement {
   const [password, setPassword] = useState('');
   const { error, busy, submit } = useAccountSubmit(() => signIn(email.trim(), password));
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="sign-in-form">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="sign-in-form">
       <h1>Sign in</h1>
       <AccountField
         label="E-mail"
@@ -43,7 +43,7 @@ export function SignIn(): ReactElement {
       <FormError text={error} testId="sign-in-error" />
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={busy}
         data-testid="sign-in-submit"
       >
