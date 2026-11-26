@@ -15,7 +15,7 @@
  *                 ../host/HostConsole, ../test/matchFixture, ./useLiveMatch
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HostConsole } from '../host/HostConsole.js';

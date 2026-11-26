@@ -12,7 +12,7 @@
 import { cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
+import { matchSummary, serveMatch, sessionAt, show } from '../test/matchFixture.js';
 import { MatchScreen } from './MatchScreen.js';
 
 vi.mock('./socket.js', () => ({
@@ -31,7 +31,15 @@ describe('a countdown on a wrong page clock', () => {
     // The server is a minute ahead of this page; the first round is 10 s away by its clock.
     const serverNow = Date.now() + 60_000;
     const match = matchSummary({ startsAt: serverNow + 10_000, status: 'lobby' });
-    serveMatch(match, undefined, null, [], serverNow);
+    const answers = serveMatch(match) as unknown as (url: string) => Promise<Response>;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) =>
+        url.endsWith('/session')
+          ? Promise.resolve(new Response(JSON.stringify(sessionAt(serverNow))))
+          : answers(url),
+      ),
+    );
     await show(<MatchScreen code="MATCH1" />);
     expect(screen.getByTestId('countdown').textContent).toContain('Starting in 10 s');
   });
