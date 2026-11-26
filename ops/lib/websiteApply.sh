@@ -8,10 +8,10 @@
 #                 <routes dir>/bingo.conf; own-Caddy mode with the checkout known (install.conf
 #                 INSTALL_DIR) deploy/site/routes/bingo.caddy once Caddy has /etc/caddy/routes
 #                 mounted; without the checkout /opt/sbr/routes and the manual steps of
-#                 docs/operator-guide.md. remove_route_file undoes it. final_checks go through the
+#                 docs/operator-guide.md. The uninstall removes it (./hooks.sh). final_checks go through the
 #                 real proxy: game 200, sign-in to /login?next=, authorize 204 (older: 401), feed.
 # Depends on:     ./common.sh, ./website.sh, ../kit/lib/website-route.sh, docker, nginx, curl
-# Used by:        ops/install.sh, ops/sbr (update, uninstall)
+# Used by:        ops/install.sh, ops/sbr (./hooks.sh)
 # Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
 
 # The Caddy route file's place in the website's checkout (own-Caddy mode), or nothing.
@@ -52,7 +52,8 @@ route_settings() {
   fi
   caddy=$(website_caddy)
   check="docker exec $caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile"
-  export SK_ROUTE_APP=sbr-bingo-$env:3000 SK_ROUTE_FILE=$(caddy_route_target)
+  SK_ROUTE_FILE=$(caddy_route_target)
+  export SK_ROUTE_APP=sbr-bingo-$env:3000 SK_ROUTE_FILE
   export SK_ROUTE_CHECK_CMD="$check >/dev/null"
   export SK_ROUTE_RELOAD_CMD="docker exec $caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null"
 }
@@ -85,20 +86,19 @@ apply_route_file() {
   fi
 }
 
-# remove_route_file <env>: the game's own route file gone, the website reloaded and still valid.
-remove_route_file() {
-  local env=$1 file="$SBR_ETC/$1.env"
+# remove_route_leftovers <env>: what the uninstall's route removal does not reach: the manual
+# copy under /opt/sbr, and own-Caddy files with no running Caddy or no known checkout.
+remove_route_leftovers() {
+  local file="$SBR_ETC/$1.env"
   rm -f "$SBR_ROOT/routes/bingo.caddy"
+  [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]] || return 0
   load_route_values "$file"
-  if [[ $SBR_WEBSITE_MODE != nginx ]]; then
-    if [[ -z $(caddy_route_target) ]]; then
-      warn "remove bingo.caddy from the website checkout's deploy/site/routes/ and reload its Caddy yourself"
-      return 0
-    fi
-    [[ -n $(website_caddy) ]] || { rm -f "$(caddy_route_target)"; return 0; }
+  [[ $SBR_WEBSITE_MODE != nginx ]] || return 0
+  if [[ -z $(caddy_route_target) ]]; then
+    warn "remove bingo.caddy from the website checkout's deploy/site/routes/ and reload its Caddy yourself"
+  else
+    rm -f "$(caddy_route_target)"
   fi
-  route_settings "$env"
-  sk_route_remove || warn "the website's proxy did not reload: check it"
 }
 
 # through <url path> [curl options]: the website's answer for this server, by its own name

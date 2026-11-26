@@ -6,8 +6,8 @@
 #
 # Responsibility: drill_backup, on the rehearsal's server after its update: one recovery code stored
 #                 for a member as the game stores them (HMAC-SHA-256 under SBR_RECOVERY_KEY), a
-#                 fingerprint of the data tables, `sbr backup`, `sbr restore --drill` of it (the
-#                 kit's drill and Bingo's seed-key check), and the backup and the age key taken out
+#                 fingerprint of the data tables, `sbr backup`, `sbr drill` of it (the kit's
+#                 drill and Bingo's seed-key check), and the backup and the age key taken out
 #                 to the host. drill_restore, after the uninstall: a fresh server with website
 #                 and bingo installed again, `sbr restore <backup> --identity <key> --force-env` (as
 #                 the operator guide says), then the same fingerprint, the backup's recovery key,
@@ -73,7 +73,8 @@ drill_backup() {
   DRILL_RECOVERY=$(recovery_print)
   probe ok "sbr backup" on_server sbr --yes backup
   DRILL_FILE=$(on_server sh -c 'ls -t /var/backups/sbr/prod/sbr-prod-*.tar.age | head -n 1')
-  probe ok "sbr restore --drill (the kit's drill, every table, and the seed key)"     on_server sbr --yes restore --drill "$DRILL_FILE" --identity /etc/seasonal-test/age-key.txt
+  probe ok "sbr drill (the kit's drill, every table, and the seed key)" \
+    on_server sbr drill "$DRILL_FILE" --identity /etc/seasonal-test/age-key.txt
   on_server cat "$DRILL_FILE" >"$STATE/drill.tar.age"
   on_server cat /etc/seasonal-test/age-key.txt >"$STATE/drill-age-key.txt"
   ok "the backup was taken out of the server" test -s "$STATE/drill.tar.age"

@@ -9,11 +9,11 @@
 #                 D37), route settings, proxy secret, database role passwords (audit-3 S1;
 #                 apply_db_roles, convert_db_roles for older installs); operator keys kept. Also
 #                 writes install.conf, copies compose files, Caddyfile, the library, the kit's
-#                 ops folder and the sbr CLI to /opt/sbr (save_stack/restore_stack keep the
-#                 previous for rollback), builds the app image
-#                 from a git ref unless that commit's exists, drops older images.
+#                 ops folder and the sbr CLI to /opt/sbr (the admin command keeps and restores
+#                 STACK_FILES for a rollback), builds the app image
+#                 from a git ref unless that commit's exists.
 # Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
-# Used by:        ops/install.sh, ops/sbr (update)
+# Used by:        ops/install.sh, ops/sbr (./hooks.sh)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
 
 # secret <bytes>: hex from openssl rand (a dry run, which installs nothing, may lack it).
@@ -201,23 +201,6 @@ install_files() {
 # The stack files an update replaces (install_files): kept for a rollback (audit O1).
 STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr kit)
 
-# save_stack <dir>: copies the installed stack files to <dir>/stack.
-save_stack() {
-  rm -rf "$1/stack"
-  install -d -m 0700 "$1/stack"
-  # An install made before a stack file existed has none to keep.
-  (cd "$SBR_ROOT" && for file in "${STACK_FILES[@]}"; do
-    [[ ! -e $file ]] || cp -a "$file" "$1/stack/"
-  done)
-}
-
-# restore_stack <dir>: puts the stack files saved by save_stack back.
-restore_stack() {
-  [[ -d $1/stack ]] || return 0
-  (cd "$1/stack" && cp -a ./. "$SBR_ROOT/")
-  rm -rf "$1/stack"
-}
-
 # build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and builds it when missing.
 build_image() {
   local repo=$1 ref=$2 src="$SBR_ROOT/src" commit
@@ -245,12 +228,4 @@ build_image() {
   # The ref and commit go into the image as SBR_VERSION (the admin Overview's health line).
   docker build --quiet --build-arg "SBR_VERSION=$ref (${commit:0:12})" -t "$SBR_IMAGE" "$src"
   SBR_CHANGES=$((SBR_CHANGES + 1))
-}
-
-# prune_images <keep…>: removes sbr-app images other than the ones named (current, previous).
-prune_images() {
-  local image
-  for image in $(docker image ls sbr-app --format '{{.Repository}}:{{.Tag}}'); do
-    [[ " $* " == *" $image "* ]] || docker image rm "$image" >/dev/null 2>&1 || true
-  done
 }

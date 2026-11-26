@@ -4,13 +4,12 @@
 # @brief  Shared helpers of ops/install.sh and ops/sbr: messages, questions, files, compose.
 #
 # Responsibility: plain messages (info, warn, die); a question taking a flag value or asking (never
-#                 in --yes mode) and a yes/no confirmation; running or only showing a command
+#                 in --yes mode); running or only showing a command
 #                 (--dry-run); writing a file atomically and only when its content changed (re-runs
 #                 change nothing); reading or replacing one env-file value; a host as a URL (IPv6 in
-#                 brackets); on exit, removing work files and throw-away containers, restarting an
-#                 app stopped by stop_app when the script fails before restart_app_done, and
-#                 removing the accounts of a load check that missed its own cleanup; Docker Compose
-#                 with the right files.
+#                 brackets); on exit, removing work files and throw-away containers and the
+#                 accounts of a load check that missed its own cleanup; Docker Compose with the
+#                 right files.
 # Used by:        ops/install.sh, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §2–§4
 
@@ -23,18 +22,11 @@ SBR_CHANGES=0
 SBR_DRY_RUN=${SBR_DRY_RUN:-0}
 SBR_TMP_PATHS=()
 SBR_TMP_CONTAINERS=()
-SBR_RESTART_APP=''
 # The environment of a load check under way (./loadcheck.sh), until its own cleanup ran.
 SBR_LOADCHECK_ENV=''
 
-# Work files and throw-away containers go when the script ends, also after an error. A
-# script that stopped the app (restore, rollback) and then fails starts it again (audit H3).
+# Work files and throw-away containers go when the script ends, also after an error.
 sbr_cleanup() {
-  local status=$?
-  if ((status != 0)) && [[ -n $SBR_RESTART_APP ]]; then
-    warn "stopped with an error: starting the app of $SBR_RESTART_APP again"
-    compose "$SBR_RESTART_APP" start app || warn "the app did not start: sbr status, sbr logs app"
-  fi
   if [[ -n $SBR_LOADCHECK_ENV ]]; then
     compose "$SBR_LOADCHECK_ENV" exec -T app node dist/cli.js loadcheck cleanup ||
       warn "the load check's accounts may be left: run sudo sbr loadcheck again, it removes them first"
@@ -46,13 +38,6 @@ sbr_cleanup() {
 trap sbr_cleanup EXIT
 cleanup_path() { SBR_TMP_PATHS+=("$1"); }
 cleanup_container() { SBR_TMP_CONTAINERS+=("$1"); }
-# stop_app <env>: stops the app until restart_app_done; a failure in between starts it again.
-stop_app() {
-  SBR_RESTART_APP=$1
-  compose "$1" stop app
-}
-restart_app_done() { SBR_RESTART_APP=''; }
-
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
 die() {
@@ -72,14 +57,6 @@ ask() {
   fi
   read -r -p "$question${default:+ [$default]}: " answer
   printf -v "$var" '%s' "${answer:-$default}"
-}
-
-# confirm <question>: goes on after "yes" (or --yes), stops otherwise.
-confirm() {
-  local answer
-  [[ ${SBR_YES:-0} == 1 ]] && return 0
-  read -r -p "$1 Type yes to go on: " answer
-  [[ $answer == yes ]] || die "stopped; nothing changed"
 }
 
 # The value of a key in an env file without its quotes, or nothing (also without a file).

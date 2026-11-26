@@ -221,7 +221,7 @@ check "... and the game still answers through it" "$(vps "curl -s $H $URL/health
 vps "sed -i '/^SBR_WEBSITE_HEADER_ID=/d' /etc/sbr/prod.env"
 check "a re-run applies the route again" "$(vps "$INSTALL 2>&1 | tail -14")" 'checked through the website'"'"'s proxy'
 # Uninstall: only the game's route file goes; the website's proxy stays valid and answers.
-vps 'SBR_YES=1 sbr uninstall >/root/uninstall.log 2>&1 || true'
+vps 'sbr --yes uninstall >/root/uninstall.log 2>&1 || true'
 check "uninstall removes the game's route file" "$(vps "test -e $ROUTE_FILE || echo gone")" 'gone'
 check "... and leaves the website's proxy valid" "$(vps "$VALID")" 'valid'
 check "... and answering" "$(vps "curl -s -o /dev/null -w '%{http_code}' $H http://127.0.0.1/login")" '200'

@@ -1,21 +1,17 @@
 #!/usr/bin/env bash
 # @file   ops/lib/backup.sh
 # @module ops
-# @brief  Bingo's backups on the kit's backup script: settings, restore, drill, timer.
+# @brief  Bingo's backups on the kit's backup script: settings, the seed-key drill, old backups, timer.
 #
-# Responsibility: the kit's script (../kit/backup.sh, in the verbatim copy of @seasonal/kit's
-#                 ops folder, K61, K71) does the dump, the encryption to the operator's age public
-#                 key, the retention (14 newest, 8 weekly), the one-transaction database restore,
-#                 the uploads and its drill; here are Bingo's SK_BACKUP_* settings and what stays
-#                 Bingo's: SBR_SEED_KEY and SBR_RECOVERY_KEY travel as the backup's secret files
-#                 (sealed secrets and recovery codes need them; a restore takes the backup's), a
-#                 restore refuses another env's seed key unless --force-env BEFORE anything is
-#                 touched, stops the app, re-gives the restored schema to the owner role
-#                 (./config.sh apply_db_roles), and reads backups made before the kit's format
-#                 (uploads.tar, seed.key, recovery.key, no manifest); the drill also opens one
-#                 stored match secret with the backup's seed key. Timer 03:30.
-# Depends on:     ./common.sh (compose, run, put_file, env_value, set_env_value, confirm,
-#                 cleanup, stop_app), ./config.sh (apply_db_roles), ../kit/backup.sh, age, docker
+# Responsibility: the kit's script (../kit/backup.sh, K61, K71) backs up, restores and drills; the
+#                 admin command runs it with `game_backup_settings`: SBR_SEED_KEY and
+#                 SBR_RECOVERY_KEY travel as its secret files (a restore refuses another seed key
+#                 unless --force-env before anything changes; then `after_restore` writes the
+#                 backup's keys into the env file, gives the schema back to the owner role and
+#                 starts the stack). Bingo's own: `drill` (the kit's, then one stored match secret
+#                 opened with the backup's seed key), `rewrite_backup` (a backup made before the
+#                 kit's format written again as one, until those age out) and the 03:30 timer.
+# Depends on:     ./common.sh, ./config.sh (apply_db_roles), ../kit/backup.sh, age, docker
 # Used by:        ops/sbr, ops/install.sh (timer)
 # Spec:           docs/spec/09-deployment-architecture.md §6; docs/spec/03-security-architecture.md §15
 
@@ -23,9 +19,22 @@ PG_IMAGE=postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec4
 BACKUP_GROUP=sbr-backup
 KIT_BACKUP=$(dirname "${BASH_SOURCE[0]}")/../kit/backup.sh
 
-# kit_settings <env>: Bingo's settings of the kit's script, exported (call in a subshell).
-kit_settings() {
-  local env=$1
+# secret_files <env>: the env file's two keys as files under the state folder (0600, written only
+# when they differ), where the kit's backup reads them and its restore puts the backup's.
+secret_files() {
+  local file="$SBR_ETC/$1.env" dir="$SBR_STATE/$1/secrets" seed recovery
+  seed=$(env_value "$file" SBR_SEED_KEY)
+  recovery=$(env_value "$file" SBR_RECOVERY_KEY)
+  [[ -n $seed ]] || die "no SBR_SEED_KEY in $file: without it no backup can be opened again"
+  install -d -m 0700 "$dir"
+  # Silent: the caller's output is read (the new backup's path).
+  printf '%s\n' "$seed" | put_file "$dir/seed.key" 0600 >/dev/null
+  printf '%s\n' "$recovery" | put_file "$dir/recovery.key" 0600 >/dev/null
+}
+
+# The kit's backup settings for an environment (its OPERATIONS.md).
+game_backup_settings() {
+  local env=$1 dir="$SBR_STATE/$1/secrets"
   export SK_BACKUP_PREFIX=sbr SK_BACKUP_ENV="$env" SK_BACKUP_DIR="$SBR_BACKUPS/$env"
   export SK_BACKUP_DB_CONTAINER="sbr-$env-postgres-1" SK_BACKUP_DB_USER=sbr SK_BACKUP_DB_NAME=sbr
   export SK_BACKUP_DB_SCHEMA=sbr SK_BACKUP_GROUP="$BACKUP_GROUP" SK_BACKUP_PG_IMAGE="$PG_IMAGE"
@@ -33,146 +42,52 @@ kit_settings() {
   # not bring them back (audit M3).
   export SK_BACKUP_VOLUMES="sbr-${env}_uploads" SK_BACKUP_VOLUME_EXCLUDES='./maintenance ./website-feed'
   SK_BACKUP_HELPER_IMAGE=$(env_value "$SBR_ETC/$env.env" SBR_IMAGE)
-  export SK_BACKUP_HELPER_IMAGE
+  SK_BACKUP_AGE_RECIPIENT=$(env_value "$SBR_ETC/$env.env" SBR_AGE_RECIPIENT)
+  export SK_BACKUP_HELPER_IMAGE SK_BACKUP_AGE_RECIPIENT
+  secret_files "$env"
+  export SK_BACKUP_SECRET_FILES="$dir/seed.key $dir/recovery.key" SK_ADMIN_SECRETS_DIR="$dir"
+  export SK_BACKUP_STOP_CMD="'$SBR_ROOT/sbr' --env $env stop_app"
+  export SK_BACKUP_START_CMD="'$SBR_ROOT/sbr' --env $env after_restore"
 }
 
-# kit <env> <function...>: one of the kit script's functions with Bingo's settings, in a
-# subshell, so that its helpers of the same names (die, info, cleanup) never replace ours.
-kit() (
-  kit_settings "$1"
-  shift
-  # shellcheck source=ops/kit/backup.sh
-  SK_BACKUP_SOURCE_ONLY=1 source "$KIT_BACKUP"
-  "$@"
-)
+# The restore's stop command.
+game_cmd_stop_app() { compose "$1" stop app; }
 
-# do_backup <env>: sets BACKUP_FILE to the new file (runs in this shell, so errors stop it).
-do_backup() {
-  local env=$1 recipient seed recovery keys said
-  recipient=$(env_value "$SBR_ETC/$env.env" SBR_AGE_RECIPIENT)
-  seed=$(env_value "$SBR_ETC/$env.env" SBR_SEED_KEY)
-  recovery=$(env_value "$SBR_ETC/$env.env" SBR_RECOVERY_KEY)
-  [[ -n $recipient ]] || die "no age public key in $SBR_ETC/$env.env (SBR_AGE_RECIPIENT)"
-  [[ -n $seed ]] || die "no SBR_SEED_KEY in $SBR_ETC/$env.env: without it no backup can be opened again"
-  keys=$(mktemp -d)
-  cleanup_path "$keys"
-  # Only these two values of the env file travel with the backup (inside the encryption).
-  (
-    umask 077
-    printf '%s\n' "$seed" >"$keys/seed.key"
-    printf '%s\n' "$recovery" >"$keys/recovery.key"
-  )
-  install -d -m 0750 -g "$BACKUP_GROUP" "$SBR_BACKUPS"
-  said=$(
-    kit_settings "$env"
-    SK_BACKUP_AGE_RECIPIENT=$recipient SK_BACKUP_SECRET_FILES="$keys/seed.key $keys/recovery.key" \
-      bash "$KIT_BACKUP" backup
-  ) || die "the backup of $env failed (message above)"
-  rm -f "$SBR_STATE/$env/backup-failed"
-  # shellcheck disable=SC2034 # read by ops/sbr after the call
-  BACKUP_FILE="$SBR_BACKUPS/$env/${said##*backup written: }"
+# restored_key <env> <seed|recovery> <env key>: the restored secret file's key into the env file.
+restored_key() {
+  local key file="$SBR_ETC/$1.env"
+  key=$(tr -d '[:space:]' <"$SBR_STATE/$1/secrets/$2.key" 2>/dev/null || true)
+  [[ -n $key && $key != "$(env_value "$file" "$3")" ]] || return 0
+  set_env_value "$file" "$3" "$key"
+  info "The backup's $2 key is now the one of $1."
 }
 
-# unpack_backup <env> <file> <identity> <dir>: a backup of either format into <dir>, laid out as
-# the kit's (db.dump, vol-<volume>.tar, secret-*.key). Sets BACKUP_KIND to kit or old.
-unpack_backup() {
-  local env=$1 file=$2 identity=$3 dir=$4 volume
-  if [[ $file == *.age ]]; then
-    [[ -n $identity ]] || die "this backup is encrypted: pass your age key file with --identity <file>"
-    age -d -i "$identity" "$file" >"$dir/archive.tar" || die "cannot decrypt $file"
-  else
-    cp "$file" "$dir/archive.tar"
-  fi
-  if tar -tf "$dir/archive.tar" | grep -Eqx '(\./)?manifest\.txt'; then
-    BACKUP_KIND=kit
-    rm -f "$dir/archive.tar"
-    kit "$env" unpack "$file" "$identity" "$dir" || die "cannot unpack $file"
-  else
-    # Made before the kit's format: the same parts under their old names.
-    BACKUP_KIND=old
-    tar -C "$dir" -xf "$dir/archive.tar"
-    rm -f "$dir/archive.tar"
-    [[ ! -f $dir/uploads.tar ]] || mv "$dir/uploads.tar" "$dir/vol-sbr-${env}_uploads.tar"
-    [[ ! -f $dir/seed.key ]] || mv "$dir/seed.key" "$dir/secret-seed.key"
-    [[ ! -f $dir/recovery.key ]] || mv "$dir/recovery.key" "$dir/secret-recovery.key"
-  fi
-  [[ -s $dir/db.dump ]] || die "no database dump in $file"
-  # Another environment's backup (--force-env): its uploads go into this one's volume.
-  volume="$dir/vol-sbr-${env}_uploads.tar"
-  if [[ ! -f $volume ]]; then
-    for volume in "$dir"/vol-*.tar; do
-      [[ ! -f $volume ]] || mv "$volume" "$dir/vol-sbr-${env}_uploads.tar"
-    done
-  fi
-}
-
-# backup_key <dir> <seed|recovery>: that key of an unpacked backup, or nothing (made before
-# backups carried it).
-backup_key() {
-  [[ -f $1/secret-$2.key ]] || return 0
-  tr -d '[:space:]' <"$1/secret-$2.key"
-}
-
-# restore_recovery_key <env> <unpacked backup>: the backup's recovery key (K20) replaces the
-# env file's, as the restored recovery codes are stored under it. A backup made before the key
-# carries none: the env file keeps its own (codes stored before it still work, K27).
-restore_recovery_key() {
-  local key
-  key=$(backup_key "$2" recovery)
-  [[ -n $key && $key != "$(env_value "$SBR_ETC/$1.env" SBR_RECOVERY_KEY)" ]] || return 0
-  set_env_value "$SBR_ETC/$1.env" SBR_RECOVERY_KEY "$key"
-  info "The backup's recovery key is now the one of $1."
-}
-
-# choose_seed_key <env> <backup key> <force-env>: sets RESTORE_SEED_KEY to the key the env
-# file holds after the restore. The environment's own key when the backup has none or the
-# same one; the backup's when the env file has none; another key stops unless --force-env,
-# which takes the backup's (the restored matches are sealed with it).
-choose_seed_key() {
-  local saved
-  saved=$(env_value "$SBR_ETC/$1.env" SBR_SEED_KEY)
-  RESTORE_SEED_KEY=${saved:-$2}
-  if [[ -z $2 ]]; then
-    warn "this backup holds no seed key (made before backups carried it): $1 keeps its own, which must be the one of the backup"
-  elif [[ -n $saved && $2 != "$saved" ]]; then
-    [[ $3 == 1 ]] || die "the backup's seed key differs from the one in $SBR_ETC/$1.env; pass --force-env to restore it with the backup's key"
-    warn "the backup's seed key replaces the one in $SBR_ETC/$1.env (--force-env)"
-    RESTORE_SEED_KEY=$2
-  fi
-}
-
-# do_restore <env> <file> <identity> <force-env>: replaces the database and the uploads.
-do_restore() {
-  local env=$1 file=$2 work
-  if [[ $(basename "$file") != sbr-"$env"-* && $4 != 1 ]]; then
-    die "$(basename "$file") is not a backup of $env; pass --force-env to restore it anyway"
-  fi
-  work=$(mktemp -d)
-  cleanup_path "$work"
-  unpack_backup "$env" "$file" "$3" "$work"
-  [[ $BACKUP_KIND == old ]] || kit "$env" check_manifest "$work" "$4" || exit 1
-  # Every refusal comes before anything is touched.
-  choose_seed_key "$env" "$(backup_key "$work" seed)" "$4"
-  confirm "Restore $(basename "$file") over the live $env data? Everything since that backup is lost."
-  stop_app "$env"
-  restore_database "$env" "$work/db.dump"
-  # The restored schema belongs to the superuser: back to the owner role (audit-3 S1); the
-  # migrate service grants the app role again on the next up.
+# The restore's start command: the backup's keys, the schema back to the owner role (a restored
+# dump belongs to the superuser), the stack up (the migrate service grants the app role again;
+# a changed env file recreates the app).
+game_cmd_after_restore() {
+  local env=$1
+  restored_key "$env" seed SBR_SEED_KEY
+  restored_key "$env" recovery SBR_RECOVERY_KEY
   if [[ -n $(env_value "$SBR_ETC/$env.env" SBR_DB_APP_PASSWORD) ]]; then apply_db_roles "$env"; fi
-  kit "$env" restore_volumes "$work"
-  if [[ $RESTORE_SEED_KEY != "$(env_value "$SBR_ETC/$env.env" SBR_SEED_KEY)" ]]; then
-    set_env_value "$SBR_ETC/$env.env" SBR_SEED_KEY "$RESTORE_SEED_KEY"
-  fi
-  restore_recovery_key "$env" "$work"
-  # up, not start: a changed env file (the seed key) recreates the app container.
   compose "$env" up -d
-  restart_app_done
   wait_ready "$env"
 }
 
-# restore_database <env> <dump>: drops the schema and restores the dump in ONE transaction (the
-# kit's, audit H3); also `sbr rollback`'s way back to the pre-update dump.
-restore_database() { kit "$1" restore_database "$2"; }
+# backup_args <usage> <args…>: sets BACKUP_PATH and IDENTITY from "<file> --identity <key>".
+backup_args() {
+  local usage=$1
+  shift
+  BACKUP_PATH='' IDENTITY=''
+  while (($#)); do
+    case $1 in
+      --identity) IDENTITY=${2:-}; shift ;;
+      *) BACKUP_PATH=$1 ;;
+    esac
+    shift
+  done
+  [[ -f $BACKUP_PATH && -n $IDENTITY ]] || die "usage: sbr $usage <file> --identity <age key file>"
+}
 
 # drill_database <name>: a throw-away PostgreSQL container, ready within 60 s.
 drill_database() {
@@ -187,40 +102,93 @@ drill_database() {
   sleep 2
 }
 
-# do_drill <env> <file> <identity>: the kit's drill (every table's rows against the dump), then
-# Bingo's: a restore into a throw-away database, its counts, and one stored sealed seed opened
-# with the backup's seed key.
-do_drill() {
-  local env=$1 work name="sbr-drill-$$" counts key image opened
+# drill: the kit's drill (every table's rows against the dump), then Bingo's: the dump in a
+# throw-away database, its counts, and one stored sealed seed opened with the backup's seed key.
+game_cmd_drill() {
+  local env=$1 work name="sbr-drill-$$" counts key opened
+  shift
+  backup_args drill "$@"
+  sk_admin_script "$env" drill "$BACKUP_PATH" --identity "$IDENTITY"
+  trap sbr_cleanup EXIT
   work=$(mktemp -d)
   cleanup_path "$work"
-  unpack_backup "$env" "$2" "$3" "$work"
-  if [[ $BACKUP_KIND == kit ]]; then
-    kit "$env" do_drill "$2" "$3" || die "drill FAILED (the kit's, message above)"
-  else
-    warn "made before the kit's format: only Bingo's drill reads it"
-  fi
-  key=$(backup_key "$work" seed)
-  [[ -n $key ]] || die "this backup holds no seed key (made before backups carried it): its matches cannot be opened; take a new backup"
+  # The kit's own unpacking, in a subshell: its helpers of the same names never replace ours.
+  (
+    game_backup_settings "$env"
+    SK_BACKUP_SOURCE_ONLY=1
+    # shellcheck source=ops/kit/backup.sh
+    source "$KIT_BACKUP"
+    trap - EXIT
+    unpack "$BACKUP_PATH" "$IDENTITY" "$work"
+  )
+  [[ -f $work/secret-seed.key ]] || die "this backup holds no seed key: its matches cannot be opened; take a new backup"
+  key=$(tr -d '[:space:]' <"$work/secret-seed.key")
   drill_database "$name"
   docker exec -i "$name" pg_restore -U sbr -d sbr --no-owner --no-acl --exit-on-error <"$work/db.dump"
   counts=$(docker exec "$name" psql -U sbr -d sbr -tA -c \
     "SELECT (SELECT count(*) FROM sbr.schema_migrations) || ' migrations, ' || (SELECT count(*) FROM sbr.accounts) || ' accounts, ' || (SELECT count(*) FROM sbr.matches) || ' matches, ' || (SELECT count(*) FROM sbr.match_events) || ' events'")
   [[ -n $counts ]] || die "the drill restored nothing readable"
-  # The app's own code (dist/cli.js check-seed-key) on the drill database's network; the
-  # key travels in the environment, never on a command line another user could read.
-  image=$(env_value "$SBR_ETC/$env.env" SBR_IMAGE)
+  # The app's own code (dist/cli.js check-seed-key) on the drill database's network; the key
+  # travels in the environment, never on a command line another user could read.
   opened=$(SBR_SEED_KEY=$key docker run --rm --network "container:$name" -e SBR_SEED_KEY \
-    -e DATABASE_URL=postgres://sbr:drill@127.0.0.1:5432/sbr "$image" node dist/cli.js check-seed-key) ||
+    -e DATABASE_URL=postgres://sbr:drill@127.0.0.1:5432/sbr \
+    "$(env_value "$SBR_ETC/$env.env" SBR_IMAGE)" node dist/cli.js check-seed-key) ||
     die "drill FAILED: the backup's seed key does not open its stored match secrets (message above)"
-  info "drill passed: $counts; uploads $(tar -tf "$work/vol-sbr-${env}_uploads.tar" | wc -l) entries; $opened"
+  info "Bingo's drill passed: $counts; $opened"
+}
+
+# rewrite_parts <dir> <env>: an old backup's parts under the kit's names.
+rewrite_parts() {
+  local dir=$1 env=$2
+  [[ -s $dir/db.dump ]] || die "no database dump in the backup"
+  [[ ! -f $dir/uploads.tar ]] || mv "$dir/uploads.tar" "$dir/vol-sbr-${env}_uploads.tar"
+  [[ ! -f $dir/seed.key ]] || mv "$dir/seed.key" "$dir/secret-seed.key"
+  [[ ! -f $dir/recovery.key ]] || mv "$dir/recovery.key" "$dir/secret-recovery.key"
+}
+
+# rewrite_backup: a backup made before the kit's format (uploads.tar, seed.key, recovery.key, no
+# manifest), written again as the kit's, for `sbr restore` and `sbr drill`. The old file stays.
+game_cmd_rewrite_backup() {
+  local env=$1 work stamp out
+  shift
+  backup_args rewrite_backup "$@"
+  trap sbr_cleanup EXIT
+  work=$(mktemp -d)
+  cleanup_path "$work"
+  install -d -m 0700 "$work/parts"
+  age -d -i "$IDENTITY" "$BACKUP_PATH" >"$work/archive.tar" || die "cannot decrypt $BACKUP_PATH"
+  ! tar -tf "$work/archive.tar" | grep -Eqx '(\./)?manifest\.txt' ||
+    die "$(basename "$BACKUP_PATH") is already the kit's format: restore it as it is"
+  tar -C "$work/parts" -xf "$work/archive.tar"
+  rewrite_parts "$work/parts" "$env"
+  # The old file's own time stays in the new name.
+  stamp=$(basename "$BACKUP_PATH" | sed -nE 's/.*-([0-9]{8}T[0-9]{6}Z).*/\1/p')
+  stamp=${stamp:-$(date -u +%Y%m%dT%H%M%SZ)}
+  out=$(
+    game_backup_settings "$env"
+    SK_BACKUP_SOURCE_ONLY=1
+    # shellcheck source=ops/kit/backup.sh
+    source "$KIT_BACKUP"
+    trap - EXIT
+    write_manifest "$work/parts" "$stamp"
+    out="$SK_BACKUP_DIR/sbr-$env-$stamp-rewritten.tar.age"
+    install -d -m 0750 -g "$SK_BACKUP_GROUP" "$SK_BACKUP_DIR"
+    (cd "$work/parts" && tar -cf - ./* | age -r "$SK_BACKUP_AGE_RECIPIENT") >"$out.partial"
+    chgrp "$SK_BACKUP_GROUP" "$out.partial"
+    chmod 0640 "$out.partial"
+    mv "$out.partial" "$out"
+    printf '%s' "$out"
+  )
+  info "written again as $out"
 }
 
 # install_backup_units <env>: the backup group, age, the systemd timer for 03:30 and the
-# unit a failed backup starts (OnFailure=): it marks the failure for sbr status and logs it.
+# unit a failed backup starts (OnFailure=), which logs it (sbr status asks systemd).
 install_backup_units() {
   local env=$1
   getent group "$BACKUP_GROUP" >/dev/null || run groupadd --system "$BACKUP_GROUP"
+  # The parent too is the group's, so a user in it can pull the backups.
+  run install -d -m 0750 -g "$BACKUP_GROUP" "$SBR_BACKUPS"
   if ! command -v age >/dev/null; then
     run apt-get update -q
     run apt-get install -y -q age
@@ -238,12 +206,10 @@ ExecStart=/opt/sbr/sbr --env %i backup
 EOF
   put_file /etc/systemd/system/sbr-backup-failed@.service 0644 <<'EOF'
 [Unit]
-Description=Seasonal Bingo Royale backup (%i) failed: mark it for sbr status
+Description=Seasonal Bingo Royale backup (%i) failed
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/install -d -m 0700 /var/lib/sbr/%i
-ExecStart=/bin/sh -c 'date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ >/var/lib/sbr/%i/backup-failed'
 ExecStart=/usr/bin/logger -p user.err -t sbr "the backup of %i failed: journalctl -u sbr-backup@%i"
 EOF
   put_file /etc/systemd/system/sbr-backup@.timer 0644 <<'EOF'
