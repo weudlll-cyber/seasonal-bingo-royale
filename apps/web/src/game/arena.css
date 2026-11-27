@@ -57,7 +57,9 @@
    (../components/DrawTicker), so a long round does not push the card down. */
 .arena-play {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  /* The ball's column never leaves the numbers without room: in a pause its words wrap
+     (at a large font they pushed the numbers past a phone's edge). */
+  grid-template-columns: fit-content(60%) minmax(0, 1fr);
   grid-template-areas:
     'ball ticker'
     'cards cards'
