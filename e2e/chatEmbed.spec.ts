@@ -275,7 +275,7 @@ test('a bar and a sheet on a phone', async ({ page }) => {
 // The stand-in's view of the shared call says what the test tells it to.
 async function callSays(page: Page, type: string, fields: Record<string, unknown>): Promise<void> {
   const element = await page.getByTestId('shared-call-frame').elementHandle();
-  const view = await element?.contentFrame();
+  const view = await element.contentFrame();
   expect(view).toBeTruthy();
   await view?.evaluate(
     ([t, f]) => {
