@@ -13,6 +13,9 @@
 #                 asks; backs up; restores the dump in one transaction only if the schema migrated
 #                 (`game_migrations` counts), with the app stopped; puts back the settings file the
 #                 update kept (env.before), the image, ref and stack files; starts and waits.
+#                 Stack files are put back by renaming (a running script is never written into),
+#                 and one the update did not keep stays (since v0.36.0). A backup is preceded by
+#                 the game's `game_backup_secrets`, where it writes its secret files.
 # Depends on:     ./admin.sh, ../backup.sh (do_backup, restore_database, pg)
 # Source:         seasonal-bingo-royale ops/sbr (cmd_update, cmd_confirm, cmd_rollback) and
 #                 ops/lib/config.sh (save_stack, restore_stack, prune_images) at d7d841e. The
@@ -25,6 +28,7 @@
 sk_admin_backup_now() {
   (
     game_backup_settings "$1"
+    if sk_admin_has game_backup_secrets; then game_backup_secrets "$1" >&2; fi
     SK_BACKUP_SOURCE_ONLY=1
     # shellcheck source=SCRIPTDIR/../backup.sh
     source "$SK_ADMIN_BACKUP"
@@ -66,17 +70,47 @@ sk_admin_prune() {
   done
 }
 
-# The stack files named in SK_ADMIN_STACK_FILES (under SK_ADMIN_ROOT), kept or put back.
+# sk_admin_put <from> <to>: a file is copied beside its place and renamed over it, a folder file
+# by file, so a script that is running (this command among them) is never written into: bash reads
+# on in the file it opened.
+sk_admin_put() {
+  local from=$1 to=$2 entry temp
+  if [[ -d $from && ! -L $from ]]; then
+    if [[ ! -d $to ]]; then
+      mkdir -p "$to"
+      chmod --reference="$from" "$to"
+    fi
+    while IFS= read -r -d '' entry; do
+      sk_admin_put "$entry" "$to/${entry##*/}"
+    done < <(find "$from" -mindepth 1 -maxdepth 1 -print0)
+  else
+    temp="${to%/*}/.${to##*/}.new"
+    rm -f "$temp"
+    cp -a "$from" "$temp"
+    mv -f "$temp" "$to"
+  fi
+}
+
+# sk_admin_stack save|restore <state dir>: the stack files named in SK_ADMIN_STACK_FILES (under
+# SK_ADMIN_ROOT), kept or put back. A name that is not there to keep, or that no update kept (an
+# older command's list was shorter), is said and left as it is.
 sk_admin_stack() {
-  local dir=$2/stack
+  local dir=$2/stack name
   [[ -n ${SK_ADMIN_STACK_FILES:-} ]] || return 0
-  # shellcheck disable=SC2086 # one file name per word
   if [[ $1 == save ]]; then
     rm -rf "$dir"
     install -d -m 0700 "$dir"
-    (cd "$SK_ADMIN_ROOT" && cp -a $SK_ADMIN_STACK_FILES "$dir/")
+    for name in $SK_ADMIN_STACK_FILES; do
+      if [[ -e $SK_ADMIN_ROOT/$name ]]; then cp -a "$SK_ADMIN_ROOT/$name" "$dir/"; else
+        info "$name is not installed yet: nothing of it to keep for a rollback"
+      fi
+    done
   elif [[ -d $dir ]]; then
-    (cd "$dir" && cp -a $SK_ADMIN_STACK_FILES "$SK_ADMIN_ROOT/")
+    for name in $SK_ADMIN_STACK_FILES; do
+      if [[ -e $dir/$name ]]; then sk_admin_put "$dir/$name" "$SK_ADMIN_ROOT/$name"; else
+        info "the update kept no $name: the installed one stays"
+      fi
+    done
     rm -rf "$dir"
   fi
 }
@@ -141,11 +175,14 @@ sk_admin_rollback() {
   info "Backup of the current state: $backup"
   # The database first: if its restore fails, nothing else changed and the updated app is
   # started again on the untouched data.
+  # shellcheck disable=SC2034 # SK_ADMIN_DATA is read by sk_admin_cleanup (./admin.sh)
   if ((restore)); then
     info "Restoring the dump taken before the update."
     SK_ADMIN_STOPPED=$env
+    SK_ADMIN_DATA='the database restore is one transaction, so the data is as it was before this rollback'
     game_compose "$env" stop "$(sk_admin_app)"
     sk_admin_database "$env" restore "$dir/pre-update.dump"
+    SK_ADMIN_DATA="the database holds the pre-update data, but the image and settings may be only partly put back: run $SK_ADMIN_NAME rollback again"
   fi
   if [[ -f $dir/env.before ]]; then install -m 0600 "$dir/env.before" "$file"; fi
   sk_admin_set "$file" "$SK_ADMIN_IMAGE_KEY" "$image"

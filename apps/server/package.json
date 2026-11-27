@@ -36,7 +36,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.34.0",
+    "@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.38.0",
     "@testcontainers/postgresql": "12.2.1",
     "@types/nodemailer": "8.0.2",
     "@types/pg": "8.23.1",

@@ -14,8 +14,11 @@
 # What this run created and must remove on exit: work folders and throw-away containers.
 SK_WORK=()
 SK_CONTAINERS=()
+# The step a restore is in while the app is stopped (./backup-restore.sh); empty otherwise.
+SK_RESTORE_STEP=''
 cleanup() {
-  local c
+  local c status=$?
+  if ((status != 0)) && [[ -n $SK_RESTORE_STEP ]]; then restore_interrupted; fi
   for c in "${SK_CONTAINERS[@]-}"; do [[ -z $c ]] || docker rm -f "$c" >/dev/null 2>&1 || true; done
   [[ ${#SK_WORK[@]} -eq 0 ]] || rm -rf "${SK_WORK[@]}"
 }

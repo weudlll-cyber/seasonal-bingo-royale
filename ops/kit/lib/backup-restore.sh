@@ -135,6 +135,22 @@ restore_volumes() {
   done
 }
 
+# restore_interrupted: a restore that failed after the app was stopped says what state the data
+# is in, and starts the app again. Called by ./backup-core.sh's cleanup.
+restore_interrupted() {
+  case $SK_RESTORE_STEP in
+    stop) printf 'backup: the restore failed while stopping the app: nothing was replaced\n' >&2 ;;
+    database) printf 'backup: the database restore failed; it is one transaction, so the database, the volumes and the secret files are as they were\n' >&2 ;;
+    volumes) printf 'backup: the restore failed in the volumes: the database holds the backup'\''s data, a volume may be empty or half filled, the secret files are as they were: restore again\n' >&2 ;;
+    secrets) printf 'backup: the restore failed at the secret files: database and volumes hold the backup'\''s data, a secret file may be the earlier one: restore again\n' >&2 ;;
+    start) printf 'backup: the data is restored, but the app did not start\n' >&2 ;;
+  esac
+  SK_RESTORE_STEP=''
+  [[ -n ${SK_BACKUP_START_CMD:-} ]] || return 0
+  printf 'backup: starting the app again\n' >&2
+  bash -c "$SK_BACKUP_START_CMD" || printf 'backup: the app did not start: check it\n' >&2
+}
+
 # do_restore <file> <identity> <force> <yes> <secrets-to>
 do_restore() {
   local file=$1 work answer
@@ -148,11 +164,18 @@ do_restore() {
     read -r -p "Restore $(basename "$file") over the live $(env_name) data? Everything since that backup is lost. [y/N] " answer
     [[ $answer == y || $answer == Y ]] || die "not restored"
   fi
+  # From here a failure starts the app again (restore_interrupted).
+  SK_RESTORE_STEP=stop
   [[ -z ${SK_BACKUP_STOP_CMD:-} ]] || bash -c "$SK_BACKUP_STOP_CMD"
+  SK_RESTORE_STEP=database
   restore_database "$work/db.dump"
+  SK_RESTORE_STEP=volumes
   restore_volumes "$work"
+  SK_RESTORE_STEP=secrets
   restore_secrets "$work" "$5"
+  SK_RESTORE_STEP=start
   [[ -z ${SK_BACKUP_START_CMD:-} ]] || bash -c "$SK_BACKUP_START_CMD"
+  SK_RESTORE_STEP=''
   info "restored $(basename "$file")"
 }
 

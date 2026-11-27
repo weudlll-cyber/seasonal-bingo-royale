@@ -13,7 +13,10 @@
 #                 when the app is not ready. backup and restore are ./../backup.sh with the
 #                 settings of the game's `game_backup_settings`; with SK_ADMIN_SECRETS_DIR set, a
 #                 restore puts the backup's secret files there (since v0.34.0), and without
-#                 --force-env stops, before anything changes, where one differs. update, confirm and rollback are
+#                 --force-env stops, before anything changes, where one differs. status and the
+#                 other read-only verbs write nothing: `game_backup_settings` only sets
+#                 variables, and secret files for a backup are written by the optional
+#                 `game_backup_secrets`, called before a backup alone (since v0.36.0). update, confirm and rollback are
 #                 ./admin-update.sh, uninstall ./admin-uninstall.sh. No secret is printed.
 # Depends on:     bash 4, docker, systemctl, ./admin-update.sh, ./admin-uninstall.sh, ../backup.sh
 # Source:         seasonal-bingo-royale ops/sbr and ops/lib/common.sh at d7d841e (the verbs, their
@@ -30,6 +33,8 @@ SK_ADMIN_BACKUP=${SK_ADMIN_BACKUP:-$SK_ADMIN_LIB/../backup.sh}
 SK_ADMIN_YES=0
 # The environment whose app a restore or rollback stopped, until it runs again.
 SK_ADMIN_STOPPED=''
+# What state the data is in while it is stopped, for the message of a failure.
+SK_ADMIN_DATA=''
 
 info() { printf '%s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
@@ -42,7 +47,7 @@ die() {
 sk_admin_cleanup() {
   local status=$?
   if ((status != 0)) && [[ -n $SK_ADMIN_STOPPED ]]; then
-    warn "stopped with an error: starting the app of $SK_ADMIN_STOPPED again"
+    warn "stopped with an error${SK_ADMIN_DATA:+ ($SK_ADMIN_DATA)}: starting the app of $SK_ADMIN_STOPPED again"
     game_compose "$SK_ADMIN_STOPPED" start "$(sk_admin_app)" ||
       warn "the app did not start: $SK_ADMIN_NAME status, $SK_ADMIN_NAME logs"
   fi
@@ -153,6 +158,8 @@ sk_admin_script() {
   shift
   (
     game_backup_settings "$env"
+    # Only a backup writes the secret files it carries: no other verb does.
+    if [[ $1 == backup ]] && sk_admin_has game_backup_secrets; then game_backup_secrets "$env"; fi
     # A restore puts the backup's secret files where the game keeps them, when it says where
     # (a global setting, or the environment's own from game_backup_settings).
     if [[ $1 == restore && -n ${SK_ADMIN_SECRETS_DIR:-} ]]; then

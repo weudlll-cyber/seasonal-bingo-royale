@@ -18,6 +18,8 @@
 #                 passes the identity headers on and only then adds the secret, so the website
 #                 never sees it; a refusal goes to `<base>/auth/website/login` with the same query;
 #                 `<base>/metrics` is 404; the website's session cookie never reaches the app.
+#                 Since v0.35.0 the written file says why `/metrics` is refused, and, with
+#                 SK_ROUTE_TRUSTED set, from which addresses the app takes the secret.
 #                 No website file is written. Settings are SK_ROUTE_* variables
 #                 (docs/OPERATIONS.md); the secret is never printed to the terminal by this file.
 # Depends on:     bash 4
@@ -53,6 +55,13 @@ sk_route_match() {
   [[ $value =~ $2 ]] || sk_route_die "$1 holds characters a route file may not carry"
 }
 
+# The comment lines both proxies' files carry about who is trusted and what is refused.
+sk_route_notes() {
+  [[ -z ${SK_ROUTE_TRUSTED:-} ]] ||
+    printf '# The app takes the proxy secret only from these addresses: %s\n' "$SK_ROUTE_TRUSTED"
+  printf '%s\n' '# /metrics is refused here: the counters are for the server itself, never for visitors.'
+}
+
 sk_route_settings() {
   local h
   sk_route_match SK_ROUTE_GAME '^[a-z][a-z0-9-]*$' || return 1
@@ -61,6 +70,8 @@ sk_route_settings() {
   sk_route_match SK_ROUTE_SECRET '^[A-Za-z0-9._~+/=-]+$' || return 1
   sk_route_match SK_ROUTE_APP '^[A-Za-z0-9._-]+:[0-9]+$' || return 1
   sk_route_match SK_ROUTE_WEBSITE '^[A-Za-z0-9._-]+:[0-9]+$' || return 1
+  # Optional, and only written into a comment: addresses or networks, commas between them.
+  [[ -z ${SK_ROUTE_TRUSTED:-} ]] || sk_route_match SK_ROUTE_TRUSTED '^[0-9A-Fa-f.:/]+(, ?[0-9A-Fa-f.:/]+)*$' || return 1
   [[ $(sk_route_authorize) =~ ^(/[A-Za-z0-9_-]+)+$ ]] || { sk_route_die "SK_ROUTE_AUTHORIZE is not a plain path"; return 1; }
   for h in $(sk_route_headers); do
     [[ $h =~ ^X-[A-Za-z0-9-]+$ ]] || { sk_route_die "SK_ROUTE_IDENTITY_HEADERS names no header"; return 1; }
@@ -104,6 +115,7 @@ sk_route_nginx() {
 # The website's server block includes this folder. Only $signin asks the website who the
 # visitor is and sends the app the proxy secret (this file is 0600); every other path clears
 # client-sent identity headers.
+$(sk_route_notes)
 location = $base { return 308 $base/; }
 location ^~ $base/metrics { return 404; }
 location ^~ $base/ {
@@ -148,6 +160,7 @@ sk_route_caddy() {
 # $SK_ROUTE_GAME under $base (written by its installer; do not edit, run the installer again).
 # Imported inside the website's site block. Only $signin asks the website who the visitor is
 # and sends the app the proxy secret (this file is 0600).
+$(sk_route_notes)
 redir $base $base/ 308
 handle $base/* {
 	# In this order (Caddy's own order would run forward_auth before request_header).
