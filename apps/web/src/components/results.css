@@ -97,21 +97,13 @@
   overflow-wrap: anywhere;
 }
 
-/* A name that picks the card to follow is a button: a 44 px target. A linked name takes the
-   kit's dense list (`.sk-dense-list`, K112; owner decision of 2026-11-27). */
+/* Names that can be tapped, a profile's link or the button that picks the card to follow, take
+   the kit's dense list (`.sk-dense-list`, K112, K117; owner decisions of 2026-11-27). The kit
+   sizes the links; a button's size is the game's. */
 .rank-name-btn {
   display: inline-flex;
   align-items: center;
-  min-width: var(--sk-hit-target);
-  min-height: var(--sk-hit-target);
-}
-
-/* Such a row is as high as the target, no higher: the list keeps its rows in view. */
-.rank-row:has(.rank-name-btn) {
-  /* Said as the row's least height too: a list short of room else squeezes the row under
-     its button. */
-  min-height: var(--sk-hit-target);
-  padding-block: 0;
+  min-height: var(--sk-min-target);
 }
 
 .rank-seasons {

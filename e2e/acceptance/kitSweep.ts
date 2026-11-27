@@ -117,13 +117,7 @@ export async function kitLooks(
     const sizes = SIZES.filter(
       ([w, h]) => ONLY_SIZES === null || ONLY_SIZES.includes(`${String(w)}x${String(h)}`),
     );
-    const named = {
-      name: screen,
-      open: shown,
-      // The app's calm mode: a recap's next card never fades in while it is judged.
-      setup: (at: Page) => at.emulateMedia({ reducedMotion: 'reduce' }),
-      floors: floorsOf(screen, sizes),
-    };
+    const named = { name: screen, open: shown, floors: floorsOf(screen, sizes) };
     const looks = await sweep(page, [named], {
       axe: finder,
       sizes: sizes.map(([width, height]) => ({ width, height })),
@@ -137,7 +131,6 @@ export async function kitLooks(
     await page.evaluate(() => {
       document.documentElement.style.fontSize = '';
     });
-    await page.emulateMedia({ reducedMotion: null });
     await setTheme(page, 'light');
     await page.setViewportSize({ width: 1280, height: 720 });
   }

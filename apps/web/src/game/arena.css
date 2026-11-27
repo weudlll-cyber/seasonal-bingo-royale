@@ -262,12 +262,10 @@
     overflow-y: auto;
   }
 
-  /* At least the heading, the top 3 rows (44 px where a name is a button) and the own
-     row's strip, but never more
-     than 60 % of the column: at a large font the rem floor alone pushed the panel past the
-     column and cut the own row's strip (fit audit). */
+  /* At least 14rem, but never more than 60 % of the column: at a large font the rem floor
+     alone pushed the panel past the column and cut the own row's strip (fit audit). */
   .arena-side > .standings-panel {
-    flex: 1 0 min(calc(4 * var(--sk-hit-target) + 5rem), 60%);
+    flex: 1 0 min(14rem, 60%);
     overflow: hidden;
   }
 
