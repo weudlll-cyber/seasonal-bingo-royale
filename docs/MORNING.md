@@ -33,7 +33,7 @@
 - Sweep: one full run (51 min). Three narrowed re-checks of the screens a fix could change: 35 min (light theme, the recap screens in both), 19 min (phones and the two contrast sizes) and a short one (the recap on phones). All clean but the exemptions above. The first run's contrast findings were lines judged while fading in; the sweep now looks with fades off.
 - Rehearsal: one, started twice (the old master's standalone install cannot start) and continued three times in the same server, once after each further fault.
 - Browser specs covering the changes, once, locally (Chromium, 20 tests of 9 specs): 19 passed; `playerFit.spec.ts` found that with 44 px names the player's side column no longer showed the top 3 Standings rows at 1280x720. Fixed (rows exactly 44 px, the panel's least height raised); `playerFit` and `chatEmbed` run again, both passed.
-- Pull request CI: CI
+- Pull request CI, read once for the finished code (`51829fe`, run 45920819609): green in every job (verify, integration coverage, e2e Chromium, Firefox, WebKit and timing, image, docs, security, CodeQL). Nothing to fix.
 - No local `pnpm verify` (your word of 2026-11-26).
 
 ### Decisions taken on the way
