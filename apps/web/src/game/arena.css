@@ -262,10 +262,11 @@
     overflow-y: auto;
   }
 
-  /* At least 14rem, but never more than 60 % of the column: at a large font the rem floor
-     alone pushed the panel past the column and cut the own row's strip (fit audit). */
+  /* At least 15rem (the heading, the top 3 rows with the dense list's room between them and
+     the own row's strip), but never more than 60 % of the column: at a large font the rem
+     floor alone pushed the panel past the column and cut that strip (fit audit). */
   .arena-side > .standings-panel {
-    flex: 1 0 min(14rem, 60%);
+    flex: 1 0 min(15rem, 60%);
     overflow: hidden;
   }
 
