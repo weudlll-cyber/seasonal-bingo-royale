@@ -3,11 +3,11 @@
  * @module server/test
  * @brief  The installer's image: a version tag takes the signed release, anything else is built.
  *
- * Responsibility: ops/lib/release.sh with the kit's `sk_image_verify`, docker and cosign stood
- *                 in by shell functions: which ref takes which source (the setting
- *                 SBR_IMAGE_SOURCE wins), a verified release is pulled by its digest, checked to
- *                 be built from the ref's commit and named sbr-app:<commit>; a refused signature
- *                 or another commit stops with nothing named.
+ * Responsibility: ops/lib/release.sh with the kit's `sk_image_verify`, docker, cosign and the
+ *                 kit's cosign install stood in by shell functions: which ref takes which source
+ *                 (the setting SBR_IMAGE_SOURCE wins); a release installs cosign, is verified
+ *                 for the ref's commit, pulled by its digest and named sbr-app:<commit>; a
+ *                 refused signature or another source commit stops with nothing pulled or named.
  * Depends on:     vitest, node:child_process, ops/lib/common.sh, ops/lib/release.sh,
  *                 ops/kit/lib/image.sh
  * Spec:           docs/spec/09-deployment-architecture.md §4; kit docs/OPERATIONS.md
@@ -22,9 +22,11 @@ const REPO = fileURLToPath(new URL('../../..', import.meta.url));
 const COMMIT = 'a'.repeat(40);
 const DIGEST = `sha256:${'b'.repeat(64)}`;
 
-// The libraries with stand-ins: cosign says yes or no, docker answers the digest and the
-// image's revision label and writes down what it was asked to pull and name.
-function run(lines: readonly string[], stand: { signed?: boolean; revision?: string } = {}) {
+// The libraries with stand-ins: cosign says yes or no (for the signature, and apart from that
+// for the source commit it is asked about) and writes down its questions; docker answers the
+// digest and writes down what it was asked to pull and name.
+function run(lines: readonly string[], stand: { signed?: boolean; commit?: string } = {}) {
+  const asked = `*"--certificate-github-workflow-sha ${stand.commit ?? COMMIT} "*`;
   const script = [
     'set -euo pipefail',
     'shopt -s inherit_errexit',
@@ -32,8 +34,10 @@ function run(lines: readonly string[], stand: { signed?: boolean; revision?: str
     'source ops/kit/lib/image.sh',
     'source ops/lib/release.sh',
     'SBR_ETC=/nonexistent SBR_CHANGES=0 SBR_IMAGE=sbr-app:aaaaaaaaaaaa',
-    `cosign() { return ${(stand.signed ?? true) ? '0' : '1'}; }`,
-    `docker() { case "$1 $2" in "buildx imagetools") echo ${DIGEST} ;; "image inspect") echo ${stand.revision ?? COMMIT} ;; *) echo "docker $*" >&2 ;; esac; }`,
+    'sk_cosign_install() { echo "cosign installed" >&2; }',
+    // cosign's own output is dropped by the kit, so the stand-in only answers.
+    `cosign() { ${(stand.signed ?? true) ? ':' : 'return 1'}; case "$* " in ${asked}) return 0 ;; *--certificate-github-workflow-sha*) return 1 ;; esac; }`,
+    `docker() { case "$1 $2" in "buildx imagetools") echo ${DIGEST} ;; *) echo "docker $*" >&2 ;; esac; }`,
     ...lines,
   ].join('\n');
   const r = spawnSync('bash', ['-c', script], { cwd: REPO, encoding: 'utf8' });
@@ -54,10 +58,11 @@ describe("the installer's image", { timeout: 30_000 }, () => {
     expect(refused.err).toContain('version tag');
   });
 
-  it('pulls a verified release by digest and names it after the commit', () => {
+  it('installs cosign, then pulls a verified release by digest and names it', () => {
     const r = run([`release_image v1.2.3 ${COMMIT}`]);
     expect(r.status, r.err).toBe(0);
     const name = `ghcr.io/weudlll-cyber/seasonal-bingo-royale@${DIGEST}`;
+    expect(r.err).toContain('cosign installed');
     expect(r.err).toContain(`docker pull --quiet ${name}`);
     expect(r.err).toContain(`docker tag ${name} sbr-app:aaaaaaaaaaaa`);
   });
@@ -69,10 +74,10 @@ describe("the installer's image", { timeout: 30_000 }, () => {
     expect(r.err).not.toContain('docker pull');
   });
 
-  it('refuses an image built from another commit, naming nothing', () => {
-    const r = run([`release_image v1.2.3 ${COMMIT}`], { revision: 'c'.repeat(40) });
+  it('refuses a release signed for another commit, pulling nothing', () => {
+    const r = run([`release_image v1.2.3 ${COMMIT}`], { commit: 'c'.repeat(40) });
     expect(r.status).not.toBe(0);
-    expect(r.err).toContain('not from');
-    expect(r.err).not.toContain('docker tag');
+    expect(r.err).toContain('was not built from commit');
+    expect(r.err).not.toContain('docker pull');
   });
 });

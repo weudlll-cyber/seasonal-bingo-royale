@@ -56,8 +56,6 @@ game_before_start() {
     set_env_value "$file" SBR_RECOVERY_KEY "$(secret 32)"
     info "Recovery key: made (SBR_RECOVERY_KEY in $file)."
   fi
-  # The keys as the backup's secret files.
-  secret_files "$env"
   # Website installs: the sync token, nginx's site port and the route file read again.
   refresh_website "$env"
 }

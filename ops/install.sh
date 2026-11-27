@@ -241,8 +241,7 @@ main() {
   if [[ $SBR_TYPE == standalone ]]; then
     run compose "$SBR_ENV" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
   fi
-  # The keys as the backup's secret files (./lib/backup.sh), then the nightly backup.
-  [[ $SBR_DRY_RUN == 1 ]] || secret_files "$SBR_ENV"
+  # The nightly backup (./lib/backup.sh).
   install_backup_units "$SBR_ENV"
   next_steps
 }

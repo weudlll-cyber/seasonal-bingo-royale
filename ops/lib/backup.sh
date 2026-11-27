@@ -5,10 +5,11 @@
 #
 # Responsibility: the kit's script (../kit/backup.sh, K61, K71) backs up, restores and drills; the
 #                 admin command runs it with `game_backup_settings`: SBR_SEED_KEY and
-#                 SBR_RECOVERY_KEY travel as its secret files (a restore refuses another seed key
-#                 unless --force-env before anything changes; then `after_restore` writes the
-#                 backup's keys into the env file, gives the schema back to the owner role and
-#                 starts the stack). Bingo's own: `drill` (the kit's, then one stored match secret
+#                 SBR_RECOVERY_KEY travel as its secret files, written by `game_backup_secrets`
+#                 before a backup and before a restore compares them (a restore refuses other
+#                 keys, a fresh server's included, unless --force-env, before anything changes;
+#                 then `after_restore` writes the backup's keys into the env file, gives the
+#                 schema back to the owner role and starts the stack). Bingo's own: `drill` (the kit's, then one stored match secret
 #                 opened with the backup's seed key), `rewrite_backup` (a backup made before the
 #                 kit's format written again as one, until those age out) and the 03:30 timer.
 # Depends on:     ./common.sh, ./config.sh (apply_db_roles), ../kit/backup.sh, age, docker
@@ -20,9 +21,8 @@ BACKUP_GROUP=sbr-backup
 KIT_BACKUP=$(dirname "${BASH_SOURCE[0]}")/../kit/backup.sh
 
 # secret_files <env>: the env file's two keys as files under the state folder (0600, written only
-# when they differ), where the kit's backup reads them, its restore compares and puts the
-# backup's. Written when the keys can change (install, update) and before every backup; never
-# by a command that only reads.
+# when they differ), where the kit's backup reads them and its restore compares them and puts
+# the backup's.
 secret_files() {
   local file="$SBR_ETC/$1.env" dir="$SBR_STATE/$1/secrets" seed recovery
   seed=$(env_value "$file" SBR_SEED_KEY)
@@ -34,7 +34,8 @@ secret_files() {
   printf '%s\n' "$recovery" | put_file "$dir/recovery.key" 0600 >/dev/null
 }
 
-# The kit's hook before a backup (K61, since v0.36.0): the files the backup carries.
+# The kit's hook before a backup and before a restore compares (K61): the files as they are
+# now. No command that only reads writes them.
 game_backup_secrets() { secret_files "$1"; }
 
 # The kit's backup settings for an environment (its OPERATIONS.md): variables only, `status`
@@ -100,11 +101,11 @@ drill_database() {
   cleanup_container "$name"
   docker run -d --rm --name "$name" -e POSTGRES_USER=sbr -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=sbr "$PG_IMAGE" >/dev/null
   for i in $(seq 1 60); do
-    docker exec "$name" pg_isready -U sbr -d sbr >/dev/null 2>&1 && break
+    # Over TCP: a new database's temporary first server answers on the socket, then stops.
+    docker exec "$name" pg_isready -h 127.0.0.1 -U sbr -d sbr >/dev/null 2>&1 && break
     ((i < 60)) || die "the throw-away database did not start within 60 s"
     sleep 1
   done
-  sleep 2
 }
 
 # drill: the kit's drill (every table's rows against the dump), then Bingo's: the dump in a
