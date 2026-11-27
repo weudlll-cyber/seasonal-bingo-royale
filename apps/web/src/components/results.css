@@ -108,6 +108,11 @@
   min-height: var(--sk-hit-target);
 }
 
+/* Such a row is as high as the target, no higher: the list keeps its rows in view. */
+.rank-row:has(.rank-name > a, .rank-name-btn) {
+  padding-block: 0;
+}
+
 .rank-seasons {
   flex: none;
   margin-left: auto;
