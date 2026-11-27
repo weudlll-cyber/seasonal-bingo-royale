@@ -17,13 +17,328 @@
 - **Four faults the rehearsal found, all fixed:** (1) **since 2026-11-03 no standalone install started**: its env file holds the two website settings empty and the server refused them (`env.ts`, test failed first). (2) **No older install could update to the branch** ("older than the database roles"): its `sbr` looks for `ops/lib/db-roles.sql`, which the move to the kit's roles deleted; the file stays without a statement (`olderUpdate.test.ts`, failed first). (3) **The rollback of the first update with the kit's folder stopped** (`cp: cannot stat 'kit'`). (4) **A rollback ended with a syntax error** although it had worked: it overwrites the running `sbr`. Kit findings: (3) `sk_admin_stack` should skip a file that was not kept; (4) a game's command must end on one line (`sk_admin_main "$@"; exit`).
 - **What still needs a real server:** a certificate from Let's Encrypt, the real website's installer and Caddy mode beside the update, the nightly timer over a night, pulling backups to the PC, mail, the host baseline on a server reached over SSH, a reboot, and the load check at the server's size.
 
-### Running
+- **Piece 5, the sweep** (K67, `SBR_SWEEP_KIT=1`): every match screen and the header, website mode with the chat strip and standalone, the six desktop sizes, 360x780, 390x844, 430x932, root font 16 and 32 px, light and dark; the kit's probe, axe, and Bingo's text floor and overlap check. No pictures (your word of 2026-11-27: you look in the browser).
+- **What the sweep found, fixed:** tappable names in the Standings and the results, "Whole match log", "What the seasons do" and the website tick were under 44 px; on the finished screen the own card's cells were 38 to 41 px; at 32 px on phones the lobby entries, the host console's controls and draw-mode buttons, the recap and the drawn numbers ran past the window; the watched cards and the prizes scrolled without being a Tab stop. Names in the in-match Standings are now 44 px rows, so fewer rows are in view there.
 
-- Piece 5 (the owner's look): the sweep. From here (owner decision of 2026-11-26) all changes are built first, then one round of the real checks.
+### Exemptions (what the sweep still reports)
+
+| Finding                             | Where                                                       | Reason                                                                                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)  | 1280x720, website mode, player (royale and classic)         | Owner decision K18: the board is whole without scrolling at every desktop size (kit `docs/ADOPTION.md:300-307`). At 44 px it would scroll under the chat strip.                        |
+| A linked name one line high (24 px) | the results in website mode, desktop                        | Owner decision of 2026-11-24: at least 7 places whole above the strip at 1280x720.                                                                                                     |
+| Text "covered by the chat bar"      | 390x844 and 430x932, the last line in view of a long screen | Kit `css/dock.css:11-13`, `100-107`: on a phone the content scrolls alone above the bar; the line is cut at the scroll edge and reached by scrolling. Bingo's overlap check counts it. |
+
+### Checks: how many full runs, and why
+
+- Sweep: one full run (51 min). Three narrowed re-checks of the screens a fix could change: 35 min (light theme, the recap screens in both), 19 min (phones and the two contrast sizes) and a short one (the recap on phones). All clean but the exemptions above. The first run's contrast findings were lines judged while fading in; the sweep now looks with fades off.
+- Rehearsal: one, started twice (the old master's standalone install cannot start) and continued three times in the same server, once after each further fault.
+- Browser specs covering the changes, once, locally (Chromium, 20 tests of 9 specs): 19 passed; `playerFit.spec.ts` found that with 44 px names the player's side column no longer showed the top 3 Standings rows at 1280x720. Fixed (rows exactly 44 px, the panel's least height raised); `playerFit` and `chatEmbed` run again, both passed.
+- Pull request CI: CI
+- No local `pnpm verify` (your word of 2026-11-26).
+
+### Decisions taken on the way
+
+- Tappable names are 44 px everywhere but in the docked results (exemption above).
+- On the finished screen the own card keeps 44 px cells; that screen may scroll.
+- The rehearsal ran in website mode (the production target); standalone was rehearsed as a fresh install.
+- `ops/lib/db-roles.sql` stays as an empty stand-in until no install from before the kit's admin command is left.
+
+### Kit findings
+
+1. `ops/lib/admin-update.sh:77-80`: the rollback copies every named stack file, also one that was never kept, and stops half done.
+2. The same copy overwrites the running command; a game must end it with `sk_admin_main "$@"; exit`.
+3. `ops/lib/backup-restore.sh:151-155`: a failed restore leaves the app stopped.
+4. Migration text, K90: a game removing its own `db-roles.sql` can break an older updater; the owner's `TEMPORARY` comes only with the first run of the new command.
+5. ADOPTION: the first of the two update steps does not yet install the kit's folder.
+6. `src/server/index.ts:15` exports `FailureBrake` but not its `Attempt` type.
+7. The sweep judges contrast during a fade; `axeFinder` cannot leave the chat frame out.
+8. Dense linked rows cannot hold 44 px targets and 7 places; a kit rule is missing.
+9. Website stand-in: every member verified, no login page, the chat frame shows no room or theme, 5 s keep-alive.
+10. Backups: asking for the backup settings writes the secret files.
+
+### Noticed, left alone
+
+- `load/asyncJump.mjs` fails to create its match (`PRESET_REQUIRED`), older than this chain.
+- The host console can scroll a few pixels after the root font changes on an open page.
+- `reports/screens/k34p2/` (check pictures, git-ignored) is still on the PC: deleting it was not permitted.
+
+### Open
+
+- Nothing of the chain beyond the lines above.
 
 ### Needs the owner's word
 
-- Nothing yet.
+- Look at draft PR #76 in the browser; merge (**without squashing**) or not. Proposal: merge when you have looked.
+
+### Lines against master `d7d841e`
+
+255 text files (this sheet and binary files left out): 35395 lines before, 37310 after.
+
+**Removed**, each replaced by a kit part: `db/roles.ts` (kit `grantAppRole`), `league/useApiGet.ts` and `shell/http.test.ts` (`useApiGet`, `createApiClient`), `seasonIcons.ts` and the four optimized season files (`seasons.css`), `useSecondsUntil.ts` (`useCountdown`), `ops/lib/uninstall.sh` (the admin command), `ops/lib/websiteRoute.sh` (`website-route.sh`).
+
+**Moved out** into the kit: the screen and load test helpers, the website stand-in proxy, the backup, admin, route, roles, host and operator scripts (`ops/kit/` is the pinned kit's folder, byte for byte, test `kitOpsCopy.test.ts`), the base button, panel, field and chip rules.
+
+<details><summary>Per file</summary>
+
+| File                                                | Before | After   |
+| --------------------------------------------------- | ------ | ------- |
+| `apps/server/demo-league.mjs`                       | 49     | 48      |
+| `apps/server/package.json`                          | 49     | 49      |
+| `apps/server/src/auth/rateLimit.ts`                 | 60     | 107     |
+| `apps/server/src/auth/sessionPlugin.test.ts`        | new    | 69      |
+| `apps/server/src/auth/sessionPlugin.ts`             | 154    | 151     |
+| `apps/server/src/cli.ts`                            | 250    | 256     |
+| `apps/server/src/config/env.test.ts`                | 92     | 105     |
+| `apps/server/src/config/env.ts`                     | 212    | 215     |
+| `apps/server/src/db/appRole.ts`                     | new    | 23      |
+| `apps/server/src/db/roles.ts`                       | 40     | removed |
+| `apps/server/src/http/app.ts`                       | 282    | 297     |
+| `apps/server/src/http/plugins/securityHeaders.ts`   | 59     | 53      |
+| `apps/server/src/http/routes/auth.ts`               | 276    | 276     |
+| `apps/server/src/http/routes/devSignIn.ts`          | 79     | 82      |
+| `apps/server/src/http/routes/health.ts`             | 42     | 33      |
+| `apps/server/src/http/routes/loginBrake.test.ts`    | new    | 113     |
+| `apps/server/src/http/routes/websiteSignIn.ts`      | 124    | 123     |
+| `apps/server/src/http/sessionStart.ts`              | new    | 70      |
+| `apps/server/src/http/signIn.ts`                    | 90     | 89      |
+| `apps/server/src/kitOpsCopy.test.ts`                | new    | 38      |
+| `apps/server/src/loadOrigin.test.ts`                | new    | 50      |
+| `apps/server/src/olderUpdate.test.ts`               | new    | 25      |
+| `apps/server/test/containers.integration.test.ts`   | new    | 50      |
+| `apps/server/test/dbRoles.integration.test.ts`      | 187    | 195     |
+| `apps/server/test/harness.ts`                       | 105    | 123     |
+| `apps/server/test/installNextSteps.test.ts`         | 48     | 48      |
+| `apps/server/test/websiteLogin.integration.test.ts` | 242    | 247     |
+| `apps/server/test/websiteRoute.integration.test.ts` | 242    | 247     |
+| `apps/web/package.json`                             | 30     | 30      |
+| `apps/web/src/App.tsx`                              | 68     | 68      |
+| `apps/web/src/account/AccountPage.tsx`              | 224    | 224     |
+| `apps/web/src/account/PasswordReset.tsx`            | 147    | 147     |
+| `apps/web/src/account/Register.tsx`                 | 81     | 81      |
+| `apps/web/src/account/SignIn.tsx`                   | 64     | 64      |
+| `apps/web/src/account/TwoFactor.tsx`                | 167    | 167     |
+| `apps/web/src/account/WebsiteSignIn.tsx`            | 86     | 86      |
+| `apps/web/src/account/account.css`                  | 64     | 64      |
+| `apps/web/src/account/formParts.tsx`                | 90     | 90      |
+| `apps/web/src/admin/AccountCard.tsx`                | 122    | 122     |
+| `apps/web/src/admin/AdminAccounts.tsx`              | 149    | 149     |
+| `apps/web/src/admin/AdminHistory.tsx`               | 118    | 118     |
+| `apps/web/src/admin/AdminNav.tsx`                   | 47     | 47      |
+| `apps/web/src/admin/AdminOverview.tsx`              | 181    | 182     |
+| `apps/web/src/admin/AdminPresets.tsx`               | 186    | 186     |
+| `apps/web/src/admin/AdminSwitches.tsx`              | 115    | 115     |
+| `apps/web/src/admin/LeagueCorrections.tsx`          | 125    | 125     |
+| `apps/web/src/admin/PresetEditor.tsx`               | 121    | 121     |
+| `apps/web/src/admin/SettingsValues.tsx`             | 70     | 70      |
+| `apps/web/src/admin/StepUp.tsx`                     | 66     | 66      |
+| `apps/web/src/admin/ValueField.tsx`                 | 139    | 142     |
+| `apps/web/src/admin/admin.css`                      | 140    | 155     |
+| `apps/web/src/admin/adminOverview.test.tsx`         | 134    | 153     |
+| `apps/web/src/components/BingoHeader.tsx`           | 31     | 31      |
+| `apps/web/src/components/CellFace.tsx`              | 69     | 69      |
+| `apps/web/src/components/CutScreen.tsx`             | 83     | 83      |
+| `apps/web/src/components/DevBadge.tsx`              | 41     | 41      |
+| `apps/web/src/components/DrawControls.tsx`          | 86     | 86      |
+| `apps/web/src/components/DrawTicker.tsx`            | 102    | 102     |
+| `apps/web/src/components/FinalNotice.tsx`           | 72     | 72      |
+| `apps/web/src/components/FinalPlacement.tsx`        | 174    | 175     |
+| `apps/web/src/components/GameTypeField.tsx`         | 45     | 45      |
+| `apps/web/src/components/OwnerArea.tsx`             | 140    | 140     |
+| `apps/web/src/components/PatternsPanel.tsx`         | 66     | 66      |
+| `apps/web/src/components/Playback.tsx`              | 129    | 130     |
+| `apps/web/src/components/RankRow.tsx`               | 95     | 92      |
+| `apps/web/src/components/SeasonIcon.tsx`            | 77     | 87      |
+| `apps/web/src/components/Standings.tsx`             | 160    | 160     |
+| `apps/web/src/components/StartDrawField.tsx`        | 69     | 69      |
+| `apps/web/src/components/StartForm.tsx`             | 221    | 221     |
+| `apps/web/src/components/StartMarkingField.tsx`     | 113    | 113     |
+| `apps/web/src/components/StepBadges.test.tsx`       | 57     | 53      |
+| `apps/web/src/components/StepBadges.tsx`            | 67     | 36      |
+| `apps/web/src/components/cardView.test.tsx`         | 73     | 73      |
+| `apps/web/src/components/matchSide.css`             | 221    | 223     |
+| `apps/web/src/components/noNameBadges.test.tsx`     | new    | 138     |
+| `apps/web/src/components/playerView.test.tsx`       | 249    | 257     |
+| `apps/web/src/components/podium.css`                | 140    | 140     |
+| `apps/web/src/components/results.css`               | 221    | 202     |
+| `apps/web/src/components/results.test.tsx`          | 103    | 105     |
+| `apps/web/src/components/seasonMark.css`            | 25     | 25      |
+| `apps/web/src/components/seasonMarks.test.tsx`      | 70     | 70      |
+| `apps/web/src/components/segmented.css`             | 35     | 38      |
+| `apps/web/src/designTokens.test.ts`                 | 192    | 105     |
+| `apps/web/src/game/ArenaCards.tsx`                  | 72     | 72      |
+| `apps/web/src/game/ArenaNotice.tsx`                 | 80     | 80      |
+| `apps/web/src/game/AwaySummary.tsx`                 | 119    | 119     |
+| `apps/web/src/game/EndActions.tsx`                  | 39     | 39      |
+| `apps/web/src/game/HostLink.tsx`                    | 32     | 32      |
+| `apps/web/src/game/Interlude.tsx`                   | 165    | 164     |
+| `apps/web/src/game/Lobby.tsx`                       | 211    | 211     |
+| `apps/web/src/game/MatchCancelled.tsx`              | 50     | 50      |
+| `apps/web/src/game/MatchScreen.tsx`                 | 216    | 211     |
+| `apps/web/src/game/MyMatches.tsx`                   | 84     | 84      |
+| `apps/web/src/game/Registration.tsx`                | 105    | 105     |
+| `apps/web/src/game/VerifyMatch.tsx`                 | 161    | 161     |
+| `apps/web/src/game/WaitingRoom.tsx`                 | 127    | 122     |
+| `apps/web/src/game/WatchCards.tsx`                  | 116    | 117     |
+| `apps/web/src/game/arena.css`                       | 275    | 277     |
+| `apps/web/src/game/asyncMatch.test.tsx`             | 190    | 190     |
+| `apps/web/src/game/ball.css`                        | 91     | 91      |
+| `apps/web/src/game/game.css`                        | 188    | 192     |
+| `apps/web/src/game/interlude.css`                   | 74     | 75      |
+| `apps/web/src/game/interlude.test.tsx`              | 247    | 248     |
+| `apps/web/src/game/liveCard.css`                    | 79     | 77      |
+| `apps/web/src/game/registration.test.tsx`           | 157    | 160     |
+| `apps/web/src/game/seasonsOverview.css`             | 80     | 82      |
+| `apps/web/src/game/serverClock.test.tsx`            | new    | 46      |
+| `apps/web/src/game/watch.css`                       | 118    | 118     |
+| `apps/web/src/host/AbortMatch.tsx`                  | 55     | 55      |
+| `apps/web/src/host/HostConsole.tsx`                 | 248    | 248     |
+| `apps/web/src/host/HostDrawControls.tsx`            | 237    | 237     |
+| `apps/web/src/host/HostLobby.tsx`                   | 205    | 205     |
+| `apps/web/src/host/JumpAhead.tsx`                   | 74     | 74      |
+| `apps/web/src/host/StartMatch.tsx`                  | 152    | 152     |
+| `apps/web/src/host/StartSteps.tsx`                  | 110    | 110     |
+| `apps/web/src/host/ThisMatchFields.tsx`             | 185    | 185     |
+| `apps/web/src/host/TimingFields.tsx`                | 229    | 229     |
+| `apps/web/src/host/YourMatches.tsx`                 | 49     | 49      |
+| `apps/web/src/host/host.css`                        | 280    | 287     |
+| `apps/web/src/host/rules.test.tsx`                  | 171    | 172     |
+| `apps/web/src/league/LeaderboardPage.tsx`           | 195    | 195     |
+| `apps/web/src/league/ProfilePage.tsx`               | 161    | 161     |
+| `apps/web/src/league/league.css`                    | 196    | 196     |
+| `apps/web/src/league/useApiGet.ts`                  | 46     | removed |
+| `apps/web/src/main.tsx`                             | 43     | 47      |
+| `apps/web/src/minTextSize.test.ts`                  | 121    | 118     |
+| `apps/web/src/noFixedColours.test.ts`               | 43     | 24      |
+| `apps/web/src/quicktest/Simulation.tsx`             | 152    | 152     |
+| `apps/web/src/quicktest/TestMatch.tsx`              | 260    | 260     |
+| `apps/web/src/quicktest/TestMatchReady.tsx`         | 117    | 117     |
+| `apps/web/src/quicktest/quicktest.css`              | 97     | 97      |
+| `apps/web/src/scrollHint.css`                       | 37     | 37      |
+| `apps/web/src/seasonIcons.ts`                       | 24     | removed |
+| `apps/web/src/shell/DevTools.tsx`                   | 67     | 67      |
+| `apps/web/src/shell/Header.tsx`                     | 124    | 135     |
+| `apps/web/src/shell/Maintenance.tsx`                | 39     | 39      |
+| `apps/web/src/shell/dock.css`                       | 51     | 51      |
+| `apps/web/src/shell/dockResults.css`                | 127    | 113     |
+| `apps/web/src/shell/dockSide.css`                   | 233    | 236     |
+| `apps/web/src/shell/dockWatch.css`                  | 62     | 62      |
+| `apps/web/src/shell/header.css`                     | 167    | 24      |
+| `apps/web/src/shell/headerDevReady.test.tsx`        | new    | 78      |
+| `apps/web/src/shell/headerSteps.test.tsx`           | new    | 75      |
+| `apps/web/src/shell/http.test.ts`                   | 21     | removed |
+| `apps/web/src/shell/http.ts`                        | 81     | 53      |
+| `apps/web/src/shell/session.tsx`                    | 169    | 198     |
+| `apps/web/src/shell/shell.css`                      | 70     | 84      |
+| `apps/web/src/test/matchFixture.tsx`                | 167    | 170     |
+| `apps/web/src/types.ts`                             | 64     | 64      |
+| `apps/web/src/useSecondsUntil.ts`                   | 29     | removed |
+| `assets/README.md`                                  | 29     | 28      |
+| `assets/seasons/autumn.svg`                         | 1      | removed |
+| `assets/seasons/spring.svg`                         | 1      | removed |
+| `assets/seasons/summer.svg`                         | 1      | removed |
+| `assets/seasons/winter.svg`                         | 1      | removed |
+| `docs/BACKLOG.md`                                   | 175    | 175     |
+| `docs/GO-LIVE.md`                                   | 179    | 183     |
+| `docs/OPEN.md`                                      | 18     | 18      |
+| `docs/concepts/admin-mockups/admin-history.html`    | 121    | 121     |
+| `docs/concepts/admin-mockups/admin-overview.html`   | 145    | 145     |
+| `docs/concepts/admin-mockups/admin-section.html`    | 186    | 184     |
+| `docs/concepts/admin-mockups/mockup.css`            | 366    | 367     |
+| `docs/concepts/admin-mockups/organizer-start.html`  | 180    | 180     |
+| `docs/concepts/fit-audit.md`                        | 418    | 434     |
+| `docs/concepts/kit-adoption.md`                     | 207    | 257     |
+| `docs/operator-guide.md`                            | 196    | 196     |
+| `docs/spec/01-game-design.md`                       | 426    | 426     |
+| `docs/spec/03-security-architecture.md`             | 271    | 272     |
+| `docs/spec/04-database-design.md`                   | 208    | 209     |
+| `docs/spec/05-api-design.md`                        | 181    | 181     |
+| `docs/spec/07-integration-architecture.md`          | 179    | 179     |
+| `docs/spec/09-deployment-architecture.md`           | 133    | 133     |
+| `docs/spec/10-repository-structure.md`              | 171    | 171     |
+| `docs/spec/README.md`                               | 130    | 130     |
+| `e2e/acceptance/asyncScreens.spec.ts`               | 119    | 120     |
+| `e2e/acceptance/fitAudit.spec.ts`                   | 571    | 592     |
+| `e2e/acceptance/interludeScreens.spec.ts`           | 130    | 131     |
+| `e2e/acceptance/kitSweep.ts`                        | new    | 145     |
+| `e2e/acceptance/leagueScreens.spec.ts`              | 79     | 81      |
+| `e2e/acceptance/pauseScreens.spec.ts`               | 87     | 88      |
+| `e2e/acceptance/realGame.spec.ts`                   | 304    | 305     |
+| `e2e/acceptance/testPageScreens.spec.ts`            | 217    | 218     |
+| `e2e/acceptance/websiteSweep.ts`                    | 260    | 274     |
+| `e2e/account.spec.ts`                               | 128    | 131     |
+| `e2e/adminAccounts.spec.ts`                         | 96     | 79      |
+| `e2e/adminHistory.spec.ts`                          | 79     | 61      |
+| `e2e/adminLeague.spec.ts`                           | 107    | 90      |
+| `e2e/adminMaintenance.spec.ts`                      | 53     | 54      |
+| `e2e/adminOverview.spec.ts`                         | 86     | 61      |
+| `e2e/adminPresets.spec.ts`                          | 103    | 81      |
+| `e2e/adminScreens.spec.ts`                          | 87     | 66      |
+| `e2e/adminTechnical.spec.ts`                        | 84     | 65      |
+| `e2e/asyncMatch.spec.ts`                            | 99     | 100     |
+| `e2e/backToWebsite.spec.ts`                         | 228    | 223     |
+| `e2e/chatEmbed.spec.ts`                             | 153    | 280     |
+| `e2e/createFormPhone.spec.ts`                       | 51     | 51      |
+| `e2e/fits.ts`                                       | new    | 59      |
+| `e2e/fromThisSite.ts`                               | new    | 12      |
+| `e2e/hostNav.spec.ts`                               | 223    | 242     |
+| `e2e/leaderboard.spec.ts`                           | 158    | 162     |
+| `e2e/maintenance.spec.ts`                           | 150    | 151     |
+| `e2e/myMatches.spec.ts`                             | 107    | 108     |
+| `e2e/passwordReset.spec.ts`                         | 93     | 97      |
+| `e2e/realGame.spec.ts`                              | 163    | 164     |
+| `e2e/realGame.ts`                                   | 172    | 176     |
+| `e2e/screens.ts`                                    | 72     | 44      |
+| `e2e/startMatch.spec.ts`                            | 90     | 69      |
+| `e2e/startScreens.spec.ts`                          | 190    | 191     |
+| `e2e/testMatch.spec.ts`                             | 78     | 79      |
+| `e2e/topBar.spec.ts`                                | 100    | 101     |
+| `e2e/verifyMatch.spec.ts`                           | 81     | 82      |
+| `e2e/websiteIdle.spec.ts`                           | 75     | 69      |
+| `e2e/websiteLogin.spec.ts`                          | 167    | 170     |
+| `e2e/websiteStack.ts`                               | 300    | 239     |
+| `load/asyncJump.mjs`                                | 99     | 95      |
+| `load/common.mjs`                                   | 130    | 80      |
+| `load/drawLatency.mjs`                              | 64     | 66      |
+| `load/drawRun.mjs`                                  | 208    | 204     |
+| `load/loadcheck.mjs`                                | 66     | 68      |
+| `load/package.json`                                 | 13     | 14      |
+| `load/spectatorStream.mjs`                          | 138    | 136     |
+| `ops/compose.yml`                                   | 160    | 175     |
+| `ops/install.sh`                                    | 205    | 238     |
+| `ops/kit/backup.sh`                                 | new    | 98      |
+| `ops/kit/lib/admin-uninstall.sh`                    | new    | 84      |
+| `ops/kit/lib/admin-update.sh`                       | new    | 161     |
+| `ops/kit/lib/admin.sh`                              | new    | 252     |
+| `ops/kit/lib/backup-core.sh`                        | new    | 198     |
+| `ops/kit/lib/backup-restore.sh`                     | new    | 192     |
+| `ops/kit/lib/db-roles.sh`                           | new    | 42      |
+| `ops/kit/lib/db-roles.sql`                          | new    | 105     |
+| `ops/kit/lib/host-baseline.sh`                      | new    | 148     |
+| `ops/kit/lib/operator.sh`                           | new    | 103     |
+| `ops/kit/lib/website-route.sh`                      | new    | 227     |
+| `ops/kit/pull-backups.ps1`                          | new    | 60      |
+| `ops/kit/pull-backups.sh`                           | new    | 43      |
+| `ops/lib/backup.sh`                                 | 247    | 228     |
+| `ops/lib/common.sh`                                 | 165    | 142     |
+| `ops/lib/config.sh`                                 | 246    | 228     |
+| `ops/lib/db-roles.sql`                              | 105    | 12      |
+| `ops/lib/hooks.sh`                                  | new    | 176     |
+| `ops/lib/uninstall.sh`                              | 49     | removed |
+| `ops/lib/website.sh`                                | 241    | 245     |
+| `ops/lib/websiteApply.sh`                           | 141    | 139     |
+| `ops/lib/websiteRoute.sh`                           | 137    | removed |
+| `ops/sbr`                                           | 324    | 60      |
+| `ops/test/real-site-drill.sh`                       | 112    | 115     |
+| `ops/test/real-site.exp`                            | 30     | 30      |
+| `ops/test/realSite.spec.ts`                         | 277    | 278     |
+| `ops/test/website-vps.sh`                           | 230    | 230     |
+| `package.json`                                      | 44     | 45      |
+| `packages/ui/src/base.css`                          | 207    | 86      |
+| `packages/ui/src/motion.css`                        | 92     | 92      |
+| `packages/ui/src/tokens.css`                        | 32     | 31      |
+| `pnpm-lock.yaml`                                    | 5694   | 5704    |
+
+</details>
 
 ## Kit 0.22 (branch `feat/kit-0.22`, draft PR, NOT merged: the owner looks first)
 
