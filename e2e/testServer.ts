@@ -58,4 +58,11 @@ process.once('SIGINT', () => {
   dropDatabase(TEST_DATABASE);
   process.exit(0);
 });
+// After a run ./globalTeardown drops the database under this server (PostgreSQL's 57P01) just
+// before Playwright ends it: that end is no fault, so nothing is printed. Anything else is.
+process.on('uncaughtException', (error: Error & { code?: string }) => {
+  if (error.code === '57P01') process.exit(0);
+  console.error(error);
+  process.exit(1);
+});
 await import(pathToFileURL(path.join(REPO_ROOT, 'apps/server/src/main.ts')).href);
