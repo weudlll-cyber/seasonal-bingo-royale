@@ -1,9 +1,9 @@
 /**
  * @file   load/drawLatency.mjs
  * @module load
- * @brief  200-player check against the local development stack: draw latency, tap acknowledgements, server load.
+ * @brief  200-player check against the local test server: draw latency, tap acknowledgements, server load.
  *
- * Responsibility: against a running stack with development features (server 3900): sign in a
+ * Responsibility: against a running server with development features (`pnpm test-server`): sign in a
  *                 host, N load players and S spectators (dev sign-in `load-NNN`), run one royale
  *                 with the fast test profile (./drawRun.mjs: 4 s draws, manual marking, every
  *                 `tapEvery`-th player tapping), print the measures, then delete the load
@@ -11,12 +11,12 @@
  *                 same run is `sbr loadcheck` (./loadcheck.mjs).
  *                 Usage: node load/drawLatency.mjs [players=200] [spectators=50] [tapEvery=1]
  *                 [minutes=12] (the run ends with the match or after that many minutes)
- * Depends on:     ./devDefaults.mjs, ./common.mjs, ./drawRun.mjs
+ * Depends on:     ./testDefaults.mjs, ./common.mjs, ./drawRun.mjs
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
 import { inBatches } from '@seasonal/kit/testing';
 
-import './devDefaults.mjs';
+import './testDefaults.mjs';
 import { BASE, signIn, WRITES_FROM } from './common.mjs';
 import { runDrawCheck } from './drawRun.mjs';
 

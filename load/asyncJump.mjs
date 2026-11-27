@@ -3,7 +3,7 @@
  * @module load
  * @brief  200-player asynchronous royale: "Jump ahead 1 day" and every player's away summary.
  *
- * Responsibility: against a running stack with development features (server 3900): sign in N load
+ * Responsibility: against a running server with development features (`pnpm test-server`): sign in N load
  *                 players (dev sign-in `load-NNN`), join one asynchronous royale (15-minute draws,
  *                 no quiet hours), start it, let every player look once (the away summary records
  *                 where each stands), move the match one day ahead (dev time travel, as the
@@ -11,13 +11,13 @@
  *                 jump's duration, the summaries' latencies (p50/p95/p99), how many were non-empty;
  *                 samples CPU, memory, event-loop lag. Then aborts the match (append-only log),
  *                 deletes the load accounts. Usage: node load/asyncJump.mjs [players=200]
- * Depends on:     ./devDefaults.mjs, ./common.mjs
+ * Depends on:     ./testDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/01-game-design.md §11; docs/spec/06-realtime-architecture.md §6;
  *                 docs/spec/12-testing-strategy.md §5
  */
 import { inBatches, latencies } from '@seasonal/kit/testing';
 
-import './devDefaults.mjs';
+import './testDefaults.mjs';
 import { BASE, call, errors, serverFigures, signIn, watchServer, WRITES_FROM } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);

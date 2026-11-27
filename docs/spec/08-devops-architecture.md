@@ -19,12 +19,14 @@ Every environment runs the **same container image**; differences are environment
 | Server (HTTP + WS) | **3900** | `pnpm dev` (apps/server) |
 | Player client (web, Vite) | **5390** | `pnpm dev` (apps/web) |
 | Admin client (admin, Vite) | **5391** | planned: `pnpm dev` once apps/admin has a dev script (WP-19); reserved until then |
+| Test server (browser tests, load measurements) | **3901** | `pnpm test-server`, Playwright (e2e/testServer.ts) |
+| Test client (web, Vite) | **5392** | Playwright (e2e/playwright.config.ts) |
 | PostgreSQL | **5490** | `docker compose -f ops/compose.dev.yml up -d` |
 | Mailpit (SMTP) | **1090** | compose |
 | Mailpit (web UI) | **8490** | compose |
 
 Reserved for later use by this project (never used by other projects on the
-same machine): `3900`, `5390`, `5391`.
+same machine): `3900`, `3901`, `5390`, `5391`, `5392`.
 
 Ports **off-limits** (used by other owner projects): `3800`, `5380`, `7880`,
 `7881`, `3478`, `5349`, `50000–50499`, `4000`, `5173`, `4173`, `5273`, `8000`.
@@ -40,8 +42,14 @@ The server fails closed: without settings it runs as production (`NODE_ENV` defa
 `production`), and every development feature — quick sign-in, Quick Test, fast test rules,
 bot fill, the system-abort route, load accounts, the plain-http cookie, the dev badge — needs
 `SBR_DEV=1`, which the server refuses when `SBR_PUBLIC_URL` is not a localhost address.
-`pnpm dev` (apps/server/dev.env), the integration-test harness and the Playwright web
-server set it explicitly.
+`pnpm dev` (apps/server/dev.env), the integration-test harness and the test server set it
+explicitly.
+
+**Tests never write the development database** (kit K125, 2026-11-27). The browser tests and
+the load measurements run against the test server on its own ports, so a run never meets a
+running `pnpm dev`. Its database (`sbr_e2e`; a website stack's `sbr_e2e_website_w<n>`) is made
+empty on the same PostgreSQL, filled by the migrations only and dropped afterwards; its data
+folder is a temporary one. Starting it never recreates a running dev container.
 
 ## 2. Branching and release flow
 

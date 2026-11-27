@@ -49,6 +49,15 @@ The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of
 - After a merge, check the master run of the merge commit before the next merge and before the final report; if it is red, stop and fix master first.
 - Your own play-throughs (acceptance, screenshots) use the fast test rules / "Short royale rounds", except one realtime royale at full length per task that changes the game screens or rules.
 
+### Where a check may look and write
+
+The kit's four rules (kit HANDBOOK "Where a check may look and write", K125; owner decision of 2026-11-27).
+
+- A change that matters only on a server (a database health check over TCP, say) is made with the way to the server and rehearsed there with a fresh install, not as a change of its own before it. Note it in `docs/GO-LIVE.md` until then.
+- Browser tests, sweeps and measurements never write the owner's development database: they use their own database, made empty and dropped afterwards (`pnpm test-server`, ports 3901 and 5392; docs/spec/08-devops-architecture.md §1.1). No old test data is kept or carried over, and nothing in the development database is deleted (D64).
+- Browser journeys use fixed seeds and handle every outcome chance can give. A test that fails on a lucky outcome is a test defect, not a flaky run to repeat.
+- A website-mode part is looked at in the kit's local preview (`sk-preview`, kit OPERATIONS "The local website-mode preview"; docs/operator-guide.md) before a merge, on a database of its own; the real shared call only on the website.
+
 ## Working cheaply
 
 Owner decision of 2026-11-06: spend fewer tokens without testing or checking less.

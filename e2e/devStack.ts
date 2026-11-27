@@ -1,24 +1,31 @@
 /**
  * @file   e2e/devStack.ts
  * @module e2e
- * @brief  Ports and database URL of the local dev stack, read from ops/.env.dev.example.
+ * @brief  The tests' ports, data folder and PostgreSQL, from ops/.env.dev.example.
  *
- * Responsibility: one place for the project's fixed ports (server 3900, player client
- *                 5390) and the DATABASE_URL built from the dev env file, so the e2e
- *                 config never repeats credentials. CI sets SBR_E2E_DATABASE_URL to its
- *                 PostgreSQL service instead.
+ * Responsibility: one place for the browser tests' fixed ports (server 3901, player client 5392:
+ *                 apart from `pnpm dev`'s 3900 and 5390, so a run never meets the developer's
+ *                 own server), their database's name and data folder, and the URL of a database
+ *                 on the PostgreSQL they use, built from the dev env file so no credentials are
+ *                 repeated. CI sets SBR_E2E_DATABASE_URL to its PostgreSQL service instead.
  * Depends on:     ops/.env.dev.example
- * Used by:        ./playwright.config.ts, ./globalSetup.ts, ./screens, ./acceptance/fitAudit.spec
- * Spec:           docs/spec/08-devops-architecture.md §1, §8
+ * Used by:        ./playwright.config.ts, ./testServer, ./testDatabase, ./screens and the specs
+ * Spec:           docs/spec/08-devops-architecture.md §1.1, §8
  */
 import { readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 export const ENV_FILE = 'ops/.env.dev.example';
 export const COMPOSE_FILE = 'ops/compose.dev.yml';
-export const SERVER_URL = 'http://127.0.0.1:3900';
-export const CLIENT_URL = 'http://127.0.0.1:5390';
+export const SERVER_URL = 'http://127.0.0.1:3901';
+export const CLIENT_URL = 'http://127.0.0.1:5392';
+// The test server's database and data folder (the maintenance flag is a file in it).
+export const TEST_DATABASE = 'sbr_e2e';
+export const TEST_DATA_DIR = path.join(tmpdir(), 'sbr-e2e-data');
+export const MAINTENANCE_FLAG = path.join(TEST_DATA_DIR, 'maintenance');
 
 function readEnvFile(): Map<string, string> {
   const text = readFileSync(new URL(`../${ENV_FILE}`, import.meta.url), 'utf8');
@@ -52,12 +59,17 @@ export function mailpit(): { smtpHost: string; smtpPort: string; apiUrl: string 
   };
 }
 
-// The database the e2e server uses: CI's service (SBR_E2E_DATABASE_URL), else the dev stack.
+// The tests' PostgreSQL: CI's service (SBR_E2E_DATABASE_URL), else the dev stack's.
 export const externalDatabase = (): string | undefined => process.env['SBR_E2E_DATABASE_URL'];
 
-export function databaseUrl(): string {
-  const external = externalDatabase();
-  if (external !== undefined) return external;
+// The URL of the database `name` on it.
+export function databaseUrl(name: string): string {
+  const url = new URL(externalDatabase() ?? devStackUrl());
+  url.pathname = `/${name}`;
+  return url.toString();
+}
+
+function devStackUrl(): string {
   const env = readEnvFile();
   const get = (key: string): string => {
     const value = env.get(key);
@@ -66,5 +78,5 @@ export function databaseUrl(): string {
   };
   const user = encodeURIComponent(get('POSTGRES_USER'));
   const password = encodeURIComponent(get('POSTGRES_PASSWORD'));
-  return `postgres://${user}:${password}@127.0.0.1:${get('SBR_DEV_POSTGRES_PORT')}/${get('POSTGRES_DB')}`;
+  return `postgres://${user}:${password}@127.0.0.1:${get('SBR_DEV_POSTGRES_PORT')}`;
 }

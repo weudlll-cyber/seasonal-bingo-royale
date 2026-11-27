@@ -166,9 +166,10 @@ The tap acknowledgement meets its target in both runs; run 2's p95 (144 ms) is c
 
 - Fixed seeds for all domain tests; the seed of any failing property test is printed and turned into a regular regression test.
 - Builders (`aRuleset().withStages(…)`, `aMatch().withPlayers(50)`) in `packages/domain/test/builders` — shared, not duplicated.
-- Test accounts created by a test are removed by the test; matches it created are aborted and stay in the database, since the event log is append-only (04 §3.3) (Testcontainers DB per test file; E2E uses a dedicated DB reset endpoint enabled only in test builds).
+- Test accounts created by a test are removed by the test; matches it created are aborted and stay in the database, since the event log is append-only (04 §3.3) (Testcontainers DB per test file; the browser tests and load measurements use a database of their own, made empty for the run and dropped afterwards, 08 §1.1: nothing in it is kept or copied from the development database, owner decision of 2026-11-27, D64).
 - Specs whose checks depend on browser timers (speed window, missed-number delay, timed draws) run in their own Playwright projects after all other specs, one test at a time and one browser after another, so no parallel browser delays their timers; their limits stay as the game defines them. Run one of them alone with `--project=<browser>-timing --no-deps`. In CI, Chromium's timing specs run alone on their own runner beside the two shards of its regular specs (08 §4). The full suite in all browsers runs in CI only; locally the specs that read a change run in Chromium (CLAUDE.md, Testing). Vitest runs on half the cores (`maxWorkers: '50%'`), so tests are not starved next to the integration tests' databases.
-- E2E tests target the project's fixed local ports: server **3900**, player client **5390**, admin client **5391** (08 §1.1). Playwright `baseURL` points at `http://127.0.0.1:5390`; the admin spec switches to `5391`.
+- E2E tests target the project's fixed test ports: server **3901**, player client **5392** (08 §1.1). Playwright `baseURL` points at `http://127.0.0.1:5392`; no run reuses a server that is already running.
+- Browser journeys use fixed seeds where the game takes one (the seed check page) and handle every outcome chance can give (kit K125). A real match's seed is drawn by the server (01 §9), so a journey through one asserts only what holds for every seed.
 
 ## 8. Manual acceptance (owner)
 

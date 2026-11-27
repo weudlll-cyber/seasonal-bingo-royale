@@ -3,15 +3,16 @@
  * @module e2e
  * @brief  A game server in website mode behind the kit's stand-in of the website (D37, kit K74).
  *
- * Responsibility: a database per worker (`sbr_e2e_website_w<n>`, kept, so no other scheduler runs
- *                 its matches); the kit's `startWebsiteStandIn` as the website and its proxy
+ * Responsibility: a database per worker (`sbr_e2e_website_w<n>`, so no other scheduler runs its
+ *                 matches), made empty for the stack and thrown away at its close (K125);
+ *                 the kit's `startWebsiteStandIn` as the website and its proxy
  *                 (/login, /embed/chat, the identity on /games/bingo/auth/website only, cookie
  *                 `se.sid`); the server in website mode under /games/bingo/, trusting only the
  *                 proxy. `addMember`, `cookieOf` and `signInAs` (whom the website's login signs
  *                 in); `expireSessions` idles sessions out; `removeAccounts` deletes the members'
  *                 accounts (D42).
  * Depends on:     node:child_process, node:crypto, node:net, node:fs, node:os, @playwright/test,
- *                 @seasonal/kit/testing, ./devStack
+ *                 @seasonal/kit/testing, ./devStack, ./testDatabase
  * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./backToWebsite.spec,
  *                 ./acceptance/fitAudit.spec
  * Spec:           docs/spec/07-integration-architecture.md §2.3; docs/spec/12-testing-strategy.md §4
@@ -30,8 +31,9 @@ import {
   type WebsiteStandIn,
 } from '@seasonal/kit/testing';
 
-import { databaseUrl, REPO_ROOT } from './devStack.js';
+import { REPO_ROOT } from './devStack.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
+import { dropDatabase, freshDatabase, runSql } from './testDatabase.js';
 
 const SERVER_DIR = path.join(REPO_ROOT, 'apps/server');
 const WEB_DIR = path.join(REPO_ROOT, 'apps/web');
@@ -58,27 +60,6 @@ export interface WebsiteStack {
   // Every open game session idles out now, as after 30 minutes (an admin's) without a request.
   expireSessions(): void;
   close(): Promise<void>;
-}
-
-// SQL through the server package's pg (the e2e package has none), outside any request.
-function sql(url: string, statement: string): void {
-  const code = `import pg from 'pg'; const c = new pg.Client(${JSON.stringify(url)});
-    await c.connect(); try { await c.query(${JSON.stringify(statement)}); }
-    catch (e) { if (e.code !== '42P04') throw e; } finally { await c.end(); }`;
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', code], {
-    cwd: SERVER_DIR,
-    encoding: 'utf8',
-  });
-  if (r.status !== 0) throw new Error(`sql failed: ${r.stderr}`);
-}
-
-function ownDatabase(): string {
-  const admin = databaseUrl();
-  // 42P04 (it exists already) is fine: the database is kept between runs.
-  sql(admin, `CREATE DATABASE ${DB_NAME}`);
-  const url = new URL(admin);
-  url.pathname = `/${DB_NAME}`;
-  return url.toString();
 }
 
 function buildClient(): string {
@@ -179,7 +160,7 @@ function membersOf(standIn: WebsiteStandIn, members: Member[]) {
 }
 
 export async function startWebsiteStack(): Promise<WebsiteStack> {
-  const db = ownDatabase();
+  const db = freshDatabase(DB_NAME);
   const webDir = buildClient();
   const members: Member[] = [];
   const port = await freePort();
@@ -211,7 +192,7 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
     ...membersOf(standIn, members),
     removeAccounts: () => removeAccounts(standIn.origin, members),
     expireSessions: () => {
-      sql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
+      runSql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
     },
     close: async () => {
       // The stand-in first: a page left open holds a socket the game's shutdown would wait for.
@@ -219,6 +200,7 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
       const exited = new Promise((resolve) => server.once('exit', resolve));
       server.kill();
       await exited;
+      dropDatabase(DB_NAME);
     },
   };
 }

@@ -59,7 +59,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      # The server on 3900 and the client on 5390 (e2e/playwright.config.ts).
+      # The test server on 3901 and the client on 5392, on a database of the run's own
+      # (e2e/playwright.config.ts).
       - run: pnpm e2e
       # On a failure: the traces and page snapshots of the failed tests, for a week.
       - if: failure()

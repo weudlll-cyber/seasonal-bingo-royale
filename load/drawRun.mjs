@@ -12,7 +12,7 @@
  *                 time to its acknowledgement; reads ./serverBreakdown.mjs. Ends with the match or
  *                 after `minutes`; the host aborts it. Sign-in and cleanup are the caller's.
  * Depends on:     socket.io-client, ./common.mjs, ./serverBreakdown.mjs
- * Used by:        ./drawLatency.mjs (local development stack), ./loadcheck.mjs (sbr loadcheck)
+ * Used by:        ./drawLatency.mjs (local test server), ./loadcheck.mjs (sbr loadcheck)
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
 import { io } from 'socket.io-client';

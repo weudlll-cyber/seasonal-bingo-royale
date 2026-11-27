@@ -22,7 +22,7 @@ import path from 'node:path';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { setTheme } from '@seasonal/kit/testing';
 
-import { REPO_ROOT } from '../devStack.js';
+import { MAINTENANCE_FLAG, REPO_ROOT } from '../devStack.js';
 import {
   closeContexts,
   drawNext,
@@ -46,7 +46,6 @@ test.use({ trace: 'off' });
 test.describe.configure({ mode: 'default' });
 
 const LOGS = path.join(REPO_ROOT, 'reports', 'logs');
-const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');
 
 const ALL_SIZES = [
   [360, 640],
@@ -398,8 +397,8 @@ test('fit: the maintenance page', async ({ browser }) => {
   test.setTimeout(20 * 60_000);
   fresh('maintenance');
   const guest = await newPage(browser, null);
-  mkdirSync(path.dirname(FLAG), { recursive: true });
-  writeFileSync(FLAG, 'Fit audit: back in a few minutes.');
+  mkdirSync(path.dirname(MAINTENANCE_FLAG), { recursive: true });
+  writeFileSync(MAINTENANCE_FLAG, 'Fit audit: back in a few minutes.');
   try {
     await expect
       .poll(
@@ -413,7 +412,7 @@ test('fit: the maintenance page', async ({ browser }) => {
     await visit(guest, '', 'maintenance-page');
     await measure(guest, 'maintenance', 'maintenance');
   } finally {
-    rmSync(FLAG, { force: true });
+    rmSync(MAINTENANCE_FLAG, { force: true });
   }
 });
 

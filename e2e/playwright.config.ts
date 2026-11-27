@@ -1,22 +1,23 @@
 /**
  * @file   e2e/playwright.config.ts
  * @module e2e
- * @brief  Playwright config: three browsers against the dev server and player client.
+ * @brief  Playwright config: three browsers against a test server and player client.
  *
- * Responsibility: start PostgreSQL (global setup), the server on 3900 and the player client on
- *                 5390, then run the specs in Chromium, Firefox and WebKit at a phone viewport.
- *                 Specs timing things in the browser (speed window, missed-number delay, timed
- *                 draws) run afterwards, serially, one browser after the other, so nothing
- *                 starves their timers (NIGHT-3: six failed in the full parallel run, passed
- *                 alone). Locally a running stack is reused. The acceptance play-through needs
- *                 SBR_ACCEPTANCE=1. SBR_E2E_BROWSER=<name> keeps one browser and its timing specs
- *                 (CI runs one job per browser).
- * Depends on:     @playwright/test, ./devStack, ./globalSetup
+ * Responsibility: start the test server (./testServer: an empty database of its own) and the
+ *                 player client on the tests' ports, then run the specs in Chromium, Firefox and
+ *                 WebKit at a phone viewport. Specs timing things in the browser (speed window,
+ *                 missed-number delay, timed draws) run afterwards, serially, one browser after
+ *                 the other, so nothing starves their timers (NIGHT-3: six failed in the full
+ *                 parallel run, passed alone). The database is thrown away at the end
+ *                 (./globalTeardown). The acceptance play-through needs SBR_ACCEPTANCE=1.
+ *                 SBR_E2E_BROWSER=<name> keeps one browser and its timing specs (CI runs one job
+ *                 per browser).
+ * Depends on:     @playwright/test, ./devStack, ./testServer, ./globalTeardown
  * Spec:           docs/spec/12-testing-strategy.md §2, §4; docs/spec/15-implementation-plan.md WP-08
  */
 import { defineConfig, devices } from '@playwright/test';
 
-import { CLIENT_URL, REPO_ROOT, SERVER_URL, databaseUrl, mailpit } from './devStack.js';
+import { CLIENT_URL, REPO_ROOT, SERVER_URL } from './devStack.js';
 
 const CI = process.env['CI'] !== undefined;
 
@@ -52,7 +53,7 @@ export default defineConfig({
   // SBR_ACCEPTANCE=1, never in CI.
   testIgnore: ACCEPTANCE,
   outputDir: '../test-results',
-  globalSetup: './globalSetup.ts',
+  globalTeardown: './globalTeardown.ts',
   timeout: 90_000,
   forbidOnly: CI,
   retries: 0,
@@ -72,29 +73,22 @@ export default defineConfig({
         i === 0 ? BROWSERS.map((x) => x.name) : [`${BROWSERS[i - 1]?.name ?? ''}-timing`],
     })),
   ],
+  // Never a server that is already running: each run gets its own, on an empty database
+  // (./testServer, kit K125).
   webServer: [
     {
-      command: 'pnpm --filter @sbr/server start',
+      command: 'pnpm test-server',
       cwd: REPO_ROOT,
       url: `${SERVER_URL}/readyz`,
-      // The specs use the development features (quick sign-in, bots, fast rules).
-      // Mail goes to Mailpit, so "Forgot password?" exists (D60).
-      env: {
-        DATABASE_URL: databaseUrl(),
-        SBR_PORT: '3900',
-        SBR_LOG_LEVEL: 'warn',
-        SBR_DEV: '1',
-        SBR_SMTP_HOST: mailpit().smtpHost,
-        SBR_SMTP_PORT: mailpit().smtpPort,
-      },
-      reuseExistingServer: !CI,
-      timeout: 120_000,
+      reuseExistingServer: false,
+      timeout: 180_000,
     },
     {
       command: 'pnpm --filter @sbr/web dev',
       cwd: REPO_ROOT,
       url: CLIENT_URL,
-      reuseExistingServer: !CI,
+      env: { SBR_WEB_PORT: new URL(CLIENT_URL).port, SBR_API_PORT: new URL(SERVER_URL).port },
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],

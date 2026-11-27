@@ -4,7 +4,8 @@
  * @brief  What the load checks share: the target, dev sign-in, API calls and the server's figures.
  *
  * Responsibility: the server to load (SBR_LOAD_BASE with the base path, SBR_LOAD_ORIGIN: the
- *                 development stack through ./devDefaults.mjs, a production install through
+ *                 test server through ./testDefaults.mjs, the development server through
+ *                 ./devDefaults.mjs, a production install through
  *                 `sbr loadcheck`) and its WebSocket address; sign in a development account and call the
  *                 API as it (cookie, CSRF token, origin), watch the server's CPU, memory and
  *                 event-loop lag, and count errors with a few examples. Batches and latencies
@@ -16,10 +17,10 @@
  */
 import { watchServer as watchMetrics } from '@seasonal/kit/testing';
 
-// The development scripts set both through ./devDefaults.mjs, `sbr loadcheck` through its
+// The local scripts set both through ./testDefaults.mjs or ./devDefaults.mjs, `sbr loadcheck` through its
 // container's environment.
 if (process.env.SBR_LOAD_BASE === undefined || process.env.SBR_LOAD_ORIGIN === undefined) {
-  throw new Error('SBR_LOAD_BASE and SBR_LOAD_ORIGIN must be set (or import ./devDefaults.mjs)');
+  throw new Error('SBR_LOAD_BASE and SBR_LOAD_ORIGIN must be set (or import ./testDefaults.mjs)');
 }
 export const BASE = process.env.SBR_LOAD_BASE.replace(/\/$/, '');
 // The public origin: what a player's page names, and what the WebSocket accepts.
