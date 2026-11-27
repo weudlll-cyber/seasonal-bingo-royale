@@ -10,10 +10,10 @@
 #                 apply_db_roles, convert_db_roles for older installs); operator keys kept. Also
 #                 writes install.conf, copies compose files, Caddyfile, the library, the kit's
 #                 ops folder and the sbr CLI to /opt/sbr (the admin command keeps and restores
-#                 STACK_FILES for a rollback), builds the app image
-#                 from a git ref unless that commit's exists.
-# Depends on:     ./common.sh (put_file, run, env_value, url_host), ../kit/lib/db-roles.sh, git,
-#                 docker, openssl
+#                 STACK_FILES for a rollback), gets the app image of a git ref: a version tag's
+#                 signed release, else built unless that commit's exists.
+# Depends on:     ./common.sh (put_file, run, env_value, url_host), ./release.sh,
+#                 ../kit/lib/db-roles.sh, git, docker, openssl
 # Used by:        ops/install.sh, ops/sbr (./hooks.sh)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
 
@@ -169,6 +169,7 @@ SBR_ADDRESS=${SBR_ADDRESS:-}
 SBR_WEBSITE_DOMAIN=${SBR_WEBSITE_DOMAIN:-}
 SBR_REPO=$SBR_REPO
 SBR_REF=$SBR_REF
+SBR_IMAGE_SOURCE=${SBR_IMAGE_SOURCE:-$(env_value "$SBR_ETC/install.conf" SBR_IMAGE_SOURCE)}
 EOF
 }
 
@@ -198,12 +199,13 @@ install_files() {
 # The stack files an update replaces (install_files): kept for a rollback (audit O1).
 STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr kit)
 
-# build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and builds it when missing.
+# build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and gets that image: a version
+# tag's signed release (./release.sh), else built on the server when missing.
 build_image() {
   local repo=$1 ref=$2 src="$SBR_ROOT/src" commit
   if [[ $SBR_DRY_RUN == 1 ]]; then
     # A dry run touches nothing, not even the checkout (audit O11).
-    info "  would fetch $ref from $repo into $src and build sbr-app:<commit>"
+    info "  would fetch $ref from $repo into $src and take its image ($(image_source "$ref"))"
     SBR_IMAGE="sbr-app:<commit of $ref>"
     return 0
   fi
@@ -216,6 +218,13 @@ build_image() {
   git -C "$src" fetch --quiet --prune --tags origin
   commit=$(git -C "$src" rev-parse --verify --quiet "origin/$ref^{commit}" || git -C "$src" rev-parse --verify "$ref^{commit}")
   SBR_IMAGE="sbr-app:${commit:0:12}"
+  # A release is verified every time, also where an image of that commit is there already.
+  local from
+  from=$(image_source "$ref")
+  if [[ $from == release ]]; then
+    release_image "$ref" "$commit"
+    return 0
+  fi
   if docker image inspect "$SBR_IMAGE" >/dev/null 2>&1; then
     info "  image $SBR_IMAGE is there already ($ref)"
     return 0

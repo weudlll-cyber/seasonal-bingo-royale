@@ -7,7 +7,8 @@
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
 #                 /games/bingo), environment, address, operator e-mail (the kit's, kept for every
 #                 Seasonal installer), optional SMTP (standalone only)
-#                 and age public key; install Docker if missing, build the image from a git ref,
+#                 and age public key; install Docker if missing, take the image of a git ref (a
+#                 version tag's signed release, else built here),
 #                 write /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only
 #                 through the website, D37), start the stack, wait for /readyz, install the backup
 #                 timer. Re-runs keep earlier answers, never switch type unconfirmed. SMTP password
@@ -23,7 +24,7 @@
 #          [--website-domain <domain>] [--website-network <name>] [--website-upstream <host:port>]
 #          [--website-authorize-path </api/games/bingo/authorize>] [--website-login-path </login?next=>]
 #          [--website-routes-dir </etc/seasonal/routes>] [--app-port <3900>] [--edge-subnet <cidr>]
-#          [--repo <git url or path>] [--ref <git ref>]
+#          [--repo <git url or path>] [--ref <git ref>] [--image-source release|build]
 #          [--trusted-proxies <range,range…>|none] [--yes] [--change-type] [--dry-run] [--any-os]
 set -euo pipefail
 # Errors inside $(…) stop the script too (audit O1).
@@ -44,6 +45,10 @@ source "$OPS/lib/website.sh"
 source "$OPS/kit/lib/website-route.sh"
 # shellcheck source=lib/websiteApply.sh
 source "$OPS/lib/websiteApply.sh"
+# shellcheck source=kit/lib/image.sh
+source "$OPS/kit/lib/image.sh"
+# shellcheck source=lib/release.sh
+source "$OPS/lib/release.sh"
 # shellcheck source=lib/config.sh
 source "$OPS/lib/config.sh"
 # shellcheck source=kit/lib/db-roles.sh
@@ -75,6 +80,7 @@ parse_flags() {
       --trusted-proxies) SBR_EXTRA_PROXIES=$2; shift ;;
       --repo) SBR_REPO=$2; shift ;;
       --ref) SBR_REF=$2; shift ;;
+      --image-source) SBR_IMAGE_SOURCE=$2; shift ;;
       --yes) SBR_YES=1 ;;
       --change-type) SBR_CHANGE_TYPE=1 ;;
       --dry-run) SBR_DRY_RUN=1 ;;
@@ -163,7 +169,13 @@ default_source() {
   SBR_REPO=${SBR_REPO:-${origin:-https://github.com/weudlll-cyber/seasonal-bingo-royale.git}}
   SBR_REF=${SBR_REF:-$(env_value "$SBR_ETC/install.conf" SBR_REF)}
   SBR_REF=${SBR_REF:-master}
-  info "  image source: built on this server from $SBR_REPO at $SBR_REF (no signed release image yet)"
+  local from
+  from=$(image_source "$SBR_REF")
+  if [[ $from == release ]]; then
+    info "  image source: the signed release of $SBR_REF (checked before it is pulled)"
+  else
+    info "  image source: built on this server from $SBR_REPO at $SBR_REF"
+  fi
 }
 
 next_steps() {

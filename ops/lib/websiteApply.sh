@@ -45,6 +45,12 @@ route_settings() {
   export SK_ROUTE_SECRET=$SECRET SK_ROUTE_IDENTITY_HEADERS="${HEADERS[*]}"
   export SK_ROUTE_WEBSITE=$SBR_WEBSITE_UPSTREAM SK_ROUTE_AUTHORIZE=$SBR_WEBSITE_AUTHORIZE_PATH
   export SK_ROUTE_MODE=$SBR_WEBSITE_MODE
+  # The addresses the app takes the secret from, for the file's comment; a word such as
+  # "uniquelocal" is no address and stays out.
+  local trusted addresses='^[0-9A-Fa-f.:/]+(,[0-9A-Fa-f.:/]+)*$'
+  trusted=$(env_value "$SBR_ETC/$env.env" SBR_TRUSTED_PROXIES)
+  unset SK_ROUTE_TRUSTED
+  if [[ $trusted =~ $addresses ]]; then export SK_ROUTE_TRUSTED=$trusted; fi
   if [[ $SBR_WEBSITE_MODE == nginx ]]; then
     export SK_ROUTE_APP=127.0.0.1:$SBR_APP_PORT SK_ROUTE_FILE=$SBR_WEBSITE_ROUTES_DIR/bingo.conf
     export SK_ROUTE_CHECK_CMD='nginx -t -q' SK_ROUTE_RELOAD_CMD='systemctl reload nginx'

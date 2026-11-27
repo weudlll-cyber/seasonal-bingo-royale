@@ -24,6 +24,10 @@ if [[ ! -f $HERE/kit/lib/admin.sh ]]; then
 fi
 # shellcheck source=lib/common.sh
 source "$HERE/lib/common.sh"
+# shellcheck source=kit/lib/image.sh
+source "$HERE/kit/lib/image.sh"
+# shellcheck source=lib/release.sh
+source "$HERE/lib/release.sh"
 # shellcheck source=lib/config.sh
 source "$HERE/lib/config.sh"
 # shellcheck source=kit/lib/db-roles.sh

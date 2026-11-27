@@ -5,7 +5,7 @@ Two ways to install, chosen by the installer's first question:
 - **Standalone** — the game on its own domain (e.g. `bingo.example.org`) with its own HTTPS.
 - **Website** — the game inside the Seasonal Entertainment website on the same server, at `https://<website domain>/games/bingo/`, behind the website's own proxy.
 
-There is no signed release image yet, so the installer builds the game on the server from the source code (a few minutes). Commands in grey boxes are typed exactly as shown; `<…>` is replaced by your value.
+The game's image comes from one of two places (§6b): a version (`v1.2.3`) is the **signed release image** its release published; anything else (a branch such as `master`, a commit) is **built on the server** from the source code (a few minutes). No release has been published yet, so for now every install builds. Commands in grey boxes are typed exactly as shown; `<…>` is replaced by your value.
 
 ## 1. What to prepare (both types)
 
@@ -126,7 +126,7 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback, installs the new version's stack files (limits, routes, the `sbr` command; the old ones are kept for a rollback) and starts the new version (the game is away for a few seconds; running matches continue). An install made before 4 November 2026 gets the new stack files once by running the installer again (step 2 of the install: the same command; it keeps your answers and secrets). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
+   It gets the new version's image first (a release image is checked and pulled, §6b; otherwise it is built, a few minutes, while the game keeps running), then takes a backup and a plain database dump for a rollback, installs the new version's stack files (limits, routes, the `sbr` command; the old ones are kept for a rollback) and starts the new version (the game is away for a few seconds; running matches continue). An install made before 4 November 2026 gets the new stack files once by running the installer again (step 2 of the install: the same command; it keeps your answers and secrets). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
    An install made before the kit's folder `/opt/sbr/kit/` existed updates in two steps, because `sbr update` installs the new version with the installed version's file list: first `sudo sbr update ff6d090` (the commit that only adds the folder), `sudo sbr confirm`, then `sudo sbr update <git ref>`. Skipping the first step, the new `sbr` stops and asks you to run the installer again from `/opt/sbr/src` (`sudo bash /opt/sbr/src/ops/install.sh`), which does the same.
 2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
    ```
@@ -162,6 +162,14 @@ sudo sbr maintenance off
 - When it refuses: it does not run while real players are in a match, or while people are signed in and maintenance is off (it says why); with maintenance on nobody can start a match meanwhile.
 - Smaller runs: `--players 50 --spectators 10 --minutes 3`.
 
+## 6b. Release images
+
+A release (a tag `v1.2.3` on master) publishes a signed image to GitHub's container registry. When you install or update to such a version, the server takes that image instead of building: it checks that this repository's release workflow signed it (cosign, no key to keep), pulls it by its digest and checks that it was built from the tag's commit. If any of that fails, the command stops with one sentence and the running game stays as it is.
+
+- **Once, before the first release image:** install `cosign` 3 or later on the server (the official packages: <https://docs.sigstore.dev/cosign/system_config/installation/>). Without it the command says so and stops.
+- A private image also needs `sudo docker login ghcr.io` once, with a token that may read packages.
+- **Building instead** (until the first release exists, or if the registry cannot be reached): add `--image-source build` to the installer; it is remembered, and `sbr update` builds from then on. `--image-source release` insists on a release (and refuses a branch). To change it later, run the installer again with the flag.
+
 ## 7. Hardening checklist
 
 1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `backup-pull` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
@@ -193,4 +201,4 @@ It asks you to type the environment's name (`prod`), then removes the game's con
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - The game runs as one process: the admin area's settings are kept in memory and a change applies at once in that process (admin-area §8 (aa)). Do not start a second copy of the app against the same database; it would not see changes made in the first until it restarts.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
-- Not there yet: a signed release image (the server builds from source). The game's own admin area is the "Admin" item in the menu for admins ([docs/concepts/admin-area.md](concepts/admin-area.md)). E-mail ("Forgot password?") and the admins' two-factor sign-in exist in standalone installs since D60 (§4).
+- The game's own admin area is the "Admin" item in the menu for admins ([docs/concepts/admin-area.md](concepts/admin-area.md)). E-mail ("Forgot password?") and the admins' two-factor sign-in exist in standalone installs since D60 (§4).

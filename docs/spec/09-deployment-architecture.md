@@ -46,7 +46,7 @@ Reference host: 4 vCPU, 8 GB RAM, 100 GB SSD, Ubuntu 24.04 LTS (e.g. the owner�
   caddy/Caddyfile             standalone (the folder is mounted, so `caddy reload` sees changes)
   routes/bingo.caddy          website installs, own-Caddy mode: the game's route (D37)
 /etc/seasonal/routes/bingo.conf  website installs, nginx mode: the game's route (D37)
-  src/                        git checkout the image is built from (until release images exist)
+  src/                        git checkout: the stack files, and the source an image is built from
 /etc/sbr/install.conf         install type, environment, address, repository and ref
 /etc/sbr/prod.env             secrets + public URL (0600)
 /etc/sbr/staging.env
@@ -69,7 +69,7 @@ The script (idempotent, re-runnable):
 2. Installs Docker Engine + Compose plugin from Docker’s official repository if missing.
 3. **Asks** for the environment name (`prod`/`staging`), the public address (standalone: domain or IP; website: taken from the website's `SITE_DOMAIN`), the admin e-mail, optional SMTP settings, and the operator’s `age` public key for backups.
 4. Generates secrets with `openssl rand`, writes `/etc/sbr/<env>.env` (atomically: written beside it and renamed).
-5. Builds the app image on the server from a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin; the fetch prunes branches deleted upstream) — the only source until signed release images are published; then this step becomes: download `compose.yml` and `Caddyfile` for the chosen release, verify the image signature with cosign, pull images.
+5. Gets the app image of a git ref (`--repo`, `--ref`; default: the last install's, else `master`; a changed `--repo` replaces the checkout's origin; the fetch prunes branches deleted upstream; the source is always checked out, for the stack files). A version tag takes the **signed release image** (kit K109, `ops/lib/release.sh`): `sk_image_verify` checks the keyless signature of the release workflow run in this repository, the image is pulled by digest, must carry the tag's commit as its revision and is named `sbr-app:<commit>`; cosign 3 on the server. Anything else is built on the server. `--image-source release|build` (kept as `SBR_IMAGE_SOURCE` in `install.conf`) decides instead; until a first release exists every install builds.
 6. Starts the stack and waits for `/readyz`; there is no separate migrate step: the app applies pending migrations on start (checksummed, `apps/server/src/db/migrator.ts`) and does not answer ready before.
 7. The first admin is created with `sbr admin create-super` (password asked inside the app container, never echoed or logged; roles `super_admin` and `organizer`). The one-time **bootstrap token** and the page `https://<host>/admin/setup?token=…` where the first `super_admin` sets password and 2FA wait for the admin app (WP-19).
 8. Installs the backup timer (systemd); log rotation is the Compose file's (Docker `local` driver, 5 × 20 MB per service, spec 08 §6); prints the next steps (website: a short summary of the applied route and the checks through the website's proxy; how to pull backups). A standalone install first sets up the server's security with the kit's host baseline (§8, K88).
