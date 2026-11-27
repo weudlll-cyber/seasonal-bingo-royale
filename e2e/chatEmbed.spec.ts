@@ -16,6 +16,7 @@
  *                 on phones at 32 px the player's card is no wider than its box.
  *                 Standalone: no chat, no request for the embed page. Matches aborted, account
  *                 removed. Chromium only.
+ *                 The dock's slot holds the website's shared call only while it is live (K77).
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
  * Spec:           docs/spec/07-integration-architecture.md §6; docs/spec/01-game-design.md §13
  */
@@ -271,6 +272,31 @@ test('a bar and a sheet on a phone', async ({ page }) => {
   }
 });
 
+// The stand-in's view of the shared call says what the test tells it to.
+async function callSays(page: Page, type: string, fields: Record<string, unknown>): Promise<void> {
+  const element = await page.getByTestId('shared-call-frame').elementHandle();
+  const view = await element?.contentFrame();
+  expect(view).toBeTruthy();
+  await view?.evaluate(
+    ([t, f]) => {
+      (window as unknown as { say: (type: unknown, fields: unknown) => void }).say(t, f);
+    },
+    [type, fields] as const,
+  );
+}
+
+test('the shared call shows in the dock only while it is live', async ({ page }) => {
+  await page.setViewportSize(WIDE);
+  await signInMember(page);
+  await expect(page.getByTestId('shared-call-frame')).toBeAttached();
+  const slot = page.getByTestId('shared-call-slot');
+  await expect(slot).toBeHidden();
+  await callSays(page, 'ready', { call: 7, status: 'live', signedIn: true });
+  await expect(slot).toBeVisible();
+  await callSays(page, 'ended', { reason: 'unshared' });
+  await expect(slot).toBeHidden();
+});
+
 test('a standalone install shows no chat and asks for no embed page', async ({ page }) => {
   const embeds: string[] = [];
   page.on('request', (r) => {
@@ -279,5 +305,6 @@ test('a standalone install shows no chat and asks for no embed page', async ({ p
   await page.goto(`${CLIENT_URL}/#/`);
   await expect(page.getByTestId('sign-in')).toBeVisible();
   await expect(page.getByTestId('chat-toggle')).toHaveCount(0);
+  await expect(page.getByTestId('shared-call-slot')).toHaveCount(0);
   expect(embeds).toEqual([]);
 });

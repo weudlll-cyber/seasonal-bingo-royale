@@ -10,19 +10,22 @@
  *                 strict-origin referrer; the game's theme): on a desktop a strip under the game,
  *                 always in sight; on a phone a bar at the bottom that opens it as a sheet. The
  *                 dock stays mounted from lobby to match to console, so the chat keeps its room
- *                 and what was typed. Standalone: no dock, no frame, no request (./dock.css).
+ *                 and what was typed. The dock's call slot holds the website's view of the one
+ *                 shared call, shown only while it is live (kit K77, ./sharedCall). Standalone:
+ *                 no dock, no frame, no request (./dock.css).
  * Depends on:     react, @seasonal/kit/react (DockedScreen, WebsiteChatFrame), ./router (types),
- *                 ./session, ../useScrollHint, ./dock.css, ./dockSide.css, ./dockWatch.css,
+ *                 ./session, ./sharedCall, ../useScrollHint, ./dock.css, ./dockSide.css, ./dockWatch.css,
  *                 ./dockResults.css
  * Used by:        ./AppShell
  * Spec:           docs/spec/07-integration-architecture.md §6; Seasonal Entertainment docs/EMBED.md
  */
 import { DockedScreen, WebsiteChatFrame } from '@seasonal/kit/react';
-import type { ReactElement, ReactNode } from 'react';
+import { useState, type ReactElement, type ReactNode } from 'react';
 
 import type { Route } from './router.js';
 import { useScrollHint } from '../useScrollHint.js';
 import { useSession } from './session.js';
+import { SharedCallContext } from './sharedCall.js';
 import './dock.css';
 import './dockSide.css';
 import './dockWatch.css';
@@ -51,13 +54,18 @@ export function DockedChat({
 }): ReactElement {
   // The game area scrolls where its content is taller than the strip leaves (./dock.css).
   useScrollHint('.sk-docked-main');
+  // The live shared call, as the dock's slot reports it; the results link back to it.
+  const [call, setCall] = useState<number | null>(null);
   return (
-    <DockedScreen
-      chat={<WebsiteChatFrame room={place.room} path={place.path} />}
-      bar="line"
-      callId={null}
-    >
-      {children}
-    </DockedScreen>
+    <SharedCallContext.Provider value={call}>
+      <DockedScreen
+        chat={<WebsiteChatFrame room={place.room} path={place.path} />}
+        bar="line"
+        callId={null}
+        onSharedCall={setCall}
+      >
+        {children}
+      </DockedScreen>
+    </SharedCallContext.Provider>
   );
 }

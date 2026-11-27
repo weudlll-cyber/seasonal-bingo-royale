@@ -5,7 +5,7 @@
  *
  * Responsibility: load the design system (the shared fonts, tokens and motion of
  *                 @seasonal/kit, then the game's own tokens, the kit's shell controls, header,
- *                 result frame, season icons and base components, the game's base styles and
+ *                 call slot, result frame, season icons and base components, the game's base styles and
  *                 key-moment motion from @sbr/ui) and the Quick Test's motion styles, then render the app shell
  *                 inside the session provider. Development-only parts (quick sign-in, Quick
  *                 Test, bots) follow Vite's DEV flag, so production builds leave them out.
@@ -20,6 +20,8 @@ import '@sbr/ui/tokens.css';
 import '@seasonal/kit/shell.css';
 import '@seasonal/kit/header.css';
 import '@seasonal/kit/dock.css';
+// The dock's call slot (the website's shared call, ./shell/DockedChat).
+import '@seasonal/kit/call.css';
 // The result's frame (the final placement, ./components/FinalPlacement), the season icons and
 // the base components: buttons, panels, fields, chips (K95).
 import '@seasonal/kit/frames.css';

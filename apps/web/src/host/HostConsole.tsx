@@ -10,10 +10,11 @@
  *                 (D21), round recap (../game/Interlude, D20), final's fresh start (D23), newest 3
  *                 event lines, standings (active first, grouped, bounded panel), prizes, abort
  *                 with a reason (./AbortMatch); fills the window on desktop; final placement on
- *                 top at the end. Dev builds: async "Jump ahead" (./JumpAhead, lazy).
+ *                 top at the end; after a result the way back to a live shared call. Dev builds:
+ *                 async "Jump ahead" (./JumpAhead, lazy).
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
- *                 ../shell/router
+ *                 ../shell/router, ../shell/sharedCall
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
  */
@@ -41,6 +42,7 @@ import {
   statusName,
 } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
+import { ResultCallLink } from '../shell/sharedCall.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { HostDrawControls } from './HostDrawControls.js';
@@ -142,6 +144,7 @@ function HostLive({
         <div className="sbr-stack host-end">
           <FinalPlacement result={result} view={view} />
           <EndActions host code={live.match.code} />
+          <ResultCallLink />
         </div>
       ) : null}
       {/* Ball, drawn numbers and the newest lines beside the controls; the standings in
@@ -187,13 +190,16 @@ function BetweenRounds({
         />
       ) : null}
       {recap === null ? null : (
-        <Interlude
-          key={recap.roundIndex}
-          recap={recap}
-          pause={live.match.settings.roundPause}
-          nextRoundAt={live.match.nextRoundAt}
-          me={null}
-        />
+        <>
+          <Interlude
+            key={recap.roundIndex}
+            recap={recap}
+            pause={live.match.settings.roundPause}
+            nextRoundAt={live.match.nextRoundAt}
+            me={null}
+          />
+          <ResultCallLink />
+        </>
       )}
     </>
   );

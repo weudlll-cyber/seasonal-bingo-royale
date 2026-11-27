@@ -3,12 +3,14 @@
  * @module web/game
  * @brief  What shows above the arena (./MatchScreen): the end, the cut, the recap, quiet hours, waiting.
  *
- * Responsibility: at the end the final placement with the end actions; otherwise the cut
+ * Responsibility: at the end the final placement with the end actions; after a round's result
+ *                 the way back to a live shared call (../shell/sharedCall); otherwise the cut
  *                 screen (a survivor's goes once the next round draws), the final's fresh start
  *                 (D23), the recap of the round just played (./Interlude, D20), the quiet-hours
  *                 notice of an asynchronous match (01 §5) and, while the match waits for its host
  *                 between rounds, "Waiting for the host to start round N" (D14). Display only.
- * Depends on:     react, ../components/*, ../league/playerHref, ../playback (types), ./EndActions,
+ * Depends on:     react, ../components/*, ../league/playerHref, ../playback (types),
+ *                 ../shell/sharedCall, ./EndActions,
  *                 ./Interlude, ./Registration (whenText), ./useLiveMatch (types)
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §5, §7, §11, §13
@@ -20,6 +22,7 @@ import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
 import { playerHref } from '../league/playerHref.js';
 import type { PlaybackView } from '../playback.js';
+import { ResultCallLink } from '../shell/sharedCall.js';
 import { EndActions } from './EndActions.js';
 import { currentRecap, Interlude } from './Interlude.js';
 import { whenText } from './Registration.js';
@@ -41,6 +44,7 @@ export function ArenaNotice({
       <>
         <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
         <EndActions host={false} code={live.match.code} />
+        <ResultCallLink />
       </>
     );
   }
@@ -57,13 +61,16 @@ export function ArenaNotice({
       <FinalNotice result={live.view} view={view} />
       {/* The recap of the round just played, below the cut screen (D20). */}
       {recap === null ? null : (
-        <Interlude
-          key={recap.roundIndex}
-          recap={recap}
-          pause={live.match.settings.roundPause}
-          nextRoundAt={live.match.nextRoundAt}
-          me={live.me}
-        />
+        <>
+          <Interlude
+            key={recap.roundIndex}
+            recap={recap}
+            pause={live.match.settings.roundPause}
+            nextRoundAt={live.match.nextRoundAt}
+            me={live.me}
+          />
+          <ResultCallLink />
+        </>
       )}
       {live.match.quietUntil !== null ? (
         <p className="sk-panel" role="status" data-testid="quiet-hours">

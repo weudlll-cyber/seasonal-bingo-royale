@@ -150,6 +150,8 @@ The game has no chat of its own (D55, 2026-11-06). On the Seasonal Entertainment
 
 ## 6a. Live call
 
+The one call the website shares with its games (kit K77, owner decision of 2026-11-27) is docked beside the chat in website mode: the dock's slot frames the website's own view (`/embed/call/shared`) and shows it only while a call is live; after a round's result a link leads back to it (`/calls/<id>`). Standalone frames nothing. A call linked to one match, below, is separate and not built.
+
 A match may be linked to a Seasonal Entertainment website call (01 §12a). The
 match stores a call reference in `matches.host_call_ref`; the client renders the
 call next to the match by embedding the website's call view at that reference,
