@@ -67,6 +67,13 @@
     padding-block: 0;
   }
 
+  /* The console's rules line gives its room to the places once the match is over (the result
+     says how places are decided): with it only 6 were whole at 1280×720, the owner asks for 7
+     (decision of 2026-11-24). */
+  .sk-docked-main .host-console:has(.sk-result) > .host-rules {
+    display: none;
+  }
+
   /* The own card keeps cells of 44 px; the finished screen may scroll. */
   .sk-docked-main .arena:has(.sk-result) .arena-play {
     min-height: calc(8 * var(--sk-hit-target));

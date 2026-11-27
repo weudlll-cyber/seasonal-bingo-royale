@@ -18,6 +18,8 @@ import '@seasonal/kit/tokens.css';
 import '@sbr/ui/tokens.css';
 // The kit's shell controls and its header (./shell/Header) with its rules and looks.
 import '@seasonal/kit/shell.css';
+// The readable floors and the 24 px least target, which the base components use (K33).
+import '@seasonal/kit/fit.css';
 import '@seasonal/kit/header.css';
 import '@seasonal/kit/dock.css';
 // The dock's call slot (the website's shared call, ./shell/DockedChat).

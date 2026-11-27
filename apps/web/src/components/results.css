@@ -108,6 +108,9 @@
 
 /* Such a row is as high as the target, no higher: the list keeps its rows in view. */
 .rank-row:has(.rank-name-btn) {
+  /* Said as the row's least height too: a list short of room else squeezes the row under
+     its button. */
+  min-height: var(--sk-hit-target);
   padding-block: 0;
 }
 

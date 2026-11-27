@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 const here = (rel: string) => path.resolve(path.dirname(fileURLToPath(import.meta.url)), rel);
 const ROOTS = [here('.'), here('../../../packages/ui/src')];
 // The kit's style files the client loads (its type sizes are in its tokens.css since B1).
-const KIT_CSS = ['tokens.css', 'frames.css', 'components.css'].map((name) =>
+const KIT_CSS = ['tokens.css', 'fit.css', 'call.css', 'frames.css', 'components.css'].map((name) =>
   here(`../node_modules/@seasonal/kit/css/${name}`),
 );
 
