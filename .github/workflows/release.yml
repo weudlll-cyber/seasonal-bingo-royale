@@ -46,7 +46,7 @@ jobs:
 
   image:
     needs: check
-    uses: weudlll-cyber/seasonal-kit/.github/workflows/release-image.yml@v0.39.1
+    uses: weudlll-cyber/seasonal-kit/.github/workflows/release-image.yml@v0.40.0
     permissions:
       contents: read
       packages: write # push to GHCR
