@@ -59,6 +59,7 @@ Usage: ops/backup.sh <command> [options]
   restore <file>            replace the database, volumes and secret files from a backup
       --identity <file>     your age private key file (required)
       --force-env           restore a backup of another environment, or replace a differing secret
+                            (expected on a new server, which has keys of its own)
       --yes                 do not ask
       --secrets-to <dir>    where the backup's secret files go (otherwise only their names are said)
   drill <file> --identity <file>

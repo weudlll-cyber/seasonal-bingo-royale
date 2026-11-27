@@ -8,7 +8,7 @@
     "draw-latency": "node drawLatency.mjs"
   },
   "dependencies": {
-    "@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.38.0",
+    "@seasonal/kit": "github:weudlll-cyber/seasonal-kit#v0.39.1",
     "socket.io-client": "4.8.4"
   }
 }

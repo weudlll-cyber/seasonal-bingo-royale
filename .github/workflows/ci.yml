@@ -196,7 +196,7 @@ jobs:
     # The kit's scan (K108): Trivy over the image and the lockfile, a ZAP baseline against the
     # started app; it reports into the job summary and does not block.
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
-    uses: weudlll-cyber/seasonal-kit/.github/workflows/scan.yml@v0.38.0
+    uses: weudlll-cyber/seasonal-kit/.github/workflows/scan.yml@v0.39.1
     permissions:
       contents: read
     with:

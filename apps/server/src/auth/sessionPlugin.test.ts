@@ -41,7 +41,8 @@ const write = async (headers: Record<string, string>, remoteAddress = '203.0.113
     })
   ).statusCode;
 
-describe('where a write comes from', () => {
+// The first case loads Fastify and its plugins: past the 5 s default on a busy machine.
+describe('where a write comes from', { timeout: 30_000 }, () => {
   it('passes a write the browser names as this site’s own', async () => {
     expect(await write({ 'sec-fetch-site': 'same-origin' })).toBe(200);
     expect(await write({ origin: 'https://game.example' })).toBe(200);

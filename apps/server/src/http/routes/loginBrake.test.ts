@@ -67,7 +67,9 @@ const signIn = async (app: FastifyInstance, password: string, email = 'a@b.cd') 
 
 const LIMIT = TECHNICAL_DEFAULTS.loginAccountIp;
 
-describe('the sign-in brake', () => {
+// Each case builds an app and sends up to a hundred requests: past the 5 s default on a busy
+// machine, and a case cut off there runs on into the next one's counts.
+describe('the sign-in brake', { timeout: 30_000 }, () => {
   beforeEach(() => {
     checked.passwords = 0;
   });

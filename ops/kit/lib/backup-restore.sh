@@ -186,9 +186,20 @@ dump_counts() {
     awk '/^COPY /{t=$2; n=0; inside=1; next} inside && /^\\\.$/{print t, n; inside=0; next} inside{n++}'
 }
 
+# wait_for_drill <container>: until its PostgreSQL answers over TCP, 60 s at most. While a new
+# database is being set up, a first server answers on the socket only and then shuts down.
+wait_for_drill() {
+  local i
+  for i in $(seq 1 60); do
+    docker exec "$1" pg_isready -h 127.0.0.1 -U drill -d drill >/dev/null 2>&1 && return 0
+    ((i < 60)) || die "the throw-away database did not start within 60 s"
+    sleep 1
+  done
+}
+
 # do_drill <file> <identity>: restores into a throw-away container and compares each table.
 do_drill() {
-  local file=$1 work name="sk-drill-$$" i table rows have bad=0 tables=0
+  local file=$1 work name="sk-drill-$$" table rows have bad=0 tables=0
   need SK_BACKUP_PREFIX
   need SK_BACKUP_PG_IMAGE
   new_work
@@ -197,12 +208,7 @@ do_drill() {
   unpack "$file" "$2" "$work"
   docker run -d --rm --name "$name" -e POSTGRES_USER=drill -e POSTGRES_PASSWORD=drill \
     -e POSTGRES_DB=drill "$SK_BACKUP_PG_IMAGE" >/dev/null
-  for i in $(seq 1 60); do
-    docker exec "$name" pg_isready -U drill -d drill >/dev/null 2>&1 && break
-    ((i < 60)) || die "the throw-away database did not start within 60 s"
-    sleep 1
-  done
-  sleep 2
+  wait_for_drill "$name"
   docker exec -i "$name" pg_restore -U drill -d drill --no-owner --no-acl --exit-on-error <"$work/db.dump"
   while read -r table rows; do
     tables=$((tables + 1))

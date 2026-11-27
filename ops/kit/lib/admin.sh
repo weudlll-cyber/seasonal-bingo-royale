@@ -15,9 +15,10 @@
 #                 restore puts the backup's secret files there (since v0.34.0), and without
 #                 --force-env stops, before anything changes, where one differs. status and the
 #                 other read-only verbs write nothing: `game_backup_settings` only sets
-#                 variables, and secret files for a backup are written by the optional
-#                 `game_backup_secrets`, called before a backup alone (since v0.36.0). update, confirm and rollback are
-#                 ./admin-update.sh, uninstall ./admin-uninstall.sh. No secret is printed.
+#                 variables. Secret files are written by the optional `game_backup_secrets`
+#                 (since v0.36.0), before a backup, an update's and a rollback's included, and
+#                 (since v0.39.0) before a restore compares them. update, confirm and rollback
+#                 are ./admin-update.sh, uninstall ./admin-uninstall.sh. No secret is printed.
 # Depends on:     bash 4, docker, systemctl, ./admin-update.sh, ./admin-uninstall.sh, ../backup.sh
 # Source:         seasonal-bingo-royale ops/sbr and ops/lib/common.sh at d7d841e (the verbs, their
 #                 output, the confirmations, the restart of a stopped app). Generalised: the
@@ -111,7 +112,8 @@ usage: $SK_ADMIN_NAME [--env <name>] [--yes] <command>
   rollback                       back to the image (and data) before the last update
   backup                         encrypted backup now
   restore <file> [--identity k]  put a backup back (k: your age key file;
-          [--force-env]          --force-env: another environment's backup or secret)
+          [--force-env]          --force-env: another environment's backup or secret, as on a
+                                 new server with keys of its own)
   restore --drill <file> [...]   restore into a throw-away database and check it
   logs [service]                 follow the logs
   uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
@@ -158,8 +160,11 @@ sk_admin_script() {
   shift
   (
     game_backup_settings "$env"
-    # Only a backup writes the secret files it carries: no other verb does.
-    if [[ $1 == backup ]] && sk_admin_has game_backup_secrets; then game_backup_secrets "$env"; fi
+    # A backup carries the secret files and a restore compares against them: both have the game
+    # write them as they are now, never a stale or missing set. No other verb writes them.
+    if [[ $1 == backup || $1 == restore ]] && sk_admin_has game_backup_secrets; then
+      game_backup_secrets "$env"
+    fi
     # A restore puts the backup's secret files where the game keeps them, when it says where
     # (a global setting, or the environment's own from game_backup_settings).
     if [[ $1 == restore && -n ${SK_ADMIN_SECRETS_DIR:-} ]]; then
