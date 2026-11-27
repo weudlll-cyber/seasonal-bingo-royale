@@ -136,9 +136,10 @@
   font-weight: var(--sk-font-weight-strong);
 }
 
-/* A line of a round before the newest one. */
+/* A line of a round before the newest one: muted, not faded, so it stays readable (4.5:1,
+   ../designTokens.test.ts). */
 .recent-lines li.is-earlier {
-  opacity: 0.55;
+  color: var(--sk-color-text-muted);
 }
 
 /* "Round 2" over a thin line, above the lines of that round. */
