@@ -11,6 +11,9 @@
 
 .segmented {
   display: inline-flex;
+  /* The options go under each other where a large font leaves no room side by side. */
+  flex-wrap: wrap;
+  max-width: 100%;
   padding: 3px;
   border: 1px solid var(--sk-color-border-strong);
   border-radius: var(--sk-radius);

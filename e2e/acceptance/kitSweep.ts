@@ -8,7 +8,8 @@
  *                 font 16 and 32 px (SBR_SWEEP_FONTS), light and dark; the kit's probe, axe (WCAG
  *                 2 A and AA; the website's chat page in its frame left out) and Bingo's text floor
  *                 and overlap check (./fitProbe). The screen keeps its state (only scrolled to the
- *                 top). Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one run
+ *                 top; fades off, so no line is judged half drawn), and what scrolls a page
+ *                 sideways is named. Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one run
  *                 sees every screen. SBR_SWEEP_SIZES, SBR_SWEEP_SCREENS, SBR_SWEEP_THEMES
  *                 and SBR_SWEEP_BOTH narrow it.
  * Depends on:     node:fs, node:path, @axe-core/playwright, @playwright/test,
@@ -57,24 +58,38 @@ const LOG = path.join(
   `${process.env['SBR_FIT_TAG'] ?? 'fit'}-kit-sweep.log`,
 );
 
-// A line that is still fading in has no contrast yet: its animation ends first.
-const settled = (page: Page) =>
-  page.evaluate(async () => {
-    const fading = document
-      .getAnimations()
-      .filter((a) => a instanceof CSSAnimation && /^sbr-(fade-in|pop)/.test(a.animationName));
-    await Promise.all(fading.map((a) => a.finished.catch(() => undefined)));
+// No fade while looking: a line still fading in has no contrast yet (a recap's next card
+// starts one at any moment).
+const STILL = '.sbr-anim-fade, .sbr-anim-mark { animation: none !important; }';
+
+// Where the page scrolls sideways: the innermost boxes past its right edge, hidden ones too
+// (the probe names visible ones only).
+const widest = (page: Page) =>
+  page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    if ((document.scrollingElement?.scrollWidth ?? 0) <= width + 1) return [];
+    const past = [...document.body.querySelectorAll('*')].filter(
+      (el) => el.getBoundingClientRect().right > width + 1,
+    );
+    return past
+      .filter((el) => !past.some((other) => other !== el && el.contains(other)))
+      .slice(0, 4)
+      .map((el) => {
+        const right = Math.round(el.getBoundingClientRect().right);
+        return `past the right edge: ${el.tagName.toLowerCase()}.${[...el.classList].join('.')} in .${el.parentElement?.className ?? ''} to ${String(right)}`;
+      });
   });
 
 // axe without the chat frame's page, then Bingo's own two rules (the sweep takes one finder).
 const finder: AxeFinder = async (page) => {
-  await settled(page);
+  await page.addStyleTag({ content: STILL });
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
     .exclude('[data-testid="chat-frame"]')
     .analyze();
   const own = await probe(page);
   return [
+    ...(await widest(page)),
     ...result.violations.map(
       (v) => `${v.id}: ${v.nodes.map((n) => n.target.map(String).join(' ')).join(', ')}`,
     ),

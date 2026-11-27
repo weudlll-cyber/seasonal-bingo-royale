@@ -31,11 +31,15 @@
 
 .lobby-item {
   display: grid;
+  /* As narrow as the phone at a large font: the title breaks, the rows wrap. */
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
   gap: var(--sk-space-1);
 }
 
 .lobby-item-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--sk-space-1);
