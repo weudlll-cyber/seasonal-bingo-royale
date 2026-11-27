@@ -109,7 +109,7 @@ function seasonsOf(
 function RankRows({ rest, result, byId, row }: RankRowsProps): ReactElement {
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   return (
-    <ol className="rank-list">
+    <ol className="rank-list sk-dense-list">
       {rest.map((p, i) => [
         i === firstOut && i > 0 ? (
           <GroupLabel key="out-divider" text="Out of the match" divider />

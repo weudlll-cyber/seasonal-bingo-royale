@@ -19,10 +19,7 @@
  *                 ../http/routes/websiteSignIn
  * Spec:           docs/spec/03-security-architecture.md §13
  */
-import type { FailureBrake, RateRule, RateRuleSource } from '@seasonal/kit/server';
-
-// One try held on a brake until it is ended (the kit does not export its type).
-type Attempt = NonNullable<ReturnType<FailureBrake['reserve']>>;
+import type { Attempt, FailureBrake, RateRule, RateRuleSource } from '@seasonal/kit/server';
 
 // Defaults of 03 §13; the admin area's Technical section changes the limits (not the windows)
 // at runtime (`liveRule`).

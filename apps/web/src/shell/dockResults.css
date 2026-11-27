@@ -57,10 +57,6 @@
     }
   }
 
-  .sk-docked-main .sk-result .rank-list {
-    gap: 0;
-  }
-
   /* The "Out of the match" divider hugs the rows around it (its margins are the kit's gap elsewhere). */
   .sk-docked-main .sk-result .rank-divider {
     margin: 0;
@@ -69,12 +65,6 @@
   .sk-docked-main .sk-result .rank-row {
     min-height: var(--sk-space-3);
     padding-block: 0;
-  }
-
-  /* Here a linked name is one line high, under the 44 px target: with taller rows fewer than
-     the 7 places the owner asks for would be whole at 1280×720 (decision of 2026-11-24). */
-  .sk-docked-main .sk-result :is(.rank-name, .podium-name) > a {
-    min-height: 0;
   }
 
   /* The own card keeps cells of 44 px; the finished screen may scroll. */

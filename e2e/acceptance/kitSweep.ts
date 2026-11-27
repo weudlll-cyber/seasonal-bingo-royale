@@ -7,10 +7,10 @@
  *                 instead of measuring: the six desktop sizes and 360×780, 390×844, 430×932, root
  *                 font 16 and 32 px (SBR_SWEEP_FONTS), light and dark; the kit's probe, axe (WCAG
  *                 2 A and AA; the website's chat page in its frame left out) and Bingo's text floor
- *                 and overlap check (./fitProbe). The screen keeps its state (only scrolled to the
- *                 top; fades off, so no line is judged half drawn), and what scrolls a page
- *                 sideways is named. Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one run
- *                 sees every screen. SBR_SWEEP_SIZES, SBR_SWEEP_SCREENS, SBR_SWEEP_THEMES
+ *                 and overlap check (./fitProbe). The docked result declares its floor of 7
+ *                 places whole at 1280×720 (K116). The screen keeps its state (only scrolled to
+ *                 the top). Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one
+ *                 run sees every screen. SBR_SWEEP_SIZES, SBR_SWEEP_SCREENS, SBR_SWEEP_THEMES
  *                 and SBR_SWEEP_BOTH narrow it.
  * Depends on:     node:fs, node:path, @axe-core/playwright, @playwright/test,
  *                 @seasonal/kit/testing, ../devStack, ./fitProbe
@@ -22,7 +22,13 @@ import path from 'node:path';
 
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { setTheme, sweep, type AxeFinder } from '@seasonal/kit/testing';
+import {
+  axeFinder,
+  setTheme,
+  sweep,
+  type AxeFinder,
+  type VisibleFloor,
+} from '@seasonal/kit/testing';
 
 import { REPO_ROOT } from '../devStack.js';
 import { probe } from './fitProbe.js';
@@ -58,45 +64,29 @@ const LOG = path.join(
   `${process.env['SBR_FIT_TAG'] ?? 'fit'}-kit-sweep.log`,
 );
 
-// No fade while looking: a line still fading in has no contrast yet (a recap's next card
-// starts one at any moment).
-const STILL = '.sbr-anim-fade, .sbr-anim-mark { animation: none !important; }';
-
-// Where the page scrolls sideways: the innermost boxes past its right edge, hidden ones too
-// (the probe names visible ones only).
-const widest = (page: Page) =>
-  page.evaluate(() => {
-    const width = document.documentElement.clientWidth;
-    if ((document.scrollingElement?.scrollWidth ?? 0) <= width + 1) return [];
-    const past = [...document.body.querySelectorAll('*')].filter(
-      (el) => el.getBoundingClientRect().right > width + 1,
-    );
-    return past
-      .filter((el) => !past.some((other) => other !== el && el.contains(other)))
-      .slice(0, 4)
-      .map((el) => {
-        const right = Math.round(el.getBoundingClientRect().right);
-        return `past the right edge: ${el.tagName.toLowerCase()}.${[...el.classList].join('.')} in .${el.parentElement?.className ?? ''} to ${String(right)}`;
-      });
-  });
-
-// axe without the chat frame's page, then Bingo's own two rules (the sweep takes one finder).
+// The kit's finder, the website's chat page in its frame left out, then Bingo's own two rules
+// (the sweep takes one finder).
+const standard = axeFinder(AxeBuilder, { exclude: ['[data-testid="chat-frame"]'] });
 const finder: AxeFinder = async (page) => {
-  await page.addStyleTag({ content: STILL });
-  const result = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
-    .exclude('[data-testid="chat-frame"]')
-    .analyze();
   const own = await probe(page);
   return [
-    ...(await widest(page)),
-    ...result.violations.map(
-      (v) => `${v.id}: ${v.nodes.map((n) => n.target.map(String).join(' ')).join(', ')}`,
-    ),
+    ...(await standard(page)),
     ...own.smallText.map((t) => `text below 14 px: ${t.sel} "${t.text}" ${String(t.px)} px`),
     ...own.overlaps.map((o) => `text covered: ${o.a} / ${o.b}`),
   ];
 };
+
+// The docked result's places whole above the chat strip (owner decision of 2026-11-24, K116).
+const PLACES: VisibleFloor = {
+  selector: '.sk-result .podium-step, .sk-result .rank-row',
+  least: 7,
+  decision: 'owner decision of 2026-11-24',
+  sizes: [{ width: 1280, height: 720 }],
+};
+const floorsOf = (screen: string, sizes: readonly (readonly [number, number])[]) =>
+  screen.startsWith('website-results-') && sizes.some(([w, h]) => w === 1280 && h === 720)
+    ? [PLACES]
+    : [];
 
 const toTop = (page: Page) =>
   page.evaluate(() => {
@@ -124,11 +114,13 @@ export async function kitLooks(
     const shown = async (at: Page) => {
       await open(at);
     };
-    const looks = await sweep(page, [{ name: screen, open: shown }], {
+    const sizes = SIZES.filter(
+      ([w, h]) => ONLY_SIZES === null || ONLY_SIZES.includes(`${String(w)}x${String(h)}`),
+    );
+    const named = { name: screen, open: shown, floors: floorsOf(screen, sizes) };
+    const looks = await sweep(page, [named], {
       axe: finder,
-      sizes: SIZES.filter(
-        ([w, h]) => ONLY_SIZES === null || ONLY_SIZES.includes(`${String(w)}x${String(h)}`),
-      ).map(([width, height]) => ({ width, height })),
+      sizes: sizes.map(([width, height]) => ({ width, height })),
       fonts: FONTS,
       themes: themesOf(screen),
     });

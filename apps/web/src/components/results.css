@@ -49,7 +49,6 @@
   display: grid;
   /* Rows never grow wider than the panel: a name too long for its line wraps */
   grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -98,10 +97,9 @@
   overflow-wrap: anywhere;
 }
 
-/* A name that can be tapped (a profile, a card to follow) is a 44 px target. */
-.rank-name > a,
-.rank-name-btn,
-.podium-name > a {
+/* A name that picks the card to follow is a button: a 44 px target. A linked name takes the
+   kit's dense list (`.sk-dense-list`, K112; owner decision of 2026-11-27). */
+.rank-name-btn {
   display: inline-flex;
   align-items: center;
   min-width: var(--sk-hit-target);
@@ -109,7 +107,7 @@
 }
 
 /* Such a row is as high as the target, no higher: the list keeps its rows in view. */
-.rank-row:has(.rank-name > a, .rank-name-btn) {
+.rank-row:has(.rank-name-btn) {
   padding-block: 0;
 }
 

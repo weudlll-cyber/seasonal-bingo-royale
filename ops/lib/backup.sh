@@ -20,7 +20,9 @@ BACKUP_GROUP=sbr-backup
 KIT_BACKUP=$(dirname "${BASH_SOURCE[0]}")/../kit/backup.sh
 
 # secret_files <env>: the env file's two keys as files under the state folder (0600, written only
-# when they differ), where the kit's backup reads them and its restore puts the backup's.
+# when they differ), where the kit's backup reads them, its restore compares and puts the
+# backup's. Written when the keys can change (install, update) and before every backup; never
+# by a command that only reads.
 secret_files() {
   local file="$SBR_ETC/$1.env" dir="$SBR_STATE/$1/secrets" seed recovery
   seed=$(env_value "$file" SBR_SEED_KEY)
@@ -32,7 +34,11 @@ secret_files() {
   printf '%s\n' "$recovery" | put_file "$dir/recovery.key" 0600 >/dev/null
 }
 
-# The kit's backup settings for an environment (its OPERATIONS.md).
+# The kit's hook before a backup (K61, since v0.36.0): the files the backup carries.
+game_backup_secrets() { secret_files "$1"; }
+
+# The kit's backup settings for an environment (its OPERATIONS.md): variables only, `status`
+# asks for them too.
 game_backup_settings() {
   local env=$1 dir="$SBR_STATE/$1/secrets"
   export SK_BACKUP_PREFIX=sbr SK_BACKUP_ENV="$env" SK_BACKUP_DIR="$SBR_BACKUPS/$env"
@@ -44,7 +50,6 @@ game_backup_settings() {
   SK_BACKUP_HELPER_IMAGE=$(env_value "$SBR_ETC/$env.env" SBR_IMAGE)
   SK_BACKUP_AGE_RECIPIENT=$(env_value "$SBR_ETC/$env.env" SBR_AGE_RECIPIENT)
   export SK_BACKUP_HELPER_IMAGE SK_BACKUP_AGE_RECIPIENT
-  secret_files "$env"
   export SK_BACKUP_SECRET_FILES="$dir/seed.key $dir/recovery.key" SK_ADMIN_SECRETS_DIR="$dir"
   export SK_BACKUP_STOP_CMD="'$SBR_ROOT/sbr' --env $env stop_app"
   export SK_BACKUP_START_CMD="'$SBR_ROOT/sbr' --env $env after_restore"

@@ -25,13 +25,29 @@ Everything in this repository is English: code, comments, commit messages, docs,
 - When a task closes an item, move it in `docs/BACKLOG.md` from part one to part two in the same commit, then align `docs/OPEN.md`.
 - New dependencies: name each one and the reason in the report.
 
-## Testing
+## How we check
 
-- While working and before every push: lint, typecheck, `pnpm verify` when the change can affect it, and the tests that read anything the change touched — search the e2e and unit tests for every UI text, test id, route and event wording the commit changed (`rg` over `e2e/` and `**/*.test.*`) and run the specs found, Chromium only. Push only when they pass. Each new test fails once before its fix.
-- The full e2e suite in all browsers runs in CI (the pull request's run); it is not run locally any more. Locally run a single spec again only to reproduce a CI failure.
-- After a merge, do not wait idle for the master CI run of the merge commit: start the next piece at once, check that run before the next merge and before the final report, and if it is red, stop and fix master first.
+The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of 2026-11-06, 2026-11-23, 2026-11-25 and 2026-11-27, kit K82 and K110). "Done" for a piece means built, pushed and quick-checked.
+
+### A small task
+
+- Locally, before each push: the typecheck, the lint of the touched files and the fast tests of the changed files; when the change touches what a browser spec checks (a UI text, test id, route or event wording: `rg` over `e2e/` and `**/*.test.*`), that one spec in one browser, never the whole browser suite.
+- The full checks run on GitHub through the draft pull request. Do not wait for CI between the pieces of a chain; look at the latest run once at the end and before every merge, and fix a red run on the same branch. `pnpm verify` is not run locally.
+
+### A big move (a kit adoption, a migration, a task of many known changes)
+
+- Build all changes first. Between them: typecheck, lint of the touched files, unit tests of the touched package.
+- Then one round of the real checks, each once: the browser specs that cover the changes, the sweep (once, at the end), a rehearsal where ops changed (only what the change can have altered: list it first), the draft pull request's CI.
+- A fault is fixed and only what the fix can have changed is checked again: a colour, the contrast check of the screens concerned; a size or spacing of a shared part, the screens that show it; anything else, the one screen. No further full run. No walks or measurements between the pieces.
+- The report says how many full runs there were and why. An exemption names its reason: a kit part (`file:line`) or an owner decision. Anything else is fixed.
+- Line counts once, at the hand-over, for the whole branch against `master`. One written report (`docs/MORNING.md`); the final message gives only the pushed commits, the CI result, the open questions with a proposal, new kit findings and the report's path.
+
+### Every task
+
+- Each new test fails once before its fix. Never re-run a check on an unchanged tree.
+- The full browser suite runs nightly and on demand (`browsers.yml`), not on every pull request; a pull request runs the unit tests, the static checks and the browser specs of what it changed. A red nightly run is fixed before the next merge.
+- After a merge, check the master run of the merge commit before the next merge and before the final report; if it is red, stop and fix master first.
 - Your own play-throughs (acceptance, screenshots) use the fast test rules / "Short royale rounds", except one realtime royale at full length per task that changes the game screens or rules.
-- Never re-run a check on an unchanged tree.
 
 ## Working cheaply
 
@@ -58,4 +74,4 @@ Owner decision of 2026-11-23: these saving rules apply to every Seasonal project
 
 ## Before reporting
 
-Run `pnpm verify`. Report: lines before/after per touched file, what was removed, what was extracted, what was reused, what was noticed but left alone, test results, and for visible changes what the owner should look at (Quick Test seed when available).
+Check as "How we check" says. Report: lines before/after per touched file, what was removed, what was extracted, what was reused, what was noticed but left alone, test results, and for visible changes what the owner should look at (Quick Test seed when available).

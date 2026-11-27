@@ -32,10 +32,11 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  // 9001 may start games (9009 is unverified for the league below).
+  // 9001 may start games; 9009's address is unverified (the league below).
   for (let n = 1; n <= 9; n += 1) {
     const name = `Web Player ${String(n).padStart(2, '0')}`;
-    stack.addMember({ id: 9000 + n, name, role: 'member', canHost: n === 1 });
+    const unverified = n === 9 ? { emailVerified: false } : {};
+    stack.addMember({ id: 9000 + n, name, role: 'member', canHost: n === 1, ...unverified });
   }
 });
 
@@ -116,8 +117,6 @@ test('website users sign in through the website and get league points when verif
     await expect(page.getByTestId('waiting-room')).toBeVisible();
     const others = [host];
     for (let id = 9003; id <= 9009; id += 1) others.push(await signedIn(id));
-    // The stand-in's members are all verified: this one's account loses it after signing in.
-    stack.unverify(9009);
     for (const ctx of others)
       expect((await post(ctx, `/matches/${code}/join`, {})).ok()).toBe(true);
     expect((await post(host, `/matches/${code}/start`, {})).ok()).toBe(true);
@@ -128,9 +127,7 @@ test('website users sign in through the website and get league points when verif
             .status,
         {
           timeout: 6 * 60_000,
-          // Under the 5 s the stand-in keeps an idle connection: a poll every 5 s reused one just
-          // as it closed (ECONNRESET).
-          intervals: [2_000],
+          intervals: [5_000],
         },
       )
       .toBe('finished');

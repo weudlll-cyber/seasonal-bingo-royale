@@ -76,7 +76,7 @@ function ClimberCard({ recap, me }: CardProps): ReactElement | null {
   const c = recap.climber;
   if (c === undefined) return null;
   return (
-    <ol className="rank-list">
+    <ol className="rank-list sk-dense-list">
       <RankRow
         rank={c.to}
         name={c.name}

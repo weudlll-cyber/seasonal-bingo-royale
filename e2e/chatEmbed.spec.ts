@@ -89,8 +89,11 @@ async function expectRoom(page: Page, theme: 'light' | 'dark'): Promise<void> {
   expect(await element.getAttribute('referrerpolicy')).toBe('strict-origin');
   const loaded = page.frames().map((f) => f.url());
   expect(loaded).toContain(`${stack.origin}/embed/chat?room=bingo&theme=${theme}`);
-  // The kit's stand-in frame, which speaks the website's messages.
+  // The kit's stand-in frame, which speaks the website's messages and shows its room and theme.
   await expect(frame(page).getByText('chat (stand-in)')).toBeVisible();
+  await expect(frame(page).locator(`[data-sk-room="bingo"][data-sk-theme="${theme}"]`)).toHaveCount(
+    1,
+  );
 }
 
 test('the chat strip under the lobby, console and match on a wide screen', async ({ page }) => {

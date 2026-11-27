@@ -8,9 +8,8 @@
  *                 (/login, /embed/chat, the identity on /games/bingo/auth/website only, cookie
  *                 `se.sid`); the server in website mode under /games/bingo/, trusting only the
  *                 proxy. `addMember`, `cookieOf` and `signInAs` (whom the website's login signs
- *                 in); `unverify` marks a member's game account as without a verified address
- *                 (the stand-in's members are all verified); `expireSessions` idles sessions
- *                 out; `removeAccounts` deletes the members' accounts (D42).
+ *                 in); `expireSessions` idles sessions out; `removeAccounts` deletes the members'
+ *                 accounts (D42).
  * Depends on:     node:child_process, node:crypto, node:net, node:fs, node:os, @playwright/test,
  *                 @seasonal/kit/testing, ./devStack
  * Used by:        ./websiteLogin.spec, ./chatEmbed.spec, ./websiteIdle.spec, ./backToWebsite.spec,
@@ -25,7 +24,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { request } from '@playwright/test';
-import { startWebsiteStandIn, type WebsiteStandIn } from '@seasonal/kit/testing';
+import {
+  startWebsiteStandIn,
+  type StandInMember,
+  type WebsiteStandIn,
+} from '@seasonal/kit/testing';
 
 import { databaseUrl, REPO_ROOT } from './devStack.js';
 import { FROM_THIS_SITE } from './fromThisSite.js';
@@ -38,20 +41,8 @@ const DB_NAME = `sbr_e2e_website_w${process.env['TEST_PARALLEL_INDEX'] ?? '0'}`;
 const SIGN_IN = '/games/bingo/auth/website';
 const SECRET = randomBytes(32).toString('hex');
 
-// A member of the stand-in website (the kit's shape).
-export interface Member {
-  readonly id: number;
-  readonly name: string;
-  readonly role: 'member' | 'organiser' | 'admin';
-  // The website lets this member start games (X-Acting-User-Can-Host, 2026-11-04).
-  readonly canHost?: boolean;
-  // The member's Discord steps, as the website sends them.
-  readonly steps?: readonly {
-    readonly ladder: 'holder' | 'farmer' | 'investor';
-    readonly name: string;
-    readonly icon: string;
-  }[];
-}
+// A member of the stand-in website.
+export type Member = StandInMember;
 
 export interface WebsiteStack {
   // The website's origin, e.g. http://127.0.0.1:51234, and the app's own (behind its proxy).
@@ -63,8 +54,6 @@ export interface WebsiteStack {
   cookieOf(id: number): { name: string; value: string; url: string };
   // Whom the website's login page signs in from now on (null: nobody).
   signInAs(id: number | null): void;
-  // The member's game account counts as without a verified address until their next sign-in.
-  unverify(id: number): void;
   removeAccounts(): Promise<void>;
   // Every open game session idles out now, as after 30 minutes (an admin's) without a request.
   expireSessions(): void;
@@ -176,7 +165,7 @@ async function removeAccounts(origin: string, members: readonly Member[]): Promi
 }
 
 // What the stand-in gives the specs, with the members it reads at every request.
-function membersOf(standIn: WebsiteStandIn, members: Member[], db: string) {
+function membersOf(standIn: WebsiteStandIn, members: Member[]) {
   return {
     addMember: (member: Member): void => {
       members.push(member);
@@ -185,13 +174,6 @@ function membersOf(standIn: WebsiteStandIn, members: Member[], db: string) {
     cookieOf: (id: number) => standIn.sessionCookie(id),
     signInAs: (id: number | null): void => {
       standIn.signInAs(id);
-    },
-    unverify: (id: number): void => {
-      sql(
-        db,
-        `UPDATE sbr.accounts SET email_verified_at = NULL WHERE id =
-           (SELECT account_id FROM sbr.external_identities WHERE subject = '${String(id)}')`,
-      );
     },
   };
 }
@@ -205,6 +187,9 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
   const standIn = await startWebsiteStandIn({
     games: { bingo: { app: appOrigin, secretHeader: 'x-sbr-proxy-secret', secret: SECRET } },
     members,
+    // Longer than any spec's pause between two requests: an idle connection is not closed just
+    // as a poll reuses it.
+    keepAliveMs: 60_000,
   });
   const server = await startServer({
     DATABASE_URL: db,
@@ -223,7 +208,7 @@ export async function startWebsiteStack(): Promise<WebsiteStack> {
   return {
     origin: standIn.origin,
     appOrigin,
-    ...membersOf(standIn, members, db),
+    ...membersOf(standIn, members),
     removeAccounts: () => removeAccounts(standIn.origin, members),
     expireSessions: () => {
       sql(db, "UPDATE sbr.sessions SET idle_expires_at = now() - interval '1 second'");
