@@ -432,3 +432,7 @@ At a 32 px root font and 1280×720 the docked player round's title, status lines
 ```
 SBR_ACCEPTANCE=1 SBR_SWEEP_KIT=1 pnpm exec playwright test -c e2e/playwright.config.ts e2e/acceptance/fitAudit.spec.ts --project=chromium
 ```
+
+Since kit v0.38.0 the finder is the kit's `axeFinder` (the chat frame excluded) with Bingo's two rules, the kit waits for animations itself, and the docked result declares its floor of 7 places at 1280×720 (owner decision of 2026-11-24, K116). No screen needs the sweep's `setup` hook: the audit looks at each screen as it stands and reloads nothing, so no request limit is reached.
+
+**Exemption (owner decision of 2026-11-27):** the own card's cells stay 42 px under the chat strip at 1280×720 in website mode, so the board stays whole without scrolling (K18).
