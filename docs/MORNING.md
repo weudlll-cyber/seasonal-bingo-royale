@@ -43,6 +43,17 @@
 - The rehearsal ran in website mode (the production target); standalone was rehearsed as a fresh install.
 - `ops/lib/db-roles.sql` stays as an empty stand-in until no install from before the kit's admin command is left.
 
+### Where the task's text and the kit's text differ
+
+- The task lists `createApiClient`'s retry among v0.34.0's fixes; the kit says nothing is required of Bingo, so none was added. The same for `findLowContrast`.
+- The dense frame needs no import of its own: `frames.css` brings `frames-dense.css`.
+- The kit allows Bingo to keep its own header padding; it went, for the one header look.
+
+### Looking at it
+
+- Dev server on the branch's head: `http://localhost:5390/#/quicktest` (build badge "Bingo · dev · 5390"). A royale test match: Quick Test, **Sign in as host**, **Battle royale**, **Create test match** (`http://localhost:5390/#/quicktest/play`).
+- What stays Bingo's own, with reasons: [docs/concepts/kit-adoption.md](concepts/kit-adoption.md) §10.
+
 ### Kit findings
 
 1. `ops/lib/admin-update.sh:77-80`: the rollback copies every named stack file, also one that was never kept, and stops half done.
