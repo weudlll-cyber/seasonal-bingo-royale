@@ -435,4 +435,6 @@ SBR_ACCEPTANCE=1 SBR_SWEEP_KIT=1 pnpm exec playwright test -c e2e/playwright.con
 
 Since kit v0.38.0 the finder is the kit's `axeFinder` (the chat frame excluded) with Bingo's two rules, the kit waits for animations itself, and the docked result declares its floor of 7 places at 1280×720 (owner decision of 2026-11-24, K116). No screen needs the sweep's `setup` hook: the audit looks at each screen as it stands and reloads nothing, so no request limit is reached.
 
+Since kit v0.40.0 a place counts as whole only where nothing covers it, the More below sign included (K123). A result with the Out of the match divider within the first 7 places lost the 7th under the sign at 1280×720 for a player and a spectator (the row ended at 534 px, the sign began at 523 px): in the docked result the divider is one tight line (shell/dockResults.css; after: 521 px). The log says for each result screen where the divider stood.
+
 **Exemption (owner decision of 2026-11-27):** the own card's cells stay 42 px under the chat strip at 1280×720 in website mode, so the board stays whole without scrolling (K18).

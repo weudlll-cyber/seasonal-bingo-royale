@@ -8,8 +8,9 @@
  *                 font 16 and 32 px (SBR_SWEEP_FONTS), light and dark; the kit's probe, axe (WCAG
  *                 2 A and AA; the website's chat page in its frame left out) and Bingo's text floor
  *                 and overlap check (./fitProbe). The docked result declares its floor of 7
- *                 places whole at 1280×720 (K116). The screen keeps its state (only scrolled to
- *                 the top). Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one
+ *                 places whole at 1280×720 (K116; the kit counts no row anything covers, K123),
+ *                 and the log says whether the "Out of the match" divider fell within them. The
+ *                 screen keeps its state (only scrolled to the top). Findings go to reports/logs/<tag>-kit-sweep.log, one a line, so one
  *                 run sees every screen. SBR_SWEEP_SIZES, SBR_SWEEP_SCREENS, SBR_SWEEP_THEMES
  *                 and SBR_SWEEP_BOTH narrow it.
  * Depends on:     node:fs, node:path, @axe-core/playwright, @playwright/test,
@@ -88,6 +89,21 @@ const floorsOf = (screen: string, sizes: readonly (readonly [number, number])[])
     ? [PLACES]
     : [];
 
+// Whether this result puts the floor to its hard case, the "Out of the match" divider within
+// the first 7 places. The match's seed is the server's, so a run says which case it saw and
+// holds the floor either way.
+async function dividerLine(page: Page, screen: string): Promise<string> {
+  const before = await page.evaluate(() => {
+    const parts = [
+      ...document.querySelectorAll('.sk-result :is(.podium-step, .rank-row, .rank-divider)'),
+    ];
+    return parts.findIndex((part) => part.classList.contains('rank-divider'));
+  });
+  const covered = before > 0 && before < PLACES.least;
+  const place = before < 0 ? 'no divider' : `divider after place ${String(before)}`;
+  return `DIVIDER ${screen}: ${place} (${covered ? 'within' : 'NOT within'} the first 7)\n`;
+}
+
 const toTop = (page: Page) =>
   page.evaluate(() => {
     window.scrollTo(0, 0);
@@ -118,6 +134,7 @@ export async function kitLooks(
       ([w, h]) => ONLY_SIZES === null || ONLY_SIZES.includes(`${String(w)}x${String(h)}`),
     );
     const named = { name: screen, open: shown, floors: floorsOf(screen, sizes) };
+    if (named.floors.length > 0) appendFileSync(LOG, await dividerLine(page, screen));
     const looks = await sweep(page, [named], {
       axe: finder,
       sizes: sizes.map(([width, height]) => ({ width, height })),

@@ -57,9 +57,14 @@
     }
   }
 
-  /* The "Out of the match" divider hugs the rows around it (its margins are the kit's gap elsewhere). */
+  /* The "Out of the match" divider is one tight line between the rows (no margin of its own, the
+     kit's gap stays; its type as everywhere): it can stand within the first 7 places, and the 7th
+     must still be whole above the "More below" sign (owner decision of 2026-11-24; with its padding
+     the sign covered half of that row at 1280×720). */
   .sk-docked-main .sk-result .rank-divider {
     margin: 0;
+    padding-block: 0;
+    line-height: 1.15;
   }
 
   .sk-docked-main .sk-result .rank-row {
