@@ -25,6 +25,32 @@ Open http://localhost:5390. Development builds have a "Dev sign-in" menu (host, 
 
 A filled leaderboard without playing: with `pnpm dev` running, `pnpm demo-league` creates the dev accounts `demo-01` … `demo-10` (e-mail confirmed) and has the server play three short royales among them (fast test rules, leaderboard switch on, no bots); it waits about 3 minutes until they have finished. The season and all-time boards, the profiles (`#/players/demo-01`) and the badges then show real data. Running it again plays three more matches with the same accounts. `pnpm demo-league --remove` removes the accounts with their league and badge rows; matches still running are aborted, finished ones stay in the event log without the accounts. Development only: the route behind it exists with `SBR_DEV=1` and is not in a production build.
 
+## Look at website mode locally
+
+The parts that exist only inside the website (the back link, the Discord step badges, the header, the shared call's slot) are looked at in the kit's local preview before a merge (kit `docs/OPERATIONS.md`, "The local website-mode preview"). It needs a second game server in website mode, on a database of its own, serving the built client. In PowerShell, from the repository's root, with the dev compose services running:
+
+```powershell
+# 1. An empty database for the preview (the development database is not used), and the client.
+docker exec sbr-dev-postgres-1 createdb -U sbr sbr_preview
+pnpm --filter @sbr/web build
+
+# 2. First window: the game in website mode on port 3902. The secret is any 32 characters or
+#    more, for this computer only, never the server's.
+$env:SBR_WEBSITE_PROXY_SECRET = "preview-only-for-this-computer-0000"
+$env:DATABASE_URL = "postgres://sbr:change-me-dev-only@127.0.0.1:5490/sbr_preview"
+$env:SBR_DEV = "1"; $env:SBR_PORT = "3902"; $env:SBR_AUTH_MODE = "website"
+$env:SBR_BASE_PATH = "/games/bingo/"; $env:SBR_PUBLIC_URL = "http://127.0.0.1:4400/games/bingo/"
+$env:SBR_TRUSTED_PROXIES = "127.0.0.1"; $env:SBR_WEB_DIR = "../web/dist"
+$env:SBR_DATA_DIR = "$env:TEMP\sbr-preview-data"
+pnpm --filter @sbr/server start
+
+# 3. Second window: the stand-in website in front of it. It prints the one address to open.
+$env:SBR_WEBSITE_PROXY_SECRET = "preview-only-for-this-computer-0000"
+pnpm exec sk-preview --slug bingo --app http://127.0.0.1:3902 --secret-header X-Sbr-Proxy-Secret --secret-env SBR_WEBSITE_PROXY_SECRET --can-host
+```
+
+The test member "Preview Member" has three step badges and may host. The client is the built one, so it has no development tools: a match is played by people (each in a window of their own) or filled with bots through `POST /api/v1/matches/<code>/bots`. The shared call is a stand-in; the real one is only on the website. Stop both with Ctrl+C and throw the database away: `docker exec sbr-dev-postgres-1 dropdb -U sbr --force sbr_preview`.
+
 ## Branching
 
 - `master` is always releasable.

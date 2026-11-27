@@ -274,3 +274,13 @@ Pin `v0.39.1` (`29c0f01`), workflows too. Gone since the kit does it: the key fi
 | Still Bingo's own            | Where                                                       | Why                                                                                                                                                                                         |
 | ---------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tab stops on scrolling boxes | `components/ScrollBox.tsx` and its callers (`tabIndex={0}`) | The kit's `useScrollTabStop` gives a stop only while a box scrolls; Bingo's boxes are always stops (today's behaviour kept). `ScrollBox` adds the “More below” sign, which the kit has not. |
+
+## 13. v0.40.0 (branch `feat/kit-0.22`, 2026-11-27)
+
+Pin `v0.40.0` (`23f10b9`), workflows too; `ops/kit/` did not change. From the kit: the sweep waits for stillness again before axe (the recap fade's exemption is gone) and its floors count only places nothing covers (K123); the four rules of K125 stand in `CLAUDE.md`; the owner looks at website mode in the kit's `sk-preview` (K124, CONTRIBUTING.md), so Bingo's own preview script is gone (it was never in the repository). Not used: `intendedMotion` (no motion is meant to go on), `useScrollTabStop` (§12). Still Bingo's own beyond §10 to §12:
+
+| Still Bingo's own                               | Where                                                       | Why, or the kit wish that would replace it                                              |
+| ----------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| The test server and its throw-away databases    | `e2e/testServer.ts`, `testDatabase.ts`, `globalTeardown.ts` | The kit asks for it (K125) and has no helper; the database and settings are the game's. |
+| The one tight divider line in the docked result | `apps/web/src/shell/dockResults.css`                        | Bingo's content in the kit's dense frame; the frame and list are the kit's.             |
+| Which case of the 7 places floor a sweep saw    | `e2e/acceptance/kitSweep.ts`                                | A match's seed is the server's, so the run says where the divider stood.                |
