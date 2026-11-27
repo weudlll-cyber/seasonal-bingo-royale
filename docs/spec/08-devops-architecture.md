@@ -48,7 +48,7 @@ server set it explicitly.
 - `master` is always releasable and protected: PR required, CI green required, merges are merge commits (one topic = one branch = one merge).
 - One topic = one branch until the topic is done, then one merge (owner workflow rule).
 - A work branch is verified through its pull request to `master` (§3): every push to it runs CI once, as the pull request's run. Pushes to `master` run CI as well.
-- Releases: tag `vX.Y.Z` (SemVer) on `master` → release workflow builds, signs and publishes the image `ghcr.io/<org>/seasonal-bingo-royale:X.Y.Z` plus SBOM and release notes generated from Conventional Commits.
+- Releases: tag `vX.Y.Z` (SemVer) on `master` with a green run there → the Seasonal kit's release workflow builds, signs (keyless) and publishes the image `ghcr.io/<owner>/seasonal-bingo-royale:X.Y.Z` with its SBOM, then the GitHub release with notes generated from Conventional Commits (v0.35.0, kit K109). The installer verifies that signature before it takes the image (09 §4).
 - Staging deploys the release candidate tag `vX.Y.Z-rc.N`; production deploys the final tag. Both by the operator running `sbr update <version>` on the server (pull model, no CI credentials on the server).
 
 ## 3. CI pipeline (GitHub Actions)
@@ -60,11 +60,12 @@ Triggers: pull requests to `master`, pushes to `master`, tags. A push to a work 
 | `lint` | ESLint (incl. boundaries, max-lines, unused variables), Prettier check, `tsc --noEmit` (all packages) | yes |
 | `unit` | Vitest for `domain`, `application`, `contracts`, clients; coverage thresholds (§ [12-testing-strategy.md](12-testing-strategy.md)) | yes |
 | `integration` | Vitest + Testcontainers Postgres for `server` | yes |
-| `e2e` | Playwright suite, side by side: Firefox and WebKit mobile viewport one job each, Chromium on three runners (`e2e (chromium 1/2)`, `e2e (chromium 2/2)`: half of the regular specs each; `e2e (chromium timing)`: the timing specs with `--no-deps`; every test runs once) and the check `e2e (chromium)` that is green only when all three are; each in the Playwright container image (browsers and their system libraries included: no apt step) with PostgreSQL as a job service; each browser runs its timing-sensitive specs after its other specs, alone on its runner; runs on every push and pull request; traces of failed tests are kept as an artifact for a week | yes |
+| `e2e` | Playwright in Chromium: the specs of what the change touched (`e2e/changedSpecs.ts`: documents and unit tests none, a spec itself, the admin, account and league folders their specs, anything else all), the timing specs after the others; job `e2e (chromium)`; Playwright container image with PostgreSQL as a job service; traces of failed tests kept for a week. The whole suite in three browsers runs nightly and on demand (`browsers.yml`, kit K106); a red night is fixed before the next merge | yes |
 | `security` | `pnpm audit --prod`, osv-scanner, gitleaks, CodeQL (scheduled + PR), license check | yes (high/critical) |
-| `image` | Docker build, Trivy scan, size budget (≤ 250 MB) | yes on PR to `master` |
+| `image` | Docker build, size budget (≤ 250 MB) | yes on PR to `master` |
+| `scan` | the Seasonal kit's reusable scan (K108): Trivy over image and lockfile, a ZAP baseline against the started app; job summary and artifact | no, until the first production (then high and critical, K113) |
 | `docs` | Markdown link check, OpenAPI generation succeeds, file-header check in docs index | yes |
-| `release` | on tag: build multi-arch (amd64, arm64), push to GHCR, cosign sign, attach SBOM | — |
+| `release` | on tag: the check on master, the kit's `release-image.yml` (amd64, arm64; GHCR; CycloneDX SBOM; cosign keyless), the GitHub release | — |
 | `load` | k6 scenario (§ testing) against an ephemeral stack | manual / before release |
 
 Actions pinned by SHA, `permissions: contents: read` default, no secrets available to PRs from forks.
