@@ -34,7 +34,9 @@
   box-shadow:
     var(--sk-shadow-raised),
     inset 0 -8px 18px rgb(0 0 0 / 18%);
-  line-height: 1;
+  /* Each line as high as its letters: with 1 the number's box reached into the letter's (at a
+     32 px root font part of the number lay under it, kit sweep 2026-11-27). */
+  line-height: 1.2;
 }
 
 .ball--empty {

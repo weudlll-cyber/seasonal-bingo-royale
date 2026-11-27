@@ -38,7 +38,7 @@ import { SHOTS_DIR } from '../screens.js';
 import { startWebsiteStack, type WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe, type Probe } from './fitProbe.js';
-import { KIT_SWEEP, kitLooks, openMenu } from './kitSweep.js';
+import { dividerWithinFloor, KIT_SWEEP, kitLooks, openMenu } from './kitSweep.js';
 import { tapCurrent } from './screenPlay.js';
 import { BASE, freshSweep, signInMember, sweep, webPost } from './websiteSweep.js';
 
@@ -535,6 +535,15 @@ async function webLobby(
   }
 }
 
+// The result loaded again, as someone opens it: the client draws the "More below" sign then
+// (a result that arrives on an open page gets it only with the next resize or scroll), and the
+// floor counts what the sign covers.
+async function openedAfresh(page: Page): Promise<void> {
+  await page.reload();
+  await expect(page.getByTestId('result')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.sk-docked-main[data-more="true"]')).toBeAttached();
+}
+
 // A round, the interlude after it and the results, for console, player and a spectator.
 async function webRoyale(host: Page, player: Page, watcher: Page): Promise<void> {
   await sweep(host, 'console-round', 'console');
@@ -548,6 +557,7 @@ async function webRoyale(host: Page, player: Page, watcher: Page): Promise<void>
   await playToEnd(host, player);
   await expect(player.getByTestId('result')).toBeVisible({ timeout: 30_000 });
   await expect(watcher.getByTestId('result')).toBeVisible({ timeout: 30_000 });
+  for (const page of [player, watcher, host]) await openedAfresh(page);
   await sweep(player, 'results-player');
   await sweep(watcher, 'results-spectator');
   await sweep(host, 'results-console');
@@ -585,6 +595,61 @@ test('fit: every match screen in website mode (the docked layout baseline, K18)'
     await sweep(player, 'player-classic', 'player');
   } finally {
     for (const code of codes) await webStop(host, stack, code);
+    await stack.removeAccounts();
+    await stack.close();
+  }
+});
+
+// One short royale of 16 players that plays itself to the end, the player taking part; true when
+// its result puts the "Out of the match" divider within the first 7 places.
+async function royaleToResult(host: Page, player: Page, stack: WebsiteStack): Promise<boolean> {
+  const created = await webPost(host, stack, '/matches', {
+    title: 'Sweep divider',
+    gameType: 'royale',
+    drawMode: 'auto',
+    drawIntervalMs: 4_000,
+    missedNumbers: { kind: 'autoMarkAfter', delayMs: 3_000 },
+    countsForLeaderboard: false,
+    maxPlayers: 16,
+    roundPause: { kind: 'wait', ms: 5_000 },
+    startRule: { kind: 'host' },
+    testProfile: 'fast',
+  });
+  expect(created.status(), 'create the match').toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  expect((await webPost(player, stack, `/matches/${code}/join`, {})).status()).toBe(204);
+  await host.goto(`${stack.origin}${BASE}/#/host/${code}`);
+  await webFillAndStart(host, stack, code, 16);
+  await player.goto(`${stack.origin}${BASE}/#/match/${code}`);
+  for (const page of [player, host]) {
+    await expect(page.getByTestId('result')).toBeVisible({ timeout: 8 * 60_000 });
+  }
+  return dividerWithinFloor(player, 'website-divider-search');
+}
+
+// The 7 places' floor on its hard case (owner decision of 2026-11-24): a result whose divider
+// stands within the first 7 places, as the player's and the console's screen. 16 players leave 4
+// for the final; only shields that save three more move the divider past place 6, so a further
+// match is played then.
+test('fit: the docked result with the divider among the first 7 places', async ({ browser }) => {
+  test.skip(!KIT_SWEEP, "the kit's sweep only");
+  test.setTimeout(60 * 60_000);
+  const stack = await startWebsiteStack();
+  for (const [id, name] of MEMBERS) {
+    stack.addMember({ id, name, role: 'member', canHost: true, steps: STEPS });
+  }
+  try {
+    const host = await memberPage(browser, stack, 9101);
+    const player = await memberPage(browser, stack, 9102);
+    let within = false;
+    for (let match = 0; match < 4 && !within; match += 1) {
+      within = await royaleToResult(host, player, stack);
+    }
+    expect(within, 'a result with the divider within the first 7 places').toBe(true);
+    for (const page of [player, host]) await openedAfresh(page);
+    await sweep(player, 'results-divider-player');
+    await sweep(host, 'results-divider-console');
+  } finally {
     await stack.removeAccounts();
     await stack.close();
   }
