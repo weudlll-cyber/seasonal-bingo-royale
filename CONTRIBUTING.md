@@ -39,17 +39,17 @@ pnpm --filter @sbr/web build
 $env:SBR_WEBSITE_PROXY_SECRET = "preview-only-for-this-computer-0000"
 $env:DATABASE_URL = "postgres://sbr:change-me-dev-only@127.0.0.1:5490/sbr_preview"
 $env:SBR_DEV = "1"; $env:SBR_PORT = "3902"; $env:SBR_AUTH_MODE = "website"
-$env:SBR_BASE_PATH = "/games/bingo/"; $env:SBR_PUBLIC_URL = "http://127.0.0.1:4400/games/bingo/"
+$env:SBR_BASE_PATH = "/games/bingo/"; $env:SBR_PUBLIC_URL = "http://127.0.0.1:4490/games/bingo/"
 $env:SBR_TRUSTED_PROXIES = "127.0.0.1"; $env:SBR_WEB_DIR = "../web/dist"
 $env:SBR_DATA_DIR = "$env:TEMP\sbr-preview-data"
 pnpm --filter @sbr/server start
 
 # 3. Second window: the stand-in website in front of it. It prints the one address to open.
 $env:SBR_WEBSITE_PROXY_SECRET = "preview-only-for-this-computer-0000"
-pnpm exec sk-preview --slug bingo --app http://127.0.0.1:3902 --secret-header X-Sbr-Proxy-Secret --secret-env SBR_WEBSITE_PROXY_SECRET --can-host
+pnpm exec sk-preview --slug bingo --app http://127.0.0.1:3902 --secret-header X-Sbr-Proxy-Secret --secret-env SBR_WEBSITE_PROXY_SECRET --can-host --port 4490
 ```
 
-The test member "Preview Member" has three step badges and may host. The client is the built one, so it has no development tools: a match is played by people (each in a window of their own) or filled with bots through `POST /api/v1/matches/<code>/bots`. The shared call is a stand-in; the real one is only on the website. Stop both with Ctrl+C and throw the database away: `docker exec sbr-dev-postgres-1 dropdb -U sbr --force sbr_preview`.
+The preview listens on 4490 (the kit's default, 4400, may be another game's preview). The test member "Preview Member" has three step badges and may host. The client is the built one, so it has no development tools: a match is played by people (each in a window of their own) or made through the API as a development match (`devTools: true`, then `/bots` and `/start`). The shared call is a stand-in; the real one is only on the website. Stop both with Ctrl+C and throw the database away: `docker exec sbr-dev-postgres-1 dropdb -U sbr --force sbr_preview`.
 
 ## Branching
 

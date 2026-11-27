@@ -439,7 +439,7 @@ Since kit v0.40.0 a place counts as whole only where nothing covers it, the More
 
 The result screens are loaded again before they are looked at: a result that arrives on an open page gets the "More below" sign only with the next resize or scroll (`useScrollHint` watches the boxes it found at its last render), so a floor looked at without a reload counted a row the sign covers a moment later (open, BACKLOG).
 
-The recap screens are looked at with reduced motion: the next card comes by a timer and fades in while axe may be reading, and a page with a held clock hung the look. The ball's lines are 1.2 high (`game/ball.css`): at a 32 px root font the number's box lay partly under the letter's.
+The recap screens are looked at with reduced motion: the next card comes by a timer and fades in while axe may be reading, and a page with a held clock hung the look. At 1366×768 and a 32 px root font the check can report the ball's number as covered by its letter: the number crosses the game area's lower edge (measured 520–604 px, the area ends at 530 px) and the middle of the sliver in view can fall on the letter's box. An exemption (the kit's docked screen: the content scrolls alone above the chat); a taller line (1.2) broke `playerFit`'s ball check on phones and was taken out.
 
 **A narrowed re-check** (owner's request of 2026-11-27) uses `SBR_SWEEP_SCREENS`, `_SIZES`, `_FONTS`, `_THEMES`, `SBR_SWEEP_AXE="off"` for a size or spacing fix and `SBR_SWEEP_CONTRAST` (with `_CONTRAST_SIZES`) for a colour fix; the full matrix stays for the one sweep at the end.
 

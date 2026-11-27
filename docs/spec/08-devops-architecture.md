@@ -21,13 +21,13 @@ Every environment runs the **same container image**; differences are environment
 | Admin client (admin, Vite) | **5391** | planned: `pnpm dev` once apps/admin has a dev script (WP-19); reserved until then |
 | Test server (browser tests, load measurements) | **3901** | `pnpm test-server`, Playwright (e2e/testServer.ts) |
 | Test client (web, Vite) | **5392** | Playwright (e2e/playwright.config.ts) |
-| Website-mode preview: game server, stand-in website | **3902**, **4400** | by hand (CONTRIBUTING.md, kit `sk-preview`) |
+| Website-mode preview: game server, stand-in website | **3902**, **4490** | by hand (CONTRIBUTING.md, kit `sk-preview`) |
 | PostgreSQL | **5490** | `docker compose -f ops/compose.dev.yml up -d` |
 | Mailpit (SMTP) | **1090** | compose |
 | Mailpit (web UI) | **8490** | compose |
 
 Reserved for later use by this project (never used by other projects on the
-same machine): `3900`–`3902`, `4400`, `5390`–`5392`.
+same machine): `3900`–`3902`, `4490`, `5390`–`5392`.
 
 Ports **off-limits** (used by other owner projects): `3800`, `5380`, `7880`,
 `7881`, `3478`, `5349`, `50000–50499`, `4000`, `5173`, `4173`, `5273`, `8000`.
