@@ -74,7 +74,7 @@ export function WideConsole({
         {moment === 'round' ? <Round live={live} view={view} /> : null}
         {moment === 'pause' ? <Pause live={live} view={view} /> : null}
         {moment === 'result' ? null : (
-          <aside className="wide-col wide-right">
+          <aside className="wide-col wide-right host-side">
             <Standings result={live.view} view={view} />
           </aside>
         )}

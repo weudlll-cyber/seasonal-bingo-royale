@@ -145,8 +145,11 @@ const columnsOf = (page: Page, play: string, side: string) =>
       const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
       const [left, right] = [box(a ?? ''), box(b ?? '')];
       const texts = [...document.querySelectorAll<HTMLElement>('.sk-docked-main :is(h1, h2, p)')];
+      // The side column of the stacked screens, or a wide page's right column.
       const panels = [
-        ...document.querySelectorAll<HTMLElement>('.arena-side > :not(.standings-panel)'),
+        ...document.querySelectorAll<HTMLElement>(
+          ':is(.arena-side, .wide-right) > :not(.standings-panel)',
+        ),
       ];
       return {
         short: panels
@@ -162,10 +165,25 @@ const columnsOf = (page: Page, play: string, side: string) =>
     [play, side],
   );
 
+// A screen's play and side columns: the wide page's and the stacked page's.
+interface Columns {
+  readonly wide: readonly [string, string];
+  readonly stacked: readonly [string, string];
+}
+const CONSOLE: Columns = {
+  wide: ['.wide-mid', '.wide-right'],
+  stacked: ['.host-controls', '.host-side'],
+};
+const ARENA: Columns = {
+  wide: ['.wide-mid', '.wide-right'],
+  stacked: ['.arena-play', '.arena-side'],
+};
+
 // 16 px: the side column beside the play area; 32 px: below it, no text past its box.
-async function expectAdapts(page: Page, play: string, side: string): Promise<void> {
+async function expectAdapts(page: Page, columns: Columns): Promise<void> {
   for (const font of [16, 32]) {
     await atFont(page, font);
+    const [play, side] = font === 16 ? columns.wide : columns.stacked;
     const what = `${play} at ${String(font)} px`;
     await expect
       .poll(() => columnsOf(page, play, side), { message: what })
@@ -193,7 +211,7 @@ async function expectRoomAndCard(page: Page): Promise<void> {
   await page.setViewportSize({ width: 1900, height: 860 });
   await atFont(page, 32);
   await expect
-    .poll(() => columnsOf(page, '.arena-play', '.arena-side'), { message: 'wide at 32 px' })
+    .poll(() => columnsOf(page, ...ARENA.wide), { message: 'wide at 32 px' })
     .toEqual({ below: false, beside: true, spilling: [], short: [] });
   for (const size of [PHONE, { width: 360, height: 780 }]) {
     await page.setViewportSize(size);
@@ -227,10 +245,10 @@ test('at a large font the match screens stack under the dock', async ({ page }) 
     await page.getByTestId('start-match').click();
     // After the 10 s countdown before the first round.
     await expect(page.getByTestId('host-draw-next')).toBeVisible({ timeout: 30_000 });
-    await expectAdapts(page, '.host-controls', '.host-side');
+    await expectAdapts(page, CONSOLE);
     await page.goto(`${stack.origin}${BASE}/#/match/${code}`);
     await expect(page.getByTestId('arena')).toBeVisible();
-    await expectAdapts(page, '.arena-play', '.arena-side');
+    await expectAdapts(page, ARENA);
     await expectRoomAndCard(page);
   } finally {
     await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });

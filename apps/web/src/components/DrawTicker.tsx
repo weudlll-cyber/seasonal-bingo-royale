@@ -11,8 +11,8 @@
  *                 Where a screen caps the row's height (the player screen, ../game/arena.css)
  *                 it scrolls, and each new draw scrolls it to the newest; it is a named
  *                 region and a tab stop, so a keyboard can scroll it (WCAG 2.1.1). With
- *                 `last` only the newest so many show and nothing scrolls (the wide match
- *                 screens, owner decision of 2026-11-28; the log keeps every draw's story).
+ *                 `last` only the newest so many show, the older ones hidden, and nothing
+ *                 scrolls (the wide match screens, owner decision of 2026-11-28).
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
  * Used by:        ./Playback, ../game/MatchScreen, ../game/WideBall
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
@@ -62,11 +62,12 @@ export function DrawTicker({
         tabIndex={last === undefined ? 0 : undefined}
         style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}
       >
-        {draws.slice(from).map((item, at) => (
+        {draws.map((item, i) => (
           <Draw
-            key={`${String(item)}-${String(from + at)}`}
+            key={`${String(item)}-${String(i)}`}
             item={item}
-            newest={from + at === newest}
+            newest={i === newest}
+            older={i < from}
             fades={!reduced}
           />
         ))}
@@ -79,15 +80,19 @@ export function DrawTicker({
 function Draw({
   item,
   newest,
+  older,
   fades,
 }: {
   readonly item: number;
   readonly newest: boolean;
+  // Older than the newest so many: in the row, not shown.
+  readonly older: boolean;
   readonly fades: boolean;
 }): ReactElement {
   const season = seasonOfSymbol(item);
   return (
     <span
+      hidden={older}
       data-testid={newest ? 'draw-newest' : undefined}
       data-item={item}
       className={newest && fades ? 'sbr-anim-fade' : undefined}
