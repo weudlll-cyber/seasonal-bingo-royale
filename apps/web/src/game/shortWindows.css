@@ -147,7 +147,7 @@
     }
 
     #root .arena:has(.interlude) .arena-side > .standings-panel {
-      flex: 1 0 12.5rem;
+      flex: 1 0 14rem;
     }
 
     #root
