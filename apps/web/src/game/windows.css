@@ -117,8 +117,8 @@
     contain: size;
   }
 
-  /* At the end: the placement in a wider first column, the ball and the numbers over the
-     card. Its places are as close as under the docked chat (../shell/dockResults.css), at the
+  /* At the end: the placement in a wider first column, the card in the second over the whole
+     height, the side panels with the ball and the numbers under them in the third. Its places are as close as under the docked chat (../shell/dockResults.css), at the
      page's own type sizes. */
   #root .arena.fit-window:has(.sk-result) {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.85fr) minmax(0, 0.85fr);
@@ -136,20 +136,53 @@
     line-height: 1.15;
   }
 
+  #root .arena.fit-window:has(.sk-result) {
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+  }
+
+  #root .arena.fit-window:has(.sk-result) > .arena-notices {
+    grid-row: 3 / -1;
+  }
+
   #root .arena.fit-window:has(.sk-result) .arena-play {
+    display: contents;
+  }
+
+  #root .arena.fit-window:has(.sk-result) .arena-cards {
+    grid-area: auto;
     grid-column: 2;
+    grid-row: 3 / -1;
+  }
+
+  #root .arena.fit-window:has(.sk-result) > .arena-grid > .arena-side {
+    grid-column: 3;
+    grid-row: 3;
+  }
+
+  #root .arena.fit-window:has(.sk-result) :is(.arena-ball, .arena-ticker, .arena-events) {
+    grid-area: auto;
+    grid-column: 3;
+  }
+
+  #root .arena.fit-window:has(.sk-result) .arena-ball {
     grid-row: 4;
-    grid-template-columns: fit-content(60%) minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    grid-template-areas:
-      'ball ticker'
-      'cards cards'
-      'events events';
-    min-height: 0;
+  }
+
+  #root .arena.fit-window:has(.sk-result) .arena-ball .ball {
+    --ball-size: 4rem;
+  }
+
+  #root .arena.fit-window:has(.sk-result) .arena-ticker {
+    grid-row: 5;
+  }
+
+  #root .arena.fit-window:has(.sk-result) .arena-ticker .draw-ticker {
+    max-height: 3.75rem;
   }
 
   #root .arena.fit-window:has(.sk-result) .arena-events {
-    max-height: 6rem;
+    grid-row: 6;
+    max-height: none;
   }
 
   /* Between rounds: the recap with the ball, the numbers and the newest lines under it in the
