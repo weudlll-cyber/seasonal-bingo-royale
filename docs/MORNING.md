@@ -1,91 +1,102 @@
 # Morning sheet
 
-## Kit 0.39.1 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+## Kit 0.40.0 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
 
 ### What to open
 
-The dev server runs on this branch (`http://localhost:5390/`, build badge "Bingo · dev · 5390"). The website-mode preview runs too: `http://127.0.0.1:55918/games/bingo/`, match code `BMGJNR`. Both live as long as this PC session does. Set the window to **1280x720** and look in **light and dark** (the theme toggle is the last item of the header).
+Both run while this PC session lives. Look in **light and dark** (the theme toggle is the last item of the header).
 
-| Screen           | Where                                                                                                                                                                                   | Look for                                                                                                                                                                                                  |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Quick-test match | `http://localhost:5390/#/quicktest`: **Sign in as host**, **Battle royale**, **Create test match**                                                                                      | The card, the ball and the drawn numbers; no page scroll during a round.                                                                                                                                  |
-| Header           | Preview: open the address, press **Sign in** (you are "Preview_Host", organizer, three badges)                                                                                          | One row; the account chip, the way back to the website, the theme toggle.                                                                                                                                 |
-| Standings        | Preview: `#/match/<code>` (watching) or `#/host/<code>` while the match plays                                                                                                           | The names to follow a card are smaller (24 px, with room between them); the top 3 rows are whole. (Your own row in its strip: only as a player, in the quick-test match.)                                 |
-| Docked result    | Preview: `#/match/BMGJNR` and `#/host/BMGJNR` after the match ends                                                                                                                      | At least 7 places whole above the chat strip.                                                                                                                                                             |
-| Shared call      | Preview, any match screen; browser console (F12): `document.querySelector('[data-testid="shared-call-frame"]').contentWindow.say('ready', { call: 7, status: 'live', signedIn: true })` | The call's box appears in the dock; under a result also the link back to `/calls/7` (the stand-in has no such page). `...say('ended', { reason: 'unshared' })` hides both. A standalone page has neither. |
+- **Normal (standalone):** the dev server on this branch, `http://localhost:5390/`, build badge "Bingo · dev · 5390".
+- **Website mode:** the kit's `sk-preview`. Open `http://127.0.0.1:4490/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite` first (it signs "Preview Member" in), then the addresses below. A finished match is there: code `UAXPFZ`, 20 players, the member among them.
 
-The preview's match plays for about 5 minutes, so it may be over when you look (the standings then need a new one). A new preview: stop the old one, run `pnpm --filter @sbr/server exec tsx ../../reports/logs/preview.ts`; it prints the new address and code. Before stopping it, `node reports/logs/preview-remove.mjs http://127.0.0.1:<port> 7001` removes its account.
+| Screen                         | Mode, size                          | Where                                                                                              | Look for                                                                                                                                                          |
+| ------------------------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Back link, step badges, header | website, 1280x720 and a phone width | The page after sign-in                                                                             | "← Seasonal Entertainment" at the top left; three step badges at the account; one header row on the desktop.                                                      |
+| Shared call                    | website, 1280x720                   | Any match screen, e.g. `http://127.0.0.1:4490/games/bingo/#/match/UAXPFZ`                          | The call's box in the dock, a placeholder (the real call is only on the website).                                                                                 |
+| Docked result, 7 places        | website, 1280x720                   | `.../#/match/UAXPFZ` and `.../#/host/UAXPFZ`                                                       | At least 7 places whole above "↓ More below", the "Out of the match" divider among them or not. The divider is now one tight line: is that all right to your eye? |
+| A match and its standings      | normal, 1280x720                    | `http://localhost:5390/#/quicktest`: **Sign in as host**, **Battle royale**, **Create test match** | No page scroll during a round; standings, card, ball.                                                                                                             |
+
+The preview's client is the built one, without development tools: it cannot fill a match with bots from the screen. For another website-mode match, ask, or follow CONTRIBUTING.md, "Look at website mode locally". It listens on **4490**: the kit's default, 4400, is taken on this PC by another game's preview.
 
 ### Done
 
-1. **Pin** `@seasonal/kit` v0.39.1 (`29c0f01`) in the four packages, the lockfile and the two workflows; `ops/kit/` is that version's folder.
-2. **Restore.** The kit writes the key files before it compares; differing keys stop it unless `--force-env` (kept, your decision of 2026-11-27). Bingo's own key writing on install and update is gone. `docs/GO-LIVE.md` ("Moving to a new server") says `--force-env` is the expected step there; the operator guide §5 says what to check first.
-3. **Release install.** The installer calls `sk_cosign_install` and sets `SK_IMAGE_COMMIT`; Bingo's revision-label check and the manual cosign step are gone.
-4. **Database wait over TCP** (kit OPERATIONS) in the drill, the dev stack, CI and the scan's start.
-5. **Follow-a-card buttons** in the kit's dense list (24 px); Bingo's 44 px rules for them are gone.
-6. **Sweep.** The calm mode is gone: the kit waits for late animations. No screen was reported as still moving after 5 s.
-7. Docs: kit-adoption §12 (what stays Bingo's own), operator guide, GO-LIVE, spec 09, backlog, open list.
+1. **Pin** `@seasonal/kit` v0.40.0 (`23f10b9`) in the four packages, the lockfile and the workflows; `ops/kit/` did not change.
+2. **Tests never write the development database** (K125 b). The browser tests and load measurements run against a test server of their own (`pnpm test-server`, ports 3901 and 5392) on a database made empty for the run and dropped afterwards; starting it never recreates a running dev container. Checked: the development database held 24 accounts, 1993 matches and 179654 events before the first browser run, after the sweep and after the last re-check.
+3. **Your decision of 2026-11-27** (D64, docs/spec/README.md): no old test data is kept or carried over; nothing was copied, and nothing in the development database was deleted.
+4. **The four rules** (K125) are in `CLAUDE.md`; the server-only changes (database waits over TCP, since v0.39.1) are noted in docs/GO-LIVE.md for the server move.
+5. **7 places** (your decision of 2026-11-24): at 1280x720 the player's and a spectator's result lost the 7th place under the sign when the divider stood among the first 7 (it ended at 534 px, the sign began at 523). The divider is one tight line in the docked result now (521 px). A new test of the audit plays until a result has that case; it failed without the fix ("6 of at least 7"). No floor was lowered; no type is smaller; the dense frame and list are the kit's.
+6. **The recap fade's exemption** is gone (see "Differences" for how the recap screens are looked at).
+7. **The preview** is the kit's `sk-preview`; my preview script is gone (it was never in the repository). It works with Bingo.
 
 ### Faults found by the checks, fixed
 
-- With the dense list's spacing the side column showed only two of the top 3 standings rows at 1280x720 (`playerFit`): the panel's least height is 15rem.
-- The changed database health check made the browser tests recreate the dev database under the running dev server, which ended; after a restart the 14 failed tests were run again.
-- Four server tests ran over their time on a busy machine; their two files have 30 s.
+- The browser tests wrote the development database and reused a running `pnpm dev` (item 2).
+- The test server printed a crash when its database was dropped after a run.
+- A change of mine to the ball's line height broke `playerFit`'s ball check on phones (CI run 46082971573). It was meant for a sweep finding that turned out to be no overlap; the change is out again.
 
 ### Exemptions (what the sweep still reports)
 
-| Finding                                                                                                                                 | Where                                               | Reason                                                                                                                                                                                                                                                         |
-| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Own card cells 42x42 px (44 asked)                                                                                                      | 1280x720, website mode, player (royale and classic) | Owner decision of 2026-11-27 (K18).                                                                                                                                                                                                                            |
-| A line "covered" at the lower edge of the game area (a lobby entry 360x780 at 32 px; a standings group 430x932; the empty ball 390x844) | website mode, phones                                | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat; the line is cut at the edge and reached by scrolling. Bingo's overlap check counts it.                                                                                          |
-| Contrast on recap lines (spectator 1900x860 at 32 px light; console 1536x768 at 32 px dark)                                             | the pause between rounds                            | Kit `src/testing/sweepMotion.ts:11`: motion that starts after the quiet moment is not seen. The next recap card fades in (250 ms) while axe runs. Inferred from that: the other 35 looks of each of the two screens had no finding. Not reproduced on its own. |
+| Finding                                                        | Where                                               | Reason                                                                                                                                                                                                  |
+| -------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)                             | 1280x720, website mode, player (royale and classic) | Owner decision of 2026-11-27 (K18).                                                                                                                                                                     |
+| A standings group "covered" at the lower edge of the game area | website mode, 430x932                               | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat.                                                                                                                          |
+| The ball's number "covered" by its letter                      | website console, 1366x768 at 32 px                  | Kit `css/dock.css:40` (`.sk-docked-main`): the number crosses the game area's lower edge (measured 520–604 px, the area ends at 530) and the middle of the sliver in view can fall on the letter's box. |
 
 ### Checks: how many full runs, and why
 
-- Typecheck, lint of touched files, unit tests (web 316, server 110). The new release and drill tests failed before their change.
-- Browser specs covering the changes, once (25 tests): 11 passed, 14 failed because of the recreated database (above). Those 14 again: 12 passed, 2 found the standings fault. `playerFit` after the fix: 4 passed.
-- Sweep: one full run (1.1 h), which stopped once: in the website docked test a draw did not arrive within 10 s after the spectator screen. The cause is not known. The 7 website screens not yet seen were then run, once. Every screen was seen; the floor of 7 places is met; the findings left are the exemptions above.
-- Ops rehearsal (restore and install), once, in a throw-away server on a copy of the dev data, all as expected: a restore with the key files removed and the same keys went through; on a "new server" with another seed key it refused ("pass --force-env") with nothing changed and the app running; the drill passed (29 tables, the seed opens); with `--force-env` it restored and took the backup's key; cosign installed itself (v3.1.6) and an unsigned release was refused by update and installer. At every step 24 accounts, 1977 matches, 178701 events.
-- Draft PR CI, read once for the finished code (`d63d216`, run 46022513945): green in every job; browser specs 51 and 14 timing specs passed; the scan: 0 failures, 3 warnings (storable and cacheable content, "modern web application", no Cross-Origin-Embedder-Policy header). Commits after it change documents only.
+- Unit tests of the touched packages (web 316, server 110), typecheck, lint of touched files.
+- Browser specs covering the changes, once: 25 passed (Chromium) and the 3 maintenance tests. The smallest spec again after the test server's quiet end. `playerFit` once more after the ball change was taken out: 3 passed; the fourth reported no failed check but failed because Playwright's trace files vanished from `test-results` during the run (cause not proven: probably a process left from a stopped run). CI runs it on the same commit.
+- Sweep: **one full run** (1.2 h, 6 tests, all screens; this time also the screens without a match).
+- **Narrowed re-checks** (your note of 2026-11-27):
+  - First, before the note: 17 screens, stopped after 4 (all clean). It very likely hung where the next run did.
+  - The new divider test twice without the fix, 1280x720 only: the first passed, which showed the test was wrong (no sign on a result that arrives on an open page); corrected, it failed as it should.
+  - After the note, a run that **hung for 35 minutes** (my held page clock on the recap screens) before I looked. Since then every run is checked for progress.
+  - 11 screens: 32 px, light, 360x780, 1366x768 and 1920x1080, axe off; the 6 recap screens also 390x844, 1280x720 and 1900x860 with axe's contrast rule alone: all clean. Bingo's own text checks stayed on ("axe off" leaves the kit's and Bingo's probes). Matches: one standalone royale, one classic, one website run.
+  - The 2 divider screens: 16 px, light, 360x780, 1280x720, 1920x1080, axe off: clean, the floor met (divider after place 4; the first match had it after place 7, so a second was played).
+  - These looks used the taller ball line that is out again; the ball is as the full run saw it.
+- No ops rehearsal: no ops script changed.
+- Draft PR CI, read for the finished code (`1141641`, run 46084329204): green in every job; browser specs 51 and 14 timing specs passed (`playerFit` among them); the scan: 0 failures, 3 warnings. The run before it (46082971573) found the ball fault. Commits after it change documents only.
 - No local `pnpm verify`.
 
 ### Choices that keep today's behaviour
 
-- Bingo's scrolling boxes stay Tab stops always (`ScrollBox`); the kit's `useScrollTabStop` gives a stop only while a box scrolls, and the kit asks for your word.
-- `--force-env` stays needed where keys differ.
+- A real match's seed stays the server's own. The browser journeys that use the seed check page have fixed seeds; the journeys through real matches assert what holds for every seed. A fixed seed there would need development-only changes to the seed, the match id and the account ids.
+- The "More below" sign on a result that arrives on an open page is not changed (BACKLOG).
+- The sweep's findings on screens without a match are not changed (BACKLOG).
+- Bingo's scrolling boxes stay Tab stops always.
 
 ### Where the task's text and the kit's differ
 
-- `components.css` was loaded already; nothing to add.
-- "Bingo's allowance for the own name link": it was only a line in this sheet's exemptions, no code; the finding is gone with the kit's fix.
-- "Bingo's own key check before the kit's restore": what existed was Bingo writing the key files on install and update; that went.
+- "The sweep now waits for stillness again before axe": it does, but a recap card that comes by its timer **while** axe reads is still judged mid-fade (3 findings in the full run). The recap screens are therefore looked at with reduced motion; no exemption.
+- "`reports/logs/preview.ts` goes if sk-preview covers it": it covers the website, the sign-in and the call's slot. It makes no match; that is done through the API.
+- The kit's ADOPTION text for Bingo names fewer settings than the preview needs (kit finding 3).
 
 ### Needs the owner's word
 
-| Question                                        | Proposal                                                                                   |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Merge draft PR #76?                             | When you have looked: yes, **without squashing** (the update path needs commit `ff6d090`). |
-| Switch Bingo's Tab stops to `useScrollTabStop`? | No: keep today's behaviour.                                                                |
-| Make the security scan blocking?                | Before the first production, with the first release tag (kit K113).                        |
-| Which jobs must the branch rules require?       | Those a pull request runs; drop the old Firefox and WebKit names.                          |
-| Push the first release tag (`v1.0.0`)?          | After the merge and a green master run.                                                    |
-
-### Still needs a real server or a first release
-
-The first release (tag) with its real signature; a signed image verified against the real signer; cosign on the server; the nightly browser run (it starts only from master; Firefox and WebKit have not run on this head).
+| Question                                                                                    | Proposal                                                                                                       |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Merge draft PR #76?                                                                         | When you have looked: yes, **without squashing** (the update path needs commit `ff6d090`).                     |
+| A fixed seed for the journeys through real matches?                                         | No: they handle every outcome; the change would touch how matches draw.                                        |
+| Draw the "More below" sign when a result arrives live?                                      | Yes, as a small task of its own.                                                                               |
+| Fix the findings on screens without a match (link targets, 32 px on phones, the dev badge)? | Yes, as a task of its own.                                                                                     |
+| Delete the leftover test database `sbr_e2e_website` on the dev PostgreSQL?                  | Yes: old test data from before this setup.                                                                     |
+| Make the security scan blocking; which jobs must the branch rules require; push `v1.0.0`?   | Blocking with the first release; the jobs a pull request runs; the tag after the merge and a green master run. |
 
 ### Kit findings
 
-1. `src/testing/sweep.ts:159-164`: the sweep waits for motion only before the probe; a screen that changes by a timer while axe runs is judged mid-fade. Wish: wait again before the axe run.
+1. `src/testing/sweep.ts:143` (`axeLines`): the wait before axe cannot see a change a timer makes while axe runs; a card then fades in mid-look. Wish: look again on a contrast finding, or let a screen ask for reduced motion.
+2. HANDBOOK "A held clock" (line 130): a sweep look with axe on a page whose clock was paused after load did not return (35 minutes); probably axe's own timers. Wish: say so, or exclude it.
+3. ADOPTION "The local preview", Bingo: it needs `SBR_DEV=1`, a built client (`SBR_WEB_DIR`; the Vite dev server cannot be the app) and a database URL, and there is no way to a finished match from the screen.
+4. `sk-preview`'s default port 4400 collides when two games are previewed on one PC (`--port` works).
 
 ### Noticed, left alone
 
 - The dev server's process ends when its database connection is terminated.
-- A release of the commit already installed takes the same image name `sbr-app:<commit>`.
+- Stopping a background run on this PC can leave its processes running; they were ended by their ports.
 
 ### Lines against master `d7d841e`
 
-277 text files (this sheet and binary files left out): 36463 lines before, 39230 after.
+288 text files (this sheet and binary files left out): 36924 lines before, 39988 after.
 
 **Removed**, each replaced by a kit part: `db/roles.ts` (kit `grantAppRole`), `league/useApiGet.ts` and `shell/http.test.ts` (`useApiGet`, `createApiClient`), `seasonIcons.ts` and the four optimized season files (`seasons.css`), `useSecondsUntil.ts` (`useCountdown`), `ops/lib/uninstall.sh` (the admin command), `ops/lib/websiteRoute.sh` (`website-route.sh`).
 
@@ -96,10 +107,11 @@ The first release (tag) with its real signature; a signed image verified against
 | File                                                | Before | After   |
 | --------------------------------------------------- | ------ | ------- |
 | `.github/actions/setup/action.yml`                  | 21     | 21      |
-| `.github/workflows/browsers.yml`                    | new    | 111     |
+| `.github/workflows/browsers.yml`                    | new    | 112     |
 | `.github/workflows/ci.yml`                          | 229    | 214     |
 | `.github/workflows/release.yml`                     | 89     | 70      |
-| `CLAUDE.md`                                         | 61     | 77      |
+| `CLAUDE.md`                                         | 61     | 86      |
+| `CONTRIBUTING.md`                                   | 45     | 71      |
 | `apps/server/demo-league.mjs`                       | 49     | 48      |
 | `apps/server/package.json`                          | 49     | 49      |
 | `apps/server/src/auth/rateLimit.ts`                 | 60     | 104     |
@@ -245,7 +257,7 @@ The first release (tag) with its real signature; a signed image verified against
 | `apps/web/src/shell/Header.tsx`                     | 124    | 135     |
 | `apps/web/src/shell/Maintenance.tsx`                | 39     | 39      |
 | `apps/web/src/shell/dock.css`                       | 51     | 51      |
-| `apps/web/src/shell/dockResults.css`                | 127    | 110     |
+| `apps/web/src/shell/dockResults.css`                | 127    | 115     |
 | `apps/web/src/shell/dockSide.css`                   | 233    | 236     |
 | `apps/web/src/shell/dockWatch.css`                  | 62     | 62      |
 | `apps/web/src/shell/header.css`                     | 167    | 24      |
@@ -260,13 +272,14 @@ The first release (tag) with its real signature; a signed image verified against
 | `apps/web/src/test/matchFixture.tsx`                | 167    | 170     |
 | `apps/web/src/types.ts`                             | 64     | 64      |
 | `apps/web/src/useSecondsUntil.ts`                   | 29     | removed |
+| `apps/web/vite.config.ts`                           | 59     | 63      |
 | `assets/README.md`                                  | 29     | 28      |
 | `assets/seasons/autumn.svg`                         | 1      | removed |
 | `assets/seasons/spring.svg`                         | 1      | removed |
 | `assets/seasons/summer.svg`                         | 1      | removed |
 | `assets/seasons/winter.svg`                         | 1      | removed |
-| `docs/BACKLOG.md`                                   | 175    | 176     |
-| `docs/GO-LIVE.md`                                   | 179    | 187     |
+| `docs/BACKLOG.md`                                   | 175    | 179     |
+| `docs/GO-LIVE.md`                                   | 179    | 189     |
 | `docs/OPEN.md`                                      | 18     | 18      |
 | `docs/PRIVACY-DATA.md`                              | 54     | 59      |
 | `docs/concepts/admin-mockups/admin-history.html`    | 121    | 121     |
@@ -274,27 +287,27 @@ The first release (tag) with its real signature; a signed image verified against
 | `docs/concepts/admin-mockups/admin-section.html`    | 186    | 184     |
 | `docs/concepts/admin-mockups/mockup.css`            | 366    | 367     |
 | `docs/concepts/admin-mockups/organizer-start.html`  | 180    | 180     |
-| `docs/concepts/fit-audit.md`                        | 418    | 438     |
-| `docs/concepts/kit-adoption.md`                     | 207    | 276     |
+| `docs/concepts/fit-audit.md`                        | 418    | 446     |
+| `docs/concepts/kit-adoption.md`                     | 207    | 286     |
 | `docs/operator-guide.md`                            | 196    | 204     |
 | `docs/spec/01-game-design.md`                       | 426    | 426     |
 | `docs/spec/03-security-architecture.md`             | 271    | 272     |
 | `docs/spec/04-database-design.md`                   | 208    | 209     |
 | `docs/spec/05-api-design.md`                        | 181    | 181     |
 | `docs/spec/07-integration-architecture.md`          | 179    | 181     |
-| `docs/spec/08-devops-architecture.md`               | 140    | 141     |
+| `docs/spec/08-devops-architecture.md`               | 140    | 150     |
 | `docs/spec/09-deployment-architecture.md`           | 133    | 133     |
 | `docs/spec/10-repository-structure.md`              | 171    | 171     |
-| `docs/spec/12-testing-strategy.md`                  | 175    | 175     |
-| `docs/spec/README.md`                               | 130    | 130     |
+| `docs/spec/12-testing-strategy.md`                  | 175    | 176     |
+| `docs/spec/README.md`                               | 130    | 131     |
 | `e2e/acceptance/asyncScreens.spec.ts`               | 119    | 120     |
-| `e2e/acceptance/fitAudit.spec.ts`                   | 571    | 592     |
+| `e2e/acceptance/fitAudit.spec.ts`                   | 571    | 656     |
 | `e2e/acceptance/interludeScreens.spec.ts`           | 130    | 131     |
-| `e2e/acceptance/kitSweep.ts`                        | new    | 137     |
+| `e2e/acceptance/kitSweep.ts`                        | new    | 187     |
 | `e2e/acceptance/leagueScreens.spec.ts`              | 79     | 81      |
 | `e2e/acceptance/pauseScreens.spec.ts`               | 87     | 88      |
 | `e2e/acceptance/realGame.spec.ts`                   | 304    | 305     |
-| `e2e/acceptance/testPageScreens.spec.ts`            | 217    | 218     |
+| `e2e/acceptance/testPageScreens.spec.ts`            | 217    | 216     |
 | `e2e/acceptance/websiteSweep.ts`                    | 260    | 274     |
 | `e2e/account.spec.ts`                               | 128    | 131     |
 | `e2e/adminAccounts.spec.ts`                         | 96     | 79      |
@@ -310,31 +323,40 @@ The first release (tag) with its real signature; a signed image verified against
 | `e2e/changedSpecs.ts`                               | new    | 68      |
 | `e2e/chatEmbed.spec.ts`                             | 153    | 310     |
 | `e2e/createFormPhone.spec.ts`                       | 51     | 51      |
+| `e2e/devStack.ts`                                   | 70     | 82      |
 | `e2e/fits.ts`                                       | new    | 59      |
 | `e2e/fromThisSite.ts`                               | new    | 12      |
+| `e2e/globalSetup.ts`                                | 36     | removed |
+| `e2e/globalTeardown.ts`                             | new    | 17      |
 | `e2e/hostNav.spec.ts`                               | 223    | 242     |
 | `e2e/leaderboard.spec.ts`                           | 158    | 162     |
-| `e2e/maintenance.spec.ts`                           | 150    | 151     |
+| `e2e/maintenance.spec.ts`                           | 150    | 149     |
 | `e2e/myMatches.spec.ts`                             | 107    | 108     |
 | `e2e/passwordReset.spec.ts`                         | 93     | 97      |
+| `e2e/playwright.config.ts`                          | 101    | 95      |
 | `e2e/realGame.spec.ts`                              | 163    | 164     |
 | `e2e/realGame.ts`                                   | 172    | 176     |
 | `e2e/screens.ts`                                    | 72     | 44      |
 | `e2e/startMatch.spec.ts`                            | 90     | 69      |
 | `e2e/startScreens.spec.ts`                          | 190    | 191     |
+| `e2e/testDatabase.ts`                               | new    | 46      |
 | `e2e/testMatch.spec.ts`                             | 78     | 79      |
+| `e2e/testServer.ts`                                 | new    | 68      |
 | `e2e/topBar.spec.ts`                                | 100    | 101     |
 | `e2e/verifyMatch.spec.ts`                           | 81     | 82      |
 | `e2e/websiteIdle.spec.ts`                           | 75     | 69      |
 | `e2e/websiteLogin.spec.ts`                          | 167    | 167     |
-| `e2e/websiteStack.ts`                               | 300    | 224     |
+| `e2e/websiteStack.ts`                               | 300    | 206     |
+| `eslint.config.js`                                  | 133    | 139     |
 | `load/asyncJump.mjs`                                | 99     | 95      |
-| `load/common.mjs`                                   | 130    | 80      |
+| `load/common.mjs`                                   | 130    | 81      |
+| `load/devDefaults.mjs`                              | 17     | 16      |
 | `load/drawLatency.mjs`                              | 64     | 66      |
 | `load/drawRun.mjs`                                  | 208    | 204     |
 | `load/loadcheck.mjs`                                | 66     | 68      |
 | `load/package.json`                                 | 13     | 14      |
 | `load/spectatorStream.mjs`                          | 138    | 136     |
+| `load/testDefaults.mjs`                             | new    | 17      |
 | `ops/compose.dev.yml`                               | 41     | 41      |
 | `ops/compose.yml`                                   | 160    | 175     |
 | `ops/install.sh`                                    | 205    | 249     |
@@ -367,13 +389,59 @@ The first release (tag) with its real signature; a signed image verified against
 | `ops/test/real-site.exp`                            | 30     | 30      |
 | `ops/test/realSite.spec.ts`                         | 277    | 278     |
 | `ops/test/website-vps.sh`                           | 230    | 230     |
-| `package.json`                                      | 44     | 45      |
+| `package.json`                                      | 44     | 46      |
 | `packages/ui/src/base.css`                          | 207    | 86      |
 | `packages/ui/src/motion.css`                        | 92     | 92      |
 | `packages/ui/src/tokens.css`                        | 32     | 31      |
-| `pnpm-lock.yaml`                                    | 5694   | 5704    |
+| `pnpm-lock.yaml`                                    | 5694   | 5705    |
 
 </details>
+
+## Kit 0.39.1 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### Done
+
+1. **Pin** `@seasonal/kit` v0.39.1 (`29c0f01`) in the four packages, the lockfile and the two workflows; `ops/kit/` is that version's folder.
+2. **Restore.** The kit writes the key files before it compares; differing keys stop it unless `--force-env` (kept, your decision of 2026-11-27). Bingo's own key writing on install and update is gone. `docs/GO-LIVE.md` ("Moving to a new server") says `--force-env` is the expected step there; the operator guide §5 says what to check first.
+3. **Release install.** The installer calls `sk_cosign_install` and sets `SK_IMAGE_COMMIT`; Bingo's revision-label check and the manual cosign step are gone.
+4. **Database wait over TCP** (kit OPERATIONS) in the drill, the dev stack, CI and the scan's start.
+5. **Follow-a-card buttons** in the kit's dense list (24 px); Bingo's 44 px rules for them are gone.
+6. **Sweep.** The calm mode is gone: the kit waits for late animations. No screen was reported as still moving after 5 s.
+7. Docs: kit-adoption §12 (what stays Bingo's own), operator guide, GO-LIVE, spec 09, backlog, open list.
+
+### Faults found by the checks, fixed
+
+- With the dense list's spacing the side column showed only two of the top 3 standings rows at 1280x720 (`playerFit`): the panel's least height is 15rem.
+- The changed database health check made the browser tests recreate the dev database under the running dev server, which ended; after a restart the 14 failed tests were run again.
+- Four server tests ran over their time on a busy machine; their two files have 30 s.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                                                                                                                                 | Where                                               | Reason                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)                                                                                                      | 1280x720, website mode, player (royale and classic) | Owner decision of 2026-11-27 (K18).                                                                                                                                                                                                                            |
+| A line "covered" at the lower edge of the game area (a lobby entry 360x780 at 32 px; a standings group 430x932; the empty ball 390x844) | website mode, phones                                | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat; the line is cut at the edge and reached by scrolling. Bingo's overlap check counts it.                                                                                          |
+| Contrast on recap lines (spectator 1900x860 at 32 px light; console 1536x768 at 32 px dark)                                             | the pause between rounds                            | Kit `src/testing/sweepMotion.ts:11`: motion that starts after the quiet moment is not seen. The next recap card fades in (250 ms) while axe runs. Inferred from that: the other 35 looks of each of the two screens had no finding. Not reproduced on its own. |
+
+### Checks: how many full runs, and why
+
+- Typecheck, lint of touched files, unit tests (web 316, server 110). The new release and drill tests failed before their change.
+- Browser specs covering the changes, once (25 tests): 11 passed, 14 failed because of the recreated database (above). Those 14 again: 12 passed, 2 found the standings fault. `playerFit` after the fix: 4 passed.
+- Sweep: one full run (1.1 h), which stopped once: in the website docked test a draw did not arrive within 10 s after the spectator screen. The cause is not known. The 7 website screens not yet seen were then run, once. Every screen was seen; the floor of 7 places is met; the findings left are the exemptions above.
+- Ops rehearsal (restore and install), once, in a throw-away server on a copy of the dev data, all as expected: a restore with the key files removed and the same keys went through; on a "new server" with another seed key it refused ("pass --force-env") with nothing changed and the app running; the drill passed (29 tables, the seed opens); with `--force-env` it restored and took the backup's key; cosign installed itself (v3.1.6) and an unsigned release was refused by update and installer. At every step 24 accounts, 1977 matches, 178701 events.
+- Draft PR CI, read once for the finished code (`d63d216`, run 46022513945): green in every job; browser specs 51 and 14 timing specs passed; the scan: 0 failures, 3 warnings (storable and cacheable content, "modern web application", no Cross-Origin-Embedder-Policy header). Commits after it change documents only.
+- No local `pnpm verify`.
+
+### Choices that keep today's behaviour
+
+- Bingo's scrolling boxes stay Tab stops always (`ScrollBox`); the kit's `useScrollTabStop` gives a stop only while a box scrolls, and the kit asks for your word.
+- `--force-env` stays needed where keys differ.
+
+### Where the task's text and the kit's differ
+
+- `components.css` was loaded already; nothing to add.
+- "Bingo's allowance for the own name link": it was only a line in this sheet's exemptions, no code; the finding is gone with the kit's fix.
+- "Bingo's own key check before the kit's restore": what existed was Bingo writing the key files on install and update; that went.
 
 ## Kit 0.38 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
 
@@ -473,7 +541,7 @@ The first release (tag) with its real signature; a signed image verified against
 
 ### Looking at it
 
-- See "Kit 0.39.1" above.
+- See "Kit 0.40.0" above.
 - What stays Bingo's own, with reasons: [docs/concepts/kit-adoption.md](concepts/kit-adoption.md) §10.
 
 ### Kit findings
@@ -503,7 +571,7 @@ The first release (tag) with its real signature; a signed image verified against
 
 - Look at draft PR #76 in the browser; merge (**without squashing**) or not. Proposal: merge when you have looked.
 
-Line counts: once for the whole branch, in "Kit 0.39.1" above.
+Line counts: once for the whole branch, in "Kit 0.40.0" above.
 
 ## Kit 0.22 (branch `feat/kit-0.22`, draft PR, NOT merged: the owner looks first)
 
