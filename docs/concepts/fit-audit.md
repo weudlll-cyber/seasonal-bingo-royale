@@ -444,3 +444,15 @@ The recap screens are looked at with reduced motion: the next card comes by a ti
 **A narrowed re-check** (owner's request of 2026-11-27) uses `SBR_SWEEP_SCREENS`, `_SIZES`, `_FONTS`, `_THEMES`, `SBR_SWEEP_AXE="off"` for a size or spacing fix and `SBR_SWEEP_CONTRAST` (with `_CONTRAST_SIZES`) for a colour fix; the full matrix stays for the one sweep at the end.
 
 **Exemption (owner decision of 2026-11-27):** the own card's cells stay 42 px under the chat strip at 1280×720 in website mode, so the board stays whole without scrolling (K18).
+
+## 10. Common browser windows (owner decisions of 2026-11-28)
+
+**Decision (D65, docs/spec/README.md):** the game fits every common browser window, its bars taken off, as far as possible without scrolling; the screens between rounds fit without scrolling too. Nothing is dropped or hidden, no type is smaller, the card cells keep their size (K18), the kit's frames and lists stay; the standings may scroll inside their box (top 3 whole; the docked result at least 7 places at 1280×720).
+
+**Sizes** (kit planning, owner decision of 2026-11-28, passed as `SweepOptions.sizes`): the sweep looks at the edges, since a screen that fits the tightest window fits every larger one. Desktop 1920×950, 1280×720 (owner decisions name it) and 1024×600, the tightest corner: narrower and lower than a 1920×1080 laptop at 150 % without its bars (1278×629), with room for a bookmarks bar (kit planning wrote 1024×630, one pixel taller than that window: Bingo planning's change). Phones 390×844 and 320×568. Once either side of each switch of the layout between them: 480/481, 640/641 and 959/960 wide (Bingo's own rules), 1599/1600 wide and 759/760 high (the kit's header account and chat strip). Light at all of them at root font 16 and 32 px; dark once more at 1280×720 and 390×844 at 16 px.
+
+**Tools:** `e2e/acceptance/windowFit.ts` measures what scrolls and what is not whole (`SBR_WINDOWS=1`, `reports/logs/<tag>-windows.jsonl`); the kit sweep reports the same as findings on the match screens at the desktop sizes at 16 px.
+
+**How it fits:** between rounds and at the end the notices (cut screen, recap, placement) stand in a column beside the play area and the side column (`game/windows.css`, `host/hostWindows.css`), scrolling inside with the "More below" sign where a window is too low; short windows put title and progress on one line, stand the standings' rows closer and, under 700 px, the side column in two halves (`game/shortWindows.css`); the docked pause under 760 px stands side by side (`shell/dockPause.css`); the console's lobby takes two columns; the lobby's matches scroll in their own box. The kit's fit (`src/fit.ts`) is not used: Bingo's scale floor there is 1 (K14), so it cannot shrink anything.
+
+**What still does not fit** is listed with a proposal in docs/MORNING.md.
