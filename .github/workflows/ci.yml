@@ -1,16 +1,17 @@
 # @file   .github/workflows/ci.yml
 # @module ci
-# @brief  CI: verify, security scans, docs links, browser tests and the container image.
+# @brief  CI: verify, security scans, docs links, the changed browser specs and the image.
 #
 # Responsibility: run what "pnpm verify" runs, the domain/application coverage, the
 #                 server's integration coverage report, the dependency/secret scans, the
 #                 license check of the production dependencies, the markdown link check
-#                 and the Playwright suite in three
-#                 browsers (Chromium on three runners) for every pull request to master and every push to master (a work
-#                 branch is checked through its pull request, so one push starts one run);
-#                 on the way to master also the image build, scan and size check. Any red
-#                 job blocks merge.
-# Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/
+#                 and, in Chromium, the browser specs of what changed (e2e/changedSpecs;
+#                 the whole suite in three browsers runs nightly, browsers.yml, K106) for
+#                 every pull request to master and every push to master (a work branch is
+#                 checked through its pull request, so one push starts one run); on the way
+#                 to master also the image build and size check and the kit's security scan,
+#                 which reports and does not block (K108). Any other red job blocks merge.
+# Depends on:     .github/actions/setup, Dockerfile, osv-scanner.toml, e2e/, the kit's scan.yml
 # Spec:           docs/spec/08-devops-architecture.md §3–§4, docs/spec/03-security-architecture.md §18
 name: CI
 
@@ -38,7 +39,6 @@ concurrency:
 env:
   OSV_SCANNER_IMAGE: ghcr.io/google/osv-scanner:v2.7.0@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0
   GITLEAKS_IMAGE: ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
-  TRIVY_IMAGE: ghcr.io/aquasecurity/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
   LYCHEE_IMAGE: lycheeverse/lychee:0.24.2@sha256:e2d19e57cf6ab037026f20b8e449a1f30d9d7f81eef4194763aab2eab20bd28d
 
 jobs:
@@ -114,25 +114,16 @@ jobs:
           docker run --rm -v "$PWD:/src" -w /src "$LYCHEE_IMAGE" --offline --no-progress \
             --exclude-path node_modules --exclude-path reports '**/*.md'
 
-  e2e:
-    # On every push and pull request: a branch learns of a red browser test before it
-    # reaches master (MERGE-AUDIT-1: master went red four times on tests no branch had run).
-    # Firefox and WebKit mobile one job each; Chromium, the slowest (~11.5 min alone), on three
-    # runners (e2e-chromium-shard). Each job runs its timing specs after its other specs,
-    # alone on its runner, so no other browser's load delays their timers. The Playwright
-    # image brings the browsers and their system libraries: no apt step (an apt mirror once
-    # took 38 of a 47-minute run).
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [firefox, webkit-mobile]
-    name: e2e (${{ matrix.browser }})
+  e2e-chromium:
+    # The browser specs of what this change touched, in Chromium; the whole suite in every
+    # browser runs nightly (browsers.yml). The job keeps the name a branch rule may require.
+    name: e2e (chromium)
     runs-on: ubuntu-latest
-    container: &e2e-container
+    container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
       # The runner's user: Firefox refuses to run as root, and the workspace belongs to it.
       options: --user 1001
-    services: &e2e-services
+    services:
       postgres:
         image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
         env:
@@ -140,69 +131,46 @@ jobs:
           POSTGRES_PASSWORD: ci-only
           POSTGRES_DB: sbr
         options: >-
-          --health-cmd "pg_isready -U sbr -d sbr" --health-interval 2s --health-timeout 3s
+          --health-cmd "pg_isready -h 127.0.0.1 -U sbr -d sbr" --health-interval 2s --health-timeout 3s
           --health-retries 30
       # The e2e server's mail (password reset, D60), read back through Mailpit's API.
       mailpit:
         image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
     env:
-      SBR_E2E_BROWSER: ${{ matrix.browser }}
+      SBR_E2E_BROWSER: chromium
       # The PostgreSQL service by its name (e2e/devStack.ts; no docker compose in the container).
       SBR_E2E_DATABASE_URL: postgres://sbr:ci-only@postgres:5432/sbr
       SBR_E2E_SMTP_HOST: mailpit
+      # What the change is measured against: the pull request's base, or the pushed range's start.
+      BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
-      # The server on 3900 and the client on 5390 (e2e/playwright.config.ts).
-      - run: pnpm e2e
-      # On a failure: the traces and page snapshots of the failed tests, for a week.
+      - name: The specs of what changed
+        shell: bash
+        run: |
+          git config --global --add safe.directory "$PWD"
+          specs=$(git diff --name-only "$BASE...HEAD" |
+            pnpm --silent --filter @sbr/server exec tsx ../../e2e/changedSpecs.ts)
+          echo "browser specs: $specs"
+          echo "SPECS=$specs" >>"$GITHUB_ENV"
+      # The timing specs after the others, alone, as in the full suite.
+      - name: Browser specs
+        if: env.SPECS != 'none'
+        shell: bash
+        run: |
+          files=()
+          [ "$SPECS" = all ] || read -r -a files <<<"$SPECS"
+          pnpm e2e "${files[@]}" --project=chromium --pass-with-no-tests
+          pnpm e2e "${files[@]}" --project=chromium-timing --no-deps --pass-with-no-tests
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: playwright-results-${{ matrix.browser }}
+          name: playwright-results-chromium
           path: test-results
           retention-days: 7
-
-  e2e-chromium-shard:
-    # Chromium on three runners side by side: the regular specs in two shards, the timing
-    # specs alone (--no-deps: their dependency, the regular project, runs in the shards).
-    # Every test runs exactly once (a plain --shard would repeat the regular project in each
-    # shard as the timing project's dependency).
-    strategy:
-      fail-fast: false
-      matrix:
-        part:
-          - { name: 1/2, args: --project=chromium --shard=1/2 }
-          - { name: 2/2, args: --project=chromium --shard=2/2 }
-          - { name: timing, args: --project=chromium-timing --no-deps }
-    name: e2e (chromium ${{ matrix.part.name }})
-    runs-on: ubuntu-latest
-    container: *e2e-container
-    services: *e2e-services
-    env:
-      SBR_E2E_BROWSER: chromium
-      SBR_E2E_DATABASE_URL: postgres://sbr:ci-only@postgres:5432/sbr
-      SBR_E2E_SMTP_HOST: mailpit
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup
-      - run: pnpm e2e ${{ matrix.part.args }}
-      - if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: playwright-results-chromium-${{ strategy.job-index }}
-          path: test-results
-          retention-days: 7
-
-  e2e-chromium:
-    # The check under its old name "e2e (chromium)", for anything that requires it by name:
-    # green only when every Chromium part is.
-    name: e2e (chromium)
-    needs: e2e-chromium-shard
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - run: test "${{ needs.e2e-chromium-shard.result }}" = success
 
   image:
     # Only on the way to master: PRs to master and pushes to master.
@@ -215,10 +183,6 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker build -t "$IMAGE" .
-      - name: Trivy (HIGH/CRITICAL with a fix available)
-        run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress "$IMAGE"
       - name: Size budget
         run: |
           size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
@@ -227,3 +191,24 @@ jobs:
             echo "::error::Image exceeds the size budget"
             exit 1
           fi
+
+  scan:
+    # The kit's scan (K108): Trivy over the image and the lockfile, a ZAP baseline against the
+    # started app; it reports into the job summary and does not block.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/master'
+    uses: weudlll-cyber/seasonal-kit/.github/workflows/scan.yml@v0.41.0
+    permissions:
+      contents: read
+    with:
+      image: sbr:ci
+      url: http://localhost:3000/
+      # The app with its database on the runner's network; every key is made for this run.
+      start: |
+        db=$(openssl rand -hex 16)
+        docker run -d --name sbr-scan-db --network host -e POSTGRES_USER=sbr -e POSTGRES_DB=sbr \
+          -e POSTGRES_PASSWORD="$db" postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        for i in $(seq 1 60); do docker exec sbr-scan-db pg_isready -h 127.0.0.1 -U sbr -d sbr && break; sleep 1; done
+        settings=(-e DATABASE_URL="postgres://sbr:$db@127.0.0.1:5432/sbr" -e SBR_PORT=3000
+          -e SBR_SEED_KEY="$(openssl rand -hex 32)" -e SBR_RECOVERY_KEY="$(openssl rand -hex 32)")
+        docker run --rm --network host "${settings[@]}" "$IMAGE" node dist/cli.js migrate
+        docker run -d --name sk-scan-app --network host "${settings[@]}" "$IMAGE"

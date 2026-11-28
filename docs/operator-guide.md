@@ -5,7 +5,7 @@ Two ways to install, chosen by the installer's first question:
 - **Standalone** — the game on its own domain (e.g. `bingo.example.org`) with its own HTTPS.
 - **Website** — the game inside the Seasonal Entertainment website on the same server, at `https://<website domain>/games/bingo/`, behind the website's own proxy.
 
-There is no signed release image yet, so the installer builds the game on the server from the source code (a few minutes). Commands in grey boxes are typed exactly as shown; `<…>` is replaced by your value.
+The game's image comes from one of two places (§6b): a version (`v1.2.3`) is the **signed release image** its release published; anything else (a branch such as `master`, a commit) is **built on the server** from the source code (a few minutes). No release has been published yet, so for now every install builds. Commands in grey boxes are typed exactly as shown; `<…>` is replaced by your value.
 
 ## 1. What to prepare (both types)
 
@@ -34,7 +34,7 @@ There is no signed release image yet, so the installer builds the game on the se
    ```
    git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo bash sbr/ops/install.sh
    ```
-3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
+3. Answer the questions: **standalone**; environment **prod**; your **domain** (or the IP address); your **e-mail** (for certificates and as the contact; asked once and kept in `/etc/seasonal/operator.env` for every Seasonal installer on the server, `--email` wins); your **age public key** (`age1…`); SMTP can stay empty for now. For an unattended run every answer is a flag (top of `ops/install.sh`); the SMTP password then comes from a file, `--smtp-password-file <file>` (or `-` to pipe it in), never from the command line.
 4. Wait until it says **Done**. It installs Docker if needed, builds the game, starts it and checks that it answers.
 5. Create the first admin (section 4), then open `https://<your domain>/`.
 
@@ -96,7 +96,7 @@ It asks for e-mail, display name (3–24 letters or digits) and a password of at
 
 ## 5. Backups to your Windows PC
 
-The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files, the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened) and its recovery key (`SBR_RECOVERY_KEY`, which the admins' recovery codes are stored under), all encrypted with your age key. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next good backup) and the system log has the error (`journalctl -u sbr-backup@prod`).
+The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/prod/` and keeps the 14 newest plus one a week for 8 more weeks. A backup holds the database, the uploaded files, the game's seed key (`SBR_SEED_KEY`, which locks the stored match secrets: without it a restored database cannot be opened) and its recovery key (`SBR_RECOVERY_KEY`, which the admins' recovery codes are stored under), all encrypted with your age key. The backups are made by the Seasonal Entertainment kit's backup script (the kit's `ops` folder, installed as `/opt/sbr/kit/`, the same in every Seasonal game) with Bingo's settings (`ops/lib/backup.sh`); `sbr` is how you use it. A backup made before that change (2026-11-25) is written again in the kit's format first (step 6), then restored or drilled like any other. The files belong to the group `sbr-backup`, so a normal user can pull them; root login over SSH can stay off. If the nightly backup fails, `sudo sbr status` says so (until the next run succeeds) and the system log has the error (`journalctl -u sbr-backup@prod`).
 
 1. Once, on the server: a user for pulling, in the group `sbr-backup`, with your SSH key:
    ```
@@ -114,10 +114,11 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
 4. Check a backup can really be restored (monthly is good): copy your key up for a moment, run the drill, delete the key:
    ```
    scp $HOME\sbr-age-key.txt <you>@<VPS address>:sbr-age-key.txt
-   ssh -t <you>@<VPS address> "sudo sbr restore --drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
+   ssh -t <you>@<VPS address> "sudo sbr drill /var/backups/sbr/prod/<file> --identity sbr-age-key.txt; rm sbr-age-key.txt"
    ```
-   It restores into a throw-away database, says how many accounts, matches and events came back, and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
-5. A real restore (replaces the live data; it asks first): the same, with `sbr restore <file> --identity …` instead of `--drill`. It refuses a backup of another environment (a staging file on prod), or one whose seed key differs from the server's, unless you add `--force-env` (the backup's key then replaces the server's). The backup's recovery key always becomes the server's, so the restored recovery codes keep working. The live data is replaced only when the whole database restore succeeds; if anything fails, the game is started again as it was. Maintenance mode stays as it is (it is never part of a backup).
+   It restores into a throw-away database twice: the kit's drill (the same as `sbr restore --drill`) compares every table's rows with the dump, then Bingo's says how many accounts, matches and events came back and checks that the backup's seed key opens a stored match (it fails if not; a backup made before backups carried the key fails too, take a new one).
+5. A real restore (replaces the live data; it asks `[y/N]` first): the same, with `sudo sbr restore <file> --identity …`. It refuses a backup of another environment (a staging file on prod), or one whose seed or recovery key differs from the server's, before anything changes, unless you add `--force-env` (the backup's keys then replace the server's). **On a new server this refusal is expected** (its install made new keys): check the file's name (game, environment, time), run the drill, then restore with `--force-env`, check `sudo sbr status`, sign in and take a backup. The database is replaced in one transaction: the live data goes only if the whole restore succeeds. If the restore fails after it stopped the game, it says what state the data is in and starts the game again; read that sentence, then `sudo sbr status`, and run the restore again where it says so. Maintenance mode stays as it is (it is never part of a backup).
+6. A backup made before 25 November 2026 (older format): write it again first, then use the new file: `sudo sbr rewrite_backup <old file> --identity <key file>` (it prints the new file's name; the old one stays until the nightly pruning removes it).
 
 ## 6. Updating and rolling back
 
@@ -125,7 +126,8 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr update <git ref>
    ```
-   It builds the new version first (a few minutes, the game keeps running), then takes a backup and a plain database dump for a rollback, installs the new version's stack files (limits, routes, the `sbr` command; the old ones are kept for a rollback) and starts the new version (the game is away for a few seconds; running matches continue). An install made before 4 November 2026 gets the new stack files once by running the installer again (step 2 of the install: the same command; it keeps your answers and secrets). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
+   It gets the new version's image first (a release image is checked and pulled, §6b; otherwise it is built, a few minutes, while the game keeps running), then takes a backup and a plain database dump for a rollback, installs the new version's stack files (limits, routes, the `sbr` command; the old ones are kept for a rollback) and starts the new version (the game is away for a few seconds; running matches continue). An install made before 4 November 2026 gets the new stack files once by running the installer again (step 2 of the install: the same command; it keeps your answers and secrets). It refuses while the last update is neither confirmed nor rolled back (step 2 or 3).
+   An install made before the kit's folder `/opt/sbr/kit/` existed updates in two steps, because `sbr update` installs the new version with the installed version's file list: first `sudo sbr update ff6d090` (the commit that only adds the folder), `sudo sbr confirm`, then `sudo sbr update <git ref>`. Skipping the first step, the new `sbr` stops and asks you to run the installer again from `/opt/sbr/src` (`sudo bash /opt/sbr/src/ops/install.sh`), which does the same.
 2. All good? Confirm it, which deletes the plain dump (it is not encrypted) and frees the old image:
    ```
    sudo sbr confirm
@@ -134,9 +136,9 @@ The server makes an encrypted backup every night at 03:30 in `/var/backups/sbr/p
    ```
    sudo sbr rollback
    ```
-   It takes a backup of the current state, asks, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is. After a rollback from a version with the recovery key (`SBR_RECOVERY_KEY`, since November 2026) to one without it, admins' recovery codes created in between do not work; they work again after the next update (sign-in codes from the authenticator app keep working all along).
+   It asks, takes a backup of the current state, and goes back to the version before. **If the update changed the database layout, the database goes back to the moment before the update: accounts, matches and points since then are lost** (they stay in the backup it took first). Without a layout change the data stays as it is. After a rollback from a version with the recovery key (`SBR_RECOVERY_KEY`, since November 2026) to one without it, admins' recovery codes created in between do not work; they work again after the next update (sign-in codes from the authenticator app keep working all along).
 4. Before a planned update you can stop new matches: `sudo sbr maintenance on "Update, back at 22:00"` (the reason is optional, at most 200 characters). Players see "Maintenance — we'll be back shortly" with your reason; running matches play to the end; matches set to start at a time or when full wait in their lobby and start once you turn maintenance off. Afterwards `sudo sbr maintenance off`.
-5. Everyday checks: `sudo sbr status` (what runs, health, last backup, the database roles) and `sudo sbr logs app`.
+5. Everyday checks: `sudo sbr status` (what runs, health, last backup, the database roles) and `sudo sbr logs app`. `sbr` is the Seasonal kit's admin command with Bingo's settings: the verbs `status`, `update`, `confirm`, `rollback`, `backup`, `restore`, `logs` and `uninstall` mean the same in every Seasonal game; `admin`, `maintenance`, `loadcheck`, `drill` and `rewrite_backup` are Bingo's.
 6. Database roles (since 4 November 2026): the game uses two database roles.
    - The app connects as `sbr_app`, which can read and write the game's rows but cannot change the tables, drop them or touch roles. It can never change or delete a match event.
    - The migrations run before the app starts as `sbr_owner`, in the short-lived `migrate` container. `sbr status` lists it as exited (that is normal).
@@ -160,15 +162,21 @@ sudo sbr maintenance off
 - When it refuses: it does not run while real players are in a match, or while people are signed in and maintenance is off (it says why); with maintenance on nobody can start a match meanwhile.
 - Smaller runs: `--players 50 --spectators 10 --minutes 3`.
 
+## 6b. Release images
+
+A release (a tag `v1.2.3` on master) publishes a signed image to GitHub's container registry. When you install or update to such a version, the server takes that image instead of building: it checks that this repository's release workflow signed it, from the tag's own commit (cosign, no key to keep), and pulls it by its digest. If any of that fails, the command stops with one sentence and the running game stays as it is.
+
+- **cosign installs itself:** the first install or update that takes a release image downloads the cosign version the Seasonal kit pins and installs it to `/usr/local/bin` only where it carries the published checksum.
+- A private image also needs `sudo docker login ghcr.io` once, with a token that may read packages.
+- **Building instead** (until the first release exists, or if the registry cannot be reached): add `--image-source build` to the installer; it is remembered, and `sbr update` builds from then on. `--image-source release` insists on a release (and refuses a branch). To change it later, run the installer again with the flag.
+
 ## 7. Hardening checklist
 
 1. SSH: keys only, no passwords, no root login (`PasswordAuthentication no`, `PermitRootLogin no` in `/etc/ssh/sshd_config`); work as your own user with `sudo`, and pull backups as the `backup-pull` user of section 5. Before turning root login off, check that your own user can log in and use `sudo`.
-2. Automatic security updates: `apt install unattended-upgrades` (on by default on Ubuntu 24.04).
-3. Firewall: allow only 22, 80 and 443 — `ufw allow 22/tcp; ufw allow 80/tcp; ufw allow 443/tcp; ufw enable`. (With the website installed, keep the website's own ports too, see its DEPLOYMENT.md.)
-4. fail2ban for SSH: `apt install fail2ban`.
-5. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
-6. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
-7. No CDN in front: a CDN or Cloudflare proxy in front of the game is not supported for now. Behind it every visitor would share the same rate limits. Point your domain's DNS straight at the server (with Cloudflare: “DNS only”, the grey cloud). The installer's `--trusted-proxies <range>,…` is only for a proxy of your own in front of the website; `--trusted-proxies none` removes the ranges again.
+2. Firewall, automatic security updates and fail2ban: a **standalone** install sets them up itself (the Seasonal kit's host baseline): it allows the ports SSH really uses, 80 and 443 and turns `ufw` on, turns on `unattended-upgrades`, and adds a fail2ban jail for SSH. It only adds what is missing, never changes the SSH configuration, and says what SSH allows. If your hosting provider has its own firewall, allow the same ports there. In a **website** install the website's installer owns the server's security and the game changes nothing.
+3. Docker: `live-restore` on (`/etc/docker/daemon.json`: `{ "live-restore": true }`); log rotation is already set by the game.
+4. Domain: a CAA record allowing your certificate authority (Let's Encrypt: `0 issue "letsencrypt.org"`), and DNSSEC if your registrar offers it.
+5. No CDN in front: a CDN or Cloudflare proxy in front of the game is not supported for now. Behind it every visitor would share the same rate limits. Point your domain's DNS straight at the server (with Cloudflare: “DNS only”, the grey cloud). The installer's `--trusted-proxies <range>,…` is only for a proxy of your own in front of the website; `--trusted-proxies none` removes the ranges again.
 
 ## 8. Removing the game
 
@@ -186,6 +194,21 @@ It asks you to type the environment's name (`prod`), then removes the game's con
 - **No late join:** players join only while the match is in its lobby (D53).
 - **Chat:** the game has no chat of its own; inside the website the website's chat is used (D55).
 
+## 8b. Test matches in the local preview
+
+For looking at the match screens on your own PC, never on a server (it needs the development tools). Start the preview as [CONTRIBUTING.md](../CONTRIBUTING.md) says ("Look at website mode locally"), then, from the repository's root:
+
+```powershell
+pnpm preview-matches
+```
+
+It takes a few minutes and creates two matches with 19 bots, each held between two rounds, and prints their addresses:
+
+- **Preview: you play** — you are still in (your numbers are tapped for you in the first round). If your card has no luck and you are cut, that match is aborted and another played.
+- **Preview: you watch** — you are cut and watch; it waits one round after your cut, so you see the others' cards.
+
+The match screen is the player's view, the host address the same match's console: **Start next round** shows the round, **Draw next** draws its numbers, and after the round the match waits again. Running the command again makes two new matches; abort the old ones in their consoles. The address of the preview can be changed with `SBR_PREVIEW_ORIGIN`.
+
 ## 9. Good to know
 
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.
@@ -193,4 +216,4 @@ It asks you to type the environment's name (`prod`), then removes the game's con
 - One environment per server for now: a staging install needs its own VPS (standalone staging would need ports 80/443 of prod, website staging the same `/games/bingo` route). The installer refuses a second environment on the same server.
 - The game runs as one process: the admin area's settings are kept in memory and a change applies at once in that process (admin-area §8 (aa)). Do not start a second copy of the app against the same database; it would not see changes made in the first until it restarts.
 - Behind another proxy (nginx, your own Caddy): examples in `ops/examples/`.
-- Not there yet: a signed release image (the server builds from source). The game's own admin area is the "Admin" item in the menu for admins ([docs/concepts/admin-area.md](concepts/admin-area.md)). E-mail ("Forgot password?") and the admins' two-factor sign-in exist in standalone installs since D60 (§4).
+- The game's own admin area is the "Admin" item in the menu for admins ([docs/concepts/admin-area.md](concepts/admin-area.md)). E-mail ("Forgot password?") and the admins' two-factor sign-in exist in standalone installs since D60 (§4).

@@ -1,17 +1,19 @@
 /**
  * @file   apps/server/src/auth/sessionPlugin.ts
  * @module server/auth
- * @brief  Session cookie, request.session, CSRF check and the general API rate limit (03 §3, §8, §13).
+ * @brief  request.session, the CSRF checks and the general API rate limit (03 §3, §8, §13).
  *
  * Responsibility: register @fastify/cookie; load the session named by the cookie into
- *                 `request.session` on every /api request; on state-changing ones require
+ *                 `request.session` on every /api request; on state-changing ones require that
+ *                 the browser names this site as their origin (the kit's `writeCheck`) and
  *                 `X-CSRF-Token` equal to the session's token (constant-time), except the
  *                 routes that start a session (register, login, guest, and the dev sign-in,
  *                 marked by its route config), which accept JSON only, and unmatched routes
  *                 (404); limit a session to 120 API calls a minute, requests without one to
- *                 600 per address. Cookie name, path and Secure flag follow 03 §3; the cookie
- *                 lasts as long as a player's or guest's session of the running mode.
- * Depends on:     fastify, @fastify/cookie, @seasonal/kit/server (RateLimiter), ./sessions,
+ *                 600 per address. The cookie's name, path and flags are the kit's
+ *                 `sessionCookie` of `SESSION_COOKIE` (03 §3); it lasts as long as a player's or
+ *                 guest's session of the running mode (`sessionCookieOptions`, at each call).
+ * Depends on:     fastify, @fastify/cookie, @seasonal/kit/server (RateLimiter, writeCheck), ./sessions,
  *                 ./rateLimit, ../db/pool
  * Used by:        ../http/app, ../http/routes/auth, ../http/routes/devSignIn,
  *                 ../http/routes/websiteSignIn
@@ -20,13 +22,13 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import cookie from '@fastify/cookie';
-import { RateLimiter } from '@seasonal/kit/server';
+import { RateLimiter, writeCheck, type SessionCookie } from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../config/technical.js';
 import type { DbPool } from '../db/pool.js';
 import { liveRule, RATE_RULES } from './rateLimit.js';
-import { findSession, type Session, type SessionLengths } from './sessions.js';
+import { findSession, type Session } from './sessions.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -41,19 +43,10 @@ declare module 'fastify' {
   }
 }
 
-export interface CookieConfig {
-  readonly name: string;
-  readonly secure: boolean;
-  readonly path: string;
-}
-
-// 03 §3: `__Host-` at the root of its own host; `__Secure-` with Path=<base path> under a
-// path of a host site (the `__Host-` prefix requires Path=/); plain http in development.
-export function cookieConfig(secure: boolean, basePath = '/'): CookieConfig {
-  if (!secure) return { name: 'sbr_session', secure: false, path: '/' };
-  if (basePath === '/') return { name: '__Host-sbr_session', secure: true, path: '/' };
-  return { name: '__Secure-sbr_session', secure: true, path: basePath.replace(/\/$/, '') };
-}
+// The session cookie's name before the kit's prefix: the kit's `sessionCookie` adds `__Host-` at
+// the root of its own host and `__Secure-` with Path=<base path> under a path of a host site (the
+// `__Host-` prefix requires Path=/), nothing in plain-http development (03 §3).
+export const SESSION_COOKIE = 'sbr_session';
 
 // Routes that start a session: no CSRF token exists yet (03 §8, SameSite=Lax + JSON only).
 const SESSION_STARTERS = new Set([
@@ -63,13 +56,21 @@ const SESSION_STARTERS = new Set([
 ]);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
+interface SessionOptions {
+  // The Technical section's session lengths and API limit, read on every request.
+  readonly technical?: LiveTechnical | undefined;
+  // The proxies whose X-Forwarded-Host the write check believes (SBR_TRUSTED_PROXIES).
+  readonly trustedProxies?: readonly string[];
+}
+
 // `technical`: the Technical section's session lengths and API limit, read on every request
-// (admin-area §9 piece 7); today's values without it.
+// (admin-area §9 piece 7); today's values without it. Every write is checked by the kit's
+// `writeCheck` (Sec-Fetch-Site and Origin against this host) before the token.
 export async function registerSessions(
   app: FastifyInstance,
   pool: DbPool,
-  config: CookieConfig,
-  technical?: LiveTechnical,
+  config: SessionCookie,
+  { technical, trustedProxies = [] }: SessionOptions = {},
 ): Promise<void> {
   await app.register(cookie);
   app.decorateRequest('session', null);
@@ -77,6 +78,8 @@ export async function registerSessions(
     liveRule('api', technical === undefined ? undefined : liveLimits(technical)),
   );
   const anonymousLimit = new RateLimiter(RATE_RULES.anonymous);
+  // Where the browser says a write came from; the token below is the second layer (kit K60).
+  const fromThisSite = writeCheck({ trustedProxies });
   app.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api/')) return;
     const token = request.cookies[config.name];
@@ -88,16 +91,18 @@ export async function registerSessions(
         ? anonymousLimit.take(request.ip).allowed
         : apiLimit.take(request.session.id).allowed;
     if (!allowed) return reply.status(429).send({ code: 'RATE_LIMITED' });
-    return checkCsrf(request, reply);
+    return checkCsrf(request, reply, fromThisSite);
   });
 }
 
-async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-  if (SAFE_METHODS.has(request.method)) return;
-  // No route matched: no handler runs, the answer is 404.
-  if (request.routeOptions.url === undefined) return;
+async function checkCsrf(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  fromThisSite: ReturnType<typeof writeCheck>,
+): Promise<void> {
+  if (needsNoCheck(request)) return;
   const path = request.url.split('?')[0] ?? '';
-  if (request.routeOptions.config.noCsrf === true) return;
+  if (await foreignWrite(request, reply, fromThisSite)) return;
   if (startsSession(request, path)) {
     if (!(request.headers['content-type'] ?? '').startsWith('application/json')) {
       await reply.status(415).send({ code: 'JSON_REQUIRED' });
@@ -111,6 +116,30 @@ async function checkCsrf(request: FastifyRequest, reply: FastifyReply): Promise<
   }
 }
 
+// A read; or no route matched (no handler runs, the answer is 404); or a development route
+// outside any session.
+function needsNoCheck(request: FastifyRequest): boolean {
+  const { url, config } = request.routeOptions;
+  return SAFE_METHODS.has(request.method) || url === undefined || config.noCsrf === true;
+}
+
+// A write the browser does not name as this site's own is refused (403), session or not.
+async function foreignWrite(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  fromThisSite: ReturnType<typeof writeCheck>,
+): Promise<boolean> {
+  const decision = fromThisSite({
+    method: request.method,
+    headers: request.headers,
+    peer: request.socket.remoteAddress,
+  });
+  if (decision.ok) return false;
+  request.log.warn({ why: decision.reason }, 'write refused: not from this site');
+  await reply.status(403).send({ code: 'CSRF_INVALID' });
+  return true;
+}
+
 function startsSession(request: FastifyRequest, path: string): boolean {
   return SESSION_STARTERS.has(path) || request.routeOptions.config.sessionStarter === true;
 }
@@ -119,36 +148,4 @@ function sameToken(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
-}
-
-// The cookie lasts as long as the session it names can: the player's and guest's absolute
-// lifetime of the running mode (30 days standalone unless the Technical section says otherwise,
-// 7 in website mode), so the browser never keeps a cookie the server has already ended.
-export function setSessionCookie(
-  reply: FastifyReply,
-  config: CookieConfig,
-  token: string,
-  lengths: SessionLengths,
-): void {
-  void reply.setCookie(
-    config.name,
-    token,
-    cookieOptions(config, lengths.playerAbsoluteDays * 24 * 3600),
-  );
-}
-
-// Cleared with the same attributes it was set with (a `__Host-`/`__Secure-` cookie only
-// goes away with Secure and its own path).
-export function clearSessionCookie(reply: FastifyReply, config: CookieConfig): void {
-  void reply.clearCookie(config.name, cookieOptions(config));
-}
-
-function cookieOptions(config: CookieConfig, maxAge?: number) {
-  return {
-    path: config.path,
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    secure: config.secure,
-    ...(maxAge === undefined ? {} : { maxAge }),
-  };
 }

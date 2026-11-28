@@ -15,9 +15,10 @@
  * Spec:           docs/spec/01-game-design.md §7.6 (D31, D33, D34), §11
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
 import { closeContexts, post, signIn, stopMatch } from '../realGame.js';
-import { captureLook, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 
 const ASYNC = {
   title: 'Slow royale',
@@ -72,7 +73,7 @@ test('an asynchronous match: player, console, away summary, lobby cancelled', as
     await jump(host, code, '1 hour');
     await player.goto(`/#/match/${code}`);
     await expect(player.getByTestId('current-ball')).toHaveAttribute('data-item', /\d+/);
-    await expect(player.locator('.sbr-badge-live')).toHaveText('In progress');
+    await expect(player.locator('.sk-badge-live')).toHaveText('In progress');
     // The first visit may already summarise the hour; the picture shows the screen itself.
     const dismiss = player.getByTestId('away-dismiss');
     if (await dismiss.isVisible()) await dismiss.click();

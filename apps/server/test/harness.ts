@@ -6,7 +6,8 @@
  * Responsibility: start one database per test file, migrate it and build the app with
  *                 test settings (overridable, e.g. NODE_ENV=production or feature flags) and
  *                 one seed key for every app on the database;
- *                 `buildOn` builds a second app on the same database. Every test file
+ *                 `buildOn` builds a second app on the same database, whose injected requests
+ *                 name this site as a browser does (the write check). Every test file
  *                 aborts the matches it left open and stops its own container (12 §7:
  *                 data created by a test is removed), also when a test failed; the suites
  *                 that create guests remove their guest sessions (removeGuests).
@@ -15,6 +16,8 @@
  * Spec:           docs/spec/12-testing-strategy.md §2, §7
  */
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+
+import type { InjectOptions } from 'fastify';
 
 import type { Mailer } from '../src/auth/mailer.js';
 import { buildApp, createPool, loadEnv, migrate, type App, type DbPool } from '../src/index.js';
@@ -57,7 +60,22 @@ export async function buildOn(
   });
   const built = await buildApp({ env, pool, ...(mailer === undefined ? {} : { mailer }) });
   await built.fastify.ready();
+  sendAsBrowser(built);
   return built;
+}
+
+// The server refuses a write that does not say where it comes from (the kit's writeCheck, 03 §8).
+// A browser says it; the suites' injected requests do too, unless a test sets the header itself.
+function sendAsBrowser(built: App): void {
+  type Request = InjectOptions | string;
+  const inject = built.fastify.inject.bind(built.fastify) as (o: Request) => unknown;
+  built.fastify.inject = ((request: Request) =>
+    inject(
+      // A bare URL is a GET, which the check lets pass.
+      typeof request === 'string'
+        ? request
+        : { ...request, headers: { 'sec-fetch-site': 'same-origin', ...request.headers } },
+    )) as typeof built.fastify.inject;
 }
 
 export async function startHarness(overrides: Record<string, string> = {}): Promise<Harness> {

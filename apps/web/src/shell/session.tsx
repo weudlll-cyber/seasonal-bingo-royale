@@ -9,8 +9,10 @@
  *                 `refresh`). Only the newest refresh sets the session (a late older answer never
  *                 undoes a sign-in). Screens read it via `useSession`, the server's form limits
  *                 via `useLimits` (admin-area §8 (m)), screen values via `useScreens` (§8 (i));
- *                 `highestRole` names the highest role for the account chip.
- * Depends on:     react, @sbr/contracts (types), ./http, ../game/socket
+ *                 `highestRole` names the highest role for the account chip. The answer names the
+ *                 server's time: `useServerCountdown` counts to a server moment on its clock (K69).
+ * Depends on:     react, @sbr/contracts (types), @seasonal/kit (clockOffset, useCountdown), ./http,
+ *                 ../game/socket
  * Used by:        ./AppShell, ../quicktest/TestMatch, ../account/Register, ../account/SignIn,
  *                 ../game/Lobby, ../game/WaitingRoom, ../main, ./DevTools, ../test/matchFixture,
  *                 ../account/AccountPage, ../league/LeaderboardPage
@@ -29,11 +31,14 @@ import {
 } from 'react';
 
 import {
+  type Step,
   clientScreensOf,
   SCREEN_DEFAULTS,
   type ClientLimits,
   type ClientScreens,
 } from '@sbr/contracts';
+import { clockOffset } from '@seasonal/kit';
+import { useCountdown } from '@seasonal/kit/react';
 
 import { resetSocket } from '../game/socket.js';
 import { api, setCsrfToken } from './http.js';
@@ -45,9 +50,16 @@ interface SessionInfo {
   // A local admin's second sign-in step still to do (D60).
   readonly twoFactor?: 'enrol' | 'code' | null;
   readonly features?: { readonly guests: boolean; readonly passwordReset?: boolean };
-  readonly account: { readonly id: string; readonly displayName: string } | null;
+  // Website mode: the member's own Discord steps, which the header shows (kit K56).
+  readonly account: {
+    readonly id: string;
+    readonly displayName: string;
+    readonly steps?: readonly Step[];
+  } | null;
   readonly permissions: readonly string[];
   readonly csrfToken: string | null;
+  // The server's clock when it answered, for countdowns (K69).
+  readonly serverTime?: number;
   // D37: `website` — players sign in only through the website, at `signInPath`.
   readonly authMode?: 'local' | 'website';
   readonly signInPath?: string;
@@ -68,6 +80,8 @@ interface SessionContextValue {
   readonly signIn: (email: string, password: string) => Promise<void>;
   readonly register: (account: NewAccount) => Promise<void>;
   readonly can: (permission: string) => boolean;
+  // Add to the page's clock to get the server's; null until an answer has named its time.
+  readonly clockOffsetMs: number | null;
 }
 
 interface NewAccount {
@@ -91,13 +105,20 @@ async function asGuest(before: SessionInfo): Promise<SessionInfo> {
 
 export function SessionProvider({ children }: { children: ReactNode }): ReactElement {
   const [session, setSession] = useState<SessionInfo | null>(null);
+  const [clockOffsetMs, setClockOffsetMs] = useState<number | null>(null);
   // Only the latest refresh counts: the answer to an older one (e.g. the first load, still
   // on its way when a sign-in finished) must not undo a newer session.
   const latest = useRef(0);
   const refresh = useCallback(async () => {
     latest.current += 1;
     const mine = latest.current;
+    const sentAt = Date.now();
     let next = await api<SessionInfo>('/session');
+    const { serverTime } = next;
+    const offset =
+      serverTime === undefined
+        ? null
+        : clockOffset([{ sentAt, receivedAt: Date.now(), serverTime }]);
     // Website mode: a visitor without a game session watches as a guest (live updates need a
     // session); playing still needs the website sign-in.
     if (next.authMode === 'website' && next.kind === null && next.features?.guests === true) {
@@ -105,6 +126,7 @@ export function SessionProvider({ children }: { children: ReactNode }): ReactEle
     }
     if (mine !== latest.current) return;
     setCsrfToken(next.csrfToken);
+    setClockOffsetMs(offset);
     setSession(next);
   }, []);
   useEffect(() => {
@@ -135,8 +157,9 @@ export function SessionProvider({ children }: { children: ReactNode }): ReactEle
         await refresh();
       },
       can: (permission) => session?.permissions.includes(permission) === true,
+      clockOffsetMs,
     }),
-    [session, refresh],
+    [session, refresh, clockOffsetMs],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
@@ -147,7 +170,12 @@ export function useSession(): SessionContextValue {
   return value;
 }
 
-// The server's form limits, or null until the session has answered.
+// Whole seconds left to a moment the server announced, on the server's clock (the kit's
+// `useCountdown`); null while the moment or the clock is unknown. Display only.
+export function useServerCountdown(at: number | null): number | null {
+  return useCountdown(at, useContext(SessionContext)?.clockOffsetMs ?? null);
+}
+
 // The highest role a session holds, for the account chip: the owner changes the Technical
 // section, an Admin sees the admin area, an organizer starts matches, else a player.
 export function highestRole(can: (permission: string) => boolean): string {
@@ -156,6 +184,7 @@ export function highestRole(can: (permission: string) => boolean): string {
   return can('match.create') ? 'organizer' : 'player';
 }
 
+// The server's form limits, or null until the session has answered.
 export function useLimits(): ClientLimits | null {
   return useContext(SessionContext)?.session?.limits ?? null;
 }

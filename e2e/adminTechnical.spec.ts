@@ -8,43 +8,23 @@
  *                 address" to 6 with a comment and saves; the server refuses a try from this
  *                 address within the next seven (429); the History lists "Sign-in tries per
  *                 address: 20 → 6". An Admin (`dev-admin`) has no Technical link. The page fits
- *                 1280×720 and 390×844 at 100, 125, 150 % (./acceptance/fitProbe). It changes a
+ *                 1280×720 and 390×844 at 100, 125, 150 % (./fits). It changes a
  *                 limit of the whole server, so it runs alone after the other specs (TIMING); value
  *                 restored at the end, also on failure. Saves admin-7-technical-*.
- * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
+ * Depends on:     @playwright/test, ./realGame, ./screens, ./fits
  * Spec:           docs/concepts/admin-area.md §4 (Technical), §8 (c), (f), §9 piece 7
  */
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
-import { probe } from './acceptance/fitProbe.js';
+import { expectFits } from './fits.js';
 import { closeContexts, post, signIn } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
-
-// Both sizes at 100, 125 and 150 %, from the top: nothing small, cut, covered or too wide.
-async function expectFits(page: Page): Promise<void> {
-  for (const size of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    for (const font of [16, 20, 24]) {
-      await page.setViewportSize(size);
-      await page.evaluate((px) => {
-        document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-        window.scrollTo(0, 0);
-      }, font);
-      const p = await probe(page);
-      const what = `${String(size.width)} px at ${String(font)} px`;
-      expect([p.smallText, p.cut, p.overlaps, p.hScroll], what).toEqual([[], [], [], false]);
-    }
-  }
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-  });
-}
 
 test('the owner lowers the sign-in tries and the server applies it at once', async ({
   browser,
@@ -64,12 +44,13 @@ test('the owner lowers the sign-in tries and the server applies it at once', asy
     await owner.getByTestId('technical-comment').fill('Fewer tries');
     await owner.getByTestId('technical-save').click();
     await expect(owner.getByRole('status')).toHaveText('Saved. It applies at once.');
-    await expectFits(owner);
+    await expectFits(owner, 'admin technical');
     if (shots) await captureLook(owner, SHOTS_DIR, 'admin-7-technical');
     const codes: number[] = [];
     for (let i = 0; i < 7; i += 1) {
       const r = await owner.request.post('/api/v1/auth/login', {
         data: { email: `nobody-${String(i)}@example.com`, password: 'not the password' },
+        headers: FROM_THIS_SITE,
       });
       codes.push(r.status());
     }

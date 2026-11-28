@@ -3,15 +3,15 @@
  * @module server/test
  * @brief  The game's route file in a real nginx and a real Caddy: whose cookies reach whom.
  *
- * Responsibility: the route files ops/lib/websiteRoute.sh writes (nginx and own-Caddy mode, the
- *                 installer's own functions; only upstreams are stand-ins) run in nginx and Caddy
+ * Responsibility: the route files the installer writes (the kit's route step with Bingo's
+ *                 settings, ops/lib/websiteApply.sh; only upstreams are stand-ins) run in nginx and Caddy
  *                 containers. A stand-in website answers the authorize request and records the
  *                 Cookie it got; a stand-in game app records each request's Cookie and accepts the
  *                 WebSocket upgrade. The website's session cookie (`__Host-se.sid`, `se.sid`
  *                 without Secure) goes to the website's authorize request only, never to the game
  *                 (HTTP, sign-in route, WebSocket upgrade); the game's own cookies still reach it,
  *                 the upgrade answers 101.
- * Depends on:     vitest, testcontainers, node:http, node:child_process, ops/lib/websiteRoute.sh
+ * Depends on:     vitest, testcontainers, node:http, node:child_process, ops/lib/websiteApply.sh
  * Spec:           docs/spec/09-deployment-architecture.md §3; docs/spec/07-integration-architecture.md §2.3
  */
 import { spawnSync } from 'node:child_process';
@@ -91,15 +91,20 @@ function routeFile(mode: 'nginx' | 'caddy', appPort: number, sitePort: number): 
     'set -e',
     'source ops/lib/common.sh',
     'source ops/lib/website.sh',
-    'source ops/lib/websiteRoute.sh',
+    'source ops/lib/websiteApply.sh',
+    'source ops/kit/lib/website-route.sh',
     'SBR_ETC=$(mktemp -d)',
     `printf 'SBR_WEBSITE_PROXY_SECRET=${SECRET}\\n' >"$SBR_ETC/test.env"`,
-    'header_names test',
+    `SBR_WEBSITE_MODE=${mode}`,
     `SBR_APP_PORT=${String(appPort)}`,
     `SBR_WEBSITE_UPSTREAM=${HOST}:${String(sitePort)}`,
     'SBR_WEBSITE_AUTHORIZE_PATH=/api/games/bingo/authorize',
     'SBR_WEBSITE_ROUTES_DIR=/etc/nginx/routes',
-    `write_${mode}_route test`,
+    // Own-Caddy mode asks for the website's Caddy by name; none runs here.
+    'website_caddy() { echo stand-in; }',
+    'SBR_SITE_DIR=/srv/site',
+    'route_settings test',
+    `sk_route_${mode}`,
   ].join('\n');
   const r = spawnSync('bash', ['-c', script], { cwd: REPO, encoding: 'utf8' });
   if (r.status !== 0) throw new Error(`route file: ${r.stderr}`);

@@ -57,12 +57,12 @@ export function Standings({ result, view, onFollow, profileHref }: StandingsProp
     />
   );
   return (
-    <section className="sbr-panel standings-panel" data-testid="standings-panel">
+    <section className="sk-panel standings-panel" data-testid="standings-panel">
       <h3>Standings</h3>
       {/* The rows scroll inside the panel: a list with a name and a tab stop, so a keyboard can
           scroll it (WCAG 2.1.1); a region role would take the rows out of the list. */}
       <ol
-        className="rank-list"
+        className="rank-list sk-dense-list"
         data-testid="standings"
         aria-label="Standings rows"
         tabIndex={0}
@@ -79,7 +79,7 @@ export function Standings({ result, view, onFollow, profileHref }: StandingsProp
       {/* The viewer's row, in a strip of its own below the list while the list has it out
           of view: it never covers another row. */}
       {pinned && own !== undefined ? (
-        <ol className="rank-list rank-pinned">{row(own, true)}</ol>
+        <ol className="rank-list rank-pinned sk-dense-list">{row(own, true)}</ol>
       ) : null}
     </section>
   );

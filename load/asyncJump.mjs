@@ -3,7 +3,7 @@
  * @module load
  * @brief  200-player asynchronous royale: "Jump ahead 1 day" and every player's away summary.
  *
- * Responsibility: against a running stack with development features (server 3900): sign in N load
+ * Responsibility: against a running server with development features (`pnpm test-server`): sign in N load
  *                 players (dev sign-in `load-NNN`), join one asynchronous royale (15-minute draws,
  *                 no quiet hours), start it, let every player look once (the away summary records
  *                 where each stands), move the match one day ahead (dev time travel, as the
@@ -11,12 +11,14 @@
  *                 jump's duration, the summaries' latencies (p50/p95/p99), how many were non-empty;
  *                 samples CPU, memory, event-loop lag. Then aborts the match (append-only log),
  *                 deletes the load accounts. Usage: node load/asyncJump.mjs [players=200]
- * Depends on:     ./devDefaults.mjs, ./common.mjs
+ * Depends on:     ./testDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/01-game-design.md §11; docs/spec/06-realtime-architecture.md §6;
  *                 docs/spec/12-testing-strategy.md §5
  */
-import './devDefaults.mjs';
-import { BASE, call, errors, inBatches, signIn, summary, watchServer } from './common.mjs';
+import { inBatches, latencies } from '@seasonal/kit/testing';
+
+import './testDefaults.mjs';
+import { BASE, call, errors, serverFigures, signIn, watchServer, WRITES_FROM } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
 const DAY = 86_400_000;
@@ -32,7 +34,7 @@ async function summaries(players, code) {
       return r?.summary ?? null;
     }),
   );
-  return { latencyMs: summary(times), withNews: results.filter((s) => s !== null).length };
+  return { latencyMs: latencies(times), withNews: results.filter((s) => s !== null).length };
 }
 
 async function main() {
@@ -60,12 +62,11 @@ async function main() {
   await call(host, 'POST', '/dev/time-travel', { code, ms: DAY });
   const jumpMs = Date.now() - jumpStarted;
   const after = await summaries(players, code);
-  await server.stop();
+  const load = await server.stop();
   await call(host, 'POST', `/matches/${code}/abort`, { reason: 'load check done' });
   const removed = await (
-    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE' })
+    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE', headers: WRITES_FROM })
   ).json();
-  const cpu = server.samples.map((s) => s.cpuPct);
   console.log(
     JSON.stringify(
       {
@@ -74,12 +75,7 @@ async function main() {
         jumpAheadOneDayMs: jumpMs,
         firstLook: before,
         awaySummaryAfterJump: after,
-        serverCpuPercent: {
-          avg: cpu.reduce((a, b) => a + b, 0) / Math.max(1, cpu.length),
-          max: Math.max(...cpu),
-        },
-        serverRssMbMax: Math.max(...server.samples.map((s) => s.rss)) / 1_048_576,
-        eventLoopLagP99MsMax: Math.max(...server.samples.map((s) => s.lag)) * 1000,
+        ...serverFigures(load),
         errors,
         accountsRemoved: removed.deleted,
         minutes: (Date.now() - started) / 60_000,

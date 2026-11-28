@@ -4,19 +4,28 @@
  * @brief  Session and local-account routes under /api/v1 (05 §2.1, WP-09).
  *
  * Responsibility: GET /session (account, permissions, CSRF token, flags, limits, sign-in mode;
- *                 website mode: the website's chat room, 07 §6), POST /auth/register and
+ *                 website mode: the website's chat room, 07 §6, and the member's own Discord
+ *                 steps for the header), POST /auth/register and
  *                 /auth/login (local mode only; in website mode players sign in through the
  *                 website, D37), /auth/logout, /auth/guest, DELETE /me (password checked first;
  *                 website mode: display name typed, D42). Login answers uniformly and verifies a
  *                 dummy hash for unknown e-mails, so nothing reveals whether an account exists (03
- *                 §2.1). Login and registration are rate-limited per IP and per account+IP (03
- *                 §13). E-mail verification and 2FA: feature flags, off by default.
+ *                 §2.1). Registration is rate-limited per IP; login is braked per IP and per
+ *                 account+IP by wrong passwords only (K46; 03 §13).
+ *                 E-mail verification and 2FA: feature flags, off by default.
  * Depends on:     fastify, zod, @sbr/contracts (LIMITS), @seasonal/kit/server (RateLimiter,
- *                 SessionEnds), ../../auth/*, ../../db/pool, ../../config/features
- * Used by:        ../app, ./websiteSignIn and ./devSignIn (openSession)
+ *                 types), ../../auth/* (rateLimit: behindBrakes), ../../db/pool, ../../config/features,
+ *                 ../sessionStart
+ * Used by:        ../app
  * Spec:           docs/spec/05-api-design.md §2.1; docs/spec/03-security-architecture.md §2.1, §2.3, §3, §13
  */
-import { LIMITS, TECHNICAL_DEFAULTS, type ClientScreens } from '@sbr/contracts';
+import { LIMITS, type ClientScreens } from '@sbr/contracts';
+import {
+  FailureBrake,
+  RateLimiter,
+  type SessionCookie,
+  type SessionEnds,
+} from '@seasonal/kit/server';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
@@ -29,13 +38,7 @@ import {
 } from '../../auth/accounts.js';
 import { DISPLAY_NAME } from '../../auth/displayName.js';
 import { dummyPasswordHash, passwordProblem, verifyPassword } from '../../auth/password.js';
-import { liveRule } from '../../auth/rateLimit.js';
-import {
-  clearSessionCookie,
-  setSessionCookie,
-  type CookieConfig,
-} from '../../auth/sessionPlugin.js';
-import { RateLimiter, type SessionEnds } from '@seasonal/kit/server';
+import { behindBrakes, liveRule } from '../../auth/rateLimit.js';
 import {
   accountSessionIds,
   createSession,
@@ -46,10 +49,11 @@ import { twoFactorStep } from '../../auth/twoFactor.js';
 import type { Features } from '../../config/features.js';
 import { liveLimits, sessionLengthsOf, type LiveTechnical } from '../../config/technical.js';
 import type { DbPool } from '../../db/pool.js';
+import { endCookie, giveCookie, openSession } from '../sessionStart.js';
 
 interface AuthDeps {
   readonly pool: DbPool;
-  readonly cookie: CookieConfig;
+  readonly cookie: SessionCookie;
   // The switches as they are now (../../config/features liveFeatures).
   readonly features: () => Features;
   // The screen values the client reads at page load (admin-area §8 (i)), as they are now.
@@ -84,8 +88,8 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const live = liveLimits(deps.technical);
   const limits = {
     register: new RateLimiter(liveRule('register', live)),
-    loginIp: new RateLimiter(liveRule('loginIp', live)),
-    loginAccountIp: new RateLimiter(liveRule('loginAccountIp', live)),
+    loginIp: new FailureBrake(liveRule('loginIp', live)),
+    loginAccountIp: new FailureBrake(liveRule('loginAccountIp', live)),
     guest: new RateLimiter(liveRule('guest', live)),
   };
   app.get('/api/v1/session', (request) => sessionSummary(request, deps));
@@ -95,7 +99,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       await revokeSession(deps.pool, request.session.id);
       await deps.sessionEnds.end([request.session.id]);
     }
-    clearSessionCookie(reply, deps.cookie);
+    endCookie(reply, deps.cookie);
     return reply.status(204).send();
   });
   app.delete('/api/v1/me', async (request, reply) => deleteMe(request, reply, deps));
@@ -112,7 +116,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       request.headers['user-agent'] ?? null,
       lengths,
     );
-    setSessionCookie(reply, deps.cookie, token, lengths);
+    giveCookie(reply, deps.cookie, token, lengths);
     return reply.status(201).send({ kind: 'guest' });
   });
 }
@@ -121,7 +125,11 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
 function registerLocalSignIn(
   app: FastifyInstance,
   deps: AuthDeps,
-  limits: Readonly<Record<'register' | 'loginIp' | 'loginAccountIp', RateLimiter>>,
+  limits: {
+    readonly register: RateLimiter;
+    readonly loginIp: FailureBrake;
+    readonly loginAccountIp: FailureBrake;
+  },
 ): void {
   app.post('/api/v1/auth/register', async (request, reply) => {
     if (!limits.register.take(request.ip).allowed) return tooMany(reply);
@@ -130,11 +138,15 @@ function registerLocalSignIn(
   app.post('/api/v1/auth/login', async (request, reply) => {
     const parsed = loginBody.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send(LOGIN_FAILED);
-    const key = `${parsed.data.email.toLowerCase()}|${request.ip}`;
-    if (!limits.loginIp.take(request.ip).allowed || !limits.loginAccountIp.take(key).allowed) {
-      return tooMany(reply);
-    }
-    return login(request, reply, deps, parsed.data);
+    // The address, and the account at that address: each braked by wrong passwords only (K46).
+    const keys = [
+      [limits.loginIp, request.ip],
+      [limits.loginAccountIp, `${parsed.data.email.toLowerCase()}|${request.ip}`],
+    ] as const;
+    const ran = await behindBrakes(keys, (judged) =>
+      login(request, reply, deps, { ...parsed.data, judged }),
+    );
+    return ran ? reply : tooMany(reply);
   });
 }
 
@@ -151,9 +163,11 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
     twoFactor: await pendingStep(request, deps),
     signedIn: s !== null && s.accountId !== null,
     kind: s?.kind ?? null,
-    account: s?.accountId ? { id: s.accountId, displayName: s.displayName } : null,
+    account: await accountOf(s, deps),
     permissions: s?.permissions ?? [],
     csrfToken: s?.csrfToken ?? null,
+    // The server's clock, for the client's countdowns (kit K69).
+    serverTime: Date.now(),
     features: deps.features(),
     // The limits the server checks forms with; the client keeps no copy (admin-area §8 (m)).
     limits: LIMITS,
@@ -164,8 +178,20 @@ async function sessionSummary(request: FastifyRequest, deps: AuthDeps) {
   };
 }
 
-// Website mode only: where the sign-in button goes (D37) and the website's chat room, which
-// the client frames only when the server names it (07 §6).
+// The signed-in account; website mode adds the member's own Discord steps as the website last
+// sent them (the header's badges, kit K56).
+async function accountOf(s: FastifyRequest['session'], deps: AuthDeps) {
+  if (s === null || s.accountId === null) return null;
+  const account = { id: s.accountId, displayName: s.displayName };
+  if (deps.mode !== 'website') return account;
+  const r = await deps.pool.query<{ steps: unknown }>(
+    'SELECT steps FROM sbr.accounts WHERE id = $1',
+    [s.accountId],
+  );
+  return { ...account, steps: r.rows[0]?.steps ?? [] };
+}
+
+// Website mode: the sign-in button's target (D37) and the website's chat room (07 §6).
 function websiteParts(deps: AuthDeps) {
   if (deps.mode !== 'website') return {};
   return {
@@ -189,44 +215,18 @@ async function login(
   request: FastifyRequest,
   reply: FastifyReply,
   deps: AuthDeps,
-  body: z.infer<typeof loginBody>,
+  body: z.infer<typeof loginBody> & { readonly judged: (wrong: boolean) => void },
 ) {
   const account = await findLoginAccount(deps.pool, body.email);
   const encoded = account?.passwordHash ?? (await dummyPasswordHash());
   const valid = await verifyPassword(encoded, body.password);
+  body.judged(account === null || !valid);
   if (account === null || !valid) return reply.status(401).send(LOGIN_FAILED);
   if (deps.features().emailVerification && !account.emailVerified) {
     return reply.status(403).send({ code: 'EMAIL_NOT_VERIFIED' });
   }
   await recordLogin(deps.pool, account.id);
   return startSession(request, reply, deps, { accountId: account.id, status: 200 });
-}
-
-// A fresh session for the account, the old one ended (03 §3: rotate on login); also the
-// website sign-in's (./websiteSignIn) and the dev quick sign-in's (./devSignIn).
-export async function openSession(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  // playerDays: a member's or guest's absolute lifetime in website mode (7 days); else the
-  // Technical section's (30 unless changed).
-  deps: Pick<AuthDeps, 'pool' | 'cookie' | 'sessionEnds'> & {
-    readonly playerDays?: number;
-    readonly technical?: LiveTechnical;
-  },
-  accountId: string,
-): Promise<void> {
-  if (request.session !== null) {
-    await revokeSession(deps.pool, request.session.id);
-    await deps.sessionEnds.end([request.session.id]);
-  }
-  const lengths = sessionLengthsOf(deps.technical?.() ?? TECHNICAL_DEFAULTS, deps.playerDays);
-  const { token } = await createSession(
-    deps.pool,
-    accountId,
-    request.headers['user-agent'] ?? null,
-    lengths,
-  );
-  setSessionCookie(reply, deps.cookie, token, lengths);
 }
 
 async function startSession(
@@ -267,7 +267,7 @@ async function deleteMe(request: FastifyRequest, reply: FastifyReply, deps: Auth
   await deleteAccount(deps.pool, accountId);
   deps.accountDeleted?.(accountId);
   await deps.sessionEnds.end(sessions);
-  clearSessionCookie(reply, deps.cookie);
+  endCookie(reply, deps.cookie);
   return reply.status(204).send();
 }
 

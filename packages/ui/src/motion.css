@@ -48,7 +48,7 @@
 
 @keyframes sbr-burst {
   from {
-    box-shadow: 0 0 0 0 var(--burst, var(--color-accent));
+    box-shadow: 0 0 0 0 var(--burst, var(--sk-color-accent));
   }
   to {
     box-shadow: 0 0 0 18px transparent;
@@ -58,33 +58,33 @@
 @keyframes sbr-four-seasons {
   0%,
   100% {
-    box-shadow: 0 0 0 4px var(--color-spring);
+    box-shadow: 0 0 0 4px var(--sk-color-spring);
   }
   25% {
-    box-shadow: 0 0 0 4px var(--color-summer);
+    box-shadow: 0 0 0 4px var(--sk-color-summer);
   }
   50% {
-    box-shadow: 0 0 0 4px var(--color-autumn);
+    box-shadow: 0 0 0 4px var(--sk-color-autumn);
   }
   75% {
-    box-shadow: 0 0 0 4px var(--color-winter);
+    box-shadow: 0 0 0 4px var(--sk-color-winter);
   }
 }
 
 .sbr-anim-draw {
-  animation: sbr-ball-in var(--duration-slow) var(--ease-out);
+  animation: sbr-ball-in var(--sk-duration-slow) var(--sk-ease-out);
 }
 
 .sbr-anim-stamp {
-  animation: sbr-stamp var(--duration-base) var(--ease-out);
+  animation: sbr-stamp var(--sk-duration-base) var(--sk-ease-out);
 }
 
 .sbr-anim-lift {
-  animation: sbr-lift var(--duration-base) var(--ease-out);
+  animation: sbr-lift var(--sk-duration-base) var(--sk-ease-out);
 }
 
 .sbr-anim-burst {
-  animation: sbr-burst var(--duration-slow) var(--ease-out);
+  animation: sbr-burst var(--sk-duration-slow) var(--sk-ease-out);
 }
 
 .sbr-anim-season-complete {

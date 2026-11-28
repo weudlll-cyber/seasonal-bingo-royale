@@ -10,8 +10,11 @@
  *                 a dot and "new" when an asynchronous match has events the player has not
  *                 seen (the server's `news`, D54) and "Open", which opens
  *                 it in this tab. Hidden while the list is empty (a guest's is). The server
- *                 decides every fact; this only puts them into words.
- * Depends on:     react, @sbr/contracts (types), ../shell/router, ./Registration (whenText),
+ *                 decides every fact; this only puts them into words. On a wide page (owner
+ *                 decision of 2026-11-28) it is the kit's dense list with "My matches" on the
+ *                 first row's line, a small "Open", two rows in sight and the rest scrolling.
+ * Depends on:     react, @sbr/contracts (types), ../components/ScrollBox, ../shell/router,
+ *                 ./Registration (whenText),
  *                 ./game.css
  * Used by:        ./Lobby
  * Spec:           docs/spec/01-game-design.md §13 (D39); docs/spec/05-api-design.md §2.2
@@ -19,6 +22,7 @@
 import type { MyMatch } from '@sbr/contracts';
 import type { ReactElement } from 'react';
 
+import { ScrollBox } from '../components/ScrollBox.js';
 import { hrefOf } from '../shell/router.js';
 import { whenText } from './Registration.js';
 import './game.css';
@@ -45,40 +49,61 @@ function lobbyStart(m: MyMatch, now: number): string {
 
 export function MyMatches({
   matches,
+  wide = false,
 }: {
   readonly matches: readonly MyMatch[];
+  readonly wide?: boolean;
 }): ReactElement | null {
   if (matches.length === 0) return null;
   const now = Date.now();
-  return (
-    <section className="sbr-panel sbr-stack" data-testid="my-matches" aria-label="My matches">
-      <h2>My matches</h2>
-      <ul className="own-matches">
-        {matches.map((m) => (
-          <li key={m.code} className="own-match" data-testid={`my-match-${m.code}`}>
-            <span>
-              <strong>{m.title}</strong>
-              <span className="sbr-muted">
-                {' '}
-                · {m.mode === 'async' ? 'Asynchronous' : 'Realtime'} ·{' '}
-                <span data-testid={`my-match-state-${m.code}`}>{myMatchState(m, now)}</span>
-              </span>
-              {m.news && (
-                <span className="own-match__new" data-testid={`my-match-new-${m.code}`}>
-                  new
-                </span>
-              )}
+  const rows = (
+    <ul className={`own-matches${wide ? ' sk-dense-list' : ''}`}>
+      {matches.map((m) => (
+        <li key={m.code} className="own-match" data-testid={`my-match-${m.code}`}>
+          <span>
+            <strong>{m.title}</strong>
+            <span className="sbr-muted">
+              {' '}
+              · {m.mode === 'async' ? 'Asynchronous' : 'Realtime'} ·{' '}
+              <span data-testid={`my-match-state-${m.code}`}>{myMatchState(m, now)}</span>
             </span>
-            <a
-              className="sbr-btn sbr-btn--primary"
-              href={hrefOf({ name: 'match', code: m.code })}
-              data-testid={`my-open-${m.code}`}
-            >
-              Open
-            </a>
-          </li>
-        ))}
-      </ul>
+            {m.news && (
+              <span className="own-match__new" data-testid={`my-match-new-${m.code}`}>
+                new
+              </span>
+            )}
+          </span>
+          <a
+            className={wide ? 'sk-btn own-match__open' : 'sk-btn sk-btn--primary'}
+            href={hrefOf({ name: 'match', code: m.code })}
+            data-testid={`my-open-${m.code}`}
+          >
+            Open
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <section
+      className={`sk-panel ${wide ? 'my-matches--wide' : 'sbr-stack'}`}
+      data-testid="my-matches"
+      aria-label="My matches"
+    >
+      <h2>My matches</h2>
+      {wide ? (
+        // Two rows in sight; the rest scroll (./game.css).
+        <ScrollBox
+          className="my-matches-box"
+          role="region"
+          aria-label="My matches list"
+          tabIndex={0}
+        >
+          {rows}
+        </ScrollBox>
+      ) : (
+        rows
+      )}
     </section>
   );
 }

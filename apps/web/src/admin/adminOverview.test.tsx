@@ -44,6 +44,25 @@ const OVERVIEW = {
   health: { version: 'main (abc123def456)', startedAt: Date.now() - 3 * 3_600_000 },
 };
 
+describe('the Overview without an answer', () => {
+  it('keeps loading when the server does not answer, and refuses nobody', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('network down'))),
+    );
+    render(
+      <SessionProvider>
+        <AdminOverview />
+      </SessionProvider>,
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(screen.queryByTestId('admin-refused')).toBeNull();
+    expect(screen.getByText('Loading the Overview…')).toBeTruthy();
+  });
+});
+
 // The session with `permissions`; the Overview's answer; every request recorded.
 function serve(permissions: readonly string[]): string[] {
   const sent: string[] = [];

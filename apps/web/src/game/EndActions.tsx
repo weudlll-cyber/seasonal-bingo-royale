@@ -24,14 +24,14 @@ export function EndActions({
   return (
     <nav className="sbr-row" aria-label="After the match" data-testid="end-actions">
       {host ? (
-        <a className="sbr-btn sbr-btn--primary" href={hrefOf({ name: 'hostNew' })}>
+        <a className="sk-btn sk-btn--primary" href={hrefOf({ name: 'hostNew' })}>
           Host another match
         </a>
       ) : null}
-      <a className={host ? 'sbr-btn' : 'sbr-btn sbr-btn--primary'} href={hrefOf({ name: 'lobby' })}>
+      <a className={host ? 'sk-btn' : 'sk-btn sk-btn--primary'} href={hrefOf({ name: 'lobby' })}>
         Back to the lobby
       </a>
-      <a className="sbr-btn" href={hrefOf({ name: 'verify', code })} data-testid="verify-link">
+      <a className="sk-btn" href={hrefOf({ name: 'verify', code })} data-testid="verify-link">
         Verify this match
       </a>
     </nav>

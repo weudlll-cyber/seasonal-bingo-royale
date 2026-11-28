@@ -3,14 +3,10 @@
  * @module web/game
  * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
  *
- * Responsibility: the arena layout (stacked on phones, ball and drawn numbers above the
- *                 card; from 960 px the arena fills the window below the top bar: ball, drawn
- *                 numbers and the newest lines beside the card, which takes its cell size from
- *                 the space it has, the side column beside them with the standings filling the
- *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
- *                 itself, so the page does not scroll during a round, 01 §13); the player's card
- *                 itself is in ./liveCard.css (imported here). Colours and sizes from @sbr/ui
- *                 tokens.
+ * Responsibility: the stacked arena of phones and large fonts, ball and drawn numbers above
+ *                 the card and the side column under the play area (a wide page takes
+ *                 ./wide.css's columns instead); the player's card itself is in ./liveCard.css
+ *                 (imported here). Colours and sizes from @sbr/ui tokens.
  * Used by:        ./MatchScreen, ../host/HostConsole (header, ball and numbers),
  *                 ../components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §13
@@ -23,14 +19,14 @@
 .arena {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 .arena-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .arena-head p {
@@ -40,13 +36,13 @@
 .arena-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--sk-space-3);
 }
 
 .arena-side {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   min-width: 0;
 }
 
@@ -56,13 +52,15 @@
    (../components/DrawTicker), so a long round does not push the card down. */
 .arena-play {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  /* The ball's column never leaves the numbers without room: in a pause its words wrap
+     (at a large font they pushed the numbers past a phone's edge). */
+  grid-template-columns: fit-content(60%) minmax(0, 1fr);
   grid-template-areas:
     'ball ticker'
     'cards cards'
     'events events';
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   min-width: 0;
 }
 
@@ -89,10 +87,15 @@
   box-sizing: border-box;
   height: 1.75rem;
   line-height: 1.55rem;
+  /* A number never breaks in its box (at a large font it ran over the next row). */
+  white-space: nowrap;
+}
+
+.arena:not(.wide) .arena-cards {
+  grid-area: cards;
 }
 
 .arena-cards {
-  grid-area: cards;
   min-width: 0;
   /* The cards take their cells from this box's width (container units, ./liveCard.css,
      ./watch.css); from 960 px from its width and height (below). */
@@ -109,15 +112,9 @@
   margin: 0;
 }
 
-/* The player's header (not the host console's): the host link and LIVE stay one compact
-   line beside the title on a phone. */
-.arena > .arena-head .sbr-btn {
-  white-space: nowrap;
-}
-
 @media (max-width: 640px) {
   .arena {
-    gap: var(--space-2);
+    gap: var(--sk-space-2);
   }
 
   /* Title and host link/LIVE on one line while both fit, else the link and LIVE wrap under
@@ -126,7 +123,7 @@
   .arena > .arena-head {
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.25rem var(--space-1);
+    gap: 0.25rem var(--sk-space-1);
   }
 
   .arena > .arena-head > div:first-child {
@@ -137,25 +134,21 @@
     flex: 1 0 auto;
     max-width: 100%;
     margin: 0;
-    font-size: var(--font-size-lead);
+    font-size: var(--sk-font-size-lead);
     overflow-wrap: anywhere;
   }
 
   .arena > .arena-head [data-testid='arena-progress'] {
     order: 1;
     flex-basis: 100%;
-    font-size: var(--font-size-small);
+    font-size: var(--sk-font-size-small);
   }
 
+  /* LIVE goes under the host link where the two do not fit side by side (a large font). */
   .arena > .arena-head .sbr-row {
-    flex-wrap: nowrap;
+    justify-content: flex-end;
     gap: 0.4rem;
     margin-left: auto;
-  }
-
-  .arena > .arena-head .sbr-btn {
-    padding: 0 0.6rem;
-    font-size: var(--font-size-small);
   }
 
   /* Never more than a quarter of the width: at a large font the ball does not push the
@@ -165,111 +158,6 @@
   }
 
   .arena-ticker p {
-    font-size: var(--font-size-small);
-  }
-}
-
-/* Desktop: the arena fills the window below the top bar (../shell/shell.css .fit-window):
-   title, rules and notices on top, then the play area beside the side column with what is
-   left. In the play area the ball, the drawn numbers and the newest lines sit beside the
-   card, which takes its cell size from its box (container units), so it is always whole.
-   In the side column the standings take the rest of the height and scroll inside; the
-   other panels scroll inside themselves when the window is short. */
-@media (min-width: 960px) {
-  /* A column: title, rules and whatever notices there are, then the play area with the
-     rest of the height (never less than 20rem or half the window, whichever is smaller: at
-     a large font the rem floor alone pushed the round past the window, fit audit F12; a
-     tall recap in a pause may scroll). */
-  .arena {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-
-  .arena-grid {
-    flex: 1 1 min(20rem, 50vh);
-    grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    min-height: min(20rem, 50vh);
-  }
-
-  /* In a pause the recap stands above: the play area keeps a readable height and the page
-     may scroll (only a running round must fit, 01 §13). */
-  .arena:has(.interlude) .arena-grid {
-    flex-basis: 32rem;
-    min-height: 32rem;
-  }
-
-  .arena-play {
-    grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
-    grid-template-areas:
-      'ball cards'
-      'ticker cards'
-      'events cards';
-    align-items: start;
-    min-height: 0;
-  }
-
-  /* A size of its own, never a share of its cell (a share of the shrink-to-fit cell made
-     the ball as narrow as its number); the column is at least 11rem wide. */
-  .arena-ball .ball {
-    --ball-size: min(9rem, 18vh);
-  }
-
-  /* Four whole rows. */
-  .arena-ticker .draw-ticker {
-    max-height: 7.75rem;
-  }
-
-  .arena-events {
-    max-height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  .arena-cards {
-    container-type: size;
-    align-self: stretch;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  /* Five rows of cells plus the letters, the feedback line and the padding fit the box.
-     The cell never gets smaller than its 16 px number with the season icon needs (2.2rem
-     grows with the font): rather than the numbers shrinking or touching, the box scrolls
-     (fit audit F6, F15). */
-  .arena-cards .live-card {
-    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5)));
-    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
-  }
-
-  /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
-     height while it fits, else scroll inside themselves; the standings keep room for the
-     top 3 rows and the viewer's own row in its strip, and get the rest. */
-  .arena-side {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .arena-side > * {
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  /* At least 14rem, but never more than 60 % of the column: at a large font the rem floor
-     alone pushed the panel past the column and cut the own row's strip (fit audit). */
-  .arena-side > .standings-panel {
-    flex: 1 0 min(14rem, 60%);
-    overflow: hidden;
-  }
-
-  .arena-rules {
-    order: 0;
-    margin-top: calc(0.25rem - var(--space-2));
+    font-size: var(--sk-font-size-small);
   }
 }

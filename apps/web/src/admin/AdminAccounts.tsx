@@ -107,7 +107,7 @@ function WebsiteNote(): ReactElement {
     <div className="admin-page sbr-stack" data-testid="admin-accounts">
       <h1>Players and accounts</h1>
       <AdminNav current="accounts" />
-      <p className="sbr-panel">
+      <p className="sk-panel">
         Accounts and roles come from the website: who may start games and who is an admin is set
         there.
       </p>
@@ -124,16 +124,16 @@ function SearchForm(props: {
 }): ReactElement {
   return (
     <form
-      className="sbr-panel sbr-stack"
+      className="sk-panel sbr-stack"
       onSubmit={(e) => {
         e.preventDefault();
         props.onSearch(props.query.trim());
       }}
     >
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>{props.byEmail ? 'Name or e-mail starts with' : 'Name starts with'}</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={props.query}
           data-testid="accounts-search"
           onChange={(e) => {
@@ -141,7 +141,7 @@ function SearchForm(props: {
           }}
         />
       </label>
-      <button type="submit" className="sbr-btn sbr-btn--primary">
+      <button type="submit" className="sk-btn sk-btn--primary">
         Find accounts
       </button>
     </form>

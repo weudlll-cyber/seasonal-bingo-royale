@@ -24,7 +24,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HostConsole } from '../host/HostConsole.js';
 import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
-import { AwaySummary, awayLines } from './AwaySummary.js';
+import { AwaySummary, awayLines, useAwaySummary } from './AwaySummary.js';
 import { rulesLine } from './labels.js';
 import { MatchScreen } from './MatchScreen.js';
 import type { MatchSummary } from './useLiveMatch.js';
@@ -73,6 +73,11 @@ const away: Summary = {
   finalPlace: null,
 };
 
+// The summary as the match screen holds it.
+function Away({ code }: { readonly code: string }) {
+  return <AwaySummary away={useAwaySummary(code, true)} />;
+}
+
 describe('an asynchronous match on screen', () => {
   it('names the cadence and the quiet hours in the rules line', () => {
     expect(rulesLine(slow)).toBe(
@@ -108,7 +113,7 @@ describe('an asynchronous match on screen', () => {
     expect(screen.getByTestId('current-ball')).toBeTruthy();
     expect(document.body.textContent).not.toContain('Speed window');
     expect(document.querySelector('.window-bar')).toBeNull();
-    expect(document.querySelector('.sbr-badge-live')?.textContent).toBe('In progress');
+    expect(document.querySelector('.sk-badge-live')?.textContent).toBe('In progress');
   });
 });
 
@@ -178,7 +183,7 @@ describe('the away summary under strict mode', () => {
     );
     render(
       <StrictMode>
-        <AwaySummary code="SLOW01" />
+        <Away code="SLOW01" />
       </StrictMode>,
     );
     await act(async () => {

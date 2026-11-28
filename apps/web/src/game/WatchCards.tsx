@@ -6,7 +6,9 @@
  * Responsibility: "Top 4 still in": the cards of the best players still in as the server
  *                 names them (a phone shows the first 2, ./arena.css), each with place, name and
  *                 points, the marks as they happen (the fold of the public cellMarked events) in
- *                 the look of a player's own card, and "1 to go: <pattern>" from the server. A
+ *                 the look of a player's own card, and "1 to go: <pattern>" from the server (a
+ *                 wide page shows "1 to go" in the one-line head, the patterns for a screen
+ *                 reader and as its hint, owner decision of 2026-11-28). A
  *                 card keeps its slot while its player stays in the set, so the cards do not jump.
  *                 A followed player's card alone and larger with "Back to the top 4"; when that
  *                 player goes out, the top again with a line saying so.
@@ -48,11 +50,12 @@ export function WatchCards({ watch, view, followed, onBack }: WatchCardsProps): 
         </p>
       ) : null}
       {following ? (
-        <button type="button" className="sbr-btn watch-back" onClick={onBack}>
+        <button type="button" className="sk-btn watch-back" onClick={onBack}>
           Back to the top 4
         </button>
       ) : null}
-      <div className="watch-grid">
+      {/* On a phone the cards scroll sideways: a named tab stop (WCAG 2.1.1). */}
+      <div className="watch-grid" role="group" aria-label="Watched cards" tabIndex={0}>
         {names.map((name) => {
           const player = view.standings.find((p) => p.accountId === name);
           return player === undefined ? null : (
@@ -87,7 +90,10 @@ function WatchedCard({
       </strong>{' '}
       · {String(player.points)} pts
       {oneToGo.length > 0 ? (
-        <span className="watch-togo"> · 1 to go: {oneToGo.map(prizeName).join(', ')}</span>
+        <span className="watch-togo" title={oneToGo.map(prizeName).join(', ')}>
+          {' '}
+          · 1 to go<span className="watch-togo__names">: {oneToGo.map(prizeName).join(', ')}</span>
+        </span>
       ) : null}
     </p>
   );

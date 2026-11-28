@@ -11,14 +11,14 @@
 
 .account-form {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   max-width: 28rem;
   margin: 0 auto;
 }
 
 .account-form small {
-  font-weight: var(--font-weight-body);
-  font-size: var(--font-size-small);
+  font-weight: var(--sk-font-weight-body);
+  font-size: var(--sk-font-size-small);
 }
 
 .account-form p {
@@ -37,11 +37,11 @@
 }
 
 .account-part {
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  padding-top: var(--sk-space-2);
+  border-top: 1px solid var(--sk-color-border);
 }
 
-.account-part > .sbr-btn {
+.account-part > .sk-btn {
   justify-self: start;
 }
 

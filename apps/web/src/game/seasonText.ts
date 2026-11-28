@@ -69,6 +69,19 @@ export function growthSentence(season: Season, remaining: number): string {
   return `${growthWords(season)} — ${numbersLeft(remaining)}`;
 }
 
+// The running effects in a few words (the wide match screens' own status).
+export function boostShort(season: Season, factor: number, remaining: number): string {
+  return `${seasonName(season)} boost ×${String(factor)} — ${numbersLeft(remaining)}`;
+}
+
+export function growthShort(season: Season, remaining: number): string {
+  return `${seasonName(season)} growth — ${numbersLeft(remaining)}`;
+}
+
+export function shieldShort(season: Season, charges: number): string {
+  return `${seasonName(season)} shield — ${String(charges)} left`;
+}
+
 // "… N left" with the charges the player holds.
 export function shieldSentence(season: Season, rankMargin: number, charges: number): string {
   return `${shieldWords(season, rankMargin, charges)} — ${String(charges)} left`;

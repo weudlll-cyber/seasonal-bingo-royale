@@ -10,35 +10,70 @@
  * Spec:           docs/spec/01-game-design.md §13
  */
 
+@import './lobbyWide.css';
+
 .lobby-head h1,
 .arena-head h1,
 .waiting h1 {
-  font-size: var(--font-size-title);
+  font-size: var(--sk-font-size-title);
+}
+
+.lobby-item h2 {
+  font-size: var(--sk-font-size-lead);
 }
 
 .lobby-error {
-  color: var(--color-danger);
+  color: var(--sk-color-danger);
 }
 
 .lobby-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Desktop (owner decision of 2026-11-28): the lobby fills the window below the top bar and the
+   matches scroll in their box, a first row of them whole (the floor); the page itself does not
+   scroll. */
+@media (min-width: 960px) {
+  .lobby.fit-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .lobby.fit-window > * {
+    flex: none;
+  }
+
+  .lobby.fit-window > .lobby-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .lobby.fit-window > .lobby-scroll:has(.lobby-item) {
+    min-height: 17rem;
+  }
+}
+
 .lobby-item {
   display: grid;
-  gap: var(--space-1);
+  /* As narrow as the phone at a large font: the title breaks, the rows wrap. */
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+  gap: var(--sk-space-1);
 }
 
 .lobby-item-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }
 
 .lobby-item p {
@@ -49,7 +84,7 @@
    matches" (./MyMatches, D39) and the host's "Your matches" (../host/YourMatches) */
 .own-matches {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -60,15 +95,15 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-1);
-  padding: var(--space-1) 0;
-  border-top: 1px solid var(--color-border);
+  gap: var(--sk-space-1);
+  padding: var(--sk-space-1) 0;
+  border-top: 1px solid var(--sk-color-border);
 }
 
 /* "new" after an asynchronous match with unseen events, behind a dot (D54) */
 .own-match__new {
-  margin-left: var(--space-1);
-  color: var(--color-accent);
+  margin-left: var(--sk-space-1);
+  color: var(--sk-color-accent);
   font-weight: 600;
 }
 
@@ -79,7 +114,7 @@
   height: 0.5rem;
   margin-right: 0.3rem;
   border-radius: 50%;
-  background: var(--color-accent);
+  background: var(--sk-color-accent);
   vertical-align: middle;
 }
 
@@ -87,58 +122,91 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: var(--space-1) 0 0;
+  margin: var(--sk-space-1) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .waiting-players li {
   padding: 0.25rem 0.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-2);
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-color-surface-2);
 }
 
 .waiting-players li.is-me {
-  background: var(--color-active-bg);
-  outline: 1px solid var(--color-accent);
+  background: var(--sk-color-active-bg);
+  outline: 1px solid var(--sk-color-accent);
+}
+
+/* A short window: the lobby's and the waiting room's parts stand closer. */
+@media (min-width: 960px) and (max-height: 699px) {
+  .lobby.fit-window {
+    gap: var(--sk-space-1);
+  }
+
+  .lobby-head :is(h1, p) {
+    margin-block: 0;
+  }
+
+  .lobby .sk-panel {
+    padding-block: var(--sk-space-1);
+  }
+
+  .lobby.fit-window > .lobby-scroll:has(.lobby-item) {
+    min-height: 15rem;
+  }
+
+  .waiting,
+  .waiting-body,
+  .waiting-main {
+    gap: var(--sk-space-1);
+  }
+
+  .waiting h1 {
+    margin-block: 0;
+  }
+
+  .waiting .sk-panel {
+    padding-block: var(--sk-space-1);
+  }
 }
 
 .countdown {
   margin: 0;
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .countdown strong {
-  font-size: var(--font-size-title);
-  color: var(--color-autumn);
+  font-size: var(--sk-font-size-title);
+  color: var(--sk-color-autumn);
 }
 
 /* "Verify this match" (./VerifyMatch): the verdict, the long hex values wrapping on a phone,
    the per-round table, which scrolls inside its box when the window is narrower (fit F10). */
 .verify-verdict {
   margin: 0;
-  padding: var(--space-2);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
-  font-weight: var(--font-weight-strong);
+  padding: var(--sk-space-2);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .verify-verdict--ok {
-  border-left: 4px solid var(--color-success);
+  border-left: 4px solid var(--sk-color-success);
 }
 
 .verify-verdict--bad {
-  border-left: 4px solid var(--color-danger);
+  border-left: 4px solid var(--sk-color-danger);
 }
 
 .verify-facts {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
 }
 
 .verify-facts dt {
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 .verify-facts dd {
@@ -162,8 +230,8 @@
 
 .verify-rounds th,
 .verify-rounds td {
-  padding: var(--space-1);
-  border-bottom: 1px solid var(--color-surface-2);
+  padding: var(--sk-space-1);
+  border-bottom: 1px solid var(--sk-color-surface-2);
 }
 
 /* "While you were away" on top of an asynchronous match (01 §11). */
@@ -172,17 +240,17 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .away-summary__head h2 {
   margin: 0;
-  font-size: var(--font-size-lead);
+  font-size: var(--sk-font-size-lead);
 }
 
 .away-summary ul {
-  margin: var(--space-2) 0 0;
+  margin: var(--sk-space-2) 0 0;
   padding-left: 1.2rem;
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
 }

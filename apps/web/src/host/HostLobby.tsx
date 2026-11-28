@@ -12,7 +12,7 @@
  *                 (./AbortMatch), which leads every screen to the cancelled-match page (D17).
  * Depends on:     react, ../game/labels, ../game/Registration, ../game/useLiveMatch, ../playback,
  *                 ../shell/http, ../shell/session, ../shell/useMaintenance, ./TimingFields,
- *                 ./AbortMatch
+ *                 ./AbortMatch, ./hostLobby.css
  * Used by:        ./HostConsole
  * Spec:           docs/spec/01-game-design.md §7.6; docs/spec/05-api-design.md §2.3, §3
  */
@@ -27,6 +27,7 @@ import { useLimits, useSession } from '../shell/session.js';
 import { useMaintenanceState } from '../shell/useMaintenance.js';
 import { AbortMatch } from './AbortMatch.js';
 import { AutoStartBox } from './TimingFields.js';
+import './hostLobby.css';
 
 export function HostLobby({
   live,
@@ -46,26 +47,31 @@ export function HostLobby({
       });
   };
   return (
-    <section className="sbr-panel sbr-stack">
-      <OpenNotice match={live.match} />
-      <h2>
-        Players {live.match.players} / {live.match.maxPlayers}
-      </h2>
-      <ul className="waiting-players" data-testid="host-players">
-        {view.standings.map((p) => (
-          <li key={p.accountId}>{p.accountId}</li>
-        ))}
-      </ul>
-      {import.meta.env.DEV ? (
-        <BotFill
-          onFill={(upTo) => {
-            call('bots', { upTo });
-          }}
-        />
-      ) : null}
-      <StartControls match={live.match} call={call} />
-      {message !== null ? <p className="lobby-error">{message}</p> : null}
-      <AbortMatch code={live.match.code} />
+    // Two columns where there is width (./hostLobby.css): who is there, and what the host does.
+    <section className="sk-panel host-lobby">
+      <div className="sbr-stack">
+        <OpenNotice match={live.match} />
+        <h2>
+          Players {live.match.players} / {live.match.maxPlayers}
+        </h2>
+        <ul className="waiting-players" data-testid="host-players">
+          {view.standings.map((p) => (
+            <li key={p.accountId}>{p.accountId}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="sbr-stack">
+        {import.meta.env.DEV ? (
+          <BotFill
+            onFill={(upTo) => {
+              call('bots', { upTo });
+            }}
+          />
+        ) : null}
+        <StartControls match={live.match} call={call} />
+        {message !== null ? <p className="lobby-error">{message}</p> : null}
+        <AbortMatch code={live.match.code} />
+      </div>
     </section>
   );
 }
@@ -77,7 +83,7 @@ function WebsiteBox(props: {
   readonly call: (path: string, body: unknown) => void;
 }): ReactElement {
   return (
-    <label className="sbr-row">
+    <label className="sbr-row host-website">
       <input
         type="checkbox"
         data-testid="host-website"
@@ -133,7 +139,7 @@ function StartControls({
         <div className="sbr-row">
           <button
             type="button"
-            className="sbr-btn sbr-btn--primary sbr-btn--big"
+            className="sk-btn sk-btn--primary sk-btn--big"
             data-testid="start-match"
             disabled={held}
             onClick={() => {
@@ -177,7 +183,7 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
       <label className="sbr-row">
         Fill with
         <input
-          className="sbr-input"
+          className="sk-input"
           style={{ width: '6rem' }}
           type="number"
           min={players?.min}
@@ -192,7 +198,7 @@ function BotFill({ onFill }: { readonly onFill: (upTo: number) => void }): React
       </label>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         data-testid="fill-bots"
         onClick={() => {
           onFill(bots);

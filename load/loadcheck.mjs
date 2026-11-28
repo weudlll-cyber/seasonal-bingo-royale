@@ -42,6 +42,8 @@ function print(r) {
       r.liveBreakdown,
       line('gap between draws (4 s)', r.drawGapMs),
       `${'app event-loop lag'.padEnd(28)} p99 max ${ms(r.eventLoopLagP99MsMax)}`,
+      // From the app's own metrics, in cores of one CPU each.
+      `${'app CPU (cores)'.padEnd(28)} mean ${String(r.serverCpuCores.avg ?? '-')}, peak ${String(r.serverCpuCores.max ?? '-')}`,
       `${'errors'.padEnd(28)} http ${String(e.http)}, socket ${String(e.socket)}, taps and watching ${String(e.intent)}${e.examples.length > 0 ? ` (${e.examples.slice(0, 3).join('; ')})` : ''}`,
     ].join('\n'),
   );

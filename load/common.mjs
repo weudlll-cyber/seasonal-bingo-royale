@@ -1,26 +1,33 @@
 /**
  * @file   load/common.mjs
  * @module load
- * @brief  What the load checks share: the target, dev sign-in, API calls, batches, percentiles, server samples.
+ * @brief  What the load checks share: the target, dev sign-in, API calls and the server's figures.
  *
  * Responsibility: the server to load (SBR_LOAD_BASE with the base path, SBR_LOAD_ORIGIN: the
- *                 development stack through ./devDefaults.mjs, a production install through
+ *                 test server through ./testDefaults.mjs, the development server through
+ *                 ./devDefaults.mjs, a production install through
  *                 `sbr loadcheck`) and its WebSocket address; sign in a development account and call the
- *                 API as it (cookie, CSRF token, origin), run calls in batches, sum up latencies
- *                 (p50/p95/p99/max), sample the server's CPU, memory and event-loop lag from
- *                 /metrics every 2 s, and count errors with a few examples.
- * Depends on:     nothing (Node's fetch)
+ *                 API as it (cookie, CSRF token, origin), watch the server's CPU, memory and
+ *                 event-loop lag, and count errors with a few examples. Batches and latencies
+ *                 (p50/p95/p99/max) are the kit's (`inBatches`, `latencies`, K73).
+ * Depends on:     @seasonal/kit/testing (watchServer); Node's fetch
  * Used by:        ./drawRun.mjs, ./drawLatency.mjs, ./loadcheck.mjs, ./spectatorStream.mjs,
  *                 ./asyncJump.mjs, ../apps/server/demo-league.mjs (BASE, ORIGIN)
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/08-devops-architecture.md §6
  */
-// The development scripts set both through ./devDefaults.mjs, `sbr loadcheck` through its
+import { watchServer as watchMetrics } from '@seasonal/kit/testing';
+
+// The local scripts set both through ./testDefaults.mjs or ./devDefaults.mjs, `sbr loadcheck` through its
 // container's environment.
 if (process.env.SBR_LOAD_BASE === undefined || process.env.SBR_LOAD_ORIGIN === undefined) {
-  throw new Error('SBR_LOAD_BASE and SBR_LOAD_ORIGIN must be set (or import ./devDefaults.mjs)');
+  throw new Error('SBR_LOAD_BASE and SBR_LOAD_ORIGIN must be set (or import ./testDefaults.mjs)');
 }
 export const BASE = process.env.SBR_LOAD_BASE.replace(/\/$/, '');
+// The public origin: what a player's page names, and what the WebSocket accepts.
 export const ORIGIN = process.env.SBR_LOAD_ORIGIN;
+// An HTTP write names the origin it is sent to: the server refuses one naming another host than
+// the request's (an install is called by its internal address).
+export const WRITES_FROM = { origin: new URL(BASE).origin };
 
 // Socket.IO takes the namespace from the URL's path, so the base path goes into `path`.
 export const SOCKET = {
@@ -38,7 +45,7 @@ export function fail(kind, detail) {
 export async function signIn(as) {
   const r = await fetch(`${BASE}/api/v1/dev/sign-in`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', origin: ORIGIN },
+    headers: { 'content-type': 'application/json', ...WRITES_FROM },
     body: JSON.stringify({ as }),
   });
   const cookie = (r.headers.get('set-cookie') ?? '').split(';')[0];
@@ -52,7 +59,7 @@ export async function call(client, method, path, body) {
     method,
     headers: {
       cookie: client.cookie,
-      origin: ORIGIN,
+      ...WRITES_FROM,
       'x-csrf-token': client.csrf,
       ...(body === undefined ? {} : { 'content-type': 'application/json' }),
     },
@@ -62,69 +69,13 @@ export async function call(client, method, path, body) {
   return r.status === 204 ? null : r.json().catch(() => null);
 }
 
-export async function inBatches(items, size, fn) {
-  const out = [];
-  for (let i = 0; i < items.length; i += size) {
-    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
-  }
-  return out;
-}
+// Samples the server's CPU (in cores), memory and event-loop lag from its /metrics every 2 s
+// until stop(), which sums them up (the kit's sampler; Bingo's metrics carry the prefix sbr_).
+export const watchServer = () => watchMetrics({ url: `${BASE}/metrics`, prefix: 'sbr_' });
 
-const percentile = (values, p) => {
-  if (values.length === 0) return null;
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1)];
-};
-
-export function summary(values) {
-  return {
-    n: values.length,
-    p50: percentile(values, 50),
-    p95: percentile(values, 95),
-    p99: percentile(values, 99),
-    max: values.length === 0 ? null : Math.max(...values),
-  };
-}
-
-// The server's process metrics (prom-client, prefix sbr_).
-async function metrics() {
-  const text = await (await fetch(`${BASE}/metrics`)).text();
-  const value = (name) => Number(new RegExp(`^${name} ([\\d.e+-]+)`, 'm').exec(text)?.[1] ?? NaN);
-  return {
-    cpu: value('sbr_process_cpu_seconds_total'),
-    rss: value('sbr_process_resident_memory_bytes'),
-    lag: value('sbr_nodejs_eventloop_lag_p99_seconds'),
-  };
-}
-
-// Samples the server every 2 s, one request at a time (a slow answer skips a beat).
-export function watchServer() {
-  const samples = [];
-  let last = null;
-  let running = true;
-  const loop = async () => {
-    while (running) {
-      const m = await metrics().catch(() => null);
-      const at = Date.now();
-      if (m !== null && Number.isFinite(m.cpu)) {
-        if (last !== null) {
-          samples.push({
-            cpuPct: ((m.cpu - last.m.cpu) * 100_000) / (at - last.at),
-            rss: m.rss,
-            lag: m.lag,
-          });
-        }
-        last = { m, at };
-      }
-      await new Promise((r) => setTimeout(r, 2_000));
-    }
-  };
-  const done = loop();
-  return {
-    stop: async () => {
-      running = false;
-      await done;
-    },
-    samples,
-  };
-}
+// The server's figures in a load check's report.
+export const serverFigures = (load) => ({
+  serverCpuCores: { avg: load.cpuMeanCores, max: load.cpuPeakCores },
+  serverRssMbMax: load.rssPeakMiB,
+  eventLoopLagP99MsMax: load.loopLagP99PeakMs,
+});

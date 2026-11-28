@@ -33,7 +33,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
     <fieldset>
       <legend>Draws</legend>
       <select
-        className="sbr-select"
+        className="sk-select"
         data-testid="start-draw-mode"
         aria-label="Draws"
         value={value.mode}
@@ -47,7 +47,7 @@ export function StartDrawField({ value, onChange }: StartDrawFieldProps): ReactE
       <label className="sbr-row">
         <span>Seconds between timed draws</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           type="number"
           data-testid="start-draw-interval"
           min={1}

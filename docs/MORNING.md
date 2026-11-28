@@ -1,5 +1,816 @@
 # Morning sheet
 
+## Fit to common windows (owner decision of 2026-11-28; branch `feat/kit-0.22`, draft PR #76)
+
+### Step 1: what did not fit before (head `836b860`, measured 2026-11-28, no product code changed)
+
+Root font 16 px, 20 players. "page N": the page scrolls N px. "hides N": a box has N px more than it shows. "cut N": a panel has N px out of sight. The standings, the log of lines and the row of drawn numbers scroll in their box by design and are left out. The sizes either side of the layout's switches (960x600, 1280x759, 1280x760, 1599x950, 1600x950) and root font 32 px were measured too (`reports/logs/w2-windows.jsonl`, git-ignored).
+
+| Screen                         | 1920x950                                                                                                              | 1280x720                                                                                                                                    | 1024x600                                                                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| standalone-lobby-guest         | fits                                                                                                                  | fits                                                                                                                                        | fits                                                                                                                                         |
+| standalone-lobby               | fits                                                                                                                  | fits                                                                                                                                        | fits                                                                                                                                         |
+| standalone-console-lobby       | fits                                                                                                                  | page 3                                                                                                                                      | page 118                                                                                                                                     |
+| standalone-lobby-open          | fits                                                                                                                  | fits                                                                                                                                        | fits                                                                                                                                         |
+| standalone-waiting-room        | fits                                                                                                                  | fits                                                                                                                                        | fits                                                                                                                                         |
+| standalone-my-matches          | fits                                                                                                                  | page 17                                                                                                                                     | page 107; [lobby-match-RGJND4] cut 67                                                                                                        |
+| standalone-console-round       | [standings] hides 125                                                                                                 | [standings] hides 353                                                                                                                       | section.host-controls hides 85; [standings] hides 468                                                                                        |
+| standalone-player-royale       | [standings] hides 391                                                                                                 | [standings] hides 660                                                                                                                       | [owner-status-dev-host] hides 41; [patterns-panel] hides 58; [standings] hides 676                                                           |
+| standalone-spectator-4         | [standings] hides 292                                                                                                 | [standings] hides 520                                                                                                                       | div.arena-cards hides 24; [standings] hides 635; [watch-cards] cut 25                                                                        |
+| standalone-spectator-1         | [standings] hides 292                                                                                                 | [standings] hides 520                                                                                                                       | [standings] hides 635                                                                                                                        |
+| standalone-interlude-player    | page 276; [standings] hides 694; [patterns-panel] cut 10; section.live-card cut 210                                   | page 504; [standings] hides 694; [owner-status-dev-host] cut 83; [patterns-panel] cut 147; section.live-card cut 438; [current-ball] cut 40 | page 618; [standings] hides 712; [owner-status-dev-host] cut 109; [patterns-panel] cut 147; section.live-card cut 446; [current-ball] cut 48 |
+| standalone-interlude-console   | [standings] hides 169                                                                                                 | section.host-controls hides 160; [standings] hides 397; [host-draw-controls] cut 100                                                        | section.host-controls hides 394; [standings] hides 512; [interlude] cut 120; [host-draw-controls] cut 146                                    |
+| standalone-interlude-spectator | page 198; [standings] hides 554; [watch-cards] cut 148                                                                | page 426; [standings] hides 554; [patterns-panel] cut 61; [watch-cards] cut 376                                                             | page 540; [standings] hides 554; [patterns-panel] cut 147; [watch-cards] cut 463; [current-ball] cut 48                                      |
+| standalone-results-player      | page 660; [owner-status-dev-host] cut 136; [patterns-panel] cut 68; section.live-card cut 310; [current-ball] cut 144 | page 886; [owner-status-dev-host] cut 136; [patterns-panel] cut 68; section.live-card cut 310; [current-ball] cut 130                       | page 996; [owner-status-dev-host] cut 155; [patterns-panel] cut 68; section.live-card cut 310; [current-ball] cut 108                        |
+| standalone-results-spectator   | page 619; [patterns-panel] cut 68; [current-ball] cut 144                                                             | page 847; [patterns-panel] cut 68; [current-ball] cut 130                                                                                   | page 983; [patterns-panel] cut 68; [current-ball] cut 108                                                                                    |
+| standalone-results-console     | page 831; [current-ball] cut 144                                                                                      | page 1043; [current-ball] cut 130                                                                                                           | page 1184; [current-ball] cut 108                                                                                                            |
+| standalone-player-classic      | [standings] hides 45                                                                                                  | [owner-status-dev-host] hides 3; section.sk-panel hides 29; [standings] hides 281                                                           | section.sk-panel hides 125; [standings] hides 289                                                                                            |
+| website-header-lobby           | fits                                                                                                                  | fits                                                                                                                                        | fits                                                                                                                                         |
+| website-console-lobby          | fits                                                                                                                  | div.sk-docked-main hides 113                                                                                                                | div.sk-docked-main hides 228                                                                                                                 |
+| website-lobby-open             | fits                                                                                                                  | fits                                                                                                                                        | div.sk-docked-main hides 79; [lobby-match-3M2ZJV] cut 94                                                                                     |
+| website-waiting-room           | fits                                                                                                                  | fits                                                                                                                                        | div.sk-docked-main hides 72                                                                                                                  |
+| website-console-round          | [standings] hides 264                                                                                                 | div.sk-docked-main hides 9; [standings] hides 445                                                                                           | div.sk-docked-main hides 98; section.host-controls hides 161; [standings] hides 476; [host-draw-controls] cut 170                            |
+| website-player-royale          | [standings] hides 305                                                                                                 | [standings] hides 495                                                                                                                       | div.sk-docked-main hides 98; div.arena-cards hides 18; [standings] hides 517; [patterns-panel] cut 93; section.live-card cut 135             |
+| website-spectator-4            | [standings] hides 264                                                                                                 | [standings] hides 454                                                                                                                       | div.sk-docked-main hides 49; div.arena-cards hides 64; [standings] hides 525; [watch-cards] cut 135                                          |
+| website-interlude-player       | div.sk-docked-main hides 486; section.live-card cut 427; [current-ball] cut 29                                        | div.sk-docked-main hides 674; section.live-card cut 446; [current-ball] cut 48; [interlude] cut 47                                          | div.sk-docked-main hides 836; [patterns-panel] cut 171; section.live-card cut 294; [current-ball] cut 48; [interlude] cut 209                |
+| website-interlude-console      | section.host-controls hides 114; [standings] hides 308; [host-draw-controls] cut 77                                   | div.sk-docked-main hides 9; section.host-controls hides 293; [standings] hides 489; [interlude] cut 155; [host-draw-controls] cut 102       | div.sk-docked-main hides 122; section.host-controls hides 462; [standings] hides 496; [interlude] cut 294; [host-draw-controls] cut 146      |
+| website-interlude-spectator    | div.sk-docked-main hides 350; [watch-cards] cut 303                                                                   | div.sk-docked-main hides 544; [watch-cards] cut 457; [current-ball] cut 48                                                                  | div.sk-docked-main hides 706; [watch-cards] cut 401; [current-ball] cut 48; [interlude] cut 79                                               |
+| website-results-player         | div.sk-docked-main hides 599; section.live-card cut 310; [current-ball] cut 144                                       | div.sk-docked-main hides 783; section.live-card cut 310; [current-ball] cut 130                                                             | div.sk-docked-main hides 896; [patterns-panel] cut 89; section.live-card cut 310; [current-ball] cut 108                                     |
+| website-results-spectator      | div.sk-docked-main hides 599; [current-ball] cut 144                                                                  | div.sk-docked-main hides 783; [current-ball] cut 130                                                                                        | div.sk-docked-main hides 896; [current-ball] cut 108                                                                                         |
+| website-results-console        | div.sk-docked-main hides 705; [current-ball] cut 144                                                                  | div.sk-docked-main hides 878; [current-ball] cut 130                                                                                        | div.sk-docked-main hides 1011; [current-ball] cut 108                                                                                        |
+| website-player-classic         | fits                                                                                                                  | [standings] hides 67                                                                                                                        | div.sk-docked-main hides 98; div.arena-cards hides 18; [standings] hides 89; section.live-card cut 135                                       |
+
+### What to open
+
+Both run while this PC session lives. Look in **light and dark** (the theme toggle is the last item of the header; the themes do not change the layout). Size the window, bars taken off, to **1280x720** and **1024x600**; your laptop window (1278x629) lies between them.
+
+- **Normal (standalone):** `http://localhost:5390/`, build badge "Bingo · dev · 5390". For a match: `#/quicktest`, **Sign in as host**, **Battle royale**, **Create test match**.
+- **Website mode:** open `http://127.0.0.1:4490/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite` first, then the addresses below.
+
+| Screen                                   | Where                                                                                             | Look for                                                                                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Lobby with matches                       | normal, `http://localhost:5390/`                                                                  | No page scroll; the matches scroll in their own box with "More below".                                                                                    |
+| A round: player, spectator, host console | normal, a test match                                                                              | No page scroll; own status with its season lines, all patterns, followed cards whole.                                                                     |
+| Between rounds                           | normal, the same test match after a round                                                         | Recap and countdown in view without scrolling; the notices have a column of their own.                                                                    |
+| Result                                   | normal at its end; website `http://127.0.0.1:4490/games/bingo/#/match/UAXPFZ` and `#/host/UAXPFZ` | The placement in its own column; website at 1280x720 at least 7 places.                                                                                   |
+| Between rounds, website mode             | the pause match named in the final message                                                        | At 1280x720 the side-by-side layout; at 1024x600 the game area scrolls, top 3 of the standings in view. This arrangement is new: is it right to your eye? |
+
+### What was built
+
+- **Between rounds and at the end** (standalone and website): the notices (cut screen, recap and countdown, final placement) stand in a column of their own beside the play area and the side column, scrolling inside it with "More below" where a window is too low (`game/windows.css`, `host/hostWindows.css`, the new `NoticeColumn` on the existing `ScrollBox`).
+- **Short windows:** title and progress on one line, closer standings rows, under 700 px the side column in two halves (`game/shortWindows.css`).
+- **Website mode, between rounds:** player and spectator side by side; under 700 px the game area scrolls, the recap keeps a readable height and the standings head the side column (`shell/dockPause.css`).
+- **Lobbies:** the matches scroll in their own box; the console's lobby takes two columns; the waiting room stands closer in short windows.
+- **"More below" when a result arrives on the open page** (`useScrollHint.ts` now watches the content arrive; its test failed before the fix).
+- **Pages without a match:** the small links are 44 px targets; long headings break and the test page's choices keep their distance on a 32 px phone.
+- No type is smaller, nothing is left out, the card cells keep their size. Phone and large-font layouts stack as before.
+- **Checks' tools:** the sweep takes the new sizes and reports page scroll and cut panels on the match screens (`e2e/acceptance/windowFit.ts`).
+
+### Standings rows and result places in sight
+
+Root font 16 px, 20 players (classic: 12 standalone, 11 website). Standings counts include the viewer's own pinned row; the top 3 are whole on every screen listed. "-": not part of that screen.
+
+| Screen                                                 | 1920x950     | 1280x720     | 1024x600  |
+| ------------------------------------------------------ | ------------ | ------------ | --------- |
+| Standalone round: player / spectator / console         | 10 / 12 / 16 | 6 / 9 / 13   | 5 / 5 / 8 |
+| Standalone classic round                               | 9            | 6            | 11        |
+| Standalone pause: player / spectator / console         | 11 / 11 / 15 | 6 / 9 / 11   | 4 / 6 / 5 |
+| Standalone result places: player / spectator / console | 19 / 20 / 20 | 12 / 14 / 12 | 6 / 9 / 7 |
+| Website round: player / spectator / console            | 12 / 12 / 12 | 10 / 10 / 10 | 6 / 6 / 7 |
+| Website classic round                                  | 11           | 11           | 7         |
+| Website pause: player / spectator / console            | 10 / 10 / 10 | 6 / 7 / 8    | 4 / 4 / 4 |
+| Website result places: player / spectator / console    | 13 / 13 / 13 | 8 / 8 / 7    | 3 / 4 / 3 |
+
+The docked floor of 7 places at 1280x720 (your decision of 2026-11-24) holds.
+
+### What still does not fit
+
+Numbers in px at root font 16 px. Everything here scrolls (in its box or in the game area) and says so with "More below"; nothing is hidden.
+
+| Screen                                 | Where                                   | What                                                                                                                            | Proposal                                                               |
+| -------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Website: console lobby, waiting room   | 1024x600                                | game area 52 and 64                                                                                                             | Lower chat strip (below).                                              |
+| Website round: player, classic         | 1024x600                                | game area ~98; own card cut 111 to 135, patterns 93                                                                             | Lower chat strip.                                                      |
+| Website round: spectator, host console | 1024x600                                | followed cards cut 153; controls 161, draw controls cut 170                                                                     | Lower chat strip.                                                      |
+| Website pause: player                  | 1280x720 to 1280x760                    | patterns cut 72 to 111; recap and status scroll in their box                                                                    | Lower chat strip.                                                      |
+| Website pause: player, spectator       | 1024x600                                | game area 110 to 146; patterns cut 124 to 147, followed cards 118, ball ~64, recap up to 33                                     | Lower chat strip.                                                      |
+| Website pause: host console            | 1280x720; 1024x600                      | game area 32, recap cut 27; game area 88, recap cut 112 (in a match with more lines: game area up to 116, draw controls cut 80) | Lower chat strip.                                                      |
+| Standalone pause: player               | 1024x600                                | the notices' column scrolls (recap cut 5 to 73), status and patterns up to 23                                                   | Accept: the recap scrolls in its column.                               |
+| Standalone pause: spectator            | 1024x600                                | followed cards cut up to 50                                                                                                     | Accept.                                                                |
+| Standalone round: player               | 1024x600                                | side column 3 px with every season line                                                                                         | Accept.                                                                |
+| Website result                         | 1024x600 (patterns also 31 at 1280x760) | own card cut 66, status 85, patterns 196; the host console numbers column scrolls 70                                            | Lower chat strip; the 42 px cells are your K18 decision.               |
+| Phone cards                            | 320x568, 959x600                        | cells 35 px (44 asked): the phone layout sizes the card by the height                                                           | A task of its own: size the card by its width and let the page scroll. |
+| Some match screens                     | 320x568 at 32 px                        | 32 px sideways scroll                                                                                                           | Same task.                                                             |
+
+Reason for the website rows: the chat strip takes about 180 px of a 600 px window. **Proposal for all of them:** ask the kit for a lower (or foldable) strip in windows under 760 px high; about 100 px more would close most of these rows.
+
+### Sizes and themes of each run
+
+Sizes as kit planning set them (your decision of 2026-11-28), with one change of Bingo planning: **1024x600, not 1024x630** (630 is 1 px taller than your window). Desktop 1920x950, 1280x720, 1024x600; phone 390x844, 320x568; each side of every layout switch between them: 960x600, 1280x759, 1280x760, 1599x950, 1600x950, 480x844, 481x844, 640x844, 641x844, 959x600.
+
+| Run                         | Screens                        | Sizes                                 | Theme, root font, axe                                    |
+| --------------------------- | ------------------------------ | ------------------------------------- | -------------------------------------------------------- |
+| Step 1 measurement (before) | match screens and pages        | the desktop sizes and switches        | light, 16 and 32, no axe                                 |
+| Full sweep, once            | all                            | all 15                                | light 16 and 32; dark 16 at 1280x720 and 390x844; axe on |
+| Re-check 1                  | 19, pages among them           | 1920x950, 1280x720, 1024x600, 320x568 | light, 16 and 32, axe off                                |
+| Re-checks 2 to 4            | the result screens             | 1920x950, 1280x720, 1024x600          | light, 16, axe off                                       |
+| Measurement after           | match screens and pages        | the desktop sizes and switches        | light, 16, no axe                                        |
+| Re-check 5 (pauses)         | the 6 pause screens            | the 6 desktop sizes up to 1280x760    | light, 16 and 32, axe off                                |
+| Looks while fixing          | single screens on my own stand | 1024x600 to 1920x950                  | light, 16                                                |
+
+### Checks: how many full runs, and why
+
+- **One** full sweep (the task's one sweep). Two of its seven tests failed: a result that arrives on an open page had no "More below"; fixed.
+- Narrowed re-checks as listed above, each after the fixes it covers.
+- The measurement after found the **standings' top 3 not whole** between rounds (website 1024x600 and 1280x760, 1 or 0 rows; standalone player 1024x600, 2 rows) and the website card cut sideways at 1024x600. The sweep does not test that floor. Fixed, measured, re-check 5.
+- Unit tests of the web package (317 passed), typecheck, lint of touched files.
+- Browser specs covering the changes (20 files, Chromium): 39 passed, 2 failed (`playerFit`: third standings row at 1280x720); fixed, `playerFit` 4 passed. After the pause fix 5 files again: 13 passed.
+- No ops rehearsal: no ops script changed. No local `pnpm verify`.
+- Test databases only; the development database was not written.
+
+### Choices that keep today's behaviour
+
+- The kit's fit (`src/fit.ts`) is not used: Bingo's scale floor there is 1 (K14), so it cannot shrink anything.
+- Where a screen cannot fit, it scrolls as before rather than lose content or shrink type.
+- Phone and large-font layouts are unchanged apart from the three findings on pages without a match.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                                        | Where                 | Reason                                                                     |
+| ---------------------------------------------- | --------------------- | -------------------------------------------------------------------------- |
+| Own card cells 42x42 px                        | website mode, desktop | Owner decision of 2026-11-27 (K18).                                        |
+| Development badge "covered"                    | test page at 32 px    | The badge ignores the pointer (spec 08 §1.1); the probe does not see that. |
+| Covers by the open menu and the phone chat bar | website mode          | Kit `css/header.css`, `css/dock.css`.                                      |
+| The rows of "What still does not fit"          | there                 | Listed with a proposal.                                                    |
+
+### Needs the owner's word
+
+| Question                                                                                          | Proposal                                                                               |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Merge draft PR #76?                                                                               | When you have looked: yes, without squashing (the update path needs commit `ff6d090`). |
+| Ask the kit for a lower chat strip in low windows?                                                | Yes.                                                                                   |
+| Keep the new website pause under 700 px (game area scrolls, standings on top of the side column)? | Yes: it keeps the floors and a readable recap.                                         |
+| Phone cards under 44 px at 320x568 and 959x600?                                                   | A task of its own.                                                                     |
+
+The other questions of "Kit 0.40.0" below stay open; its "More below" and pages-without-a-match questions are done with this task.
+
+### Kit findings (this task)
+
+1. `css/dock.css`: in a low window the chat strip's height leaves a game about 350 px at 1024x600. Wish: a lower or foldable strip under 760 px high.
+2. The sweep's cover probe reports an element that ignores the pointer (`pointer-events: none`) as covering. Wish: leave those out.
+3. The planned size 1024x630 is 1 px taller than the owner's window; the kit's size list should take 1024x600.
+4. The sweep has no way to declare "the first 3 rows of this list are whole"; Bingo found such a loss only by its own measurement.
+
+### Lines against master `d7d841e`
+
+296 text files (this sheet and binary files left out): 37034 lines before, 41230 after.
+
+**Removed**, each replaced by a kit part: `db/roles.ts` (kit `grantAppRole`), `league/useApiGet.ts` and `shell/http.test.ts` (`useApiGet`, `createApiClient`), `seasonIcons.ts` and the four optimized season files (`seasons.css`), `useSecondsUntil.ts` (`useCountdown`), `ops/lib/uninstall.sh` (the admin command), `ops/lib/websiteRoute.sh` (`website-route.sh`).
+
+**Moved out** into the kit: the screen and load test helpers, the website stand-in proxy, the backup, admin, route, roles, host and operator scripts (`ops/kit/` is the pinned kit's folder, byte for byte, test `kitOpsCopy.test.ts`), the base button, panel, field and chip rules, the Trivy scan and the image release steps.
+
+<details><summary>Per file</summary>
+
+| File                                                | Before | After   |
+| --------------------------------------------------- | ------ | ------- |
+| `.github/actions/setup/action.yml`                  | 21     | 21      |
+| `.github/workflows/browsers.yml`                    | new    | 112     |
+| `.github/workflows/ci.yml`                          | 229    | 214     |
+| `.github/workflows/release.yml`                     | 89     | 70      |
+| `CLAUDE.md`                                         | 61     | 86      |
+| `CONTRIBUTING.md`                                   | 45     | 71      |
+| `apps/server/demo-league.mjs`                       | 49     | 48      |
+| `apps/server/package.json`                          | 49     | 49      |
+| `apps/server/src/auth/rateLimit.ts`                 | 60     | 104     |
+| `apps/server/src/auth/sessionPlugin.test.ts`        | new    | 70      |
+| `apps/server/src/auth/sessionPlugin.ts`             | 154    | 151     |
+| `apps/server/src/cli.ts`                            | 250    | 256     |
+| `apps/server/src/config/env.test.ts`                | 92     | 105     |
+| `apps/server/src/config/env.ts`                     | 212    | 215     |
+| `apps/server/src/db/appRole.ts`                     | new    | 23      |
+| `apps/server/src/db/roles.ts`                       | 40     | removed |
+| `apps/server/src/http/app.ts`                       | 282    | 297     |
+| `apps/server/src/http/plugins/securityHeaders.ts`   | 59     | 53      |
+| `apps/server/src/http/routes/auth.ts`               | 276    | 276     |
+| `apps/server/src/http/routes/devSignIn.ts`          | 79     | 82      |
+| `apps/server/src/http/routes/health.ts`             | 42     | 33      |
+| `apps/server/src/http/routes/loginBrake.test.ts`    | new    | 115     |
+| `apps/server/src/http/routes/websiteSignIn.ts`      | 124    | 123     |
+| `apps/server/src/http/sessionStart.ts`              | new    | 70      |
+| `apps/server/src/http/signIn.ts`                    | 90     | 89      |
+| `apps/server/src/kitOpsCopy.test.ts`                | new    | 38      |
+| `apps/server/src/loadOrigin.test.ts`                | new    | 50      |
+| `apps/server/src/olderUpdate.test.ts`               | new    | 25      |
+| `apps/server/test/containers.integration.test.ts`   | new    | 50      |
+| `apps/server/test/dbRoles.integration.test.ts`      | 187    | 195     |
+| `apps/server/test/harness.ts`                       | 105    | 123     |
+| `apps/server/test/installNextSteps.test.ts`         | 48     | 48      |
+| `apps/server/test/releaseImage.test.ts`             | new    | 83      |
+| `apps/server/test/restoreDrill.test.ts`             | new    | 35      |
+| `apps/server/test/routeTrusted.test.ts`             | new    | 45      |
+| `apps/server/test/websiteLogin.integration.test.ts` | 242    | 247     |
+| `apps/server/test/websiteRoute.integration.test.ts` | 242    | 247     |
+| `apps/web/package.json`                             | 30     | 30      |
+| `apps/web/src/App.tsx`                              | 68     | 68      |
+| `apps/web/src/account/AccountPage.tsx`              | 224    | 224     |
+| `apps/web/src/account/PasswordReset.tsx`            | 147    | 149     |
+| `apps/web/src/account/Register.tsx`                 | 81     | 81      |
+| `apps/web/src/account/SignIn.tsx`                   | 64     | 68      |
+| `apps/web/src/account/TwoFactor.tsx`                | 167    | 167     |
+| `apps/web/src/account/WebsiteSignIn.tsx`            | 86     | 86      |
+| `apps/web/src/account/account.css`                  | 64     | 64      |
+| `apps/web/src/account/formParts.tsx`                | 90     | 90      |
+| `apps/web/src/admin/AccountCard.tsx`                | 122    | 122     |
+| `apps/web/src/admin/AdminAccounts.tsx`              | 149    | 149     |
+| `apps/web/src/admin/AdminHistory.tsx`               | 118    | 118     |
+| `apps/web/src/admin/AdminNav.tsx`                   | 47     | 47      |
+| `apps/web/src/admin/AdminOverview.tsx`              | 181    | 182     |
+| `apps/web/src/admin/AdminPresets.tsx`               | 186    | 186     |
+| `apps/web/src/admin/AdminSwitches.tsx`              | 115    | 115     |
+| `apps/web/src/admin/LeagueCorrections.tsx`          | 125    | 125     |
+| `apps/web/src/admin/PresetEditor.tsx`               | 121    | 121     |
+| `apps/web/src/admin/SettingsValues.tsx`             | 70     | 70      |
+| `apps/web/src/admin/StepUp.tsx`                     | 66     | 66      |
+| `apps/web/src/admin/ValueField.tsx`                 | 139    | 142     |
+| `apps/web/src/admin/admin.css`                      | 140    | 155     |
+| `apps/web/src/admin/adminOverview.test.tsx`         | 134    | 153     |
+| `apps/web/src/changedSpecs.test.ts`                 | new    | 46      |
+| `apps/web/src/components/BingoHeader.tsx`           | 31     | 31      |
+| `apps/web/src/components/CellFace.tsx`              | 69     | 69      |
+| `apps/web/src/components/CutScreen.tsx`             | 83     | 83      |
+| `apps/web/src/components/DevBadge.tsx`              | 41     | 41      |
+| `apps/web/src/components/DrawControls.tsx`          | 86     | 86      |
+| `apps/web/src/components/DrawTicker.tsx`            | 102    | 102     |
+| `apps/web/src/components/FinalNotice.tsx`           | 72     | 72      |
+| `apps/web/src/components/FinalPlacement.tsx`        | 174    | 175     |
+| `apps/web/src/components/GameTypeField.tsx`         | 45     | 45      |
+| `apps/web/src/components/OwnerArea.tsx`             | 140    | 140     |
+| `apps/web/src/components/PatternsPanel.tsx`         | 66     | 66      |
+| `apps/web/src/components/Playback.tsx`              | 129    | 130     |
+| `apps/web/src/components/Podium.tsx`                | 59     | 59      |
+| `apps/web/src/components/RankRow.tsx`               | 95     | 92      |
+| `apps/web/src/components/SeasonIcon.tsx`            | 77     | 87      |
+| `apps/web/src/components/Standings.tsx`             | 160    | 160     |
+| `apps/web/src/components/StartDrawField.tsx`        | 69     | 69      |
+| `apps/web/src/components/StartForm.tsx`             | 221    | 221     |
+| `apps/web/src/components/StartMarkingField.tsx`     | 113    | 113     |
+| `apps/web/src/components/StepBadges.test.tsx`       | 57     | 53      |
+| `apps/web/src/components/StepBadges.tsx`            | 67     | 36      |
+| `apps/web/src/components/cardView.test.tsx`         | 73     | 73      |
+| `apps/web/src/components/matchSide.css`             | 221    | 224     |
+| `apps/web/src/components/noNameBadges.test.tsx`     | new    | 138     |
+| `apps/web/src/components/playerView.test.tsx`       | 249    | 257     |
+| `apps/web/src/components/podium.css`                | 140    | 140     |
+| `apps/web/src/components/results.css`               | 221    | 195     |
+| `apps/web/src/components/results.test.tsx`          | 103    | 105     |
+| `apps/web/src/components/scrollBox.test.tsx`        | 66     | 76      |
+| `apps/web/src/components/seasonMark.css`            | 25     | 25      |
+| `apps/web/src/components/seasonMarks.test.tsx`      | 70     | 70      |
+| `apps/web/src/components/segmented.css`             | 35     | 38      |
+| `apps/web/src/designTokens.test.ts`                 | 192    | 105     |
+| `apps/web/src/game/ArenaCards.tsx`                  | 72     | 72      |
+| `apps/web/src/game/ArenaNotice.tsx`                 | 80     | 105     |
+| `apps/web/src/game/AwaySummary.tsx`                 | 119    | 119     |
+| `apps/web/src/game/EndActions.tsx`                  | 39     | 39      |
+| `apps/web/src/game/HostLink.tsx`                    | 32     | 32      |
+| `apps/web/src/game/Interlude.tsx`                   | 165    | 164     |
+| `apps/web/src/game/InterludeCards.tsx`              | 136    | 136     |
+| `apps/web/src/game/Lobby.tsx`                       | 211    | 217     |
+| `apps/web/src/game/MatchCancelled.tsx`              | 50     | 50      |
+| `apps/web/src/game/MatchScreen.tsx`                 | 216    | 211     |
+| `apps/web/src/game/MyMatches.tsx`                   | 84     | 84      |
+| `apps/web/src/game/Registration.tsx`                | 105    | 105     |
+| `apps/web/src/game/VerifyMatch.tsx`                 | 161    | 166     |
+| `apps/web/src/game/WaitingRoom.tsx`                 | 127    | 122     |
+| `apps/web/src/game/WatchCards.tsx`                  | 116    | 117     |
+| `apps/web/src/game/arena.css`                       | 275    | 280     |
+| `apps/web/src/game/asyncMatch.test.tsx`             | 190    | 190     |
+| `apps/web/src/game/ball.css`                        | 91     | 91      |
+| `apps/web/src/game/game.css`                        | 188    | 250     |
+| `apps/web/src/game/interlude.css`                   | 74     | 75      |
+| `apps/web/src/game/interlude.test.tsx`              | 247    | 248     |
+| `apps/web/src/game/liveCard.css`                    | 79     | 77      |
+| `apps/web/src/game/registration.test.tsx`           | 157    | 160     |
+| `apps/web/src/game/seasonsOverview.css`             | 80     | 82      |
+| `apps/web/src/game/serverClock.test.tsx`            | new    | 46      |
+| `apps/web/src/game/shortWindows.css`                | new    | 165     |
+| `apps/web/src/game/watch.css`                       | 118    | 118     |
+| `apps/web/src/game/windows.css`                     | new    | 279     |
+| `apps/web/src/host/AbortMatch.tsx`                  | 55     | 55      |
+| `apps/web/src/host/HostConsole.tsx`                 | 248    | 262     |
+| `apps/web/src/host/HostDrawControls.tsx`            | 237    | 237     |
+| `apps/web/src/host/HostLobby.tsx`                   | 205    | 211     |
+| `apps/web/src/host/JumpAhead.tsx`                   | 74     | 74      |
+| `apps/web/src/host/StartMatch.tsx`                  | 152    | 152     |
+| `apps/web/src/host/StartSteps.tsx`                  | 110    | 110     |
+| `apps/web/src/host/ThisMatchFields.tsx`             | 185    | 185     |
+| `apps/web/src/host/TimingFields.tsx`                | 229    | 229     |
+| `apps/web/src/host/YourMatches.tsx`                 | 49     | 49      |
+| `apps/web/src/host/host.css`                        | 280    | 297     |
+| `apps/web/src/host/hostLobby.css`                   | new    | 29      |
+| `apps/web/src/host/hostWindows.css`                 | new    | 115     |
+| `apps/web/src/host/rules.test.tsx`                  | 171    | 172     |
+| `apps/web/src/league/LeaderboardPage.tsx`           | 195    | 195     |
+| `apps/web/src/league/ProfilePage.tsx`               | 161    | 161     |
+| `apps/web/src/league/league.css`                    | 196    | 196     |
+| `apps/web/src/league/useApiGet.ts`                  | 46     | removed |
+| `apps/web/src/main.tsx`                             | 43     | 51      |
+| `apps/web/src/minTextSize.test.ts`                  | 121    | 118     |
+| `apps/web/src/noFixedColours.test.ts`               | 43     | 24      |
+| `apps/web/src/privacyData.test.ts`                  | new    | 22      |
+| `apps/web/src/quicktest/Simulation.tsx`             | 152    | 152     |
+| `apps/web/src/quicktest/TestMatch.tsx`              | 260    | 260     |
+| `apps/web/src/quicktest/TestMatchReady.tsx`         | 117    | 117     |
+| `apps/web/src/quicktest/quicktest.css`              | 97     | 100     |
+| `apps/web/src/scrollHint.css`                       | 37     | 37      |
+| `apps/web/src/seasonIcons.ts`                       | 24     | removed |
+| `apps/web/src/shell/DevTools.tsx`                   | 67     | 67      |
+| `apps/web/src/shell/DockedChat.tsx`                 | 63     | 72      |
+| `apps/web/src/shell/Header.tsx`                     | 124    | 135     |
+| `apps/web/src/shell/Maintenance.tsx`                | 39     | 39      |
+| `apps/web/src/shell/dock.css`                       | 51     | 51      |
+| `apps/web/src/shell/dockPause.css`                  | new    | 154     |
+| `apps/web/src/shell/dockResults.css`                | 127    | 115     |
+| `apps/web/src/shell/dockSide.css`                   | 233    | 236     |
+| `apps/web/src/shell/dockWatch.css`                  | 62     | 62      |
+| `apps/web/src/shell/header.css`                     | 167    | 24      |
+| `apps/web/src/shell/headerDevReady.test.tsx`        | new    | 78      |
+| `apps/web/src/shell/headerSteps.test.tsx`           | new    | 75      |
+| `apps/web/src/shell/http.test.ts`                   | 21     | removed |
+| `apps/web/src/shell/http.ts`                        | 81     | 53      |
+| `apps/web/src/shell/session.tsx`                    | 169    | 198     |
+| `apps/web/src/shell/sharedCall.test.tsx`            | new    | 91      |
+| `apps/web/src/shell/sharedCall.tsx`                 | new    | 21      |
+| `apps/web/src/shell/shell.css`                      | 70     | 96      |
+| `apps/web/src/test/matchFixture.tsx`                | 167    | 170     |
+| `apps/web/src/types.ts`                             | 64     | 64      |
+| `apps/web/src/useScrollHint.ts`                     | 44     | 56      |
+| `apps/web/src/useSecondsUntil.ts`                   | 29     | removed |
+| `apps/web/vite.config.ts`                           | 59     | 63      |
+| `assets/README.md`                                  | 29     | 28      |
+| `assets/seasons/autumn.svg`                         | 1      | removed |
+| `assets/seasons/spring.svg`                         | 1      | removed |
+| `assets/seasons/summer.svg`                         | 1      | removed |
+| `assets/seasons/winter.svg`                         | 1      | removed |
+| `docs/BACKLOG.md`                                   | 175    | 179     |
+| `docs/GO-LIVE.md`                                   | 179    | 189     |
+| `docs/OPEN.md`                                      | 18     | 19      |
+| `docs/PRIVACY-DATA.md`                              | 54     | 59      |
+| `docs/concepts/admin-mockups/admin-history.html`    | 121    | 121     |
+| `docs/concepts/admin-mockups/admin-overview.html`   | 145    | 145     |
+| `docs/concepts/admin-mockups/admin-section.html`    | 186    | 184     |
+| `docs/concepts/admin-mockups/mockup.css`            | 366    | 367     |
+| `docs/concepts/admin-mockups/organizer-start.html`  | 180    | 180     |
+| `docs/concepts/fit-audit.md`                        | 418    | 458     |
+| `docs/concepts/kit-adoption.md`                     | 207    | 286     |
+| `docs/operator-guide.md`                            | 196    | 204     |
+| `docs/spec/01-game-design.md`                       | 426    | 426     |
+| `docs/spec/03-security-architecture.md`             | 271    | 272     |
+| `docs/spec/04-database-design.md`                   | 208    | 209     |
+| `docs/spec/05-api-design.md`                        | 181    | 181     |
+| `docs/spec/07-integration-architecture.md`          | 179    | 181     |
+| `docs/spec/08-devops-architecture.md`               | 140    | 150     |
+| `docs/spec/09-deployment-architecture.md`           | 133    | 133     |
+| `docs/spec/10-repository-structure.md`              | 171    | 171     |
+| `docs/spec/12-testing-strategy.md`                  | 175    | 176     |
+| `docs/spec/README.md`                               | 130    | 132     |
+| `e2e/acceptance/asyncScreens.spec.ts`               | 119    | 120     |
+| `e2e/acceptance/fitAudit.spec.ts`                   | 571    | 666     |
+| `e2e/acceptance/interludeScreens.spec.ts`           | 130    | 131     |
+| `e2e/acceptance/kitSweep.ts`                        | new    | 217     |
+| `e2e/acceptance/leagueScreens.spec.ts`              | 79     | 81      |
+| `e2e/acceptance/pauseScreens.spec.ts`               | 87     | 88      |
+| `e2e/acceptance/realGame.spec.ts`                   | 304    | 305     |
+| `e2e/acceptance/testPageScreens.spec.ts`            | 217    | 216     |
+| `e2e/acceptance/websiteSweep.ts`                    | 260    | 279     |
+| `e2e/acceptance/windowFit.ts`                       | new    | 173     |
+| `e2e/account.spec.ts`                               | 128    | 131     |
+| `e2e/adminAccounts.spec.ts`                         | 96     | 79      |
+| `e2e/adminHistory.spec.ts`                          | 79     | 61      |
+| `e2e/adminLeague.spec.ts`                           | 107    | 90      |
+| `e2e/adminMaintenance.spec.ts`                      | 53     | 54      |
+| `e2e/adminOverview.spec.ts`                         | 86     | 61      |
+| `e2e/adminPresets.spec.ts`                          | 103    | 81      |
+| `e2e/adminScreens.spec.ts`                          | 87     | 66      |
+| `e2e/adminTechnical.spec.ts`                        | 84     | 65      |
+| `e2e/asyncMatch.spec.ts`                            | 99     | 100     |
+| `e2e/backToWebsite.spec.ts`                         | 228    | 223     |
+| `e2e/changedSpecs.ts`                               | new    | 68      |
+| `e2e/chatEmbed.spec.ts`                             | 153    | 310     |
+| `e2e/createFormPhone.spec.ts`                       | 51     | 51      |
+| `e2e/devStack.ts`                                   | 70     | 82      |
+| `e2e/fits.ts`                                       | new    | 59      |
+| `e2e/fromThisSite.ts`                               | new    | 12      |
+| `e2e/globalSetup.ts`                                | 36     | removed |
+| `e2e/globalTeardown.ts`                             | new    | 17      |
+| `e2e/hostNav.spec.ts`                               | 223    | 242     |
+| `e2e/leaderboard.spec.ts`                           | 158    | 162     |
+| `e2e/maintenance.spec.ts`                           | 150    | 149     |
+| `e2e/myMatches.spec.ts`                             | 107    | 108     |
+| `e2e/passwordReset.spec.ts`                         | 93     | 97      |
+| `e2e/playwright.config.ts`                          | 101    | 95      |
+| `e2e/realGame.spec.ts`                              | 163    | 164     |
+| `e2e/realGame.ts`                                   | 172    | 176     |
+| `e2e/screens.ts`                                    | 72     | 44      |
+| `e2e/startMatch.spec.ts`                            | 90     | 69      |
+| `e2e/startScreens.spec.ts`                          | 190    | 191     |
+| `e2e/testDatabase.ts`                               | new    | 46      |
+| `e2e/testMatch.spec.ts`                             | 78     | 79      |
+| `e2e/testServer.ts`                                 | new    | 68      |
+| `e2e/topBar.spec.ts`                                | 100    | 101     |
+| `e2e/verifyMatch.spec.ts`                           | 81     | 82      |
+| `e2e/websiteIdle.spec.ts`                           | 75     | 69      |
+| `e2e/websiteLogin.spec.ts`                          | 167    | 167     |
+| `e2e/websiteStack.ts`                               | 300    | 206     |
+| `eslint.config.js`                                  | 133    | 139     |
+| `load/asyncJump.mjs`                                | 99     | 95      |
+| `load/common.mjs`                                   | 130    | 81      |
+| `load/devDefaults.mjs`                              | 17     | 16      |
+| `load/drawLatency.mjs`                              | 64     | 66      |
+| `load/drawRun.mjs`                                  | 208    | 204     |
+| `load/loadcheck.mjs`                                | 66     | 68      |
+| `load/package.json`                                 | 13     | 14      |
+| `load/spectatorStream.mjs`                          | 138    | 136     |
+| `load/testDefaults.mjs`                             | new    | 17      |
+| `ops/compose.dev.yml`                               | 41     | 41      |
+| `ops/compose.yml`                                   | 160    | 175     |
+| `ops/install.sh`                                    | 205    | 249     |
+| `ops/kit/backup.sh`                                 | new    | 99      |
+| `ops/kit/lib/admin-uninstall.sh`                    | new    | 84      |
+| `ops/kit/lib/admin-update.sh`                       | new    | 198     |
+| `ops/kit/lib/admin.sh`                              | new    | 264     |
+| `ops/kit/lib/backup-core.sh`                        | new    | 201     |
+| `ops/kit/lib/backup-restore.sh`                     | new    | 221     |
+| `ops/kit/lib/db-roles.sh`                           | new    | 42      |
+| `ops/kit/lib/db-roles.sql`                          | new    | 105     |
+| `ops/kit/lib/host-baseline.sh`                      | new    | 148     |
+| `ops/kit/lib/image.sh`                              | new    | 116     |
+| `ops/kit/lib/operator.sh`                           | new    | 103     |
+| `ops/kit/lib/website-route.sh`                      | new    | 240     |
+| `ops/kit/pull-backups.ps1`                          | new    | 60      |
+| `ops/kit/pull-backups.sh`                           | new    | 43      |
+| `ops/lib/backup.sh`                                 | 247    | 234     |
+| `ops/lib/common.sh`                                 | 165    | 142     |
+| `ops/lib/config.sh`                                 | 246    | 237     |
+| `ops/lib/db-roles.sql`                              | 105    | 12      |
+| `ops/lib/hooks.sh`                                  | new    | 174     |
+| `ops/lib/release.sh`                                | new    | 46      |
+| `ops/lib/uninstall.sh`                              | 49     | removed |
+| `ops/lib/website.sh`                                | 241    | 245     |
+| `ops/lib/websiteApply.sh`                           | 141    | 145     |
+| `ops/lib/websiteRoute.sh`                           | 137    | removed |
+| `ops/sbr`                                           | 324    | 57      |
+| `ops/test/real-site-drill.sh`                       | 112    | 115     |
+| `ops/test/real-site.exp`                            | 30     | 30      |
+| `ops/test/realSite.spec.ts`                         | 277    | 278     |
+| `ops/test/website-vps.sh`                           | 230    | 230     |
+| `package.json`                                      | 44     | 46      |
+| `packages/ui/src/base.css`                          | 207    | 86      |
+| `packages/ui/src/motion.css`                        | 92     | 92      |
+| `packages/ui/src/tokens.css`                        | 32     | 31      |
+| `pnpm-lock.yaml`                                    | 5694   | 5705    |
+
+</details>
+
+## Kit 0.40.0 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### What to open
+
+Both run while this PC session lives. Look in **light and dark** (the theme toggle is the last item of the header).
+
+- **Normal (standalone):** the dev server on this branch, `http://localhost:5390/`, build badge "Bingo · dev · 5390".
+- **Website mode:** the kit's `sk-preview`. Open `http://127.0.0.1:4490/login?next=%2Fgames%2Fbingo%2Fauth%2Fwebsite` first (it signs "Preview Member" in), then the addresses below. A finished match is there: code `UAXPFZ`, 20 players, the member among them.
+
+| Screen                         | Mode, size                          | Where                                                                                              | Look for                                                                                                                                                          |
+| ------------------------------ | ----------------------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Back link, step badges, header | website, 1280x720 and a phone width | The page after sign-in                                                                             | "← Seasonal Entertainment" at the top left; three step badges at the account; one header row on the desktop.                                                      |
+| Shared call                    | website, 1280x720                   | Any match screen, e.g. `http://127.0.0.1:4490/games/bingo/#/match/UAXPFZ`                          | The call's box in the dock, a placeholder (the real call is only on the website).                                                                                 |
+| Docked result, 7 places        | website, 1280x720                   | `.../#/match/UAXPFZ` and `.../#/host/UAXPFZ`                                                       | At least 7 places whole above "↓ More below", the "Out of the match" divider among them or not. The divider is now one tight line: is that all right to your eye? |
+| A match and its standings      | normal, 1280x720                    | `http://localhost:5390/#/quicktest`: **Sign in as host**, **Battle royale**, **Create test match** | No page scroll during a round; standings, card, ball.                                                                                                             |
+
+The preview's client is the built one, without development tools: it cannot fill a match with bots from the screen. For another website-mode match, ask, or follow CONTRIBUTING.md, "Look at website mode locally". It listens on **4490**: the kit's default, 4400, is taken on this PC by another game's preview.
+
+### Done
+
+1. **Pin** `@seasonal/kit` v0.40.0 (`23f10b9`) in the four packages, the lockfile and the workflows; `ops/kit/` did not change.
+2. **Tests never write the development database** (K125 b). The browser tests and load measurements run against a test server of their own (`pnpm test-server`, ports 3901 and 5392) on a database made empty for the run and dropped afterwards; starting it never recreates a running dev container. Checked: the development database held 24 accounts, 1993 matches and 179654 events before the first browser run, after the sweep and after the last re-check.
+3. **Your decision of 2026-11-27** (D64, docs/spec/README.md): no old test data is kept or carried over; nothing was copied, and nothing in the development database was deleted.
+4. **The four rules** (K125) are in `CLAUDE.md`; the server-only changes (database waits over TCP, since v0.39.1) are noted in docs/GO-LIVE.md for the server move.
+5. **7 places** (your decision of 2026-11-24): at 1280x720 the player's and a spectator's result lost the 7th place under the sign when the divider stood among the first 7 (it ended at 534 px, the sign began at 523). The divider is one tight line in the docked result now (521 px). A new test of the audit plays until a result has that case; it failed without the fix ("6 of at least 7"). No floor was lowered; no type is smaller; the dense frame and list are the kit's.
+6. **The recap fade's exemption** is gone (see "Differences" for how the recap screens are looked at).
+7. **The preview** is the kit's `sk-preview`; my preview script is gone (it was never in the repository). It works with Bingo.
+
+### Faults found by the checks, fixed
+
+- The browser tests wrote the development database and reused a running `pnpm dev` (item 2).
+- The test server printed a crash when its database was dropped after a run.
+- A change of mine to the ball's line height broke `playerFit`'s ball check on phones (CI run 46082971573). It was meant for a sweep finding that turned out to be no overlap; the change is out again.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                                                        | Where                                               | Reason                                                                                                                                                                                                  |
+| -------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)                             | 1280x720, website mode, player (royale and classic) | Owner decision of 2026-11-27 (K18).                                                                                                                                                                     |
+| A standings group "covered" at the lower edge of the game area | website mode, 430x932                               | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat.                                                                                                                          |
+| The ball's number "covered" by its letter                      | website console, 1366x768 at 32 px                  | Kit `css/dock.css:40` (`.sk-docked-main`): the number crosses the game area's lower edge (measured 520–604 px, the area ends at 530) and the middle of the sliver in view can fall on the letter's box. |
+
+### Checks: how many full runs, and why
+
+- Unit tests of the touched packages (web 316, server 110), typecheck, lint of touched files.
+- Browser specs covering the changes, once: 25 passed (Chromium) and the 3 maintenance tests. The smallest spec again after the test server's quiet end. `playerFit` once more after the ball change was taken out: 3 passed; the fourth reported no failed check but failed because Playwright's trace files vanished from `test-results` during the run (cause not proven: probably a process left from a stopped run). CI runs it on the same commit.
+- Sweep: **one full run** (1.2 h, 6 tests, all screens; this time also the screens without a match).
+- **Narrowed re-checks** (your note of 2026-11-27):
+  - First, before the note: 17 screens, stopped after 4 (all clean). It very likely hung where the next run did.
+  - The new divider test twice without the fix, 1280x720 only: the first passed, which showed the test was wrong (no sign on a result that arrives on an open page); corrected, it failed as it should.
+  - After the note, a run that **hung for 35 minutes** (my held page clock on the recap screens) before I looked. Since then every run is checked for progress.
+  - 11 screens: 32 px, light, 360x780, 1366x768 and 1920x1080, axe off; the 6 recap screens also 390x844, 1280x720 and 1900x860 with axe's contrast rule alone: all clean. Bingo's own text checks stayed on ("axe off" leaves the kit's and Bingo's probes). Matches: one standalone royale, one classic, one website run.
+  - The 2 divider screens: 16 px, light, 360x780, 1280x720, 1920x1080, axe off: clean, the floor met (divider after place 4; the first match had it after place 7, so a second was played).
+  - These looks used the taller ball line that is out again; the ball is as the full run saw it.
+- No ops rehearsal: no ops script changed.
+- Draft PR CI, read for the finished code (`1141641`, run 46084329204): green in every job; browser specs 51 and 14 timing specs passed (`playerFit` among them); the scan: 0 failures, 3 warnings. The run before it (46082971573) found the ball fault. Commits after it change documents only.
+- No local `pnpm verify`.
+
+### Choices that keep today's behaviour
+
+- A real match's seed stays the server's own. The browser journeys that use the seed check page have fixed seeds; the journeys through real matches assert what holds for every seed. A fixed seed there would need development-only changes to the seed, the match id and the account ids.
+- The "More below" sign on a result that arrives on an open page is not changed (BACKLOG).
+- The sweep's findings on screens without a match are not changed (BACKLOG).
+- Bingo's scrolling boxes stay Tab stops always.
+
+### Where the task's text and the kit's differ
+
+- "The sweep now waits for stillness again before axe": it does, but a recap card that comes by its timer **while** axe reads is still judged mid-fade (3 findings in the full run). The recap screens are therefore looked at with reduced motion; no exemption.
+- "`reports/logs/preview.ts` goes if sk-preview covers it": it covers the website, the sign-in and the call's slot. It makes no match; that is done through the API.
+- The kit's ADOPTION text for Bingo names fewer settings than the preview needs (kit finding 3).
+
+### Needs the owner's word
+
+| Question                                                                                    | Proposal                                                                                                       |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Merge draft PR #76?                                                                         | When you have looked: yes, **without squashing** (the update path needs commit `ff6d090`).                     |
+| A fixed seed for the journeys through real matches?                                         | No: they handle every outcome; the change would touch how matches draw.                                        |
+| Draw the "More below" sign when a result arrives live?                                      | Yes, as a small task of its own.                                                                               |
+| Fix the findings on screens without a match (link targets, 32 px on phones, the dev badge)? | Yes, as a task of its own.                                                                                     |
+| Delete the leftover test database `sbr_e2e_website` on the dev PostgreSQL?                  | Yes: old test data from before this setup.                                                                     |
+| Make the security scan blocking; which jobs must the branch rules require; push `v1.0.0`?   | Blocking with the first release; the jobs a pull request runs; the tag after the merge and a green master run. |
+
+### Kit findings
+
+1. `src/testing/sweep.ts:143` (`axeLines`): the wait before axe cannot see a change a timer makes while axe runs; a card then fades in mid-look. Wish: look again on a contrast finding, or let a screen ask for reduced motion.
+2. HANDBOOK "A held clock" (line 130): a sweep look with axe on a page whose clock was paused after load did not return (35 minutes); probably axe's own timers. Wish: say so, or exclude it.
+3. ADOPTION "The local preview", Bingo: it needs `SBR_DEV=1`, a built client (`SBR_WEB_DIR`; the Vite dev server cannot be the app) and a database URL, and there is no way to a finished match from the screen.
+4. `sk-preview`'s default port 4400 collides when two games are previewed on one PC (`--port` works).
+
+### Noticed, left alone
+
+- The dev server's process ends when its database connection is terminated.
+- Stopping a background run on this PC can leave its processes running; they were ended by their ports.
+
+### Lines against master
+
+Counted once for the whole branch: see "Fit to common windows" above.
+
+## Kit 0.39.1 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### Done
+
+1. **Pin** `@seasonal/kit` v0.39.1 (`29c0f01`) in the four packages, the lockfile and the two workflows; `ops/kit/` is that version's folder.
+2. **Restore.** The kit writes the key files before it compares; differing keys stop it unless `--force-env` (kept, your decision of 2026-11-27). Bingo's own key writing on install and update is gone. `docs/GO-LIVE.md` ("Moving to a new server") says `--force-env` is the expected step there; the operator guide §5 says what to check first.
+3. **Release install.** The installer calls `sk_cosign_install` and sets `SK_IMAGE_COMMIT`; Bingo's revision-label check and the manual cosign step are gone.
+4. **Database wait over TCP** (kit OPERATIONS) in the drill, the dev stack, CI and the scan's start.
+5. **Follow-a-card buttons** in the kit's dense list (24 px); Bingo's 44 px rules for them are gone.
+6. **Sweep.** The calm mode is gone: the kit waits for late animations. No screen was reported as still moving after 5 s.
+7. Docs: kit-adoption §12 (what stays Bingo's own), operator guide, GO-LIVE, spec 09, backlog, open list.
+
+### Faults found by the checks, fixed
+
+- With the dense list's spacing the side column showed only two of the top 3 standings rows at 1280x720 (`playerFit`): the panel's least height is 15rem.
+- The changed database health check made the browser tests recreate the dev database under the running dev server, which ended; after a restart the 14 failed tests were run again.
+- Four server tests ran over their time on a busy machine; their two files have 30 s.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                                                                                                                                 | Where                                               | Reason                                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)                                                                                                      | 1280x720, website mode, player (royale and classic) | Owner decision of 2026-11-27 (K18).                                                                                                                                                                                                                            |
+| A line "covered" at the lower edge of the game area (a lobby entry 360x780 at 32 px; a standings group 430x932; the empty ball 390x844) | website mode, phones                                | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat; the line is cut at the edge and reached by scrolling. Bingo's overlap check counts it.                                                                                          |
+| Contrast on recap lines (spectator 1900x860 at 32 px light; console 1536x768 at 32 px dark)                                             | the pause between rounds                            | Kit `src/testing/sweepMotion.ts:11`: motion that starts after the quiet moment is not seen. The next recap card fades in (250 ms) while axe runs. Inferred from that: the other 35 looks of each of the two screens had no finding. Not reproduced on its own. |
+
+### Checks: how many full runs, and why
+
+- Typecheck, lint of touched files, unit tests (web 316, server 110). The new release and drill tests failed before their change.
+- Browser specs covering the changes, once (25 tests): 11 passed, 14 failed because of the recreated database (above). Those 14 again: 12 passed, 2 found the standings fault. `playerFit` after the fix: 4 passed.
+- Sweep: one full run (1.1 h), which stopped once: in the website docked test a draw did not arrive within 10 s after the spectator screen. The cause is not known. The 7 website screens not yet seen were then run, once. Every screen was seen; the floor of 7 places is met; the findings left are the exemptions above.
+- Ops rehearsal (restore and install), once, in a throw-away server on a copy of the dev data, all as expected: a restore with the key files removed and the same keys went through; on a "new server" with another seed key it refused ("pass --force-env") with nothing changed and the app running; the drill passed (29 tables, the seed opens); with `--force-env` it restored and took the backup's key; cosign installed itself (v3.1.6) and an unsigned release was refused by update and installer. At every step 24 accounts, 1977 matches, 178701 events.
+- Draft PR CI, read once for the finished code (`d63d216`, run 46022513945): green in every job; browser specs 51 and 14 timing specs passed; the scan: 0 failures, 3 warnings (storable and cacheable content, "modern web application", no Cross-Origin-Embedder-Policy header). Commits after it change documents only.
+- No local `pnpm verify`.
+
+### Choices that keep today's behaviour
+
+- Bingo's scrolling boxes stay Tab stops always (`ScrollBox`); the kit's `useScrollTabStop` gives a stop only while a box scrolls, and the kit asks for your word.
+- `--force-env` stays needed where keys differ.
+
+### Where the task's text and the kit's differ
+
+- `components.css` was loaded already; nothing to add.
+- "Bingo's allowance for the own name link": it was only a line in this sheet's exemptions, no code; the finding is gone with the kit's fix.
+- "Bingo's own key check before the kit's restore": what existed was Bingo writing the key files on install and update; that went.
+
+## Kit 0.38 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### Built
+
+1. **Pin** `@seasonal/kit` v0.38.0 (`a21ffe4`) in the four packages; `ops/kit/` is that version's folder.
+2. **v0.36.0.** The key files come from the new `game_backup_secrets` hook (`status` writes nothing); the empty `kit` folder before a rollback and the one-line `exit` in `ops/sbr` are gone (the kit renames files now); linked names take the kit's dense list (your decision of 2026-11-27); the sweep uses the kit's `axeFinder` (chat frame excluded); the stand-in's unverified member and keep-alive replace two test workarounds; `Attempt` comes from the kit; the handbook's "How we check" is in `CLAUDE.md`.
+3. **v0.37.0.** The website's shared call in the dock, website mode only, shown only while live; after a result a "back to the call" link. Standalone frames nothing.
+4. **v0.38.0.** The docked result declares its floor of 7 places at 1280x720 in the sweep. The sweep's `setup` hook was not needed for a sign-in (no screen is reloaded); it switches the app's calm mode on, so no card is judged while fading in.
+5. **v0.35.0.** `docs/PRIVACY-DATA.md` on the kit's columns with its test; the kit's security scan in place of the Trivy step; a tag releases through the kit's signed release image; the installer and `sbr update` verify and pull it for a version tag and build anything else (`--image-source build` forces building until a first release exists); the route file names the trusted proxies; the whole browser suite nightly (`browsers.yml`), a pull request runs the browser specs of what it changed. No tag was pushed, no release or image made.
+6. `reports/screens/k34p2/` is deleted.
+
+### What looks different from master
+
+- The header: filled account chip, compact back link, solid "Sign in", the theme toggle last; buttons, panels and fields in the kit's look (a disabled field looks locked).
+- The result: the kit's dense frame; names without step badges in standings and results; linked names are 24 px with room between them; season icons named "Spring" and so on.
+- The finished host console in website mode no longer shows the rules line (it made room for the 7th place).
+- A name a spectator can tap is a 44 px row; the finished screen keeps larger card cells and may scroll.
+- Website mode: a call slot in the dock when a call is shared; a restore or rollback by `sbr` says what state the data is in when it fails and starts the game again.
+
+### Owner decisions applied
+
+2026-11-27: card cells stay 42 px under the chat strip at 1280x720 (43 px on the royale screen there), so the board stays whole (K18); dense list for names; the shared call only while live; the production parts now. 2026-11-24: at least 7 places in the docked result at 1280x720 (now declared to the sweep).
+
+### Faults found by the checks, fixed
+
+- The kit's 24 px least target was undefined: Bingo never loaded the kit's `fit.css`, so linked names stayed 21 px on phones.
+- A row with a name button was squeezed under its button (spectator standings).
+- The docked host console showed 6 places at 1280x720; now 7.
+- An earlier round's lines were faded below contrast; now muted.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                                                                                                                                              | Where                                         | Reason                                                                                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42 to 43 px (44 asked)                                                                                                                | 1280x720, website mode, player                | Owner decision of 2026-11-27 (K18).                                                                                                     |
+| Own name link "too small", 24 px                                                                                                                     | 1280x720 and 1366x768, classic, own-row strip | Kit `src/testing/probeRules.ts:98-111`: the dense rule counts the same row's link scrolled out of sight under the strip as a neighbour. |
+| Page "covered" by the open menu                                                                                                                      | phones, website mode                          | Kit `css/header.css:180-190`: the folded menu is an opaque panel over the page.                                                         |
+| A line "covered" at the lower edge of the game area (standings heading 390x844; a lobby entry 360x780 at 32 px; the ball's number 1366x768 at 32 px) | website mode                                  | Kit `css/dock.css:10-12`, `103-112`: the content scrolls alone above the chat; the line is cut at the edge and reached by scrolling.    |
+
+### Checks: how many full runs, and why
+
+- Browser specs covering the changes, once: 32 passed (Chromium).
+- Sweep: one full run (1 h 12 min). Two narrowed re-checks: the screens a shared change shows (24 min), then the two result screens' contrast. One measuring run of the console's result and ball, to find the cause before changing code.
+- Rehearsal of the ops changes only, once, continued twice after faults of the probe script (the older updater writes the first route file; a view did not make a restore fail): in a throw-away server on a copy of the dev data. At every step 24 accounts, 1974 matches, 177977 match events, the seed key opening. Shown: the rollback with no kept kit folder ("the installed one stays", no syntax error); `status` writes nothing, the backup writes the two key files (0600); a failed restore (exit 3) says the data is as it was and starts the app; an unsigned release image is refused with nothing changed; a signed one (local registry, a stand-in for cosign) installs and rolls back.
+- Draft PR CI, read once for the finished code (`5fd7735`, run 45984689835): green in every job (verify, integration coverage, security, docs, image size, the kit's scan, e2e Chromium). The pull request's choice of browser specs was "all" (the branch changes the match screens): 51 and 14 timing specs passed. The scan reports: Trivy clean on image and lockfile; ZAP's baseline 0 failures, 3 warnings (storable and cacheable content, "modern web application", no Cross-Origin-Embedder-Policy header). Firefox and WebKit run nightly once this is on master, so they have not run on this head.
+- No local `pnpm verify`.
+
+## Kit 0.34 (branch `feat/kit-0.22`, draft PR #76, NOT merged, NOT tagged: the owner looks first)
+
+### Done
+
+- **Piece 1, the pin and every "Migration, per game" line from v0.23.0 to v0.34.0** (`7c1e97f`; one commit per step). Test tools and guards (K66); the sweep in the admin and start-match specs (K67: found and fixed the 29 px admin section links, the 24 px checkbox rows and the 20 px yes/no boxes); step badges (K68); countdowns on the server's clock, the session answer names `serverTime` (K69); the kit's API client and `useApiGet` (K70); `sbr update` installs the kit's whole `ops/` folder, as an update of its own (`ff6d090`); backups and the website route file from that folder (K71, K72); load helpers (K73); the website stand-in (K74); `secure` headers over https; season icons (K83); the operator address (K85); `sbr` on the kit's admin command (K87); the host baseline (K88); container hardening (K89); database roles (K90, with v0.34.0's TEMPORARY); `FailureBrake` with `reserve` (K92); base components and header looks (K95, K96).
+- **A fault found and fixed, older than this chain:** since the v0.22.0 server parts every write of `sbr loadcheck` and of the development load scripts was refused (they named an origin other than the host they called). Test `loadOrigin.test.ts`.
+- **What changes for you to notice:** a restore through `sbr` asks `[y/N]`, refuses a differing seed **or recovery** key without `--force-env`, and **leaves the game stopped if it fails** (the kit's behaviour; before, the game was started again). Backups made before 25 November 2026 are first written again with `sbr rewrite_backup`. Season icons are named "Spring" and so on. A disabled button is muted, a disabled field looks locked. On a phone the own card is a little smaller where the window's height decides it.
+- **Where the kit's way cost something:** its stand-in's members are all e-mail-verified (the league test marks one test account unverified in its own database), its login has no page of its own, and its chat frame shows no room or theme; it keeps idle connections for 5 s, so the spec polls faster.
+
+- **Piece 2, the look.** (a) The kit's three header looks (K96); the organizer's header at 1280×720 in website mode with three badges is one row (`chatEmbed.spec.ts`). (b) The final placement uses the kit's dense result frame (K93). **Places whole above the chat strip** (website mode, 16 px, 20 players; player / spectator / host console): 1280×720 **8 / 8 / 8** (floor 7 met; v0.22.0: 5, before the kit: 7), 1366×768 7 / 7 / 8, 1536×768 8 / 8 / 8, 1440×900 12 each, 1900×860 11 each, 1920×1080 20 each. No row wraps, no finding. (c) The in-match Standings and the result rows show names without badges (2026-11-26); every Standings row is one line. (d) The Firefox sign-in failure is fixed at its cause: the account row shows once the development menu has loaded (`headerDevReady.test.tsx`); the kit's `header-dev.css` only lays the menu out.
+
+- **Piece 3, the update path.** Built with piece 1: `sbr update` installs the kit's `ops/` folder whole (`/opt/sbr/kit/`), added by a commit of its own (`ff6d090`), so an older install updates to that commit, confirms, then updates further; the new `sbr` stops and names the installer where the folder is missing. docs/GO-LIVE.md says what a first install puts in place; operator guide §6 the two steps. **Merge without squashing**, or `ff6d090` is gone from master.
+
+- **Piece 4, the rehearsal** (a throw-away Ubuntu 24.04 container behind a stand-in website with nginx, a copy of the dev data under the development keys; nothing on a server). Install of master `d7d841e`, the data taken over, update to `ff6d090` and confirm, update to the branch, backup, drill, restore through `sbr`, rollback, update again, uninstall, then a fresh standalone install of the branch. **At every step with data: 24 accounts, 1943 matches, 174013 match events; the seed key opens the newest sealed match seed** (a fresh install: 0 / 0 / 0, nothing sealed yet). Drill: 29 tables, every row count equal, 1 volume copy, 2 secret files; Bingo's: 26 migrations, the same counts. Roles: `sbr_owner` has no `TEMPORARY` after the update driven by the older `sbr` and has it after the first restore (from then on also after later updates); the app role never creates. Postgres hardening applies with the update (read-only root, all capabilities dropped but four) and the rollback takes it back. Uninstall removed the route file and kept the backups. Standalone: the host baseline allowed SSH's real port (2222), 80 and 443, turned `ufw` and a fail2ban jail on.
+- **Four faults the rehearsal found, all fixed:** (1) **since 2026-11-03 no standalone install started**: its env file holds the two website settings empty and the server refused them (`env.ts`, test failed first). (2) **No older install could update to the branch** ("older than the database roles"): its `sbr` looks for `ops/lib/db-roles.sql`, which the move to the kit's roles deleted; the file stays without a statement (`olderUpdate.test.ts`, failed first). (3) **The rollback of the first update with the kit's folder stopped** (`cp: cannot stat 'kit'`). (4) **A rollback ended with a syntax error** although it had worked: it overwrites the running `sbr`. Kit findings: (3) `sk_admin_stack` should skip a file that was not kept; (4) a game's command must end on one line (`sk_admin_main "$@"; exit`).
+- **What still needs a real server:** a certificate from Let's Encrypt, the real website's installer and Caddy mode beside the update, the nightly timer over a night, pulling backups to the PC, mail, the host baseline on a server reached over SSH, a reboot, and the load check at the server's size.
+
+- **Piece 5, the sweep** (K67, `SBR_SWEEP_KIT=1`): every match screen and the header, website mode with the chat strip and standalone, the six desktop sizes, 360x780, 390x844, 430x932, root font 16 and 32 px, light and dark; the kit's probe, axe, and Bingo's text floor and overlap check. No pictures (your word of 2026-11-27: you look in the browser).
+- **What the sweep found, fixed:** tappable names in the Standings and the results, "Whole match log", "What the seasons do" and the website tick were under 44 px; on the finished screen the own card's cells were 38 to 41 px; at 32 px on phones the lobby entries, the host console's controls and draw-mode buttons, the recap and the drawn numbers ran past the window; the watched cards and the prizes scrolled without being a Tab stop. Names in the in-match Standings are now 44 px rows, so fewer rows are in view there.
+
+### Exemptions (what the sweep still reports)
+
+| Finding                             | Where                                                       | Reason                                                                                                                                                                                 |
+| ----------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Own card cells 42x42 px (44 asked)  | 1280x720, website mode, player (royale and classic)         | Owner decision K18: the board is whole without scrolling at every desktop size (kit `docs/ADOPTION.md:300-307`). At 44 px it would scroll under the chat strip.                        |
+| A linked name one line high (24 px) | the results in website mode, desktop                        | Owner decision of 2026-11-24: at least 7 places whole above the strip at 1280x720.                                                                                                     |
+| Text "covered by the chat bar"      | 390x844 and 430x932, the last line in view of a long screen | Kit `css/dock.css:11-13`, `100-107`: on a phone the content scrolls alone above the bar; the line is cut at the scroll edge and reached by scrolling. Bingo's overlap check counts it. |
+
+### Checks: how many full runs, and why
+
+- Sweep: one full run (51 min). Three narrowed re-checks of the screens a fix could change: 35 min (light theme, the recap screens in both), 19 min (phones and the two contrast sizes) and a short one (the recap on phones). All clean but the exemptions above. The first run's contrast findings were lines judged while fading in; the sweep now looks with fades off.
+- Rehearsal: one, started twice (the old master's standalone install cannot start) and continued three times in the same server, once after each further fault.
+- Browser specs covering the changes, once, locally (Chromium, 20 tests of 9 specs): 19 passed; `playerFit.spec.ts` found that with 44 px names the player's side column no longer showed the top 3 Standings rows at 1280x720. Fixed (rows exactly 44 px, the panel's least height raised); `playerFit` and `chatEmbed` run again, both passed.
+- Pull request CI, read once for the finished code (`51829fe`, run 45920819609): green in every job (verify, integration coverage, e2e Chromium, Firefox, WebKit and timing, image, docs, security, CodeQL). Nothing to fix.
+- No local `pnpm verify` (your word of 2026-11-26).
+
+### Decisions taken on the way
+
+- Tappable names are 44 px everywhere but in the docked results (exemption above).
+- On the finished screen the own card keeps 44 px cells; that screen may scroll.
+- The rehearsal ran in website mode (the production target); standalone was rehearsed as a fresh install.
+- `ops/lib/db-roles.sql` stays as an empty stand-in until no install from before the kit's admin command is left.
+
+### Where the task's text and the kit's text differ
+
+- The task lists `createApiClient`'s retry among v0.34.0's fixes; the kit says nothing is required of Bingo, so none was added. The same for `findLowContrast`.
+- The dense frame needs no import of its own: `frames.css` brings `frames-dense.css`.
+- The kit allows Bingo to keep its own header padding; it went, for the one header look.
+
+### Looking at it
+
+- See "Kit 0.40.0" above.
+- What stays Bingo's own, with reasons: [docs/concepts/kit-adoption.md](concepts/kit-adoption.md) §10.
+
+### Kit findings
+
+1. `ops/lib/admin-update.sh:77-80`: the rollback copies every named stack file, also one that was never kept, and stops half done.
+2. The same copy overwrites the running command; a game must end it with `sk_admin_main "$@"; exit`.
+3. `ops/lib/backup-restore.sh:151-155`: a failed restore leaves the app stopped.
+4. Migration text, K90: a game removing its own `db-roles.sql` can break an older updater; the owner's `TEMPORARY` comes only with the first run of the new command.
+5. ADOPTION: the first of the two update steps does not yet install the kit's folder.
+6. `src/server/index.ts:15` exports `FailureBrake` but not its `Attempt` type.
+7. The sweep judges contrast during a fade; `axeFinder` cannot leave the chat frame out.
+8. Dense linked rows cannot hold 44 px targets and 7 places; a kit rule is missing.
+9. Website stand-in: every member verified, no login page, the chat frame shows no room or theme, 5 s keep-alive.
+10. Backups: asking for the backup settings writes the secret files.
+
+### Noticed, left alone
+
+- `load/asyncJump.mjs` fails to create its match (`PRESET_REQUIRED`), older than this chain.
+- The host console can scroll a few pixels after the root font changes on an open page.
+- `reports/screens/k34p2/` (check pictures, git-ignored) is still on the PC: deleting it was not permitted.
+
+### Open
+
+- Nothing of the chain beyond the lines above.
+
+### Needs the owner's word
+
+- Look at draft PR #76 in the browser; merge (**without squashing**) or not. Proposal: merge when you have looked.
+
+Line counts: once for the whole branch, in "Kit 0.40.0" above.
+
+## Kit 0.22 (branch `feat/kit-0.22`, draft PR, NOT merged: the owner looks first)
+
+### Done
+
+- Piece 1, pin and rename: `@seasonal/kit` v0.22.0 (commit `2e8ed41`) in `apps/web` and `apps/server`; v0.14.0's rename: the 48 shared tokens other than the gutter take `--sk-` (588 places in 43 files: `apps/web`, `packages/ui` and the admin mockups), seasonal colour built in code too (`types.ts` `seasonColor`). Bingo keeps its own `--gutter` (`min(var(--sk-gutter), 4.5vw)`; the 49th shared name) and `--panel-padding`: at 320 px the page margin is 14.4 px (measured), the kit's own `--sk-gutter` 16 px. The kit's own parts (header, dock) read `--sk-gutter`, which Bingo does not set: below 356 px they now get the kit's 16 px where they got Bingo's smaller value before. `designTokens.test.ts` reads the kit's tokens without the prefix. `minTextSize.test.ts` and the web tests pass (65 files, 302); the standalone fit audit (all its sizes, 588 measurements) has no finding that the earlier baselines at the same keys did not have.
+- Piece 2a, the result as the kit lays it out (K47): `frames.css` loaded (`main.tsx`), `reveal` left out; Bingo's overrides of the kit's result classes dropped (`results.css`: the panel's look, `display: contents`, the hidden reveal; `dockResults.css`: its rules on `.sk-result[...]`: padding, gap, the two-column grid, the heading's size). Bingo's own content in the frame stays (season marks, the owner's row, the podium and rows, the big line). **Places whole above the chat strip** at 1280×720, 1366×768, 1536×768, 1440×900, 1900×860, 1920×1080: 5, 4, 5, 9, 7, 17 (before: 7, 7, 7, 13, 11, 20). **The owner's floor of 7 at 1280×720 is not met** (5): the kit's frame spends a card, its padding and its heading on what Bingo's panel held in one card. Kept (no override), as the owner ruled. **Kit option that would close the gap:** a dense `ResultFrame` panel (one card for first part and "more", panel padding `--sk-space-1`, the headline on the same row as the lines, no gap between the cards). Second kit finding: the frame's headline is clamped to two lines with `overflow: hidden`; with a game's heading line height of 1.15 the descender of "Final placement" is clipped (the probe's one finding, at 1280×720): the frame should set its headline's line height.
+
+- Piece 2b and 2c, the header: the kit's order, theme toggle last (K43): `header.css`'s `order` rules removed; `AppHeader foldBelow={960}` (K40) replaces Bingo's `max-width: 959px` fold block; the wordmark's and the dev menu's own small type removed (the kit's `max(floor, small)`, K41). `header.css` 167 to 91 lines. Spec 01 §13 says the order. Web tests 65 files, 302 pass.
+
+- Piece 2d, the sign-in limits on the kit's `FailureBrake` (K46): `auth/loginBrake.ts` (new) wraps it; the login route asks `braked(key)` before the password check and calls `failed(key)` on a wrong one; keys and numbers as before (`loginIp` per address, `loginAccountIp` per e-mail|address, still set in the admin area). Two points the kit's class does not take, held in Bingo's wrapper: (1) a limit changed at runtime (the kit reads its rule once, so a change starts a new brake and its counts anew; **kit wish:** `FailureBrake` takes a `RateRuleSource`); (2) concurrent guesses: a failure is counted after the hash, so a burst would pass `braked` together; a key has at most as many checks under way as its limit (**kit wish:** the brake reserves a check). The kit asks for short normalised keys; Bingo's account key holds the e-mail (at most 254 characters), as before. Test `routes/loginBrake.test.ts` (3): a correct sign-in is never braked and the limit is reached by wrong passwords only (both failed on the old code), guesses sent together are held back. A bug found while building it (the check held until the answer had left, so correct sign-ins under load braked themselves) was fixed before the first commit. Spec 03 §13 says the rule. Piece 2e: `routes/openRounds.ts` takes the kit's `openRoundsPage` since v0.11.0 (PR #67): nothing to do.
+
+- Piece 3, step badges (K56): the session answer names the signed-in member's own `steps` in website mode (`routes/auth.ts` `accountOf`, read from `sbr.accounts.steps` as the website last sent them; standalone answers as before), the client passes them as `account.steps` to `AppHeader` (`shell/Header.tsx`). Tests: `shell/headerSteps.test.tsx` (2; the badge one failed on the old code), `websiteLogin.integration.test.ts` (the session answer; runs in CI).
+
+- Piece 4, server parts (2026-11-25): `sessionCookie` and `sessionCookieOptions` replace `cookieConfig`, `setSessionCookie` and `clearSessionCookie` (names `sbr_session`, `__Host-`/`__Secure-` as before; Max-Age the session's own absolute length: website 7 days, standalone 30; the admin session's cookie unchanged); the sign-in's session opening moved to `http/sessionStart.ts` (new; `auth.ts` was at its 300-line limit). `writeCheck` runs before Bingo's CSRF token on every `/api` write (trusted proxies `SBR_TRUSTED_PROXIES`): **a write that names neither `Origin` nor `Sec-Fetch-Site` is now refused.** Browsers send them; the load check (`load/common.mjs`), the demo league script and the rehearsal's curl calls already send `Origin`; the tests' own requests now say it too (integration harness: one wrapper; e2e: `e2e/fromThisSite.ts`). The install's nginx and Caddy routes pass the visitor's `Host`, which the check compares; **a proxy that rewrites `Host` without `X-Forwarded-Host` from a trusted address would have every write refused** (worth one sign-in after the next update). `securityHeaderSet` feeds helmet (its directives and its six headers; helmet's own further headers and directives stay, so nothing was dropped; no HSTS). `routes/health.ts` answers with `readiness` and `HEALTH_PATHS` (its `openRouteLimit` stays). Tests: `auth/sessionPlugin.test.ts` (4; two failed with the check switched off); websiteLogin, websiteRules and twoFactor integration tests run in CI. Server fast tests 97 pass.
+
+- CI of `2d63b1c` (run 45701234922): two failures. (1) `hostNav` phone bar, Firefox and WebKit: at 360 px and 150 % font the toggle took a row below the Menu button (reproduced 3 of 3 in Firefox). The kit's v0.22.0 folded header lets the Menu stay beside the brand and the toggle wrap alone where the brand is narrow (a browser without a scrollbar's width), though its change log says they take a row together; the only way to stop it is to override the kit's brand rule (the very lines piece 2c dropped), which the kit rule forbids. The check follows the kit there (150 % only: nothing covered, the bar at most 200 of 800 px; at 100 % one row as before). **Kit wish:** the folded header keeps Menu and toggle in one group that wraps together. (2) `account.spec` "a wrong password ..." timed out once in Firefox (the e-mail field never appeared after the click on "Sign in"); 3 of 3 local Firefox runs pass; no cause found, watched in the next run.
+- Piece 5, backups (built, drills running): `ops/lib/kit-backup.sh` is the kit's `ops/backup.sh` byte for byte (test `kitBackupCopy.test.ts`); it lives in `lib/` because `sbr update` installs the new version with the old installer's file list (`lib/*.sh` yes, a new file at `ops/` no: the backups would have failed on every updated server). `ops/lib/backup.sh` (248 to 262 lines) is now Bingo's settings (`SK_BACKUP_PREFIX=sbr`, the two keys as secret files, schema `sbr`, the uploads volume without the maintenance flag and the feed status), the restore around the kit's functions (every refusal first, stop the app, the kit's one-transaction restore, `apply_db_roles`, uploads, keys), the drill (the kit's, then the seed-key check) and the timer. **Two points where the kit did not fit:** (a) it cannot read a backup made before it (`uploads.tar`, `seed.key`, no manifest): Bingo's script unpacks both forms; (b) its own `restore` refuses a differing secret file only after the database has been replaced (`do_restore`: `restore_database`, then `restore_secrets`), so Bingo checks the seed key before calling the kit's functions. **Kit finding to fix.** Old-script rehearsal (nginx, website `cc743b9`): all 126 checks passed; its backup, key and data fingerprint (3 accounts, 3 matches, 139 events) are kept outside the repo in `C:/Users/weudl/sbr-review/kit22-backup-old/`.
+- Piece 6, the game bar: `git grep` finds no `GameBar`, `usePanels`, `useFocusMode` or `bar.css` in `apps`, `packages`, `e2e`, `ops` (the `sk-bar-button` hits are the header's buttons): Bingo uses no kit GameBar; nothing changed.
+
+- Piece 5, the drills (2026-11-25/26; nginx mode, real website `cc743b9`; nothing on a VPS). Old script (head `2d63b1c`): rehearsal all 126 checks passed. New script (head `0661668`): all 127 checks passed, with the new `sbr restore --drill` in it: the kit's drill 29 tables, every row count equal, 1 volume copy, 2 secret files; Bingo's drill 26 migrations, 3 accounts, 3 matches, 177 events, the seed key opens the newest sealed match seed. **The old backup restored by the new script** (`sbr restore <old> --identity <key> --force-env`) on the rehearsed server: before the restore that server held 3 accounts, 3 matches, 177 match events; after it 3 accounts, 3 matches, 139 events (players are the accounts), the app ready. `matches` and `match_events` have the same row hashes as the old install's (`89f7204…`, `7a12f7c…`); `accounts` equals the rows inside the old backup itself (`fbcc441…`, loaded into a throw-away database), which differ from the hash taken after the old rehearsal's later phases. The new script's drill also reads the old backup (warns that only Bingo's drill does). A first run of the new rehearsal failed before the game was reached: its browser step clicked "Register" while the website's navigation showed a second such link; the step now takes the login page's own link (`ops/test/realSite.spec.ts`). The old backup, its key and fingerprint stay in `C:/Users/weudl/sbr-review/kit22-backup-old/`.
+- Piece 7: docs/concepts/kit-adoption.md §9, the table of every part still Bingo's own with its reason or the kit release or wish; BACKLOG and OPEN aligned.
+- CI: run 45709785633 on `cd2f5a4` green in every job (the earlier red run 45701234922 and the cancelled 45709608742 are explained above).
+- Piece 8, the look (website sweep and standalone audit of the result and the player's round, light and dark, 16 px and 32 px root font, at 360×780, 390×844, 1280×720; the player had three step badges; throwaway specs, not committed). **16 px:** header order back, brand, Menu, toggle (folded), nothing covered, nothing past the window; results places whole above the strip 5 at 1280×720 (floor 7 not met, see piece 2a), 6 at 390×844, 5 at 360×780; findings: the clipped descender of "Final placement" at 1280×720 (kit headline), and at 360×780 the player's card ends below the game area (it scrolls and says so). **Found with the pictures:** (1) with three step badges the header **folds into Menu at 1280×720** (organizer; without badges it stays unfolded; unfolded again from 1366): the kit's measured fold. (2) The player's own Standings row wraps its points onto a second line when the member has step badges beside the name (the one-line fix of 2026-11-25 was measured without badges). **200 % font:** (3) at 1280×720 the player round's **title and status text lie over each other** and the first column is about 140 px: the side column's minimum `13 × --sk-space-4` is 1040 px there (`shell/dockSide.css`, on master since PR #72; not from this branch; a one-line fix: cap it with `min(…, 55%)`; not changed, the owner looks first); the results screen shows no place above the strip. (4) On phones the kit's chat bar text stays 14 px while the page's text doubles (kit). (5) Phones: the player's card is wider than 390 px (sideways scroll, standalone and website). 200 % was not measured on master before, so (5) and the standalone page scrolls are not compared. Standalone, 16 px: findings only the "Final placement" descender at 1280×720 and the phone round's page scroll (as before).
+- Pictures (18) in `C:/Users/weudl/sbr-review/kit22/`: results and player round at 1280×720 and 390×844, light and dark; both at 1280×720 with 200 %; header at both sizes and the open menu at 390×844.
+
+### Fix round of 2026-11-26: stopped after piece 1
+
+The owner stopped the round: the kit planning will tag a release that carries Bingo's findings (live `FailureBrake` with a reserve, restore order, dense `ResultFrame`, badges that give way before the header folds, Menu and toggle as one group, chat bar text that follows the font size), and Bingo moves once, onto that release, later. Only the piece in hand was finished. Nothing more changes on this branch until a new block.
+
+**Done: piece 1, large fonts.**
+
+- The match screens' desktop layouts (player, spectator, results, host console; standalone and docked) now ask the page's width in root-font steps: a `page` container on `.shell-main` from 960 px (`shell/shell.css`), `@container page (min-width: 48rem)` in `arena.css`, `watch.css`, `host.css`, `dockSide.css`, `dockWatch.css`, `dockResults.css` and for `.fit-window` in `shell.css`. At 32 px they stack up to 1536 px wide (side column below the play area, the page or the game area scrolls); 16, 20 and 24 px are as before. At 1900 and 1920 px they keep their columns, and the side panels no longer shrink under their text (`dockSide.css`: `max-content` rows; the seasons note ran under "Patterns this round" at 1900×860).
+- The player's card on a phone is never wider than its box (`liveCard.css`): it hung 36 px past it at 390 px and 32 px font. The rule was Bingo's and is the same on `master` `d7d841e` apart from token names (compared in the source; `master` was not run).
+- Test: `e2e/chatEmbed.spec.ts` "at a large font the match screens stack under the dock", failed before each of the three changes; it and `playerFit.spec.ts` pass in Chromium.
+- Website sweep (console, player, spectator, three results screens; six desktop sizes, 360×780, 390×844; 16 and 32 px; light and dark; 24 px in the run before the last two changes): desktop axe 0, no sideways scroll, no overlap but one probe flag on the ball cut at the scroll edge (console, 1366×768, 32 px). Standalone royale audit (1280×720, 1366×768, 1920×1080, 390×844; 16 and 32 px): no overlap on desktop; at 32 px the round pages scroll.
+- What it costs at 200 % on 1280×720: under the chat strip only the title and the ball are in view, the card is reached by scrolling; no result place is above the strip.
+- Pictures in `C:/Users/weudl/sbr-review/kit22/`, retaken: player round and results at 1280×720 light (normal and 200 %), player round at 390×844 at 200 % (its card is below the fold; the test measures it). The other pictures there are from before this round.
+
+**Stopped: piece 5, the Firefox failure (cause found, not fixed).** The trace of run 45701234922 shows no sign-in request at all, so `FailureBrake` is not involved. Playwright aimed at "Sign in"; the lazily loaded "Dev sign-in" menu then arrived and pushed the account links left; the pointer was over "Register" when it clicked down or up, so neither link was activated (the last screencast frame shows `#/register` under the pointer). Development builds only. Proposed fix: keep the account row hidden until the dev menu has loaded (`shell/Header.tsx`). A test that holds the module back is drafted.
+
+**Not started:** piece 2 (one badge in the header) and piece 3 (no badges beside names): no source change; their drafted tests, with piece 5's, are outside the repo in `C:/Users/weudl/sbr-review/kit22-stopped/`. Piece 4 (keep the kit's result frame) needed no code; kit-adoption §9 was not edited. For piece 2 when it comes: the website orders no step across its three ladders, so "highest" needs the owner's word (the first as sent is the simple choice). For piece 3: the leaderboard, the profile and the waiting room show badges beside names too.
+
+**Noticed, left alone:**
+
+- Phones, 32 px: the spectator's watched cards scroll sideways in a row that is no tab stop (axe `scrollable-region-focusable`, `.watch-grid`); standalone, the host-link row in the player's header and the console's controls are wider than 390 px.
+- After the root font changes on an open page the console's game area can scroll by a few pixels at 16 px (also measured before this round's changes; none when only 16 px is measured; cause not traced).
+- The fit probe misses a partial overlap under a quarter of the smaller box (the 200 % title overlap), so the new test measures boxes instead.
+- The kit's result headline is clipped at the descenders, and its chat bar text stays 14 px (both among the kit's findings).
+
+### Running
+
+- CI on the branch's last head.
+
+### Open
+
+- Kit wishes (docs/concepts/kit-adoption.md §9): dense `ResultFrame` and headline line height; folded header keeps Menu and toggle together; `FailureBrake` with a live rule and a reservation; backup restore refusing a differing secret before replacing the database; chat bar text growing with the font.
+- The points (1), (2) and (4) of piece 8; (3) and the card of (5) are fixed (fix round above).
+
+### Needs the owner's word
+
+- Look at draft PR #76 and the pictures; merge or not.
+- The floor of 7 places at 1280×720: the kit's frame shows 5. Wait for a dense kit frame, or accept.
+- The header folding at 1280×720 for members with three badges, and the wrapped own row with badges.
+- The 200 % overlap on master: fix on this branch or separately.
+
 ## 2026-11-25 (unattended chain: merge #72, HSTS docs, the flaky fit test, the seasons overview)
 
 ### Done

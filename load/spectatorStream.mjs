@@ -3,7 +3,7 @@
  * @module load
  * @brief  What one spectator socket receives per draw in a 200-player royale (D24).
  *
- * Responsibility: against a running development stack (server 3900): sign in N load players, join
+ * Responsibility: against a running test server (`pnpm test-server`): sign in N load players, join
  *                 one royale with draws every 2 s (fast profile: missed numbers marked after the
  *                 speed window), and connect one spectator (a load account that does not play)
  *                 behaving as the player screen does (apps/web/src/game/matchRoom.ts): room and own
@@ -11,22 +11,24 @@
  *                 the bytes of frames and fetches, the watch block's part, and the server's CPU.
  *                 Then aborts the match (append-only log) and deletes the load accounts. Usage:
  *                 node load/spectatorStream.mjs [players=200] [minutes=4]
- * Depends on:     socket.io-client, ./devDefaults.mjs, ./common.mjs
+ * Depends on:     socket.io-client, ./testDefaults.mjs, ./common.mjs
  * Spec:           docs/spec/06-realtime-architecture.md §8; docs/spec/01-game-design.md §13 (D24)
  */
-import './devDefaults.mjs';
+import './testDefaults.mjs';
 import { io } from 'socket.io-client';
+import { inBatches } from '@seasonal/kit/testing';
 
 import {
   BASE,
   call,
   errors,
   fail,
-  inBatches,
   ORIGIN,
+  serverFigures,
   signIn,
   SOCKET,
   watchServer,
+  WRITES_FROM,
 } from './common.mjs';
 
 const PLAYERS = Number(process.argv[2] ?? 200);
@@ -96,14 +98,13 @@ async function main() {
   const server = watchServer();
   await call(host, 'POST', `/matches/${code}/start`, {});
   await new Promise((r) => setTimeout(r, MINUTES * 60_000));
-  await server.stop();
+  const load = await server.stop();
   socket.disconnect();
   await call(host, 'POST', `/matches/${code}/abort`, { reason: 'load check done' });
   const removed = await (
-    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE' })
+    await fetch(`${BASE}/api/v1/dev/load-accounts`, { method: 'DELETE', headers: WRITES_FROM })
   ).json();
   const perDraw = (key) => Math.round((record[key] - start[key]) / Math.max(1, record.draws));
-  const cpu = server.samples.map((s) => s.cpuPct);
   console.log(
     JSON.stringify(
       {
@@ -116,10 +117,7 @@ async function main() {
           watchBlock: perDraw('watchBytes'),
           watchedCards: perDraw('cardBytes'),
         },
-        serverCpuPercent: {
-          avg: cpu.reduce((a, b) => a + b, 0) / Math.max(1, cpu.length),
-          max: Math.max(...cpu),
-        },
+        ...serverFigures(load),
         errors,
         accountsRemoved: removed.deleted,
       },

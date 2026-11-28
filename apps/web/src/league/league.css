@@ -27,7 +27,7 @@
   flex-wrap: wrap;
   align-items: end;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .league-period {
@@ -37,7 +37,7 @@
 .league-sub,
 .league-rule {
   margin: 0;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
 }
 
 /* The board: numbers right-aligned, the name takes the remaining width */
@@ -50,14 +50,14 @@
 .league-table th,
 .league-table td {
   padding: 0.5rem 0.4rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--sk-color-border);
   text-align: right;
 }
 
 .league-table thead th {
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  font-weight: var(--font-weight-strong);
+  font-size: var(--sk-font-size-small);
+  color: var(--sk-color-text-muted);
+  font-weight: var(--sk-font-weight-strong);
   vertical-align: bottom;
 }
 
@@ -88,9 +88,9 @@
 /* The figures under the name: only on a narrow board (below). */
 .league-figures {
   display: none;
-  font-size: var(--font-size-small);
-  font-weight: var(--font-weight-body);
-  color: var(--color-text-muted);
+  font-size: var(--sk-font-size-small);
+  font-weight: var(--sk-font-weight-body);
+  color: var(--sk-color-text-muted);
 }
 
 /* A narrow board (a phone, or a large font: the width is measured in rem): the name gets
@@ -118,15 +118,15 @@
 }
 
 .league-table tr.is-own {
-  background: var(--color-active-bg);
-  font-weight: var(--font-weight-strong);
+  background: var(--sk-color-active-bg);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 /* The profile's figures: four tiles in a row, two per row on phones */
 .league-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
 }
 
@@ -137,26 +137,26 @@
 }
 
 .league-stats > div {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
 }
 
 .league-stats dt {
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
+  font-size: var(--sk-font-size-small);
+  color: var(--sk-color-text-muted);
 }
 
 .league-stats dd {
   margin: 0;
-  font-size: var(--font-size-lead);
-  font-weight: var(--font-weight-heading);
+  font-size: var(--sk-font-size-lead);
+  font-weight: var(--sk-font-weight-heading);
 }
 
 .league-matches {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -166,14 +166,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.25rem var(--space-2);
-  padding: var(--space-1) 0;
-  border-bottom: 1px solid var(--color-border);
+  gap: 0.25rem var(--sk-space-2);
+  padding: var(--sk-space-1) 0;
+  border-bottom: 1px solid var(--sk-color-border);
 }
 
 .league-match > a {
   flex: 1 1 10rem;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
   overflow-wrap: anywhere;
 }
 
@@ -183,12 +183,12 @@
 
 .league-note {
   flex-basis: 100%;
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
+  font-size: var(--sk-font-size-small);
+  color: var(--sk-color-text-muted);
 }
 
 .league-note.is-counted {
-  color: var(--color-text);
+  color: var(--sk-color-text);
 }
 
 .league-back {

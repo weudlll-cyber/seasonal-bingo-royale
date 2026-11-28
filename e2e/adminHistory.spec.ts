@@ -7,45 +7,27 @@
  *                 Overview; the server refuses a guest session at once; the History shows the
  *                 change with admin name, old → new and comment; "Undo this change" brings guests
  *                 back and the History lists the undo. The History fits 1280×720 and a 390×844
- *                 phone at 100, 125 and 150 % (./acceptance/fitProbe). It changes a switch of the
+ *                 phone at 100, 125 and 150 % (./fits). It changes a switch of the
  *                 whole server, so it runs alone after the other specs of its browser (TIMING);
  *                 switches restored at the end, also on failure. Chromium saves admin-2-switches-*
  *                 and admin-2-history-*.
- * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
+ * Depends on:     @playwright/test, ./realGame, ./screens, ./fits
  * Spec:           docs/concepts/admin-area.md §4, §6, §8 (k), (p), §9 piece 2
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
-import { probe } from './acceptance/fitProbe.js';
+import { expectFits } from './fits.js';
 import { closeContexts, post, signIn } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
 });
 
-const guestSession = (page: Page) => page.request.post('/api/v1/auth/guest', { data: {} });
-
-// Both sizes at 100, 125 and 150 %: nothing small, cut, covered or wider than the window.
-async function expectFits(page: Page): Promise<void> {
-  for (const size of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    for (const font of [16, 20, 24]) {
-      await page.setViewportSize(size);
-      await page.evaluate((px) => {
-        document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-      }, font);
-      const p = await probe(page);
-      const what = `${String(size.width)} px at ${String(font)} px`;
-      expect([p.smallText, p.cut, p.overlaps, p.hScroll], what).toEqual([[], [], [], false]);
-    }
-  }
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-  });
-}
+const guestSession = (page: Page) =>
+  page.request.post('/api/v1/auth/guest', { data: {}, headers: FROM_THIS_SITE });
 
 test('an admin switches guests off, sees it in the History and undoes it', async ({
   browser,
@@ -66,7 +48,7 @@ test('an admin switches guests off, sees it in the History and undoes it', async
     await expect(change).toContainText('Guests may watch: on → off');
     await expect(change).toContainText('dev-admin');
     await expect(change).toContainText('No guests tonight');
-    await expectFits(admin);
+    await expectFits(admin, 'admin history');
     if (shots) await captureLook(admin, SHOTS_DIR, 'admin-2-history');
     await change.getByRole('button', { name: 'Undo this change' }).click();
     await expect(admin.locator('[data-testid^="admin-history-"]').first()).toContainText(

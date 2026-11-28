@@ -23,7 +23,7 @@ In `website` mode (D37) `/auth/register`, `/auth/login`, the password routes and
 
 | Method | Path | Purpose | Auth |
 |---|---|---|---|
-| GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags, `authMode` (D37) | any |
+| GET | `/session` | Current session, account summary, permissions, CSRF token, feature flags, `authMode` (D37), `serverTime` (the server's clock in ms; countdowns count on it) | any |
 | POST | `/auth/register` | Create local account | none, rate-limited |
 | POST | `/auth/verify-email` | Confirm e-mail token | none |
 | POST | `/auth/login` | E-mail + password → session (a local admin's session has no rights until its second step, `/auth/2fa/*`) | none |

@@ -8,9 +8,10 @@
  *                 host) sees one notice in the cut screen's style above the play area: all N
  *                 finalists start at 0 points (the final's score reset, 01 §7.2), and how the
  *                 final is won, worded from the ruleset's win condition (01 §7.5). It closes with
- *                 "Got it" and goes by itself after the final's first few draws.
+ *                 "Got it" and goes by itself after the final's first few draws. As a strip
+ *                 (the wide match screens, owner decision of 2026-11-28) it has no button.
  * Depends on:     react, ../playback, ../shell/session (useScreens), ../types, ./results.css
- * Used by:        ../game/ArenaNotice, ../host/HostConsole
+ * Used by:        ../game/ArenaNotice, ../game/WideArena, ../host/HostConsole, ../host/WideConsole
  * Spec:           docs/spec/01-game-design.md §7.2, §7.5, §13 (D23)
  */
 import { useState, type ReactElement } from 'react';
@@ -23,9 +24,11 @@ import { useScreens } from '../shell/session.js';
 export function FinalNotice({
   result,
   view,
+  strip = false,
 }: {
   readonly result: QuickTestResult;
   readonly view: PlaybackView;
+  readonly strip?: boolean;
 }): ReactElement | null {
   const [closed, setClosed] = useState(false);
   // The notice goes once the final has drawn this many numbers (admin-area §8 (i)).
@@ -37,21 +40,27 @@ export function FinalNotice({
   if (!inFinal || !early || view.finished || closed) return null;
   const finalists = view.standings.filter((p) => !p.eliminated).length;
   return (
-    <section className="cut-screen final-notice" role="status" data-testid="final-notice">
+    <section
+      className={`cut-screen final-notice${strip ? ' notice-strip' : ''}`}
+      role="status"
+      data-testid="final-notice"
+    >
       <p className="cut-screen-line">
         <strong>
           Final: all {String(finalists)} finalists start at 0 points — {winLine(stage.roundEnd)}
         </strong>
       </p>
-      <button
-        type="button"
-        className="sbr-btn"
-        onClick={() => {
-          setClosed(true);
-        }}
-      >
-        Got it
-      </button>
+      {strip ? null : (
+        <button
+          type="button"
+          className="sk-btn"
+          onClick={() => {
+            setClosed(true);
+          }}
+        >
+          Got it
+        </button>
+      )}
     </section>
   );
 }

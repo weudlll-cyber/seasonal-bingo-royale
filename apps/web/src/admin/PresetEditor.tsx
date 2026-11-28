@@ -50,7 +50,7 @@ export function PresetEditor(props: {
   const [draft, setDraft] = useState<Draft>(new Map());
   const [comment, setComment] = useState('');
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="preset-values-title">
+    <section className="sk-panel sbr-stack" aria-labelledby="preset-values-title">
       <h2 id="preset-values-title">Rules</h2>
       <p className="sbr-muted">
         A change applies to matches created afterwards; running matches keep their rules.
@@ -69,10 +69,10 @@ export function PresetEditor(props: {
             }}
           />
         ))}
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Comment for the History (optional)</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={comment}
           data-testid="preset-comment"
           onChange={(e) => {
@@ -82,7 +82,7 @@ export function PresetEditor(props: {
       </label>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={draft.size === 0 || props.busy}
         data-testid="preset-save"
         onClick={() => {
@@ -107,7 +107,7 @@ function TabBar(props: {
         <button
           key={t}
           type="button"
-          className="sbr-chip"
+          className="sk-chip"
           aria-pressed={t === props.current}
           onClick={() => {
             props.onPick(t);

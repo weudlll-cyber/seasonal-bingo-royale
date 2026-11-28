@@ -8,14 +8,18 @@
  *                 plus the owner's row): royale shows points and seasons, eliminated dimmed with
  *                 "out" below a divider, ranked by when they went out, with the cut and points
  *                 then (01 §7.5, D23); classic ranks by prizes (01 §3a.2). One line states how
- *                 places are decided. The podium shows each player's four season marks like the
+ *                 places are decided. No reveal: Bingo reveals nothing beyond its placings (the card
+ *                 and the draws are on the screen). The podium shows each player's four season marks like the
  *                 rows below it (royale). Names link to profiles when `profileHref` is passed. Frame:
- *                 the kit's `ResultFrame` as a panel (`panel={{ level: 3 }}`, since v0.11.0);
- *                 ./results.css gives Bingo's one-panel look (the kit's frames.css is not loaded).
+ *                 the kit's `ResultFrame` as a dense panel (`panel={{ level: 3 }}`, `dense`, K93);
+ *                 the frame's look is the kit's (frames.css, K47), ./results.css styles Bingo's content.
+ *                 In the wide form (owner decision of 2026-11-28) the line on how places are
+ *                 decided stands under the list.
  * Depends on:     react, @seasonal/kit/react (ResultFrame), ./Podium, ./RankRow, ./Playback
  *                 (props), ../game/labels, ../playback, ../shell/session (useScreens), ../types,
  *                 ./results.css
- * Used by:        ./Playback, ../game/ArenaNotice, ../host/HostConsole
+ * Used by:        ./Playback, ../game/ArenaNotice, ../game/WideArena, ../host/HostConsole,
+ *                 ../host/WideConsole
  * Spec:           docs/spec/01-game-design.md §3a.2, §7.5, §13
  */
 import { ResultFrame } from '@seasonal/kit/react';
@@ -36,7 +40,11 @@ export function FinalPlacement({
   result,
   view,
   profileHref,
-}: PlaybackProps & { readonly profileHref?: ProfileHref | undefined }): ReactElement {
+  wide = false,
+}: PlaybackProps & {
+  readonly profileHref?: ProfileHref | undefined;
+  readonly wide?: boolean;
+}): ReactElement {
   const rows = useScreens().finalPlacementRows;
   const byId = new Map(view.standings.map((p) => [p.accountId, p]));
   const sorted = [...result.players].sort((a, b) => a.place - b.place);
@@ -47,37 +55,22 @@ export function FinalPlacement({
     ...rowFacts(result, view, byId.get(p.accountId), p),
     href: profileHref?.(p.accountId) ?? null,
   });
-  return (
+  const rule = <PlacementRule gameType={result.gameType} />;
+  const frame = (
     <ResultFrame
       game="bingo"
       panel={{ level: 3 }}
+      // One card of small padding, the headline on one row with its lines (K93).
+      dense
       headline="Final placement"
       lines={
         <>
-          {owner === undefined ? null : (
-            <p className="final-own" data-testid="final-own">
-              You finished #{owner.place} of {sorted.length}
-            </p>
-          )}
-          <p className="sbr-muted final-rule" data-testid="final-rule">
-            {PLACEMENT_RULE[result.gameType === 'royale' ? 'royale' : 'classic']}
-          </p>
+          <OwnPlace owner={owner} of={sorted.length} />
+          {wide ? null : rule}
         </>
       }
-      // Bingo reveals nothing beyond its placings: the card and the draws are on the screen.
-      reveal={null}
       placings={
-        <Podium
-          entries={podium.map((p) => ({
-            place: p.place,
-            name: p.accountId,
-            href: row(p).href,
-            note: row(p).note,
-            seasons: seasonsOf(result, byId, p),
-            own: p.isOwner,
-            attrs: row(p).attrs,
-          }))}
-        />
+        <Podium entries={podium.map((p) => podiumEntry(row(p), seasonsOf(result, byId, p), p))} />
       }
       {...(rest.length === 0
         ? {}
@@ -85,6 +78,51 @@ export function FinalPlacement({
       // Not fitted (a panel keeps its height), so the signature only names the placings.
       signature={sorted.map((p) => `${p.accountId}:${String(p.place)}`).join(' ')}
     />
+  );
+  return wide ? (
+    <>
+      {frame}
+      {rule}
+    </>
+  ) : (
+    frame
+  );
+}
+
+// One of the podium's three steps.
+function podiumEntry(
+  facts: ReturnType<typeof rowFacts> & { readonly href: string | null },
+  seasons: readonly Season[] | null,
+  p: Placed,
+) {
+  const { href, note, attrs } = facts;
+  return { place: p.place, name: p.accountId, href, note, seasons, own: p.isOwner, attrs };
+}
+
+function OwnPlace({
+  owner,
+  of,
+}: {
+  readonly owner: Placed | undefined;
+  readonly of: number;
+}): ReactElement | null {
+  if (owner === undefined) return null;
+  return (
+    <p className="final-own" data-testid="final-own">
+      You finished #{owner.place} of {of}
+    </p>
+  );
+}
+
+function PlacementRule({
+  gameType,
+}: {
+  readonly gameType: QuickTestResult['gameType'];
+}): ReactElement {
+  return (
+    <p className="sbr-muted final-rule" data-testid="final-rule">
+      {PLACEMENT_RULE[gameType === 'royale' ? 'royale' : 'classic']}
+    </p>
   );
 }
 
@@ -108,7 +146,7 @@ function seasonsOf(
 function RankRows({ rest, result, byId, row }: RankRowsProps): ReactElement {
   const firstOut = rest.findIndex((p) => byId.get(p.accountId)?.eliminated === true);
   return (
-    <ol className="rank-list">
+    <ol className="rank-list sk-dense-list">
       {rest.map((p, i) => [
         i === firstOut && i > 0 ? (
           <GroupLabel key="out-divider" text="Out of the match" divider />

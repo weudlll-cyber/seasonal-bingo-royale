@@ -8,12 +8,14 @@
  *                 (newest 3 event lines, cards via ./ArenaCards: own with taps, or for out players
  *                 and spectators the top 4 or one followed player, D24); above it ./ArenaNotice
  *                 (final placement, cut, final's fresh start, round recap, quiet hours, waiting
- *                 for host); names link to profiles with Discord steps (../components/StepBadges);
+ *                 for host); names link to profiles;
  *                 ./MatchCancelled (D17); async matches show "While you were away" on top
- *                 (./AwaySummary, 01 §11). Remounted per code.
+ *                 (./AwaySummary, 01 §11). A wide page takes the columns of ./WideArena
+ *                 instead. Remounted per code.
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ./useLiveMatch, ./ArenaCards,
  *                 ./ArenaNotice, ./AwaySummary, ./CurrentBall, ./HostLink, ./WaitingRoom,
- *                 ./MatchCancelled, ./labels, ../league/playerHref, ./arena.css, ./game.css
+ *                 ./MatchCancelled, ./WideArena, ./labels, ../league/playerHref,
+ *                 ../useWideScreen, ./arena.css, ./game.css
  * Used by:        ../shell/AppShell; BallAndNumbers also by ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -26,41 +28,40 @@ import { PrizeList } from '../components/Playback.js';
 import { RecentEvents } from '../components/RecentEvents.js';
 import { ScrollBox } from '../components/ScrollBox.js';
 import { Standings } from '../components/Standings.js';
-import { StepsByName } from '../components/StepBadges.js';
 import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { OwnCards, Watching } from './ArenaCards.js';
 import { ArenaNotice } from './ArenaNotice.js';
-import { AwaySummary } from './AwaySummary.js';
+import { AwaySummary, useAwaySummary } from './AwaySummary.js';
 import { CurrentBall } from './CurrentBall.js';
 import { HostLink } from './HostLink.js';
 import { progressText, rulesLine, runningBadge } from './labels.js';
 import { MatchCancelled } from './MatchCancelled.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
+import { WideArena, type WideArenaProps } from './WideArena.js';
+import { useWideScreen } from '../useWideScreen.js';
 import './arena.css';
 import './game.css';
 
 export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   const { live, error, follow } = useLiveMatch(code);
+  const wide = useWideScreen();
+  // An asynchronous match tells a returning player what happened (01 §11).
+  const away = useAwaySummary(code, live?.match.mode === 'async' && live.match.status !== 'lobby');
+  const [followed, setFollowed] = useState<string | null>(null);
+  const choose = (name: string | null): void => {
+    setFollowed(name);
+    follow(name);
+  };
   if (live === null) {
     return <p className="sbr-muted">{error ?? 'Loading the match…'}</p>;
   }
   const view = playbackAt(live.view, live.view.events.length);
   if (live.match.status === 'lobby') return <WaitingRoom live={live} view={view} />;
   if (live.match.status === 'aborted') return <MatchCancelled live={live} />;
-  return (
-    <StepsByName players={live.view.players}>
-      <Arena live={live} view={view} follow={follow} />
-    </StepsByName>
-  );
-}
-
-interface ArenaProps {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-  // A watching screen follows one player still in, or the top 4 again (D24).
-  readonly follow: (name: string | null) => void;
+  const Screen = wide ? WideArena : Arena;
+  return <Screen live={live} view={view} followed={followed} follow={choose} away={away} />;
 }
 
 interface CardsBoxProps {
@@ -97,16 +98,11 @@ function CardsBox({ live, view, watching, followed, choose }: CardsBoxProps): Re
   );
 }
 
-function Arena({ live, view, follow }: ArenaProps): ReactElement {
+function Arena({ live, view, followed, follow: choose, away }: WideArenaProps): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
   // A player out (after the round of their cut) or a spectator watches the top 4 (D24).
   const watching = owner === undefined || !inPlay(owner, view);
-  const [followed, setFollowed] = useState<string | null>(null);
-  const choose = (name: string | null): void => {
-    setFollowed(name);
-    follow(name);
-  };
   return (
     // data-seq: the server's event number this screen shows (the play-through compares it).
     // fit-window: during a round the arena fills the window below the top bar (shell.css).
@@ -114,8 +110,7 @@ function Arena({ live, view, follow }: ArenaProps): ReactElement {
       <ArenaHeader live={live} view={view} />
       {/* Under the title on desktop, below the play area on a phone (arena.css). */}
       <p className="sbr-muted arena-rules">{rulesLine(live.match)}</p>
-      {/* An asynchronous match tells a returning player what happened (01 §11). */}
-      {live.match.mode === 'async' ? <AwaySummary code={live.match.code} /> : null}
+      <AwaySummary away={away} />
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
         {/* Ball, drawn numbers, the newest lines and the whole card (or the watched cards)
@@ -208,7 +203,7 @@ function ArenaHeader({
       <div className="sbr-row">
         <HostLink match={live.match} />
         {live.match.status === 'running' ? (
-          <span className="sbr-badge-live">{runningBadge(live.match.mode)}</span>
+          <span className="sk-badge-live">{runningBadge(live.match.mode)}</span>
         ) : null}
       </div>
     </header>

@@ -19,12 +19,15 @@ Every environment runs the **same container image**; differences are environment
 | Server (HTTP + WS) | **3900** | `pnpm dev` (apps/server) |
 | Player client (web, Vite) | **5390** | `pnpm dev` (apps/web) |
 | Admin client (admin, Vite) | **5391** | planned: `pnpm dev` once apps/admin has a dev script (WP-19); reserved until then |
+| Test server (browser tests, load measurements) | **3901** | `pnpm test-server`, Playwright (e2e/testServer.ts) |
+| Test client (web, Vite) | **5392** | Playwright (e2e/playwright.config.ts) |
+| Website-mode preview: game server, stand-in website | **3902**, **4490** | by hand (CONTRIBUTING.md, kit `sk-preview`) |
 | PostgreSQL | **5490** | `docker compose -f ops/compose.dev.yml up -d` |
 | Mailpit (SMTP) | **1090** | compose |
 | Mailpit (web UI) | **8490** | compose |
 
 Reserved for later use by this project (never used by other projects on the
-same machine): `3900`, `5390`, `5391`.
+same machine): `3900`–`3902`, `4490`, `5390`–`5392`.
 
 Ports **off-limits** (used by other owner projects): `3800`, `5380`, `7880`,
 `7881`, `3478`, `5349`, `50000–50499`, `4000`, `5173`, `4173`, `5273`, `8000`.
@@ -40,15 +43,21 @@ The server fails closed: without settings it runs as production (`NODE_ENV` defa
 `production`), and every development feature — quick sign-in, Quick Test, fast test rules,
 bot fill, the system-abort route, load accounts, the plain-http cookie, the dev badge — needs
 `SBR_DEV=1`, which the server refuses when `SBR_PUBLIC_URL` is not a localhost address.
-`pnpm dev` (apps/server/dev.env), the integration-test harness and the Playwright web
-server set it explicitly.
+`pnpm dev` (apps/server/dev.env), the integration-test harness and the test server set it
+explicitly.
+
+**Tests never write the development database** (kit K125, 2026-11-27). The browser tests and
+the load measurements run against the test server on its own ports, so a run never meets a
+running `pnpm dev`. Its database (`sbr_e2e`; a website stack's `sbr_e2e_website_w<n>`) is made
+empty on the same PostgreSQL, filled by the migrations only and dropped afterwards; its data
+folder is a temporary one. Starting it never recreates a running dev container.
 
 ## 2. Branching and release flow
 
 - `master` is always releasable and protected: PR required, CI green required, merges are merge commits (one topic = one branch = one merge).
 - One topic = one branch until the topic is done, then one merge (owner workflow rule).
 - A work branch is verified through its pull request to `master` (§3): every push to it runs CI once, as the pull request's run. Pushes to `master` run CI as well.
-- Releases: tag `vX.Y.Z` (SemVer) on `master` → release workflow builds, signs and publishes the image `ghcr.io/<org>/seasonal-bingo-royale:X.Y.Z` plus SBOM and release notes generated from Conventional Commits.
+- Releases: tag `vX.Y.Z` (SemVer) on `master` with a green run there → the Seasonal kit's release workflow builds, signs (keyless) and publishes the image `ghcr.io/<owner>/seasonal-bingo-royale:X.Y.Z` with its SBOM, then the GitHub release with notes generated from Conventional Commits (v0.35.0, kit K109). The installer verifies that signature before it takes the image (09 §4).
 - Staging deploys the release candidate tag `vX.Y.Z-rc.N`; production deploys the final tag. Both by the operator running `sbr update <version>` on the server (pull model, no CI credentials on the server).
 
 ## 3. CI pipeline (GitHub Actions)
@@ -60,11 +69,12 @@ Triggers: pull requests to `master`, pushes to `master`, tags. A push to a work 
 | `lint` | ESLint (incl. boundaries, max-lines, unused variables), Prettier check, `tsc --noEmit` (all packages) | yes |
 | `unit` | Vitest for `domain`, `application`, `contracts`, clients; coverage thresholds (§ [12-testing-strategy.md](12-testing-strategy.md)) | yes |
 | `integration` | Vitest + Testcontainers Postgres for `server` | yes |
-| `e2e` | Playwright suite, side by side: Firefox and WebKit mobile viewport one job each, Chromium on three runners (`e2e (chromium 1/2)`, `e2e (chromium 2/2)`: half of the regular specs each; `e2e (chromium timing)`: the timing specs with `--no-deps`; every test runs once) and the check `e2e (chromium)` that is green only when all three are; each in the Playwright container image (browsers and their system libraries included: no apt step) with PostgreSQL as a job service; each browser runs its timing-sensitive specs after its other specs, alone on its runner; runs on every push and pull request; traces of failed tests are kept as an artifact for a week | yes |
+| `e2e` | Playwright in Chromium: the specs of what the change touched (`e2e/changedSpecs.ts`: documents and unit tests none, a spec itself, the admin, account and league folders their specs, anything else all), the timing specs after the others; job `e2e (chromium)`; Playwright container image with PostgreSQL as a job service; traces of failed tests kept for a week. The whole suite in three browsers runs nightly and on demand (`browsers.yml`, kit K106); a red night is fixed before the next merge | yes |
 | `security` | `pnpm audit --prod`, osv-scanner, gitleaks, CodeQL (scheduled + PR), license check | yes (high/critical) |
-| `image` | Docker build, Trivy scan, size budget (≤ 250 MB) | yes on PR to `master` |
+| `image` | Docker build, size budget (≤ 250 MB) | yes on PR to `master` |
+| `scan` | the Seasonal kit's reusable scan (K108): Trivy over image and lockfile, a ZAP baseline against the started app; job summary and artifact | no, until the first production (then high and critical, K113) |
 | `docs` | Markdown link check, OpenAPI generation succeeds, file-header check in docs index | yes |
-| `release` | on tag: build multi-arch (amd64, arm64), push to GHCR, cosign sign, attach SBOM | — |
+| `release` | on tag: the check on master, the kit's `release-image.yml` (amd64, arm64; GHCR; CycloneDX SBOM; cosign keyless), the GitHub release | — |
 | `load` | k6 scenario (§ testing) against an ephemeral stack | manual / before release |
 
 Actions pinned by SHA, `permissions: contents: read` default, no secrets available to PRs from forks.

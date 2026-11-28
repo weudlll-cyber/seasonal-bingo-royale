@@ -20,7 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { MatchScreen } from '../game/MatchScreen.js';
 import type { LiveState, MatchSummary } from '../game/useLiveMatch.js';
-import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
+import { matchSummary, renderInSession, serveMatch, show } from '../test/matchFixture.js';
 import { playbackAt } from '../playback.js';
 import { royaleFixture } from '../test/quickTestFixture.js';
 import { createBody } from './createForm.js';
@@ -80,12 +80,13 @@ describe('D12: the shortest timed-draw interval', () => {
 });
 
 describe('D13: Draw next unlocks with the timed interval', () => {
-  it('shows the remaining seconds and stays disabled until then', () => {
+  it('shows the remaining seconds and stays disabled until then', async () => {
     const live = {
       match: summary({ nextDrawAt: Date.now() + 3_000 }),
       view: { ...royaleFixture(), events: [] },
     } as unknown as LiveState;
-    render(<HostDrawControls live={live} view={playbackAt(royaleFixture(), 0)} />);
+    serveMatch(summary());
+    await renderInSession(<HostDrawControls live={live} view={playbackAt(royaleFixture(), 0)} />);
     const button = screen.getByTestId<HTMLButtonElement>('host-draw-next');
     expect(button.textContent).toBe('Draw next in 3 s');
     expect(button.disabled).toBe(true);

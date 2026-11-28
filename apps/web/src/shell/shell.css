@@ -6,8 +6,10 @@
  * Responsibility: a centred main column under the top bar (the kit's header, its look
  *                 ./header.css). On desktop a live screen (.fit-window: the arena, the running
  *                 host console) fills the window below the bar exactly, so the page does not
- *                 scroll during a round. The maintenance page and banner. Colours come from
+ *                 scroll during a round; the `page` container the match screens' desktop layouts
+ *                 ask (a large font stacks them). The maintenance page and banner. Colours come from
  *                 @sbr/ui.
+ * Used by:        ./AppShell; the `page` container: ../host/hostLobby.css
  * Spec:           docs/spec/01-game-design.md §13
  */
 
@@ -22,9 +24,9 @@
 
 .shell-main {
   width: 100%;
-  max-width: var(--content-width);
+  max-width: var(--sk-content-width);
   margin: 0 auto;
-  padding: var(--space-3) var(--gutter) var(--space-4);
+  padding: var(--sk-space-3) var(--gutter) var(--sk-space-4);
 }
 
 /* A live screen fills the window below the top bar (PLAYER-CLARITY): the page is one window
@@ -44,27 +46,64 @@
     flex-direction: column;
     min-height: 0;
     max-width: 96rem;
-    padding-top: var(--space-2);
-    padding-bottom: var(--space-2);
+    padding-top: var(--sk-space-2);
+    padding-bottom: var(--sk-space-2);
   }
 
-  #root:has(.fit-window) .fit-window {
-    flex: 1 1 auto;
-    min-height: 0;
+  /* The match screens' desktop layouts ask this width in root-font steps, not the window's
+     pixels: `@container page (min-width: 48rem)` is a desktop whose page is wide enough for
+     columns at the reader's font (48 rem: 768 px at 16, 1536 px at 32). Narrower, at a large
+     font, they stack as on a phone and the page or the game area scrolls (owner decisions of
+     2026-11-20 and 2026-11-26). Defined from 960 px only, so no phone matches it. */
+  .shell-main {
+    container: page / inline-size;
   }
+
+  @container page (min-width: 48rem) {
+    #root:has(.fit-window) .fit-window {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+  }
+}
+
+/* Headings in the kit's sizes, never the browser's own (kit text sizes, 2026-11-28); a
+   screen's own rules win over these. */
+:where(h1) {
+  font-size: var(--sk-font-size-title);
+}
+
+:where(h2, h3) {
+  font-size: var(--sk-font-size-lead);
+}
+
+:where(h4) {
+  font-size: var(--sk-font-size-body);
+}
+
+/* A word too long for a narrow phone at a large font breaks instead of widening the page. */
+.shell-main h1 {
+  overflow-wrap: anywhere;
+}
+
+/* A link on a line of its own is a whole touch target (the sign-in pages, "Verify"). */
+.sbr-tap-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sk-hit-target);
 }
 
 /* Maintenance (sbr maintenance on): the page instead of the lobby, the host's banner */
 .maintenance-page {
   max-width: 36rem;
-  margin: var(--space-4) auto;
+  margin: var(--sk-space-4) auto;
   text-align: center;
 }
 
 .maintenance-banner {
-  margin: 0 0 var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-autumn);
-  border-radius: var(--radius);
-  background: var(--color-warning-surface);
+  margin: 0 0 var(--sk-space-2);
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border: 1px solid var(--sk-color-autumn);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-warning-surface);
 }

@@ -106,7 +106,7 @@ Roles are bundles of permissions; code checks **permissions**, never role names.
 
 ## 7. Browser security headers
 
-Set by the app (Fastify helmet), checked in CI with a header test:
+Set by the app (Fastify helmet with the kit's `securityHeaderSet`, owner decision of 2026-11-25, K63), checked in CI with a header test:
 
 - `Content-Security-Policy` (player app): `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' wss://<host>; frame-ancestors <embed allowlist>; base-uri 'none'; form-action 'self'; object-src 'none'`
 - Admin app: same, plus `frame-ancestors 'none'` and `require-trusted-types-for 'script'`.
@@ -117,6 +117,7 @@ Set by the app (Fastify helmet), checked in CI with a header test:
 ## 8. CSRF
 
 - Session cookies are `SameSite=Lax`.
+- Every state-changing HTTP request must say where it comes from, and that must be this site (the kit's `writeCheck`, owner decision of 2026-11-25, K60): `Sec-Fetch-Site` is `same-origin` or `none`, an `Origin` has the host the request was made to (`X-Forwarded-Host` only from a trusted proxy's address), and a write naming neither is refused. The token below is a second layer: both must pass. Tools that write to the API send `Origin` (the load check, the rehearsal's scripts); the development routes without a session (`noCsrf`) are exempt.
 - Every state-changing HTTP request additionally requires the header `X-CSRF-Token`, a per-session token returned by `GET /api/v1/session` (synchronizer token, compared constant-time). The calls that create the first session (register, login, guest, and the development-only quick sign-in) have no token yet; they accept only `application/json` bodies, which a cross-site form cannot send.
 - WebSocket handshakes verify `Origin` against the configured origin plus the embed allowlist.
 - Embedded clients in third-party context use bearer tokens (no cookies) and are therefore not CSRF-exposed.
@@ -173,7 +174,7 @@ Uploaded images are never fetched from URLs — only direct uploads.
 
 | Route class | Default |
 |---|---|
-| Login | 5 / 15 min per account+IP, 20 / 15 min per IP; then exponential back-off; CAPTCHA-free by design (no third-party CAPTCHA), uses progressive delay instead |
+| Login | 5 / 15 min per account+IP, 20 / 15 min per IP; **only wrong passwords count** (owner decision of 2026-11-24, kit `FailureBrake`, K46): a braked key is refused before its password is checked, a correct sign-in is never counted, and every check reserves a place on its keys, so failures and checks under way together never exceed the limit (the kit's `reserve`, K92: guesses sent together would otherwise all pass before the first failure is counted); a limit changed in the settings applies at once to the counts already held; then exponential back-off; CAPTCHA-free by design (no third-party CAPTCHA), uses progressive delay instead |
 | Registration | 5 / h per IP |
 | Password reset | 3 / h per account, 10 / h per IP |
 | General API | 120 / min per session |

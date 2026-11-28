@@ -7,18 +7,19 @@
  *                 changes "Time between numbers" with a comment and saves; the host then starts a
  *                 match the old way (interval empty) and it runs on the new interval; the History
  *                 shows the change in seconds. The page fits 1280×720 and a 390×844 phone at 100,
- *                 125 and 150 % (./acceptance/fitProbe). It changes a published preset of the whole
+ *                 125 and 150 % (./fits). It changes a published preset of the whole
  *                 server, so it runs alone after the other specs of its browser (TIMING); interval
  *                 restored and match aborted at the end, also on failure. Chromium saves
  *                 admin-3-presets-*.
- * Depends on:     @playwright/test, ./realGame, ./screens, ./acceptance/fitProbe
+ * Depends on:     @playwright/test, ./realGame, ./screens, ./fits
  * Spec:           docs/concepts/admin-area.md §4 (Presets), §8 (b), §9 piece 3
  */
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
-import { probe } from './acceptance/fitProbe.js';
+import { expectFits } from './fits.js';
 import { closeContexts, hostMatch, post, signIn, stopMatch } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
@@ -26,29 +27,6 @@ test.afterEach(async ({ browser }) => {
 
 const PRESET = '/api/v1/admin/presets/royale-realtime';
 const INTERVAL = 'draws.intervalMsRealtime';
-
-// Both sizes at 100, 125 and 150 %: nothing small, cut, covered or wider than the window.
-async function expectFits(page: Page): Promise<void> {
-  for (const size of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    for (const font of [16, 20, 24]) {
-      await page.setViewportSize(size);
-      // From the top: the sticky bar covers what is scrolled under it, which is no overlap.
-      await page.evaluate((px) => {
-        document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-        window.scrollTo(0, 0);
-      }, font);
-      const p = await probe(page);
-      const what = `${String(size.width)} px at ${String(font)} px`;
-      expect([p.smallText, p.cut, p.overlaps, p.hScroll], what).toEqual([[], [], [], false]);
-    }
-  }
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-  });
-}
 
 // The preset's interval now, in ms.
 async function intervalNow(page: Page): Promise<number> {
@@ -77,7 +55,7 @@ test('an admin changes a preset and the next match plays it', async ({ browser }
     await admin.getByTestId('preset-comment').fill('Slower evenings');
     await admin.getByTestId('preset-save').click();
     await expect(admin.getByRole('status')).toHaveText('Saved. New matches use these rules.');
-    await expectFits(admin);
+    await expectFits(admin, 'admin presets');
     // The rules are what the review looks at: the changed value in view.
     const row = admin.getByTestId('preset-draws-intervalMsRealtime');
     if (shots) await captureLook(admin, SHOTS_DIR, 'admin-3-presets', row);

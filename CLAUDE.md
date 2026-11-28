@@ -25,13 +25,48 @@ Everything in this repository is English: code, comments, commit messages, docs,
 - When a task closes an item, move it in `docs/BACKLOG.md` from part one to part two in the same commit, then align `docs/OPEN.md`.
 - New dependencies: name each one and the reason in the report.
 
-## Testing
+## How we check
 
-- While working and before every push: lint, typecheck, `pnpm verify` when the change can affect it, and the tests that read anything the change touched — search the e2e and unit tests for every UI text, test id, route and event wording the commit changed (`rg` over `e2e/` and `**/*.test.*`) and run the specs found, Chromium only. Push only when they pass. Each new test fails once before its fix.
-- The full e2e suite in all browsers runs in CI (the pull request's run); it is not run locally any more. Locally run a single spec again only to reproduce a CI failure.
-- After a merge, do not wait idle for the master CI run of the merge commit: start the next piece at once, check that run before the next merge and before the final report, and if it is red, stop and fix master first.
+The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of 2026-11-06, 2026-11-23, 2026-11-25, 2026-11-27 and 2026-11-28, kit K82, K110 and K127). "Done" for a piece means built, pushed and quick-checked.
+
+### A small task
+
+- Locally, before each push: the typecheck, the lint of the touched files and the fast tests of the changed files; when the change touches what a browser spec checks (a UI text, test id, route or event wording: `rg` over `e2e/` and `**/*.test.*`), that one spec in one browser, never the whole browser suite.
+- The full checks run on GitHub through the draft pull request. Do not wait for CI between the pieces of a chain; look at the latest run once at the end and before every merge, and fix a red run on the same branch. `pnpm verify` is not run locally.
+
+### A big move (a kit adoption, a migration, a task of many known changes)
+
+- Build all changes first. Between them: typecheck, lint of the touched files, unit tests of the touched package.
+- Then one round of the real checks, each once: the browser specs that cover the changes, the sweep (once, at the end), a rehearsal where ops changed (only what the change can have altered: list it first), the draft pull request's CI.
+- A fault is fixed and only what the fix can have changed is checked again: a colour, the contrast check of the screens concerned; a size or spacing of a shared part, the screens that show it; anything else, the one screen. No further full run. No walks or measurements between the pieces.
+- The report says how many full runs there were and why. An exemption names its reason: a kit part (`file:line`) or an owner decision. Anything else is fixed.
+- Line counts once, at the hand-over, for the whole branch against `master`. One written report (`docs/MORNING.md`); the final message gives only the pushed commits, the CI result, the open questions with a proposal, new kit findings and the report's path.
+
+### Every task
+
+- Each new test fails once before its fix. Never re-run a check on an unchanged tree.
+- The full browser suite runs nightly and on demand (`browsers.yml`), not on every pull request; a pull request runs the unit tests, the static checks and the browser specs of what it changed. A red nightly run is fixed before the next merge.
+- After a merge, check the master run of the merge commit before the next merge and before the final report; if it is red, stop and fix master first.
 - Your own play-throughs (acceptance, screenshots) use the fast test rules / "Short royale rounds", except one realtime royale at full length per task that changes the game screens or rules.
-- Never re-run a check on an unchanged tree.
+
+### A screen meant to fit
+
+Owner decisions of 2026-11-28, for every game (kit K127, K128).
+
+- A screen meant to fit (a round, the screens between rounds, a result, a lobby with a few matches) shows no page scroll at any desktop size, and its panels show their content whole. It is looked at 1024x600 first.
+- A list longer than the window scrolls inside its box, and the box keeps a floor of items in sight (the sweep's `floors`; `first: true` where a decision means the first items).
+- Where layout alone cannot fit, use the kit's fit (`useFitScale`, `fit.css`, scale floor 0.6), never fixed sizes.
+- The sweep looks at the edges: the kit's five window sizes and, as `edges`, the two sizes either side of each width or height where Bingo's own layout switches, with 1278x629 (the owner's window).
+- A re-check after a fix runs only what the fix can change. Size or spacing: the probe and the floors at the sizes where the finding appeared, plus 1920x950, 1024x600, 320x568 and the 32 px font, without axe (`sizes`, `themes: ['light']`, `axe: false`). A colour: contrast only. A match needed to reach screens is played once per re-check.
+
+### Where a check may look and write
+
+The kit's four rules (kit HANDBOOK "Where a check may look and write", K125; owner decision of 2026-11-27).
+
+- A change that matters only on a server (a database health check over TCP, say) is made with the way to the server and rehearsed there with a fresh install, not as a change of its own before it. Note it in `docs/GO-LIVE.md` until then.
+- Browser tests, sweeps and measurements never write the owner's development database: they use their own database, made empty and dropped afterwards (`pnpm test-server`, ports 3901 and 5392; docs/spec/08-devops-architecture.md §1.1). No old test data is kept or carried over, and nothing in the development database is deleted (D64).
+- Browser journeys use fixed seeds and handle every outcome chance can give. A test that fails on a lucky outcome is a test defect, not a flaky run to repeat.
+- A website-mode part is looked at in the kit's local preview (`sk-preview`, kit OPERATIONS "The local website-mode preview"; CONTRIBUTING.md "Look at website mode locally") before a merge, on a database of its own; the real shared call only on the website.
 
 ## Working cheaply
 
@@ -58,4 +93,4 @@ Owner decision of 2026-11-23: these saving rules apply to every Seasonal project
 
 ## Before reporting
 
-Run `pnpm verify`. Report: lines before/after per touched file, what was removed, what was extracted, what was reused, what was noticed but left alone, test results, and for visible changes what the owner should look at (Quick Test seed when available).
+Check as "How we check" says. Report: lines before/after per touched file, what was removed, what was extracted, what was reused, what was noticed but left alone, test results, and for visible changes what the owner should look at (Quick Test seed when available).

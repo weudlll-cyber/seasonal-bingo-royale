@@ -55,20 +55,21 @@ git clone https://github.com/weudlll-cyber/seasonal-bingo-royale.git sbr && sudo
 
 It asks three things:
 
-| Question                                   | Your answer             |
-| ------------------------------------------ | ----------------------- |
-| `Environment [prod/staging] [prod]:`       | press **Enter** (prod)  |
-| `Admin e-mail (certificates and notices):` | your e-mail address     |
-| `Your age public key for backups (age1…):` | your public key `age1…` |
+| Question                                      | Your answer                                                                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Environment [prod/staging] [prod]:`          | press **Enter** (prod)                                                                                                                          |
+| `Operator e-mail (certificates and contact):` | your e-mail address (only when the server has none yet in `/etc/seasonal/operator.env`; else it says `using <address> from …` and asks nothing) |
+| `Your age public key for backups (age1…):`    | your public key `age1…`                                                                                                                         |
 
 It asks nothing else. It takes the website's mode (nginx or the website's own Caddy) and the domain from the website's record.
 
-Expected output, in this order (from the rehearsal; your values differ):
+Expected output, in this order (from the rehearsal; your values differ; the `host:` line and the operator question are newer than that rehearsal):
 
 ```
 Checking the server
   system: ubuntu 24.04
   …
+host: website mode: the website's installer owns this server's security; nothing changed
   website: nginx mode, domain <website domain>, the app trusts 172.30.249.0/24
 Preparing the app
   image source: built on this server from /root/sbr at master (no signed release image yet)
@@ -176,4 +177,13 @@ When all is good: set the Bingo card to `available`.
   sudo sbr rollback
   ```
 - **The website's update in step 3 went wrong:** follow the website's guide (`docs/DEPLOYMENT.md`, "Status, uninstall, rollback" and "Restoring"). It needs the snapshot it printed (`/var/backups/seasonal-install/<time>`) or the backup from step 1.4.
-- **Bingo's data must come back from a backup:** operator guide §5 step 5 (`sudo sbr restore <file> --identity <key file>`). On a new server, add `--force-env`. The rehearsal restores a backup into a fresh server this way.
+- **Bingo's data must come back from a backup:** operator guide §5 step 5 (`sudo sbr restore <file> --identity <key file>`; `sbr` runs the kit's backup script, `/opt/sbr/kit/backup.sh`).
+  **Moving to a new server** (kit docs/OPERATIONS.md "Restoring onto a new server"): install there, copy the backup and, for the restore only, the age key. Check the file's name (`sbr-prod-<UTC time>.tar.age`: this game, this environment, the time you mean) and run `sudo sbr drill <file> --identity <key file>`. Then `sudo sbr restore <file> --identity <key file>`: it **stops and names the differing key**, as it should, and nothing has changed. Run it again with `--force-env`, the expected step here: the data is replaced and the backup's keys take the new server's place. Check `sudo sbr status`, sign in, take a backup.
+
+**Where the image comes from:** until the first release is published, the installer builds from the source (the commands above, `master`). A first release is made by pushing a tag `v1.0.0` on a master commit with a green run; from then on install or update to that version and the signed image is verified and pulled instead; the installer brings cosign itself (operator guide §6b).
+
+**What a first install puts in place** (`ops/install.sh`): Bingo's stack files and scripts in `/opt/sbr` (the kit's folder `/opt/sbr/kit/` included, which `sbr`, the backups and the route file run from), the `sbr` command, the settings in `/etc/sbr`, the operator's address in `/etc/seasonal/operator.env`, the database roles, the containers, the route file in the website's proxy, the backup keys as secret files and the nightly backup timer. In website mode it changes no firewall, update or SSH setting (a standalone server gets those from the same installer). Nothing has to be done in a certain order afterwards: every later `sbr update` installs the whole new version.
+
+**Updating an older install.** **An install made before the kit's folder existed** (none exists in production) updates in two steps, because `sbr update` runs the installed version's file list: first to the commit that only added the folder (`feat(ops): sbr update installs the kit's whole ops folder`), `sudo sbr confirm`, then to the newer ref; or run the installer again from `/opt/sbr/src`. The rehearsal restores a backup into a fresh server this way.
+
+**Server-only changes this move rehearses** (kit K125: made with the way to the server, checked there with a fresh install, not before). The database health checks and the restore drill wait over TCP (`pg_isready -h 127.0.0.1`: ops/compose.yml, `drill_database` in ops/lib/backup.sh, the kit's ops/kit/lib/backup-restore.sh), so a database that only answers its socket during its first start is not taken as ready. On the new server confirm: after the install step 5 shows `postgres … (healthy)`, and the drill of the first backup (operator guide §5) passes.

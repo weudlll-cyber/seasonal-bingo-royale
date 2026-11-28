@@ -7,18 +7,17 @@
  *                 four season marks (./SeasonSet: earned icons, discs with a ring; royale), the points or
  *                 another note, the viewer's own row highlighted, an eliminated row dimmed
  *                 with "out"; the name as a profile link where the screen gives one, or a
- *                 name that can be selected (a watcher follows that player, D24), with the
- *                 player's Discord steps (./StepBadges); and the
- *                 group labels ("Still in", "Out of the match" after a divider).
+ *                 name that can be selected (a watcher follows that player, D24), the name
+ *                 alone: no step badges in a match's rows (owner decision of 2026-11-26); and
+ *                 the group labels ("Still in", "Out of the match" after a divider).
  *                 Season marks have shapes and names, so colour never carries meaning alone.
- * Depends on:     react, ./SeasonSet, ./StepBadges, ../types, ./results.css
+ * Depends on:     react, ./SeasonSet, ../types, ./results.css
  * Used by:        ./Standings, ./FinalPlacement, ../game/InterludeCards
  * Spec:           docs/spec/01-game-design.md §7.5, §8.4, §13
  */
 import type { ReactElement } from 'react';
 
 import { SeasonSet } from './SeasonSet.js';
-import { NameSteps } from './StepBadges.js';
 import type { Season } from '../types.js';
 import './results.css';
 
@@ -65,14 +64,12 @@ function RankName({ name, href, own, onSelect }: RankRowProps): ReactElement {
     return (
       <button type="button" className="rank-name rank-name-btn" onClick={onSelect}>
         {name}
-        <NameSteps name={name} />
         <span className="sbr-visually-hidden"> — show this card</span>
       </button>
     );
   return (
     <span className="rank-name">
       {href == null ? name : <a href={href}>{name}</a>}
-      <NameSteps name={name} />
       {own ? <span className="sbr-visually-hidden"> (you)</span> : null}
     </span>
   );

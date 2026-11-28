@@ -53,7 +53,7 @@ export function ForgotPassword(): ReactElement {
     return 'If an account uses this e-mail address, a link to choose a new password is on its way. It works for one hour.';
   });
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="forgot-form">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="forgot-form">
       <h1>Forgot your password?</h1>
       {done === null ? (
         <>
@@ -68,7 +68,7 @@ export function ForgotPassword(): ReactElement {
           <FormError text={error} testId="forgot-error" />
           <button
             type="submit"
-            className="sbr-btn sbr-btn--primary"
+            className="sk-btn sk-btn--primary"
             disabled={busy}
             data-testid="forgot-submit"
           >
@@ -81,7 +81,9 @@ export function ForgotPassword(): ReactElement {
         </p>
       )}
       <p className="sbr-muted">
-        <a href={hrefOf({ name: 'signIn' })}>Back to sign in</a>
+        <a className="sbr-tap-link" href={hrefOf({ name: 'signIn' })}>
+          Back to sign in
+        </a>
       </p>
     </form>
   );
@@ -107,7 +109,7 @@ export function ResetPassword(): ReactElement {
       ? 'The two passwords differ.'
       : error;
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="reset-form">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="reset-form">
       <h1>Choose a new password</h1>
       {done === null ? (
         <>
@@ -130,7 +132,7 @@ export function ResetPassword(): ReactElement {
           <FormError text={shown} testId="reset-error" />
           <button
             type="submit"
-            className="sbr-btn sbr-btn--primary"
+            className="sk-btn sk-btn--primary"
             disabled={busy}
             data-testid="reset-submit"
           >

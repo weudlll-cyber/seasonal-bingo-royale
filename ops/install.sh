@@ -5,13 +5,16 @@
 #
 # Responsibility: ask (or take from flags) the install type (standalone with its own domain and
 #                 HTTPS, or integrated into the Seasonal Entertainment website behind its proxy at
-#                 /games/bingo), environment, address, admin e-mail, optional SMTP (standalone only)
-#                 and age public key; install Docker if missing, build the image from a git ref,
+#                 /games/bingo), environment, address, operator e-mail (the kit's, kept for every
+#                 Seasonal installer), optional SMTP (standalone only)
+#                 and age public key; install Docker if missing, take the image of a git ref (a
+#                 version tag's signed release, else built here),
 #                 write /etc/sbr/<env>.env with fresh secrets (website installs: sign-in only
 #                 through the website, D37), start the stack, wait for /readyz, install the backup
 #                 timer. Re-runs keep earlier answers, never switch type unconfirmed. SMTP password
 #                 only from a file or hidden prompt; --trusted-proxies adds ranges ("none" removes).
-# Depends on:     ops/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
+#                 The kit's security baseline runs on a standalone server.
+# Depends on:     ops/lib/*.sh, ops/kit/lib/*.sh, ops/compose.yml, ops/compose.website.yml,
 #                 ops/compose.website-nginx.yml, ops/Caddyfile, ops/sbr
 # Spec:           docs/spec/09-deployment-architecture.md §1–§3, §6, §8
 #
@@ -21,7 +24,7 @@
 #          [--website-domain <domain>] [--website-network <name>] [--website-upstream <host:port>]
 #          [--website-authorize-path </api/games/bingo/authorize>] [--website-login-path </login?next=>]
 #          [--website-routes-dir </etc/seasonal/routes>] [--app-port <3900>] [--edge-subnet <cidr>]
-#          [--repo <git url or path>] [--ref <git ref>]
+#          [--repo <git url or path>] [--ref <git ref>] [--image-source release|build]
 #          [--trusted-proxies <range,range…>|none] [--yes] [--change-type] [--dry-run] [--any-os]
 set -euo pipefail
 # Errors inside $(…) stop the script too (audit O1).
@@ -32,14 +35,24 @@ OPS=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$OPS/lib/common.sh"
 # shellcheck source=lib/host.sh
 source "$OPS/lib/host.sh"
+# shellcheck source=kit/lib/operator.sh
+source "$OPS/kit/lib/operator.sh"
+# shellcheck source=kit/lib/host-baseline.sh
+source "$OPS/kit/lib/host-baseline.sh"
 # shellcheck source=lib/website.sh
 source "$OPS/lib/website.sh"
-# shellcheck source=lib/websiteRoute.sh
-source "$OPS/lib/websiteRoute.sh"
+# shellcheck source=kit/lib/website-route.sh
+source "$OPS/kit/lib/website-route.sh"
 # shellcheck source=lib/websiteApply.sh
 source "$OPS/lib/websiteApply.sh"
+# shellcheck source=kit/lib/image.sh
+source "$OPS/kit/lib/image.sh"
+# shellcheck source=lib/release.sh
+source "$OPS/lib/release.sh"
 # shellcheck source=lib/config.sh
 source "$OPS/lib/config.sh"
+# shellcheck source=kit/lib/db-roles.sh
+source "$OPS/kit/lib/db-roles.sh"
 # shellcheck source=lib/backup.sh
 source "$OPS/lib/backup.sh"
 
@@ -67,6 +80,7 @@ parse_flags() {
       --trusted-proxies) SBR_EXTRA_PROXIES=$2; shift ;;
       --repo) SBR_REPO=$2; shift ;;
       --ref) SBR_REF=$2; shift ;;
+      --image-source) SBR_IMAGE_SOURCE=$2; shift ;;
       --yes) SBR_YES=1 ;;
       --change-type) SBR_CHANGE_TYPE=1 ;;
       --dry-run) SBR_DRY_RUN=1 ;;
@@ -101,11 +115,23 @@ ask_common() {
   fi
   # A re-run keeps what the last run wrote, unless a flag says otherwise (audit O4).
   read_saved_answers "$SBR_ENV"
-  ask SBR_ADMIN_EMAIL "Admin e-mail (certificates and notices)"
+  operator_address
   ask SBR_AGE_RECIPIENT "Your age public key for backups (age1…)"
   [[ $SBR_AGE_RECIPIENT == age1* ]] || die "an age public key starts with age1 (age-keygen prints it)"
   # Mail exists only standalone (password reset, D60): a website install asks nothing about it.
   [[ ${SBR_YES:-0} == 1 || -n ${SMTP_FLAG:-} || $SBR_TYPE == website ]] || ask_smtp
+}
+
+# The operator's contact address (certificates and notices), one for every Seasonal installer
+# on this server (K85, /etc/seasonal/operator.env): --email or the saved answer wins, else the
+# file's, else asked once. A dry run writes nothing.
+operator_address() {
+  if [[ $SBR_DRY_RUN == 1 ]]; then
+    ask SBR_ADMIN_EMAIL "Operator e-mail (certificates and contact)"
+    return 0
+  fi
+  SBR_ADMIN_EMAIL=$(sk_operator_email "${SBR_ADMIN_EMAIL:-}") ||
+    die "no operator e-mail address (above)"
 }
 
 # SMTP asked with the saved values as defaults; an empty answer keeps what is saved.
@@ -123,6 +149,17 @@ ask_smtp() {
   ask SBR_SMTP_FROM "Sender address" "$from"
 }
 
+# The server's basic security (K88): standalone, the firewall (SSH's real ports, 80, 443),
+# automatic security updates and a fail2ban jail for SSH, each added only where missing; in
+# website mode the website's installer owns the host and nothing changes.
+secure_host() {
+  if [[ $SBR_DRY_RUN == 1 ]]; then
+    info "  would set up the server's security baseline ($SBR_TYPE)"
+    return 0
+  fi
+  sk_host_baseline "$SBR_TYPE" || die "the server's security baseline failed (above)"
+}
+
 # Where the source comes from: the flag, the last install, this checkout's origin, else the
 # public repository; the ref: the flag, the last install, else master.
 default_source() {
@@ -132,7 +169,13 @@ default_source() {
   SBR_REPO=${SBR_REPO:-${origin:-https://github.com/weudlll-cyber/seasonal-bingo-royale.git}}
   SBR_REF=${SBR_REF:-$(env_value "$SBR_ETC/install.conf" SBR_REF)}
   SBR_REF=${SBR_REF:-master}
-  info "  image source: built on this server from $SBR_REPO at $SBR_REF (no signed release image yet)"
+  local from
+  from=$(image_source "$SBR_REF")
+  if [[ $from == release ]]; then
+    info "  image source: the signed release of $SBR_REF (checked before it is pulled)"
+  else
+    info "  image source: built on this server from $SBR_REPO at $SBR_REF"
+  fi
 }
 
 next_steps() {
@@ -142,7 +185,6 @@ next_steps() {
     info "  1. Create the first admin:  sudo sbr admin create-super"
     info "  2. Open https://$(url_host "$SBR_ADDRESS")/"
     [[ $SBR_ADDRESS =~ ^[0-9.]+$|: ]] && warn "with an IP address the certificate comes from Caddy's own CA: browsers warn until you point a domain here and re-run with --address <domain>"
-    info "  3. Firewall: allow 22, 80 and 443 only (docs/operator-guide.md)."
   else
     # No create-super here: it refuses in website mode (D41, D37).
     info "  1. The website's admins are the game's admins; members may host once the website allows it (Admin -> Users)."
@@ -181,6 +223,7 @@ main() {
   install_prereqs
   ask_common
   install_docker
+  secure_host
   if [[ $SBR_TYPE == standalone ]]; then check_ports "$SBR_ENV"; else detect_website; fi
   info "Preparing the app"
   default_source
@@ -198,6 +241,7 @@ main() {
   if [[ $SBR_TYPE == standalone ]]; then
     run compose "$SBR_ENV" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
   fi
+  # The nightly backup (./lib/backup.sh).
   install_backup_units "$SBR_ENV"
   next_steps
 }

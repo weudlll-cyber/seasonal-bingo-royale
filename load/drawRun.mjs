@@ -12,12 +12,13 @@
  *                 time to its acknowledgement; reads ./serverBreakdown.mjs. Ends with the match or
  *                 after `minutes`; the host aborts it. Sign-in and cleanup are the caller's.
  * Depends on:     socket.io-client, ./common.mjs, ./serverBreakdown.mjs
- * Used by:        ./drawLatency.mjs (local development stack), ./loadcheck.mjs (sbr loadcheck)
+ * Used by:        ./drawLatency.mjs (local test server), ./loadcheck.mjs (sbr loadcheck)
  * Spec:           docs/spec/12-testing-strategy.md §5; docs/spec/06-realtime-architecture.md §8
  */
 import { io } from 'socket.io-client';
+import { inBatches, latencies } from '@seasonal/kit/testing';
 
-import { call, errors, fail, inBatches, ORIGIN, SOCKET, summary, watchServer } from './common.mjs';
+import { call, errors, fail, ORIGIN, serverFigures, SOCKET, watchServer } from './common.mjs';
 import { liveBreakdown, serverSnapshot, tapBreakdown } from './serverBreakdown.mjs';
 
 // A screen's fetches: at most one running and one waiting, as the screen does; the waiting
@@ -130,25 +131,19 @@ function drawGaps(drawAt) {
   return times.slice(1).flatMap((t, i) => (t - times[i] < 30_000 ? [t - times[i]] : []));
 }
 
-function report(record, server, extra) {
-  const cpu = server.samples.map((s) => s.cpuPct);
+function report(record, load, extra) {
   return {
     ...extra,
     rounds: record.roundEnds.size,
     finished: record.finished,
-    frameLatencyMs: summary(record.frame),
-    spectatorFrameLatencyMs: summary(record.spectatorFrame),
-    screenReadyMs: summary(record.fetch),
-    tapAckMs: summary(record.tapAck),
-    drawGapMs: summary(drawGaps(record.drawAt)),
+    frameLatencyMs: latencies(record.frame),
+    spectatorFrameLatencyMs: latencies(record.spectatorFrame),
+    screenReadyMs: latencies(record.fetch),
+    tapAckMs: latencies(record.tapAck),
+    drawGapMs: latencies(drawGaps(record.drawAt)),
     // The size of a screen's fetch that brought a round start (its own cards).
-    roundStartFetchBytes: summary(record.roundStartBytes),
-    serverCpuPercent: {
-      avg: cpu.reduce((a, b) => a + b, 0) / Math.max(1, cpu.length),
-      max: Math.max(...cpu),
-    },
-    serverRssMbMax: Math.max(...server.samples.map((s) => s.rss)) / 1_048_576,
-    eventLoopLagP99MsMax: Math.max(...server.samples.map((s) => s.lag)) * 1000,
+    roundStartFetchBytes: latencies(record.roundStartBytes),
+    ...serverFigures(load),
     errors,
   };
 }
@@ -186,18 +181,19 @@ export async function runDrawCheck({ host, players, spectators, tapEvery, minute
   const server = watchServer();
   const before = await serverSnapshot();
   let after = '';
+  let load;
   try {
     await call(host, 'POST', `/matches/${code}/start`, {});
     const until = Date.now() + minutes * 60_000;
     while (!record.finished && Date.now() < until) await new Promise((r) => setTimeout(r, 1_000));
   } finally {
     after = await serverSnapshot();
-    await server.stop();
+    load = await server.stop();
     for (const s of sockets) s.disconnect();
     if (!record.finished)
       await call(host, 'POST', `/matches/${code}/abort`, { reason: 'load check done' });
   }
-  return report(record, server, {
+  return report(record, load, {
     players: players.length,
     spectators: spectators.length,
     code,

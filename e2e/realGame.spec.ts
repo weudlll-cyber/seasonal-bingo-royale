@@ -26,6 +26,7 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 // The numbers of a 75-ball draw that a 24-number card does not hold.
 const NOT_ON_CARD = 75 - 24;
@@ -151,7 +152,7 @@ async function reconnectAndTap(host: Page, player: Page, code: string): Promise<
     csrfToken: string;
   };
   const again = await player.request.post(`/api/v1/matches/${code}/marks`, {
-    headers: { 'x-csrf-token': session.csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
     data: { cardIndex: 0, cell: Number((tapped[0] ?? '').replace('owner-cell-', '')) },
   });
   expect(again.status(), 'a second mark of one cell is refused').toBe(422);

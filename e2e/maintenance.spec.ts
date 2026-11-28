@@ -18,8 +18,9 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
-import { REPO_ROOT } from './devStack.js';
+import { MAINTENANCE_FLAG } from './devStack.js';
 import {
   closeContexts,
   drawNext,
@@ -29,10 +30,8 @@ import {
   signIn,
   stopMatch,
 } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
-// The server runs in apps/server with SBR_DATA_DIR ./data (apps/server/src/config/env.ts).
-const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');
 const REASON = 'Database upgrade, back at 22:00';
 
 // What the server says about maintenance (it reads the flag at most every 2 s).
@@ -40,7 +39,7 @@ const maintenanceOf = async (page: Page): Promise<unknown> =>
   (await page.request.get('/api/v1/maintenance')).json() as Promise<unknown>;
 
 test.afterEach(async ({ browser }) => {
-  rmSync(FLAG, { force: true });
+  rmSync(MAINTENANCE_FLAG, { force: true });
   await closeContexts(browser);
 });
 
@@ -63,8 +62,8 @@ test('maintenance: the page, the host banner, and a running match that plays on'
     await expect(host.getByTestId('host-status')).toHaveAttribute('data-status', 'running', {
       timeout: 20_000,
     });
-    mkdirSync(path.dirname(FLAG), { recursive: true });
-    writeFileSync(FLAG, REASON);
+    mkdirSync(path.dirname(MAINTENANCE_FLAG), { recursive: true });
+    writeFileSync(MAINTENANCE_FLAG, REASON);
     // The server looks at the flag at most every 2 s, the client asks every 30 s and on load.
     await expect
       .poll(() => maintenanceOf(host), { timeout: 5_000 })
@@ -81,7 +80,7 @@ test('maintenance: the page, the host banner, and a running match that plays on'
     // The running match goes on: the host still draws.
     await drawNext(host);
   } finally {
-    rmSync(FLAG, { force: true });
+    rmSync(MAINTENANCE_FLAG, { force: true });
     await stopMatch(host, code);
   }
 });
@@ -119,8 +118,8 @@ test('maintenance holds an automatic start until it is turned off (D22)', async 
     };
   try {
     await post(host, `/api/v1/matches/${code}/bots`, { upTo: 4 });
-    mkdirSync(path.dirname(FLAG), { recursive: true });
-    writeFileSync(FLAG, REASON);
+    mkdirSync(path.dirname(MAINTENANCE_FLAG), { recursive: true });
+    writeFileSync(MAINTENANCE_FLAG, REASON);
     await expect
       .poll(() => maintenanceOf(host), { timeout: 5_000 })
       .toEqual({ on: true, reason: REASON });
@@ -140,11 +139,11 @@ test('maintenance holds an automatic start until it is turned off (D22)', async 
     );
     await expect(host.getByTestId('host-too-few')).toHaveCount(0);
     await captureLook(host, SHOTS_DIR, 'maintenance-held');
-    rmSync(FLAG, { force: true });
+    rmSync(MAINTENANCE_FLAG, { force: true });
     // Off again: the due start runs within one check, the countdown begins.
     await expect.poll(async () => (await summary()).startsAt, { timeout: 15_000 }).not.toBeNull();
   } finally {
-    rmSync(FLAG, { force: true });
+    rmSync(MAINTENANCE_FLAG, { force: true });
     await stopMatch(host, code);
   }
 });

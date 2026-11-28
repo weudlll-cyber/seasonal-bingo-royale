@@ -53,7 +53,7 @@ export function AdminSwitches({ value }: { readonly value: Switches }): ReactEle
   const changed =
     draft.guests !== saved.guests || draft.emailVerification !== saved.emailVerification;
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="admin-switches-title">
+    <section className="sk-panel sbr-stack" aria-labelledby="admin-switches-title">
       <h2 id="admin-switches-title">Switches</h2>
       {(['guests', 'emailVerification'] as const).map((key) => (
         <SwitchRow
@@ -65,10 +65,10 @@ export function AdminSwitches({ value }: { readonly value: Switches }): ReactEle
           }}
         />
       ))}
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Comment for the History (optional)</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={comment}
           data-testid="admin-switches-comment"
           onChange={(e) => {
@@ -79,7 +79,7 @@ export function AdminSwitches({ value }: { readonly value: Switches }): ReactEle
       {message === null ? null : <p role="status">{message}</p>}
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={!changed}
         data-testid="admin-switches-save"
         onClick={save}

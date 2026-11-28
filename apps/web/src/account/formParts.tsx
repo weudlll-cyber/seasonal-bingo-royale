@@ -28,10 +28,10 @@ interface AccountFieldProps {
 
 export function AccountField(p: AccountFieldProps): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>{p.label}</span>
       <input
-        className="sbr-input"
+        className="sk-input"
         type={p.type}
         autoComplete={p.autoComplete}
         value={p.value}

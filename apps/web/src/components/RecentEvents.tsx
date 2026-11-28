@@ -13,7 +13,7 @@
  *                 the page. Hidden while there is no line yet (01 §13).
  * Depends on:     react, ../playback, ../shell/session (useScreens), ../useReducedMotion,
  *                 ./matchSide.css
- * Used by:        ../game/MatchScreen, ./Playback
+ * Used by:        ../game/MatchScreen, ./Playback; LogRounds also by ./MatchLogLink
  * Spec:           docs/spec/01-game-design.md §13
  */
 import type { ReactElement } from 'react';
@@ -35,7 +35,6 @@ export function RecentEvents({
   const latest = top[0]?.round;
   if (latest === undefined) return null;
   const mixed = top.some((b) => b.round !== latest);
-  const rounds = byRound(newest);
   return (
     <section className="recent-events" aria-label="Latest in the match">
       <div className="recent-lines" data-testid="recent-events" aria-live="polite">
@@ -56,19 +55,29 @@ export function RecentEvents({
       <details className="match-log">
         <summary>Whole match log ({String(banners.length)})</summary>
         <div data-testid="match-log">
-          {rounds.map((group) => (
-            <section key={group.round}>
-              {rounds.length > 1 ? <RoundSeparator round={group.round} /> : null}
-              <ol>
-                {group.lines.map((b) => (
-                  <li key={b.key}>{b.text}</li>
-                ))}
-              </ol>
-            </section>
-          ))}
+          <LogRounds banners={banners} />
         </div>
       </details>
     </section>
+  );
+}
+
+// Every line, newest first, each round's under its separator once there is more than one.
+export function LogRounds({ banners }: { readonly banners: readonly Banner[] }): ReactElement {
+  const rounds = byRound([...banners].reverse());
+  return (
+    <>
+      {rounds.map((group) => (
+        <section key={group.round}>
+          {rounds.length > 1 ? <RoundSeparator round={group.round} /> : null}
+          <ol>
+            {group.lines.map((b) => (
+              <li key={b.key}>{b.text}</li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </>
   );
 }
 

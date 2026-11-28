@@ -85,7 +85,7 @@ export function StartForm({ onStart, busy }: StartFormProps): ReactElement {
       <PrizeChecklist checked={prizes} onToggle={toggle} />
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        className="sk-btn sk-btn--primary sk-btn--big"
         disabled={busy}
         data-testid="start-run"
       >
@@ -103,10 +103,10 @@ function SeedField({
   onChange: (next: string) => void;
 }): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>Seed</span>
       <input
-        className="sbr-input"
+        className="sk-input"
         data-testid="seed"
         value={value}
         onChange={(e) => {
@@ -125,10 +125,10 @@ function BotCountField({
   onChange: (next: number) => void;
 }): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>Bot players (3–199)</span>
       <input
-        className="sbr-input"
+        className="sk-input"
         type="number"
         data-testid="bot-count"
         min={3}
@@ -150,10 +150,10 @@ function OwnerCardsField({
   onChange: (next: number) => void;
 }): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>Your cards (1–4)</span>
       <input
-        className="sbr-input"
+        className="sk-input"
         type="number"
         data-testid="owner-cards"
         min={1}

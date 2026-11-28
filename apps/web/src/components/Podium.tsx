@@ -36,7 +36,7 @@ export function Podium({ entries }: { readonly entries: readonly PodiumEntry[] }
   // steps become rows (podium.css).
   return (
     <div className="podium-box">
-      <ol className="podium">
+      <ol className="podium sk-dense-list">
         {entries.map((e) => (
           <li
             key={e.name}

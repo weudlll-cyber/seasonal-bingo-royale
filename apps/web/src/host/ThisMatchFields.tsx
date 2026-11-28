@@ -42,10 +42,10 @@ export function ThisMatchFields({ preset, values, set }: ChoiceProps): ReactElem
       <h2 id="start-step-3">
         <span className="start-step-num">3</span>This match
       </h2>
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Title</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={values.title}
           maxLength={limits?.titleMaxLength}
           required
@@ -65,7 +65,7 @@ export function ThisMatchFields({ preset, values, set }: ChoiceProps): ReactElem
       <PlayersField preset={preset} values={values} set={set} />
       <SpeedField preset={preset} values={values} set={set} />
       {website ? (
-        <label className="sbr-row">
+        <label className="sbr-row start-check">
           <input
             type="checkbox"
             data-testid="create-website"
@@ -85,7 +85,7 @@ export function ThisMatchFields({ preset, values, set }: ChoiceProps): ReactElem
 // "Players: up to N", a slider inside the preset's range.
 function PlayersField({ preset, values, set }: ChoiceProps): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>Players: up to {values.players}</span>
       <input
         type="range"
@@ -108,14 +108,14 @@ function PlayersField({ preset, values, set }: ChoiceProps): ReactElement {
 // Relaxed, normal, quick: three buttons, the chosen one pressed, and what it means.
 function SpeedField({ preset, values, set }: ChoiceProps): ReactElement {
   return (
-    <div className="sbr-field">
+    <div className="sk-field">
       <span id="start-speed">Speed</span>
       <div className="start-segmented" role="group" aria-labelledby="start-speed">
         {SPEEDS.map((s) => (
           <button
             key={s}
             type="button"
-            className="sbr-btn"
+            className={values.speed === s ? 'sk-btn sk-btn--primary' : 'sk-btn'}
             aria-pressed={values.speed === s}
             data-testid={`start-speed-${s}`}
             onClick={() => {
@@ -156,7 +156,7 @@ function MoreChoices({ preset, values, set }: ChoiceProps): ReactElement {
           />
         </fieldset>
       ) : null}
-      <label className="sbr-row">
+      <label className="sbr-row start-check">
         <input
           type="checkbox"
           data-testid="create-leaderboard"
@@ -168,7 +168,7 @@ function MoreChoices({ preset, values, set }: ChoiceProps): ReactElement {
         Counts for the league
       </label>
       {import.meta.env.DEV && live && preset.gameType === 'royale' ? (
-        <label className="sbr-row">
+        <label className="sbr-row start-check">
           <input
             type="checkbox"
             data-testid="create-fast"

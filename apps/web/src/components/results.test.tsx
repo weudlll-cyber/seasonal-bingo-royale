@@ -53,6 +53,8 @@ describe('ranked rows', () => {
     const result = royaleFixture();
     const view = playbackAt(result, result.events.length);
     render(<FinalPlacement result={result} view={view} />);
+    // The kit's dense frame: one card, more places in a low window (K93).
+    expect(screen.getByTestId('result').getAttribute('data-sk-density')).toBe('dense');
     expect(screen.getByTestId('final-own').textContent).toBe('You finished #3 of 3');
     const podium = document.querySelectorAll('.podium-step');
     expect([...podium].map((s) => s.getAttribute('data-place'))).toEqual(['1', '2', '3']);
@@ -62,7 +64,7 @@ describe('ranked rows', () => {
   it('names a season draw in the ticker next to its icon', () => {
     render(<DrawTicker draws={[5, 104]} speedWindowMs={3000} />);
     expect(screen.getByTestId('draw-ticker').textContent).toBe('B 5Winter');
-    expect(screen.getByAltText('winter')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Winter' })).toBeTruthy();
   });
 
   it('hides the match log while it is empty', () => {

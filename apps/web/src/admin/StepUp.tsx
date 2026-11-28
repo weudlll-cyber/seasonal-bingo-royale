@@ -35,16 +35,16 @@ export function StepUp(props: {
       });
   };
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="step-up-title" data-testid="step-up">
+    <section className="sk-panel sbr-stack" aria-labelledby="step-up-title" data-testid="step-up">
       <h2 id="step-up-title">Confirm it is you</h2>
       <p>
         Your last confirmation is more than 10 minutes old. Enter the code from your authenticator
         app, or a recovery code.
       </p>
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Code</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           autoComplete="one-time-code"
           value={code}
           data-testid="step-up-code"
@@ -55,7 +55,7 @@ export function StepUp(props: {
       </label>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={code.trim() === ''}
         onClick={send}
       >

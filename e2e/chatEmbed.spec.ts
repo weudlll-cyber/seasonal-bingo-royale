@@ -9,16 +9,24 @@
  *                 spans the page below the game, holds the frame of /embed/chat?room=bingo&theme=
  *                 <game theme> on the site's origin (the kit's WebsiteChatFrame), follows theme
  *                 switches and is there after a reload; at 390×844 the kit's bar sits at the bottom,
- *                 opens the chat as a sheet and closes it again. Standalone: no chat, no request for
- *                 the embed page. Match aborted, account removed. Chromium only.
+ *                 opens the chat as a sheet and closes it again. At 1280×720 with a 32 px root font
+ *                 the player's round and the host console stack (the side column below the play
+ *                 area, no heading or line wider than its box); at 16 px it stands beside. At
+ *                 1900×860 it stays beside at 32 px with no panel's text running into the next;
+ *                 on phones at 32 px the player's card is no wider than its box.
+ *                 Standalone: no chat, no request for the embed page. Matches aborted, account
+ *                 removed. Chromium only.
+ *                 The dock's slot holds the website's shared call only while it is live (K77).
  * Depends on:     @playwright/test, ./websiteStack, ./screens, ./devStack
- * Spec:           docs/spec/07-integration-architecture.md §6
+ * Spec:           docs/spec/07-integration-architecture.md §6; docs/spec/01-game-design.md §13
  */
 import { expect, test, type Page } from '@playwright/test';
+import { PHONE, setTheme } from '@seasonal/kit/testing';
 
 import { CLIENT_URL } from './devStack.js';
-import { captureThemes, PHONE, setTheme, SHOTS_DIR } from './screens.js';
+import { captureThemes, SHOTS_DIR } from './screens.js';
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 const WIDE = { width: 1440, height: 900 };
@@ -28,13 +36,19 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('9031', {
-    id: '9031',
-    name: 'Chat Member',
-    roles: 'member',
-    verified: true,
-    canHost: true,
+  stack.addMember({ id: 9031, name: 'Chat Member', role: 'member', canHost: true });
+  // An organizer with the three step badges a member can have.
+  const step = (ladder: 'holder' | 'farmer' | 'investor', name: string, hex: string) => ({
+    ladder,
+    name,
+    icon: `/media/step-icons/${hex.repeat(32)}.webp`,
   });
+  const steps = [
+    step('holder', 'Golden', 'a'),
+    step('farmer', 'Farmer Bronze', 'b'),
+    step('investor', 'Level 2 Investor', 'c'),
+  ];
+  stack.addMember({ id: 9032, name: 'Badged Organizer', role: 'member', canHost: true, steps });
 });
 
 test.afterAll(async ({ browserName }) => {
@@ -45,7 +59,7 @@ test.afterAll(async ({ browserName }) => {
 
 // The member signs in through the website's proxy and lands on the lobby.
 async function signInMember(page: Page): Promise<void> {
-  await page.context().addCookies([{ name: 'stub_user', value: '9031', url: stack.origin }]);
+  await page.context().addCookies([stack.cookieOf(9031)]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Chat_Member');
 }
@@ -59,7 +73,7 @@ async function post(page: Page, url: string, data: unknown) {
   };
   return page.request.post(`${stack.origin}${BASE}/api/v1${url}`, {
     data,
-    headers: { 'x-csrf-token': session.csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': session.csrfToken },
   });
 }
 
@@ -76,8 +90,11 @@ async function expectRoom(page: Page, theme: 'light' | 'dark'): Promise<void> {
   expect(await element.getAttribute('referrerpolicy')).toBe('strict-origin');
   const loaded = page.frames().map((f) => f.url());
   expect(loaded).toContain(`${stack.origin}/embed/chat?room=bingo&theme=${theme}`);
-  await expect(frame(page).getByTestId('embed-room')).toHaveText('Website chat · room bingo');
-  await expect(frame(page).getByTestId('embed-theme')).toHaveText(theme);
+  // The kit's stand-in frame, which speaks the website's messages and shows its room and theme.
+  await expect(frame(page).getByText('chat (stand-in)')).toBeVisible();
+  await expect(frame(page).locator(`[data-sk-room="bingo"][data-sk-theme="${theme}"]`)).toHaveCount(
+    1,
+  );
 }
 
 test('the chat strip under the lobby, console and match on a wide screen', async ({ page }) => {
@@ -120,6 +137,138 @@ test('the chat strip under the lobby, console and match on a wide screen', async
   }
 });
 
+// Where a match screen's side column stands (below the play area, or beside it), the headings
+// and lines whose words reach past their own box, and the side panels shorter than their text.
+const columnsOf = (page: Page, play: string, side: string) =>
+  page.evaluate(
+    ([a, b]) => {
+      const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect();
+      const [left, right] = [box(a ?? ''), box(b ?? '')];
+      const texts = [...document.querySelectorAll<HTMLElement>('.sk-docked-main :is(h1, h2, p)')];
+      // The side column of the stacked screens, or a wide page's right column.
+      const panels = [
+        ...document.querySelectorAll<HTMLElement>(
+          ':is(.arena-side, .wide-right) > :not(.standings-panel)',
+        ),
+      ];
+      return {
+        short: panels
+          .filter((t) => t.scrollHeight > t.clientHeight + 1)
+          .map((t) => t.textContent.slice(0, 40)),
+        below: left !== undefined && right !== undefined && right.top >= left.bottom - 1,
+        beside: left !== undefined && right !== undefined && right.left >= left.right - 1,
+        spilling: texts
+          .filter((t) => t.clientWidth > 0 && t.scrollWidth > t.clientWidth + 1)
+          .map((t) => t.textContent.slice(0, 40)),
+      };
+    },
+    [play, side],
+  );
+
+// A screen's play and side columns: the wide page's and the stacked page's.
+interface Columns {
+  readonly wide: readonly [string, string];
+  readonly stacked: readonly [string, string];
+}
+const CONSOLE: Columns = {
+  wide: ['.wide-mid', '.wide-right'],
+  stacked: ['.host-controls', '.host-side'],
+};
+const ARENA: Columns = {
+  wide: ['.wide-mid', '.wide-right'],
+  stacked: ['.arena-play', '.arena-side'],
+};
+
+// 16 px: the side column beside the play area; 32 px: below it, no text past its box.
+async function expectAdapts(page: Page, columns: Columns): Promise<void> {
+  for (const font of [16, 32]) {
+    await atFont(page, font);
+    const [play, side] = font === 16 ? columns.wide : columns.stacked;
+    const what = `${play} at ${String(font)} px`;
+    await expect
+      .poll(() => columnsOf(page, play, side), { message: what })
+      .toEqual({ below: font === 32, beside: font === 16, spilling: [], short: [] });
+  }
+}
+
+const atFont = (page: Page, font: number) =>
+  page.evaluate((px) => {
+    document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
+  }, font);
+
+// How far the player's card reaches past the width of its box (0: it fits).
+const cardOverhang = (page: Page) =>
+  page.evaluate(() => {
+    const box = document.querySelector('.arena-cards')?.getBoundingClientRect();
+    const card = document.querySelector('.own-cards .live-card')?.getBoundingClientRect();
+    if (box === undefined || card === undefined) return -1;
+    return Math.max(0, Math.round(card.right - box.right), Math.round(box.left - card.left));
+  });
+
+// A wide window keeps the columns at 32 px, with every side panel as tall as its text; on a
+// phone the player's card fits the width (the game area scrolls up and down).
+async function expectRoomAndCard(page: Page): Promise<void> {
+  await page.setViewportSize({ width: 1900, height: 860 });
+  await atFont(page, 32);
+  await expect
+    .poll(() => columnsOf(page, ...ARENA.wide), { message: 'wide at 32 px' })
+    .toEqual({ below: false, beside: true, spilling: [], short: [] });
+  for (const size of [PHONE, { width: 360, height: 780 }]) {
+    await page.setViewportSize(size);
+    await expect
+      .poll(() => cardOverhang(page), { message: `card at ${String(size.width)} px, 32 px font` })
+      .toBe(0);
+  }
+}
+
+test('at a large font the match screens stack under the dock', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await signInMember(page);
+  const created = await post(page, '/matches', {
+    title: 'Large font royale',
+    gameType: 'royale',
+    drawMode: 'host',
+    missedNumbers: { kind: 'noAutoMark' },
+    countsForLeaderboard: false,
+    maxPlayers: 10,
+    startRule: { kind: 'host' },
+    roundPause: { kind: 'host' },
+    testProfile: 'fast',
+    devTools: true,
+  });
+  expect(created.status()).toBe(201);
+  const { code } = (await created.json()) as { code: string };
+  try {
+    expect((await post(page, `/matches/${code}/join`, {})).status()).toBe(204);
+    expect((await post(page, `/matches/${code}/bots`, { upTo: 10 })).status()).toBeLessThan(300);
+    await page.goto(`${stack.origin}${BASE}/#/host/${code}`);
+    await page.getByTestId('start-match').click();
+    // After the 10 s countdown before the first round.
+    await expect(page.getByTestId('host-draw-next')).toBeVisible({ timeout: 30_000 });
+    await expectAdapts(page, CONSOLE);
+    await page.goto(`${stack.origin}${BASE}/#/match/${code}`);
+    await expect(page.getByTestId('arena')).toBeVisible();
+    await expectAdapts(page, ARENA);
+    await expectRoomAndCard(page);
+  } finally {
+    await post(page, `/matches/${code}/abort`, { reason: 'test cleanup' });
+  }
+});
+
+// Owner decisions of 2026-11-23 and 2026-11-26: the organizer's bar is one row at 1280×720,
+// also with three step badges (the kit lets them give way before the bar would fold, K94).
+test("the organizer's header with three badges stays one row", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.context().addCookies([stack.cookieOf(9032)]);
+  await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/`);
+  await expect(page.getByTestId('signed-in-as')).toContainText('Badged_Organizer (organizer)');
+  const bar = page.getByTestId('app-header');
+  await expect
+    .poll(async () => (await bar.boundingBox())?.height ?? 0, { message: 'one row' })
+    .toBeLessThan(90);
+  await expect(bar.locator('.sk-header-step')).toHaveCount(3);
+});
+
 test('a bar and a sheet on a phone', async ({ page }) => {
   await page.setViewportSize(PHONE);
   await signInMember(page);
@@ -141,6 +290,31 @@ test('a bar and a sheet on a phone', async ({ page }) => {
   }
 });
 
+// The stand-in's view of the shared call says what the test tells it to.
+async function callSays(page: Page, type: string, fields: Record<string, unknown>): Promise<void> {
+  const element = await page.getByTestId('shared-call-frame').elementHandle();
+  const view = await element.contentFrame();
+  expect(view).toBeTruthy();
+  await view?.evaluate(
+    ([t, f]) => {
+      (window as unknown as { say: (type: unknown, fields: unknown) => void }).say(t, f);
+    },
+    [type, fields] as const,
+  );
+}
+
+test('the shared call shows in the dock only while it is live', async ({ page }) => {
+  await page.setViewportSize(WIDE);
+  await signInMember(page);
+  await expect(page.getByTestId('shared-call-frame')).toBeAttached();
+  const slot = page.getByTestId('shared-call-slot');
+  await expect(slot).toBeHidden();
+  await callSays(page, 'ready', { call: 7, status: 'live', signedIn: true });
+  await expect(slot).toBeVisible();
+  await callSays(page, 'ended', { reason: 'unshared' });
+  await expect(slot).toBeHidden();
+});
+
 test('a standalone install shows no chat and asks for no embed page', async ({ page }) => {
   const embeds: string[] = [];
   page.on('request', (r) => {
@@ -149,5 +323,6 @@ test('a standalone install shows no chat and asks for no embed page', async ({ p
   await page.goto(`${CLIENT_URL}/#/`);
   await expect(page.getByTestId('sign-in')).toBeVisible();
   await expect(page.getByTestId('chat-toggle')).toHaveCount(0);
+  await expect(page.getByTestId('shared-call-slot')).toHaveCount(0);
   expect(embeds).toEqual([]);
 });

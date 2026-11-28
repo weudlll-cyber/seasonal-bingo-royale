@@ -36,7 +36,7 @@ describe('card view (D7)', () => {
     render(<DrawTicker draws={[1, 52, 75, 104]} speedWindowMs={3000} />);
     const items = [...screen.getByTestId('draw-ticker').children];
     expect(items.slice(0, 3).map((el) => el.textContent)).toEqual(['B 1', 'G 52', 'O 75']);
-    expect(items[3]?.querySelector('img')?.getAttribute('alt')).toBe('winter');
+    expect(items[3]?.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('Winter');
   });
 
   it('names owner cells by letter and number, and Enter still marks a drawn cell', () => {

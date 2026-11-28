@@ -61,7 +61,7 @@ export function Playback({
         />
       )}
       {allOut && !view.finished ? (
-        <p data-testid="spectator-note" style={{ color: 'var(--color-text-muted)', margin: 0 }}>
+        <p data-testid="spectator-note" style={{ color: 'var(--sk-color-text-muted)', margin: 0 }}>
           You were eliminated – keep watching as a spectator.
         </p>
       ) : null}
@@ -93,7 +93,7 @@ function Header({ result, view }: PlaybackProps): ReactElement {
         {gameTypeName(result.gameType)}
         {showStage ? ` — stage ${String(view.currentStage + 1)} (${stage.kind})` : ''}
       </h2>
-      <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
+      <p style={{ margin: 0, color: 'var(--sk-color-text-muted)' }}>
         round {String(view.currentRound + 1)} · draw {String(view.drawsSoFar.length)} /{' '}
         {String(view.totalDraws)}
       </p>
@@ -104,7 +104,8 @@ function Header({ result, view }: PlaybackProps): ReactElement {
 // One row per ticked prize: its name, then "open" or the winners and the deciding draw.
 export function PrizeList({ result, view }: PlaybackProps): ReactElement {
   return (
-    <section className="sbr-panel">
+    // It scrolls where the column is short: a named tab stop (WCAG 2.1.1).
+    <section className="sk-panel" aria-label="Prizes" tabIndex={0}>
       <h3>Prizes</h3>
       <ul className="prize-rows" data-testid="prize-list">
         {result.tickedPrizes.map((key) => {

@@ -4,8 +4,8 @@
  * @brief  The cards a player out or a spectator watches (D24): top 4, or one followed player.
  *
  * Responsibility: the watched cards in the card look of a player's own card (./liveCard.css
- *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
- *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
+ *                 .live-card), smaller: 2 × 2 (a wide page sizes them from their column,
+ *                 ./wide.css), the first 2 side by side on a
  *                 phone; a followed player's card alone and larger; the heading with place,
  *                 name, points and "1 to go", the grids of cards side by side lined up.
  *                 Colours and spacing from @sbr/ui tokens.
@@ -15,7 +15,7 @@
 
 .watch-cards {
   display: grid;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   align-content: start;
   justify-items: center;
   width: 100%;
@@ -24,7 +24,7 @@
 .watch-grid {
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   justify-content: center;
 }
 
@@ -35,7 +35,7 @@
 .watch-card.live-card {
   --cell-size: 2.4rem;
   --cell-font: 1rem;
-  --card-padding: var(--space-1);
+  --card-padding: var(--sk-space-1);
 }
 
 /* Cards side by side share their row's height and the heading takes the spare room, so the
@@ -47,17 +47,17 @@
 .watch-head {
   max-width: calc(5 * var(--cell-size) + 1rem);
   margin: 0;
-  font-size: var(--font-size-small);
+  font-size: var(--sk-font-size-small);
   line-height: 1.3;
 }
 
 .watch-togo {
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .watch-note {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
 }
 
 /* Phone: the first 2 side by side under the ball and the numbers. A cell keeps room for
@@ -73,12 +73,12 @@
     --card-padding: 0.25rem;
     --cell-size: max(1.6rem, calc((100cqw - 2.5rem) / 10));
     --cell-font: 1rem;
-    border-radius: var(--radius);
+    border-radius: var(--sk-radius);
   }
 
   .watch-cards.is-following .watch-card.live-card {
-    --card-padding: var(--space-1);
-    border-radius: var(--radius-card);
+    --card-padding: var(--sk-space-1);
+    border-radius: var(--sk-radius-card);
   }
 
   .watch-grid {
@@ -99,20 +99,5 @@
       min(4.1rem, calc((100cqw - 1.5rem) / 5.4), calc((100svh - 30rem) / 5))
     );
     --cell-font: 1rem;
-  }
-}
-
-/* Desktop: 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
-   never gets smaller than its 16 px number needs (rem floors grow with the font): rather
-   than the numbers shrinking or touching, the play area's box scrolls (fit audit F5, F15). */
-@media (min-width: 960px) {
-  .watch-card.live-card {
-    /* Two cards high: each with padding, a heading of up to two lines and the letters. */
-    --cell-size: max(1.6rem, min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5)));
-    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
-  }
-
-  .watch-cards.is-following .watch-card.live-card {
-    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5)));
   }
 }

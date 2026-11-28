@@ -10,24 +10,24 @@
  *                 match) exactly as sent — no e-mail, no real name (01 §10) — and the corrections
  *                 of the player's league points with their reasons (admin-area §4). An unknown
  *                 name says so.
- * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../game/labels,
- *                 ../shell/router, ./useApiGet, ./league.css
+ * Depends on:     react, @sbr/contracts (types), @seasonal/kit/react (StepBadges, useApiGet), ../game/labels,
+ *                 ../shell/router, ../shell/http, ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.2
  */
 import type { LeagueOutcome, PlayerProfile, ProfileMatch } from '@sbr/contracts';
+import { StepBadges, useApiGet } from '@seasonal/kit/react';
 import type { ReactElement } from 'react';
 
-import { StepBadges } from '../components/StepBadges.js';
 import { pointsDelta } from '../game/labels.js';
+import { api } from '../shell/http.js';
 import { hrefOf } from '../shell/router.js';
-import { useApiGet } from './useApiGet.js';
 import './league.css';
 
 export function ProfilePage({ displayName }: { readonly displayName: string }): ReactElement {
-  const loaded = useApiGet<PlayerProfile>(`/players/${encodeURIComponent(displayName)}`);
+  const loaded = useApiGet<PlayerProfile>(api, `/players/${encodeURIComponent(displayName)}`);
   return (
-    <section className="sbr-panel sbr-stack league-page" data-testid="profile-page">
+    <section className="sk-panel sbr-stack league-page" data-testid="profile-page">
       {loaded.kind === 'ready' ? (
         <Profile p={loaded.value} />
       ) : (
@@ -35,7 +35,7 @@ export function ProfilePage({ displayName }: { readonly displayName: string }): 
           <h1>{displayName}</h1>
           {loaded.kind === 'failed' ? (
             <p data-testid="profile-missing">
-              {loaded.code === 'NOT_FOUND'
+              {loaded.error.code === 'NOT_FOUND'
                 ? 'There is no player with this name.'
                 : 'The profile could not be loaded.'}
             </p>
@@ -44,7 +44,7 @@ export function ProfilePage({ displayName }: { readonly displayName: string }): 
           )}
         </>
       )}
-      <a className="sbr-btn league-back" href={hrefOf({ name: 'leaderboard', periodId: null })}>
+      <a className="sk-btn league-back" href={hrefOf({ name: 'leaderboard', periodId: null })}>
         To the leaderboard
       </a>
     </section>
@@ -80,7 +80,7 @@ function Profile({ p }: { readonly p: PlayerProfile }): ReactElement {
           <span className="sbr-muted">No badges yet.</span>
         ) : (
           p.badges.map((b) => (
-            <span key={b.id} className="sbr-chip">
+            <span key={b.id} className="sk-chip">
               {b.name} ×{b.count}
             </span>
           ))

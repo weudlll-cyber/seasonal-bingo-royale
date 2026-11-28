@@ -22,7 +22,7 @@ export function SignIn(): ReactElement {
   const [password, setPassword] = useState('');
   const { error, busy, submit } = useAccountSubmit(() => signIn(email.trim(), password));
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="sign-in-form">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="sign-in-form">
       <h1>Sign in</h1>
       <AccountField
         label="E-mail"
@@ -43,7 +43,7 @@ export function SignIn(): ReactElement {
       <FormError text={error} testId="sign-in-error" />
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={busy}
         data-testid="sign-in-submit"
       >
@@ -51,7 +51,11 @@ export function SignIn(): ReactElement {
       </button>
       {session?.features?.passwordReset === true ? (
         <p className="sbr-muted">
-          <a href={hrefOf({ name: 'forgotPassword' })} data-testid="forgot-link">
+          <a
+            className="sbr-tap-link"
+            href={hrefOf({ name: 'forgotPassword' })}
+            data-testid="forgot-link"
+          >
             Forgot your password?
           </a>
         </p>

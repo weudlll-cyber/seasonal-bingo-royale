@@ -11,25 +11,28 @@
 
 .segmented {
   display: inline-flex;
+  /* The options go under each other where a large font leaves no room side by side. */
+  flex-wrap: wrap;
+  max-width: 100%;
   padding: 3px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+  border: 1px solid var(--sk-color-border-strong);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface);
 }
 
 .segmented-option {
-  min-height: var(--hit-target);
+  min-height: var(--sk-hit-target);
   padding: 0 1.1rem;
   border: 0;
-  border-radius: calc(var(--radius) - 3px);
+  border-radius: calc(var(--sk-radius) - 3px);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--sk-color-text-muted);
   font: inherit;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
   cursor: pointer;
 }
 
 .segmented-option[aria-pressed='true'] {
-  background: var(--color-winter);
-  color: var(--color-on-season);
+  background: var(--sk-color-winter);
+  color: var(--sk-color-on-season);
 }

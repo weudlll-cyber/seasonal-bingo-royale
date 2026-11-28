@@ -416,3 +416,76 @@ Text covered with the chat open (probe "overlap" items, light theme; the desktop
 - **Results places whole** above the strip: 7, 7, 7, 13, 11, 20 (the same count as before, measured stricter now: a row under the strip does not count).
 - **Not-earned marks in the dark theme:** the tokens give a dark disc (`--color-surface`) with a grey-blue ring (`--color-border-strong`): different from the coloured icons at a glance, on the coloured podium steps a dark disc with a ring, readable.
 - **Standalone, 1280×720** (pages, a royale, a classic round): see the standalone line of §8.2; nothing standalone was touched (the new rules sit under `.sk-docked-main` / `.sk-docked`); the SeasonIcon, SeasonSet and podium changes apply to standalone too (same look everywhere), they do not change any size.
+
+### 8.4 Large fonts: the match screens stack (2026-11-26, owner decision)
+
+At a 32 px root font and 1280×720 the docked player round's title, status lines and side column lay over each other: the layouts asked the window's pixels, and the side column's minimum (13 spacing steps) was 1040 px there.
+
+- **Rule:** the desktop layouts apply from 48 root-font widths of page (`page` container, `shell/shell.css`; 01 §13). 16 to 24 px are unchanged at every desktop size; 32 px stacks up to 1536 px wide.
+- **Also:** the docked side column's panels keep their text height (`shell/dockSide.css`), and a phone's own card is bounded by its box's width (`game/liveCard.css`).
+- **Measured** with `SBR_SWEEP_FONTS` (website sweep) and `SBR_FIT_FONTS` (standalone audit); results in MORNING.md, "Kit 0.22". The probe does not report a partial overlap under a quarter of the smaller box; `e2e/chatEmbed.spec.ts` checks the boxes themselves.
+
+## 9. The kit's sweep over the match screens (2026-11-26)
+
+`SBR_SWEEP_KIT=1` makes the audit look at the same screens with the kit's `sweep` (K67) instead of measuring them (`e2e/acceptance/kitSweep.ts`): the six desktop sizes, 360×780, 390×844 and 430×932, root font 16 and 32 px, light and dark, the website screens (the lobby and the open menu included) and the standalone ones. Findings go to `reports/logs/<tag>-kit-sweep.log`.
+
+```
+SBR_ACCEPTANCE=1 SBR_SWEEP_KIT=1 pnpm exec playwright test -c e2e/playwright.config.ts e2e/acceptance/fitAudit.spec.ts --project=chromium
+```
+
+Since kit v0.38.0 the finder is the kit's `axeFinder` (the chat frame excluded) with Bingo's two rules, the kit waits for animations itself, and the docked result declares its floor of 7 places at 1280×720 (owner decision of 2026-11-24, K116). No screen needs the sweep's `setup` hook: the audit looks at each screen as it stands and reloads nothing, so no request limit is reached.
+
+Since kit v0.40.0 a place counts as whole only where nothing covers it, the More below sign included (K123). A result with the Out of the match divider within the first 7 places lost the 7th under the sign at 1280×720 for a player and a spectator (the row ended at 534 px, the sign began at 523 px): in the docked result the divider is one tight line (shell/dockResults.css; after: 521 px). The log says for each result screen where the divider stood, and one test of the audit plays short royales until a result has it within the first 7.
+
+The result screens are loaded again before they are looked at: a result that arrives on an open page gets the "More below" sign only with the next resize or scroll (`useScrollHint` watches the boxes it found at its last render), so a floor looked at without a reload counted a row the sign covers a moment later (open, BACKLOG).
+
+The recap screens are looked at with reduced motion: the next card comes by a timer and fades in while axe may be reading, and a page with a held clock hung the look. At 1366×768 and a 32 px root font the check can report the ball's number as covered by its letter: the number crosses the game area's lower edge (measured 520–604 px, the area ends at 530 px) and the middle of the sliver in view can fall on the letter's box. An exemption (the kit's docked screen: the content scrolls alone above the chat); a taller line (1.2) broke `playerFit`'s ball check on phones and was taken out.
+
+**A narrowed re-check** (owner's request of 2026-11-27) uses `SBR_SWEEP_SCREENS`, `_SIZES`, `_FONTS`, `_THEMES`, `SBR_SWEEP_AXE="off"` for a size or spacing fix and `SBR_SWEEP_CONTRAST` (with `_CONTRAST_SIZES`) for a colour fix; the full matrix stays for the one sweep at the end.
+
+**Exemption (owner decision of 2026-11-27):** the own card's cells stay 42 px under the chat strip at 1280×720 in website mode, so the board stays whole without scrolling (K18).
+
+## 10. Common browser windows (owner decisions of 2026-11-28)
+
+**Decision (D65, docs/spec/README.md):** the game fits every common browser window, its bars taken off, as far as possible without scrolling; the screens between rounds fit without scrolling too. Nothing is dropped or hidden, no type is smaller, the card cells keep their size (K18), the kit's frames and lists stay; the standings may scroll inside their box (top 3 whole; the docked result at least 7 places at 1280×720).
+
+**Sizes** (kit planning, owner decision of 2026-11-28, passed as `SweepOptions.sizes`): the sweep looks at the edges, since a screen that fits the tightest window fits every larger one. Desktop 1920×950, 1280×720 (owner decisions name it) and 1024×600, the tightest corner: narrower and lower than a 1920×1080 laptop at 150 % without its bars (1278×629), with room for a bookmarks bar (kit planning wrote 1024×630, one pixel taller than that window: Bingo planning's change). Phones 390×844 and 320×568. Once either side of each switch of the layout between them: 480/481, 640/641 and 959/960 wide (Bingo's own rules), 1599/1600 wide and 759/760 high (the kit's header account and chat strip). Light at all of them at root font 16 and 32 px; dark once more at 1280×720 and 390×844 at 16 px.
+
+**Tools** of that task were replaced with kit v0.41.0 (§11).
+
+**How it fits:** between rounds and at the end the notices (cut screen, recap, placement) stand in a column beside the play area and the side column (`game/windows.css`, `host/hostWindows.css`), scrolling inside with the "More below" sign where a window is too low; short windows put title and progress on one line, stand the standings' rows closer and, under 700 px, the side column in two halves (`game/shortWindows.css`); the docked pause stands side by side, and under 700 px its game area scrolls with the recap at a readable height and the standings heading the side column (`shell/dockPause.css`); the console's lobby takes two columns; the lobby's matches scroll in their own box. The kit's fit (`src/fit.ts`) is not used: Bingo's scale floor there is 1 (K14), so it cannot shrink anything.
+
+**What still does not fit** is listed with a proposal in docs/MORNING.md.
+
+## 11. Kit v0.41.0: the sweep, its edges and floors (owner decisions of 2026-11-28)
+
+The fit audit looks at every screen with the kit's sweep alone (`e2e/acceptance/kitSweep.ts`); Bingo's own size lists and measurements (§1, §8, §9, §10) are gone.
+
+- **Sizes:** the kit's default walk (K128: 1920×950, 1280×720, 1024×600, 390×844, 320×568 at root font 16 and 32 px in light; 1280×720 and 390×844 at 16 px in dark) and Bingo's `edges`: 1278×629 (the owner's window), 480/481, 640/641 and 959/960 wide, 1599/1600 wide, 759/760 high.
+- **Findings of Bingo's own:** text under 14 px, covered text, and on a screen meant to fit (K127) in a desktop window at 16 px a page or game area that scrolls.
+- **Floors** (the kit's `floors`): the standings' first 3 whole (`first: true`) on the desktop sizes; the spectator's four cards whole at 1280×720 and 1278×629; the docked result at least 7 places at 1280×720.
+- **Run:** `SBR_ACCEPTANCE=1 pnpm e2e:quiet acceptance/fitAudit.spec --project=chromium`; findings in `reports/logs/<tag>-kit-sweep.log` (`SBR_FIT_TAG`).
+- **A re-check:** `SBR_SWEEP_SCREENS`, `SBR_SWEEP_SIZES` (light only), `SBR_SWEEP_FONTS`, `SBR_SWEEP_AXE=off` (size or spacing) or `contrast` (colour).
+
+## 12. The match screens re-laid (owner decisions of 2026-11-28, D66)
+
+After the owner's look, Bingo planning drafted every screen in the owner's window (1278×629: a 1920×1080 laptop at 150 % without the browser's bars) with styles laid over the running page; the owner chose these layouts on 2026-11-28. They replace §10's arrangement of the match screens; the rules are in [01 §13](../spec/01-game-design.md) (D66).
+
+| Decision (2026-11-28)                                  | Where                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| G1 text only in the kit's four sizes                   | `game/wide.css`, `game/widePanels.css`, `game/lobbyWide.css`                            |
+| G2 at most one scrollbar a column, only on a long list | `game/wide.css`                                                                         |
+| G3 one head row, “Host console” secondary              | `game/MatchHead.tsx`, `game/HostLink.tsx`                                               |
+| G4 the rules behind a link                             | `game/MatchHead.tsx`                                                                    |
+| G5 notices as strips without a button                  | `components/CutScreen.tsx`, `FinalNotice.tsx`                                           |
+| G6 the log as a link over the screen                   | `components/MatchLogLink.tsx`                                                           |
+| G7 the host's controls never covered                   | `host/WideConsole.tsx` (their own column)                                               |
+| S1 lobby                                               | `game/Lobby.tsx`, `MyMatches.tsx`, `lobbyWide.css`                                      |
+| S2, S3 round                                           | `game/WideArena.tsx`, `WideBall.tsx`, `components/OwnerStatusPanel.tsx`                 |
+| S4 between rounds                                      | `game/WideArena.tsx`, `Interlude.tsx`, `FittedNames.tsx`, `components/PatternsLine.tsx` |
+| S5 result                                              | `game/WideArena.tsx`, `components/FinalPlacement.tsx`                                   |
+| S6 host console                                        | `host/WideConsole.tsx`                                                                  |
+
+**Which page is wide:** `useWideScreen` (from 960 px and 52 root-font steps); the same layout stands above the chat strip in website mode, so the docked stylesheets of §8 and §10 are gone. Narrower, and at a large font, the stacked screens of before render unchanged.
+
+**The kit's fit** (`useFitScale('bingo')`, floor 0.6) is not used: the layouts fit by themselves or, in the tightest windows, leave one column scrolling; what does is listed in docs/MORNING.md.

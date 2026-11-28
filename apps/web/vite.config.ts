@@ -1,9 +1,10 @@
 /**
  * @file   apps/web/vite.config.ts
  * @module web
- * @brief  Vite config for the player client; bound to 127.0.0.1:5390 (08 §1.1).
+ * @brief  Vite config for the player client; bound to 127.0.0.1, port 5390 (08 §1.1).
  *
- * Responsibility: run the React dev server on the project's reserved port, proxy /api,
+ * Responsibility: run the React dev server on the project's reserved port (the browser tests
+ *                 pass their own ports and get their own cache), proxy /api,
  *                 /ws and the development routes /dev to the server on 3900, inject the dev-badge port via `define`,
  *                 keep HMR local and ignore generated folders; serve and emit the kit's early
  *                 theme script (themeInit). The build target is
@@ -18,12 +19,15 @@ import { themeInit } from '@seasonal/kit/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-const PORT = 5390;
-const SERVER = 'http://127.0.0.1:3900';
+// pnpm dev's ports; the browser tests name their own (e2e/playwright.config.ts).
+const PORT = Number(process.env['SBR_WEB_PORT'] ?? 5390);
+const SERVER = 'http://127.0.0.1:' + (process.env['SBR_API_PORT'] ?? '3900');
 
 export default defineConfig({
   // Relative asset paths: one build serves at "/" or under "/games/bingo/" (09 §1).
   base: './',
+  // Each port its own pre-bundle cache: a test run never rewrites a running dev server's.
+  cacheDir: 'node_modules/.vite' + (PORT === 5390 ? '' : '-' + String(PORT)),
   // themeInit: the kit's early theme script as theme-init.js (index.html), served and built.
   plugins: [react(), themeInit()],
   server: {

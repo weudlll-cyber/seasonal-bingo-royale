@@ -4,9 +4,9 @@
  * @brief  Entry point of the player client: design system, session, app shell.
  *
  * Responsibility: load the design system (the shared fonts, tokens and motion of
- *                 @seasonal/kit, then the game's own tokens, the kit's shell controls and
- *                 header, the game's base styles and key-moment motion
- *                 from @sbr/ui) and the Quick Test's motion styles, then render the app shell
+ *                 @seasonal/kit, then the game's own tokens, the kit's shell controls, header,
+ *                 call slot, result frame, season icons and base components, the game's base styles and
+ *                 key-moment motion from @sbr/ui) and the Quick Test's motion styles, then render the app shell
  *                 inside the session provider. Development-only parts (quick sign-in, Quick
  *                 Test, bots) follow Vite's DEV flag, so production builds leave them out.
  * Depends on:     react-dom, @seasonal/kit (CSS), @sbr/ui (CSS), ./shell/*, ./motion.css
@@ -16,11 +16,19 @@
 import '@seasonal/kit/fonts.css';
 import '@seasonal/kit/tokens.css';
 import '@sbr/ui/tokens.css';
-// Before base.css: the game's own focus ring (base.css) stays on the kit's controls too. The
-// kit's header (./shell/Header) with its rules; Bingo's look on it is ./shell/header.css.
+// The kit's shell controls and its header (./shell/Header) with its rules and looks.
 import '@seasonal/kit/shell.css';
+// The readable floors and the 24 px least target, which the base components use (K33).
+import '@seasonal/kit/fit.css';
 import '@seasonal/kit/header.css';
 import '@seasonal/kit/dock.css';
+// The dock's call slot (the website's shared call, ./shell/DockedChat).
+import '@seasonal/kit/call.css';
+// The result's frame (the final placement, ./components/FinalPlacement), the season icons and
+// the base components: buttons, panels, fields, chips (K95).
+import '@seasonal/kit/frames.css';
+import '@seasonal/kit/seasons.css';
+import '@seasonal/kit/components.css';
 import '@sbr/ui/base.css';
 import '@seasonal/kit/motion.css';
 import '@sbr/ui/motion.css';

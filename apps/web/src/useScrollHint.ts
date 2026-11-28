@@ -6,9 +6,11 @@
  * Responsibility: keeps `data-more` ("true" or "false") on a box that scrolls: true while some of
  *                 its content lies below the visible part, so ./scrollHint.css can draw "More
  *                 below" on it; false at the end or when nothing is cut. Follows scrolling, the
- *                 box's own size and the size of its direct children (rows arriving, a panel
- *                 growing). The box is given as a ref or as a selector for a box the kit renders
+ *                 box's own size, the size of its direct children (rows arriving, a panel
+ *                 growing) and content put into the box or replaced deeper inside it (a result
+ *                 that arrives on an open page). The box is given as a ref or as a selector for a box the kit renders
  *                 (the docked screen's game area). Test DOMs without ResizeObserver stay unmarked.
+ * Used with:      ResizeObserver, MutationObserver (the browser's)
  * Depends on:     react, ./scrollHint.css
  * Used by:        ./shell/DockedChat, ./game/MatchScreen, ./components/Standings, ./host/HostConsole
  * Spec:           docs/concepts/fit-audit.md §8; docs/concepts/kit-adoption.md §8
@@ -30,12 +32,22 @@ export function useScrollHint(target: RefObject<HTMLElement | null> | string): v
       box.dataset['more'] = String(hasMore(box));
     };
     const watch = new ResizeObserver(mark);
+    const observeChildren = (): void => {
+      // The box's content changes size inside a box that keeps its own.
+      for (const child of box.children) watch.observe(child);
+    };
     watch.observe(box);
-    // The box's content changes size inside a box that keeps its own.
-    for (const child of box.children) watch.observe(child);
+    observeChildren();
+    // Content that arrives without the box or a watched child changing its size.
+    const arrivals = new MutationObserver(() => {
+      observeChildren();
+      mark();
+    });
+    arrivals.observe(box, { childList: true, subtree: true });
     box.addEventListener('scroll', mark, { passive: true });
     mark();
     return () => {
+      arrivals.disconnect();
       watch.disconnect();
       box.removeEventListener('scroll', mark);
       delete box.dataset['more'];

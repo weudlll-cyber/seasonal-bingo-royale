@@ -95,12 +95,12 @@ export function AdminPresets(): ReactElement {
       {message === null ? null : <p role="status">{message}</p>}
       {list === null || current === null ? null : (
         <>
-          <section className="sbr-panel sbr-stack" aria-labelledby="preset-pick-title">
+          <section className="sk-panel sbr-stack" aria-labelledby="preset-pick-title">
             <h2 id="preset-pick-title">Preset</h2>
-            <label className="sbr-field">
+            <label className="sk-field">
               <span>Preset to edit</span>
               <select
-                className="sbr-select"
+                className="sk-select"
                 value={current.id}
                 data-testid="preset-pick"
                 onChange={(e) => {
@@ -146,7 +146,7 @@ function PresetActions(props: {
       </p>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         disabled={props.busy}
         data-testid="preset-status"
         onClick={() => {
@@ -159,10 +159,10 @@ function PresetActions(props: {
       >
         {published ? 'Retire' : 'Publish'}
       </button>
-      <label className="sbr-field">
+      <label className="sk-field">
         <span>Name of the copy</span>
         <input
-          className="sbr-input"
+          className="sk-input"
           value={name}
           data-testid="preset-copy-name"
           onChange={(e) => {
@@ -172,7 +172,7 @@ function PresetActions(props: {
       </label>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         disabled={props.busy || name.trim().length < 3}
         onClick={() => {
           props.send(`${p.id}/duplicate`, { name }, 'Copied as a draft.');

@@ -1,324 +1,57 @@
 #!/usr/bin/env bash
 # @file   ops/sbr
 # @module ops
-# @brief  The operator's CLI on the server: status, update, rollback, backup, restore, logs, admin, maintenance, uninstall.
+# @brief  The operator's command on the server: the kit's admin command with Bingo's settings.
 #
-# Responsibility: one command per task of 09 §4 for the install record's environment (or --env):
-#                 status; update <git ref> (refused while unconfirmed; builds, backs up, keeps a
-#                 plain pre-update dump, installs the ref's stack files keeping the old ones,
-#                 converts an install made before the database roles once (env file kept for a
-#                 rollback), sets the roles up, makes the recovery key once (K20) for an install
-#                 made before it, restarts: the migrate service migrates as the owner,
-#                 prunes unused images; a ref older than the roles is refused); confirm (drops the
-#                 rollback data); rollback (backup, then the pre-update dump if the schema migrated —
-#                 later data is lost — previous image, stack files, env file and ref); backup;
-#                 restore [--drill] <file> (--identity, --force-env); logs [service]; admin
-#                 create-super (standalone only; password asked in the app); maintenance on ["reason"]|off (flag
-#                 file: no new matches, running ones finish); loadcheck (./lib/loadcheck.sh);
-#                 uninstall (./lib/uninstall.sh); status's proxy line in ./lib/website.sh. --yes
+# Responsibility: the verbs status, update, confirm, rollback, backup, restore, logs and uninstall
+#                 are the kit's (./kit/lib/admin.sh, K87: same meaning and output in every game);
+#                 here are the SK_ADMIN_* settings and the sources. Bingo's hooks and its own verbs
+#                 (admin, maintenance, loadcheck, drill, rewrite_backup) are in ./lib/hooks.sh and
+#                 ./lib/backup.sh. --env picks the environment (else the install record's), --yes
 #                 skips the confirmations.
-# Depends on:     /opt/sbr/lib/*.sh, /opt/sbr/lib/db-roles.sql, Docker Compose, age
+# Depends on:     /opt/sbr/lib/*.sh, /opt/sbr/kit (the kit's ops folder), Docker Compose, age
 # Spec:           docs/spec/09-deployment-architecture.md §4–§6
 set -euo pipefail
 # Errors inside $(…) stop the script too (audit O1).
 shopt -s inherit_errexit
 
 HERE=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)
+# The kit's scripts (./kit) came in an update of their own: an update that skipped it ran the
+# old installer, which did not bring them.
+if [[ ! -f $HERE/kit/lib/admin.sh ]]; then
+  echo "STOP: this install lacks the kit's scripts: run ops/install.sh again from $HERE/src" >&2
+  exit 1
+fi
 # shellcheck source=lib/common.sh
 source "$HERE/lib/common.sh"
+# shellcheck source=kit/lib/image.sh
+source "$HERE/kit/lib/image.sh"
+# shellcheck source=lib/release.sh
+source "$HERE/lib/release.sh"
 # shellcheck source=lib/config.sh
 source "$HERE/lib/config.sh"
+# shellcheck source=kit/lib/db-roles.sh
+source "$HERE/kit/lib/db-roles.sh"
 # shellcheck source=lib/website.sh
 source "$HERE/lib/website.sh"
-# shellcheck source=lib/websiteRoute.sh
-source "$HERE/lib/websiteRoute.sh"
+# shellcheck source=kit/lib/website-route.sh
+source "$HERE/kit/lib/website-route.sh"
 # shellcheck source=lib/websiteApply.sh
 source "$HERE/lib/websiteApply.sh"
 # shellcheck source=lib/backup.sh
 source "$HERE/lib/backup.sh"
-# shellcheck source=lib/uninstall.sh
-source "$HERE/lib/uninstall.sh"
-# Added later: an update run by an older sbr may not have brought it yet (sbr update again).
-if [[ -f $HERE/lib/loadcheck.sh ]]; then source "$HERE/lib/loadcheck.sh"; fi
+# shellcheck source=lib/loadcheck.sh
+source "$HERE/lib/loadcheck.sh"
+# shellcheck source=lib/hooks.sh
+source "$HERE/lib/hooks.sh"
 
-usage() {
-  cat <<'EOF'
-usage: sbr [--env prod|staging] [--yes] <command>
-  status                         what runs, its health and the last backup
-  update <git ref>               build the ref, backup, restart (migrations run first, as
-                                 the owner role; an older install gets its database roles);
-                                 refused until the last update is confirmed or rolled back
-  confirm                        the update works: delete the pre-update dump and rollback data
-  rollback                       back to the image (and data) before the last update
-  backup                         encrypted backup now
-  restore <file> [--identity k]  put a backup back (k: your age key file for .age files;
-          [--force-env]          --force-env: another environment's backup or seed key)
-  restore --drill <file> [...]   restore into a throw-away database and check it, seed key too
-  logs [service]                 follow the logs (app, postgres, caddy)
-  admin create-super             create the first admin account (standalone only)
-  admin reset-2fa <name>         an admin who lost the authenticator enrols again at the next sign-in
-  maintenance on ["reason"]|off  no new matches while on (players see the page and reason)
-  loadcheck [--players 200] [--spectators 50] [--minutes 10] [--cpuset CPUS]
-                                 one measured royale with temporary accounts (refused while
-                                 players play, or are signed in with maintenance off)
-  uninstall [--purge-backups]    remove this environment (asks for its name); backups stay
-EOF
-}
+export SK_ADMIN_NAME=sbr SK_ADMIN_PREFIX=sbr SK_ADMIN_ETC="$SBR_ETC" SK_ADMIN_STATE="$SBR_STATE"
+export SK_ADMIN_ROOT="$SBR_ROOT" SK_ADMIN_IMAGE_REPO=sbr-app SK_ADMIN_IMAGE_KEY=SBR_IMAGE
+export SK_ADMIN_REF_KEY=SBR_REF SK_ADMIN_STACK_FILES="${STACK_FILES[*]}"
+SK_ADMIN_DEFAULT_ENV=$(env_value "$SBR_ETC/install.conf" SBR_ENV)
+export SK_ADMIN_DEFAULT_ENV
+# The kit's library: its info, warn and die are the ones used from here on.
+# shellcheck source=kit/lib/admin.sh
+source "$HERE/kit/lib/admin.sh"
 
-cmd_status() {
-  local env=$1 file="$SBR_ETC/$1.env" last
-  info "type:        $(env_value "$file" SBR_INSTALL_TYPE) (environment $env)"
-  info "address:     $(env_value "$file" SBR_PUBLIC_URL)"
-  info "image:       $(env_value "$file" SBR_IMAGE) (ref $(env_value "$SBR_ETC/install.conf" SBR_REF))"
-  compose "$env" ps --format 'table {{.Service}}\t{{.Status}}'
-  if compose "$env" exec -T app wget -qO- http://127.0.0.1:3000/readyz >/dev/null 2>&1; then
-    info "health:      ready"
-  else
-    info "health:      NOT READY (sbr logs app)"
-  fi
-  # The names carry the time, so the last in name order is the newest. No folder yet (no
-  # backup ever ran) is "none yet", not a failed find that stops status under pipefail.
-  if [[ -d $SBR_BACKUPS/$env ]]; then
-    last=$(find "$SBR_BACKUPS/$env" -maxdepth 1 -name 'sbr-*.tar.age' | sort | tail -1)
-  fi
-  info "last backup: ${last:-none yet}"
-  if [[ -f $SBR_STATE/$env/backup-failed ]]; then
-    warn "the scheduled backup FAILED at $(cat "$SBR_STATE/$env/backup-failed") (journalctl -u sbr-backup@$env); the next good backup clears this"
-  fi
-  info "next backup: $(systemctl show "sbr-backup@$env.timer" -p NextElapseUSecRealtime --value 2>/dev/null || echo unknown)"
-  [[ -f $SBR_STATE/$env/rollback.conf ]] && info "rollback:    possible (sbr confirm deletes the pre-update dump)"
-  if compose "$env" exec -T app test -f /data/maintenance 2>/dev/null; then
-    info "maintenance: ON (no new matches) $(compose "$env" exec -T app cat /data/maintenance 2>/dev/null)"
-  else
-    info "maintenance: off"
-  fi
-  info "sign-in:     $(env_value "$file" SBR_AUTH_MODE)"
-  # Standalone: password reset needs the SMTP settings (D60).
-  if [[ $(env_value "$file" SBR_AUTH_MODE) == local ]]; then
-    if [[ -n $(env_value "$file" SBR_SMTP_HOST) ]]; then
-      info "mail:        through $(env_value "$file" SBR_SMTP_HOST) (password reset on)"
-    else
-      warn "no SMTP settings in $file: password reset is off (run the installer again with --smtp-host …)"
-    fi
-  fi
-  if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
-    info "database:    the app as sbr_app, migrations as sbr_owner"
-  else
-    warn "database: the app still connects as the superuser; the next sbr update sets up the roles"
-  fi
-  if [[ $(env_value "$file" SBR_INSTALL_TYPE) == website ]]; then
-    check_proxy "$env"
-    # Without a browser session: 204 with X-Acting-Guest (an older website: 401, D37).
-    info "website:     authorize endpoint $(env_value "$file" SBR_WEBSITE_UPSTREAM)$(env_value "$file" SBR_WEBSITE_AUTHORIZE_PATH): $(authorize_status "$env")"
-    feed_state "$env"
-  fi
-}
-
-# Website installs trust the website network's ranges (plus the operator's extra proxies);
-# they hold while that network exists.
-migrations() { compose "$1" exec -T postgres psql -U sbr -d sbr -tA -c 'SELECT count(*) FROM sbr.schema_migrations'; }
-
-# The images any environment runs or could roll back to; the others are pruned (audit O11).
-images_in_use() {
-  local file
-  for file in "$SBR_ETC"/*.env; do env_value "$file" SBR_IMAGE; done
-  for file in "$SBR_STATE"/*/rollback.conf; do [[ -f $file ]] && env_value "$file" PREVIOUS_IMAGE; done
-  return 0
-}
-
-cmd_update() {
-  local env=$1 ref=${2:-} file="$SBR_ETC/$1.env" dir="$SBR_STATE/$1" conf="$SBR_ETC/install.conf"
-  [[ -n $ref ]] || die "usage: sbr update <git ref>"
-  # One update at a time: a second one would overwrite the rollback data of the first (audit M6).
-  [[ ! -f $dir/rollback.conf ]] || die "the last update is not confirmed yet: sbr confirm (it works) or sbr rollback first"
-  # The image first (minutes), then backup and dump: they hold the data right before the switch.
-  build_image "$(env_value "$conf" SBR_REPO)" "$ref"
-  # An install with the database roles cannot go to a version without them (its app would
-  # connect as the app role and fail to migrate); sbr rollback goes back instead.
-  if [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]] &&
-    ! git -C "$SBR_ROOT/src" cat-file -e "${SBR_IMAGE#sbr-app:}:ops/lib/db-roles.sql" 2>/dev/null; then
-    die "$ref is older than the database roles this install uses; it cannot be installed over them"
-  fi
-  do_backup "$env"
-  info "Backup before the update: $BACKUP_FILE"
-  install -d -m 0700 "$dir"
-  # Written whole or not at all (audit O10); deleted by sbr confirm (audit O3).
-  cleanup_path "$dir/pre-update.dump.partial"
-  (umask 077 && compose "$env" exec -T postgres pg_dump -U sbr -Fc sbr >"$dir/pre-update.dump.partial")
-  mv "$dir/pre-update.dump.partial" "$dir/pre-update.dump"
-  printf 'PREVIOUS_IMAGE=%s\nPREVIOUS_REF=%s\nMIGRATIONS_BEFORE=%s\n' "$(env_value "$file" SBR_IMAGE)" \
-    "$(env_value "$conf" SBR_REF)" "$(migrations "$env")" | put_file "$dir/rollback.conf" 0600
-  # The new version's stack files too (caps, routes, this CLI); the old ones stay for a
-  # rollback, written after the rollback data so a failed copy can be rolled back (audit O1:
-  # an update changed the image only).
-  save_stack "$dir"
-  git -C "$SBR_ROOT/src" -c advice.detachedHead=false checkout --quiet --force "${SBR_IMAGE#sbr-app:}"
-  install_files "$SBR_ROOT/src/ops"
-  # Once, for an install made before the database roles (audit-3 S1): the env file as it was
-  # stays for a rollback, then the roles' passwords and URLs; the roles on every update.
-  if [[ -z $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then
-    install -m 0600 "$file" "$dir/env.before"
-    convert_db_roles "$env"
-    info "Database roles: the app now connects as sbr_app, the migrations run as sbr_owner."
-  fi
-  apply_db_roles "$env"
-  # Once, for an install made before the recovery key (K20): recovery codes are stored under it
-  # from this version on; the codes stored before keep working (K27).
-  if [[ -z $(env_value "$file" SBR_RECOVERY_KEY) ]]; then
-    set_env_value "$file" SBR_RECOVERY_KEY "$(secret 32)"
-    info "Recovery key: made (SBR_RECOVERY_KEY in $file)."
-  fi
-  # Website installs: the sync token, nginx's site port and the route file read again.
-  refresh_website "$env"
-  set_env_value "$file" SBR_IMAGE "$SBR_IMAGE"
-  set_env_value "$conf" SBR_REF "$ref"
-  compose "$env" up -d
-  wait_ready "$env"
-  # shellcheck disable=SC2046 # one image name per word
-  prune_images $(images_in_use)
-  info "Updated to $ref ($SBR_IMAGE)."
-  info "Check the game, then: sbr confirm (deletes the plain pre-update dump), or sbr rollback."
-}
-
-cmd_confirm() {
-  local dir="$SBR_STATE/$1"
-  [[ -f $dir/rollback.conf ]] || die "no update waiting for confirmation"
-  rm -rf "$dir/pre-update.dump" "$dir/rollback.conf" "$dir/stack" "$dir/env.before"
-  # shellcheck disable=SC2046 # one image name per word
-  prune_images $(images_in_use)
-  info "Update confirmed: the pre-update dump is deleted; a rollback is no longer possible."
-}
-
-cmd_rollback() {
-  local env=$1 dir="$SBR_STATE/$1" file="$SBR_ETC/$1.env" restore=0
-  [[ -f $dir/rollback.conf ]] || die "no update to roll back"
-  local previous_image previous_ref before now
-  previous_image=$(env_value "$dir/rollback.conf" PREVIOUS_IMAGE)
-  previous_ref=$(env_value "$dir/rollback.conf" PREVIOUS_REF)
-  before=$(env_value "$dir/rollback.conf" MIGRATIONS_BEFORE)
-  now=$(migrations "$env")
-  ((now <= before)) || restore=1
-  if ((restore)); then
-    confirm "Roll back to $previous_image? The update changed the database schema, so the data goes back to the moment before the update: everything since then is lost (a backup is taken first)."
-  else
-    confirm "Roll back to $previous_image? The data stays as it is."
-  fi
-  do_backup "$env"
-  info "Backup of the current state: $BACKUP_FILE"
-  # The database first: if its restore fails, nothing else changed and the app (still the
-  # updated image) is started again on the untouched data (audit H3).
-  if ((restore)); then
-    info "Restoring the dump taken before the update."
-    stop_app "$env"
-    restore_database "$env" "$dir/pre-update.dump"
-  fi
-  # The env file from before the roles' conversion, if this update made it.
-  if [[ -f $dir/env.before ]]; then install -m 0600 "$dir/env.before" "$file"; fi
-  set_env_value "$file" SBR_IMAGE "$previous_image"
-  if [[ -n $previous_ref ]]; then set_env_value "$SBR_ETC/install.conf" SBR_REF "$previous_ref"; fi
-  restore_stack "$dir"
-  # A restored dump belongs to the superuser: give it back to the owner when roles are in use.
-  if ((restore)) && [[ -n $(env_value "$file" SBR_DB_APP_PASSWORD) ]]; then apply_db_roles "$env"; fi
-  compose "$env" up -d
-  restart_app_done
-  wait_ready "$env"
-  rm -f "$dir/rollback.conf" "$dir/pre-update.dump" "$dir/env.before"
-  info "Rolled back to $previous_image (ref ${previous_ref:-unknown})."
-}
-
-# do_backup runs as a plain command, so set -e stops it at the first error (audit O1).
-cmd_backup() {
-  do_backup "$1"
-  info "Backup written: $BACKUP_FILE"
-}
-
-cmd_restore() {
-  local env=$1 drill=0 file='' identity='' force_env=0
-  shift
-  while (($#)); do
-    case $1 in
-      --drill) drill=1 ;;
-      --identity) identity=$2; shift ;;
-      --force-env) force_env=1 ;;
-      *) file=$1 ;;
-    esac
-    shift
-  done
-  [[ -f $file ]] || die "usage: sbr restore [--drill] <file> [--identity <age key file>] [--force-env]"
-  if ((drill)); then do_drill "$env" "$file" "$identity"; else do_restore "$env" "$file" "$identity" "$force_env"; fi
-}
-
-cmd_admin() {
-  local env=$1 email name tty=()
-  [[ -t 0 ]] || tty=(-T)
-  # An admin who lost the authenticator and the recovery codes enrols again (D60).
-  if [[ ${2:-} == reset-2fa ]]; then
-    [[ -n ${3:-} ]] || die "usage: sbr admin reset-2fa <display name>"
-    compose "$env" exec "${tty[@]}" app node dist/cli.js reset-2fa --name "$3"
-    return
-  fi
-  [[ ${2:-} == create-super ]] || die "usage: sbr admin create-super | sbr admin reset-2fa <display name>"
-  # Before its questions: the app refuses it in website mode as well (website admins are game
-  # admins, D41; no password sign-in there, D37).
-  [[ $(env_value "$SBR_ETC/$env.env" SBR_AUTH_MODE) != website ]] ||
-    die "not needed in website mode: website admins are game admins (D41), and there is no password sign-in here (D37)"
-  email=${SBR_ADMIN_EMAIL_FLAG:-}
-  name=${SBR_ADMIN_NAME_FLAG:-}
-  ask email "Admin e-mail" "$(env_value "$SBR_ETC/$env.env" SBR_ADMIN_EMAIL)"
-  ask name "Admin display name (3–24 letters or digits)" admin
-  compose "$env" exec "${tty[@]}" app node dist/cli.js create-super --email "$email" --name "$name"
-}
-
-# The flag file's text is the reason players see on the maintenance page (may be empty).
-cmd_maintenance() {
-  case ${2:-} in
-    on)
-      # The reason travels as an argument, so no quoting in it can break the command.
-      # shellcheck disable=SC2016 # $1 expands inside the container's shell
-      compose "$1" exec -T app sh -c 'printf "%s" "$1" > /data/maintenance' sh "${3:-}"
-      info "maintenance on: no new matches; running ones finish; players see the maintenance page"
-      ;;
-    off) compose "$1" exec -T app rm -f /data/maintenance && info "maintenance off" ;;
-    *) die "usage: sbr maintenance on [\"reason for players\"] | off" ;;
-  esac
-}
-
-main() {
-  local env='' args=()
-  # The global options may stand anywhere (sbr rollback --yes); the rest goes to the command.
-  while (($#)); do
-    case $1 in
-      --env) env=$2; shift ;;
-      --email) SBR_ADMIN_EMAIL_FLAG=$2; shift ;;
-      --name) SBR_ADMIN_NAME_FLAG=$2; shift ;;
-      --yes) SBR_YES=1 ;;
-      *) args+=("$1") ;;
-    esac
-    shift
-  done
-  set -- "${args[@]}"
-  [[ $EUID -eq 0 ]] || die "run as root: sudo sbr $*"
-  env=${env:-$(env_value "$SBR_ETC/install.conf" SBR_ENV)}
-  [[ -n $env && -f $SBR_ETC/$env.env ]] || die "no installation found (run ops/install.sh first)"
-  local command=${1:-}
-  shift || true
-  case $command in
-    status) cmd_status "$env" ;;
-    update) cmd_update "$env" "$@" ;;
-    confirm) cmd_confirm "$env" ;;
-    rollback) cmd_rollback "$env" ;;
-    backup) cmd_backup "$env" ;;
-    restore) cmd_restore "$env" "$@" ;;
-    logs) compose "$env" logs -f --tail=200 "$@" ;;
-    admin) cmd_admin "$env" "$@" ;;
-    maintenance) cmd_maintenance "$env" "$@" ;;
-    loadcheck)
-      declare -F cmd_loadcheck >/dev/null || die "this install lacks the load check's files: run sudo sbr update <the same ref> once more"
-      cmd_loadcheck "$env" "$@"
-      ;;
-    uninstall) cmd_uninstall "$env" "$@" ;;
-    *) usage; exit 2 ;;
-  esac
-}
-
-main "$@"
+sk_admin_main "$@"

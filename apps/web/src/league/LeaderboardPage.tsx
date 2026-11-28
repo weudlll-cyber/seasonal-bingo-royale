@@ -11,12 +11,13 @@
  *                 with neighbours when it is further down. States the counting rule (03 §11)
  *                 with the period's player minimum. A narrow board (a phone, a large font)
  *                 shows each row's figures as one line under the name (./league.css).
- * Depends on:     react, @sbr/contracts (types), ../components/StepBadges, ../shell/http, ../shell/router, ../shell/session,
- *                 ./useApiGet, ./league.css
+ * Depends on:     react, @sbr/contracts (types), @seasonal/kit/react (StepBadges, useApiGet), ../shell/http, ../shell/router, ../shell/session,
+ *                 ./league.css
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/01-game-design.md §10; docs/spec/05-api-design.md §2.4;
  *                 docs/spec/03-security-architecture.md §11
  */
+import { StepBadges, useApiGet } from '@seasonal/kit/react';
 import type {
   LeaderboardAround,
   LeaderboardPage as Page,
@@ -26,19 +27,17 @@ import type {
 } from '@sbr/contracts';
 import { useState, type ReactElement } from 'react';
 
-import { StepBadges } from '../components/StepBadges.js';
 import { api } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useSession } from '../shell/session.js';
-import { useApiGet } from './useApiGet.js';
 import './league.css';
 
 export function LeaderboardPage({ periodId }: { readonly periodId: string | null }): ReactElement {
-  const periods = useApiGet<LeaderboardPeriods>('/leaderboards');
+  const periods = useApiGet<LeaderboardPeriods>(api, '/leaderboards');
   const items = periods.kind === 'ready' ? periods.value.items : [];
   const period = items.find((p) => p.id === periodId) ?? items[0];
   return (
-    <section className="sbr-panel sbr-stack league-page" data-testid="leaderboard-page">
+    <section className="sk-panel sbr-stack league-page" data-testid="leaderboard-page">
       <header className="league-head">
         <h1>Leaderboard</h1>
         {items.length > 1 && period !== undefined ? (
@@ -58,10 +57,10 @@ function PeriodSelect(props: {
   readonly selected: string;
 }): ReactElement {
   return (
-    <label className="sbr-field league-period">
+    <label className="sk-field league-period">
       <span>Board</span>
       <select
-        className="sbr-select"
+        className="sk-select"
         value={props.selected}
         data-testid="leaderboard-period"
         onChange={(e) => {
@@ -86,6 +85,7 @@ function Board({ period }: { readonly period: LeaderboardPeriod }): ReactElement
   const { rows, next, loadMore, state } = useBoardRows(period.id);
   const signedIn = useSession().session?.account != null;
   const around = useApiGet<LeaderboardAround>(
+    api,
     signedIn ? `/leaderboards/${encodeURIComponent(period.id)}/me` : null,
   );
   const mine = around.kind === 'ready' ? around.value.items : [];
@@ -105,7 +105,7 @@ function Board({ period }: { readonly period: LeaderboardPeriod }): ReactElement
         <BoardTable rows={rows} testId="leaderboard-rows" />
       )}
       {next === null ? null : (
-        <button type="button" className="sbr-btn" onClick={loadMore}>
+        <button type="button" className="sk-btn" onClick={loadMore}>
           Show more
         </button>
       )}
@@ -127,7 +127,7 @@ function Board({ period }: { readonly period: LeaderboardPeriod }): ReactElement
 // The first page, and the pages "Show more" added.
 function useBoardRows(periodId: string) {
   const path = `/leaderboards/${encodeURIComponent(periodId)}`;
-  const first = useApiGet<Page>(path);
+  const first = useApiGet<Page>(api, path);
   const [added, setAdded] = useState<readonly Page[]>([]);
   const pages = first.kind === 'ready' ? [first.value, ...added] : [];
   const next = pages.at(-1)?.nextCursor ?? null;

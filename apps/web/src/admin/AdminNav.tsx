@@ -26,7 +26,7 @@ export function AdminNav({ current }: { readonly current: Section }): ReactEleme
     can('technical.edit') || (session?.authMode === 'website' && can('settings.edit'));
   const link = (section: Section, label: string) => (
     <a
-      className="sbr-chip"
+      className="sk-chip"
       href={hrefOf(section === 'overview' ? { name: 'admin' } : { name: 'admin', section })}
       aria-current={current === section ? 'page' : undefined}
     >

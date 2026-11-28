@@ -3,35 +3,22 @@
  * @module web/shell
  * @brief  JSON calls to the server's /api/v1 with the session cookie and CSRF token.
  *
- * Responsibility: one fetch wrapper for the real game, relative to where the client is
- *                 served (BASE_PATH): same-origin credentials (the dev server proxies /api), the session's CSRF token on every state-changing
- *                 call (03 §8), JSON in and out, and an ApiError carrying the server's
- *                 error code; a 401 or CSRF_INVALID tells the listeners that the game session ended.
- * Depends on:     nothing
+ * Responsibility: the kit's client (`createApiClient`, K70) for the real game, relative to where
+ *                 the client is served (BASE_PATH: "/" standalone, "/games/bingo/" inside the
+ *                 website, 09 §1): the session's CSRF token on every state-changing call (03 §8),
+ *                 every failure an `ApiError` with the server's code (no answer at all: status 0,
+ *                 `NO_ANSWER`); a 401 or CSRF_INVALID tells the listeners that the game session
+ *                 ended.
+ * Depends on:     @seasonal/kit (createApiClient, ApiError, basePathOf)
  * Used by:        ./session, ./useMaintenance, ./DevTools, ../quicktest/*, ../game/*, ../host/*,
- *                 ../account/accountText, ../account/AccountPage, ../league/LeaderboardPage,
- *                 ../league/useApiGet, ../api
+ *                 ../account/*, ../admin/*, ../league/*, ../api
  * Spec:           docs/spec/05-api-design.md §1; docs/spec/03-security-architecture.md §8
  */
+import { ApiError, basePathOf, createApiClient } from '@seasonal/kit';
 
-// Where the client is served: "/" standalone, "/games/bingo/" inside the website. The page
-// routes with the URL hash, so the folder of its address is the base (09 §1).
-export function basePathOf(pageUrl: string): string {
-  return new URL('.', pageUrl).pathname;
-}
+export { ApiError };
 
 export const BASE_PATH = typeof document === 'undefined' ? '/' : basePathOf(document.baseURI);
-
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    // The server's detail when it gives one (e.g. PASSWORD_WEAK: tooShort, tooCommon).
-    readonly reason: string | null = null,
-  ) {
-    super(`${String(status)} ${code}`);
-  }
-}
 
 let csrfToken: string | null = null;
 
@@ -50,32 +37,17 @@ export function onSessionLost(listener: () => void): () => void {
   };
 }
 
-// No session any more: a 401, or for a change the CSRF check, which runs first and finds no
-// session token to compare with.
-const sessionEnded = (status: number, code: string | undefined): boolean =>
-  status === 401 || code === 'CSRF_INVALID';
-
 export function reportSessionLost(): void {
   for (const listener of sessionLost) listener();
 }
 
-export async function api<T>(
-  path: string,
-  options: { readonly method?: string; readonly body?: unknown } = {},
-): Promise<T> {
-  const method = options.method ?? 'GET';
-  const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers['content-type'] = 'application/json';
-  if (method !== 'GET' && csrfToken !== null) headers['x-csrf-token'] = csrfToken;
-  const response = await fetch(`${BASE_PATH}api/v1${path}`, {
-    method,
-    headers,
-    credentials: 'same-origin',
-    ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
-  });
-  if (response.status === 204) return undefined as T;
-  const body = (await response.json().catch(() => ({}))) as { code?: string; reason?: string };
-  if (sessionEnded(response.status, body.code)) reportSessionLost();
-  if (!response.ok) throw new ApiError(response.status, body.code ?? 'ERROR', body.reason ?? null);
-  return body as T;
-}
+export const api = createApiClient({
+  basePath: BASE_PATH,
+  csrf: () => csrfToken,
+  // No session any more: a 401, or for a change the CSRF check, which runs first and finds no
+  // session token to compare with. The call still ends with its error.
+  onAnswer: (response, code) => {
+    if (response.status === 401 || code === 'CSRF_INVALID') reportSessionLost();
+    return false;
+  },
+});

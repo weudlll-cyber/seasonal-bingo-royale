@@ -103,6 +103,9 @@ const HOST_SESSION = {
   limits: LIMITS,
 };
 
+// The session answer, with the server's clock: the page's own unless a test names another.
+export const sessionAt = (serverTime = Date.now()) => ({ ...HOST_SESSION, serverTime });
+
 // Answers the session, the lobby list (this one match) with the player's own matches (none
 // unless given, D39), the away summary (none unless given) and the match's live state;
 // returns the fetch stub.
@@ -113,7 +116,7 @@ export function serveMatch(
   mine: readonly MyMatch[] = [],
 ): ReturnType<typeof vi.fn> {
   const answer = (url: string): unknown => {
-    if (url.endsWith('/session')) return HOST_SESSION;
+    if (url.endsWith('/session')) return sessionAt();
     if (url.endsWith('/matches')) return { matches: [match], mine };
     if (url.endsWith('/away-summary')) return { summary: away };
     if (url.endsWith('/presets')) return { presets: START_PRESETS };
@@ -140,7 +143,7 @@ export function serveWithLimits(
 ): ReturnType<typeof vi.fn> {
   const fetch = vi.fn((url: string, init?: RequestInit) =>
     Promise.resolve(
-      new Response(JSON.stringify(url.endsWith('/session') ? HOST_SESSION : answer(url, init))),
+      new Response(JSON.stringify(url.endsWith('/session') ? sessionAt() : answer(url, init))),
     ),
   );
   vi.stubGlobal('fetch', fetch);

@@ -7,17 +7,19 @@
  *                 account `dev-admin`) under the start of its name; "Make Organizer" gives the
  *                 role, "Lock" locks it (its sign-in is refused), "Unlock" lets it in again —
  *                 without `sbr admin`. The page fits 1280×720 and a 390×844 phone at 100, 125 and
- *                 150 % (./acceptance/fitProbe). The account is deleted at the end, also on
+ *                 150 % (./fits). The account is deleted at the end, also on
  *                 failure. Chromium saves admin-8-accounts-*.
- * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens, ./acceptance/fitProbe
+ * Depends on:     @playwright/test, ./devStack, ./realGame, ./screens, ./fits
  * Spec:           docs/concepts/admin-area.md §4 (Players and accounts), §9 piece 8
  */
-import { expect, request, test, type Page } from '@playwright/test';
+import { expect, request, test } from '@playwright/test';
+import { captureLook } from '@seasonal/kit/testing';
 
-import { probe } from './acceptance/fitProbe.js';
+import { expectFits } from './fits.js';
 import { CLIENT_URL } from './devStack.js';
 import { closeContexts, post, signIn } from './realGame.js';
-import { captureLook, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 test.afterEach(async ({ browser }) => {
   await closeContexts(browser);
@@ -25,35 +27,16 @@ test.afterEach(async ({ browser }) => {
 
 const PASSWORD = 'correct horse battery staple';
 
-// Both sizes at 100, 125 and 150 %, from the top: nothing small, cut, covered or too wide.
-async function expectFits(page: Page): Promise<void> {
-  for (const size of [
-    { width: 1280, height: 720 },
-    { width: 390, height: 844 },
-  ]) {
-    for (const font of [16, 20, 24]) {
-      await page.setViewportSize(size);
-      await page.evaluate((px) => {
-        document.documentElement.style.fontSize = px === 16 ? '' : `${String(px)}px`;
-        window.scrollTo(0, 0);
-      }, font);
-      const p = await probe(page);
-      const what = `${String(size.width)} px at ${String(font)} px`;
-      expect([p.smallText, p.cut, p.overlaps, p.hScroll], what).toEqual([[], [], [], false]);
-    }
-  }
-  await page.evaluate(() => {
-    document.documentElement.style.fontSize = '';
-  });
-}
-
 test('an admin finds an account, makes it an Organizer, locks and unlocks it', async ({
   browser,
 }, info) => {
   const shots = info.project.name === 'chromium';
   const name = `acct${String(Date.now() % 1_000_000)}`;
   const email = `${name}@example.com`;
-  const player = await request.newContext({ baseURL: CLIENT_URL });
+  const player = await request.newContext({
+    baseURL: CLIENT_URL,
+    extraHTTPHeaders: FROM_THIS_SITE,
+  });
   const registered = await player.post('/api/v1/auth/register', {
     data: { email, displayName: name, password: PASSWORD },
   });
@@ -73,7 +56,7 @@ test('an admin finds an account, makes it an Organizer, locks and unlocks it', a
     await card.getByRole('button', { name: 'Lock' }).click();
     await expect(card).toContainText('Locked');
     expect((await login()).status()).not.toBe(200);
-    await expectFits(admin);
+    await expectFits(admin, 'admin accounts');
     if (shots) await captureLook(admin, SHOTS_DIR, 'admin-8-accounts', card);
     await card.getByRole('button', { name: 'Unlock' }).click();
     await expect(card).toContainText('Active');

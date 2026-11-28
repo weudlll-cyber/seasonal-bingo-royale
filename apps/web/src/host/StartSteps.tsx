@@ -104,7 +104,7 @@ function PresetFacts({ preset: p }: { readonly preset: StartPreset }): ReactElem
       <strong>{p.name}</strong>
       <span>{rangeText(p)}</span>
       {p.description === '' ? null : <span className="sbr-muted">{p.description}</span>}
-      {p.countsForLeaderboard ? <span className="sbr-chip">Counts for the league</span> : null}
+      {p.countsForLeaderboard ? <span className="sk-chip">Counts for the league</span> : null}
     </>
   );
 }

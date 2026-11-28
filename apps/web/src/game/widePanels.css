@@ -1,0 +1,255 @@
+/**
+ * @file   apps/web/src/game/widePanels.css
+ * @module web/game
+ * @brief  The wide match screens' head row, notice strips, compact recap and log sheet (owner
+ *         decisions of 2026-11-28).
+ *
+ * Responsibility: the one head row (./MatchHead) with its rules link, the slim notice strips,
+ *                 the recap in its compact form (./Interlude), the patterns' line, the status's
+ *                 season marks, and the "Whole match log" link with the sheet it opens
+ *                 (../components/MatchLogLink), and the final placement's sizes. Kit tokens only.
+ * Used by:        ./wide.css (@import)
+ * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §12
+ */
+
+.match-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-space-2);
+}
+
+/* Where the row cannot hold it, the waiting or countdown text goes to a second line. */
+.match-head__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-space-2);
+  min-width: 0;
+}
+
+.match-head h1 {
+  margin: 0;
+  font-size: var(--sk-font-size-title);
+  overflow-wrap: anywhere;
+}
+
+.match-head p {
+  margin: 0;
+}
+
+.match-head__pause {
+  font-weight: var(--sk-font-weight-strong);
+}
+
+.match-head__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--sk-space-2);
+}
+
+.rules-info {
+  position: relative;
+}
+
+.rules-info summary,
+.log-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sk-hit-target);
+  color: var(--sk-color-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rules-info p {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 3;
+  width: max-content;
+  max-width: 20rem;
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border: 1px solid var(--sk-color-border-strong);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface);
+  box-shadow: var(--sk-shadow-raised);
+}
+
+.log-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--sk-font-size-body);
+}
+
+.log-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--sk-space-2);
+  background: var(--sk-color-scrim);
+}
+
+.log-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-space-1);
+  width: min(36rem, 100%);
+  max-height: 100%;
+  background: var(--sk-color-surface);
+}
+
+.log-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-space-2);
+}
+
+.log-sheet__head h2 {
+  margin: 0;
+  font-size: var(--sk-font-size-lead);
+}
+
+.log-sheet__lines {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* The cut's outcome and the final's fresh start: one slim line each. */
+.notice-strip.cut-screen,
+.notice-strip {
+  display: block;
+  margin: 0;
+  padding: 0.25rem var(--sk-space-2);
+  font-size: var(--sk-font-size-body);
+  font-weight: var(--sk-font-weight-strong);
+}
+
+.notice-strip :is(p, strong) {
+  margin: 0;
+  font-size: var(--sk-font-size-body);
+}
+
+/* "Back to the call" and the log's link share a line where it holds both. */
+.wide-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-space-2);
+}
+
+.wide-links p {
+  margin: 0;
+}
+
+.interlude--compact {
+  gap: 0.25rem;
+}
+
+.interlude--compact .interlude-head {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.interlude--compact h3 {
+  font-size: var(--sk-font-size-body);
+}
+
+.interlude--compact .interlude-nav {
+  display: flex;
+  flex: none;
+  gap: var(--sk-space-1);
+}
+
+/* Every card in one place: the box keeps the tallest card's height. */
+.interlude-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.interlude-cards > .interlude-card {
+  grid-area: 1 / 1;
+  min-height: 0;
+}
+
+.interlude-cards > [data-current='false'] {
+  visibility: hidden;
+}
+
+.interlude--compact p {
+  margin: 0;
+}
+
+.interlude-dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--sk-space-1);
+}
+
+.interlude-dots > [aria-hidden] {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--sk-color-border-strong);
+}
+
+.interlude-dots > .is-current {
+  background: var(--sk-color-text);
+}
+
+.patterns-line {
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--sk-font-size-small);
+  white-space: nowrap;
+}
+
+/* In a low window the line does not fit under the recap. */
+@media (max-height: 619px) {
+  .patterns-line {
+    display: none;
+  }
+}
+
+.season-marks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-space-1);
+}
+
+/* The final placement: its heading in body bold, the own place in lead bold, places one line
+   high, so at least 7 are whole above the chat strip at 1280×720 (owner decision of
+   2026-11-24). */
+.wide .sk-result .sk-result-head > h3:first-child {
+  font-size: var(--sk-font-size-body);
+  font-weight: var(--sk-font-weight-strong);
+}
+
+.wide .sk-result .final-own {
+  font-size: var(--sk-font-size-lead);
+}
+
+.wide .final-rule {
+  margin: 0;
+  font-size: var(--sk-font-size-small);
+}
+
+.wide .sk-result .rank-row,
+.wide .sk-result .podium-step {
+  min-height: var(--sk-space-3);
+  padding-block: 0;
+}
+
+.wide .sk-result .rank-divider {
+  margin: 0;
+  padding-block: 0;
+  line-height: 1.15;
+}

@@ -15,11 +15,11 @@
  *                 ../host/HostConsole, ../test/matchFixture, ./useLiveMatch
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HostConsole } from '../host/HostConsole.js';
-import { matchSummary, serveMatch, show } from '../test/matchFixture.js';
+import { matchSummary, renderInSession, serveMatch, show } from '../test/matchFixture.js';
 import { Lobby } from './Lobby.js';
 import { MatchScreen } from './MatchScreen.js';
 import { registrationText, RegistrationStatus } from './Registration.js';
@@ -74,9 +74,12 @@ describe('the registration status', () => {
     );
   });
 
-  it('counts down live', () => {
+  it('counts down live', async () => {
     vi.useFakeTimers({ now: NOW });
-    render(<RegistrationStatus match={withRule({ kind: 'at', at: AT, auto: false })} testId="r" />);
+    serveMatch(matchSummary());
+    await renderInSession(
+      <RegistrationStatus match={withRule({ kind: 'at', at: AT, auto: false })} testId="r" />,
+    );
     expect(screen.getByTestId('r').textContent).toContain('(in 12 min)');
     act(() => {
       vi.advanceTimersByTime(11.5 * 60_000);

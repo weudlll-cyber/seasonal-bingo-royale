@@ -4,14 +4,14 @@
  * @brief  The owner and app roles of a production database (audit-3 S1): who may do what.
  *
  * Responsibility: an install made before the roles (migrated by the superuser) is converted by
- *                 ops/lib/db-roles.sql; a fresh database gets the same layout. The owner migrates
+ *                 ops/kit/lib/db-roles.sql; a fresh database gets the same layout. The owner migrates
  *                 and grants the app role (`cli migrate`). The app role plays a whole match through
  *                 the real app, but is refused UPDATE, DELETE and TRUNCATE on the event log, audit
  *                 log, settings versions and league corrections (by permission, not only by
  *                 triggers), turning a trigger off, writing the migration record, creating or
  *                 dropping tables and creating roles; the owner cannot create roles either. The
  *                 match is finished in the throw-away database; accounts go with the container.
- * Depends on:     vitest, @testcontainers/postgresql, ../src/index, ../src/db/roles,
+ * Depends on:     vitest, @testcontainers/postgresql, ../src/index, ../src/db/appRole, @seasonal/kit/server,
  *                 ./harness, ./session, ./playToEnd
  * Spec:           docs/spec/03-security-architecture.md §9; docs/spec/04-database-design.md §1, §3.3
  */
@@ -19,17 +19,18 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { grantAppRole } from '@seasonal/kit/server';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { grantAppRole } from '../src/db/roles.js';
+import { APP_ROLE_GRANTS } from '../src/db/appRole.js';
 import { createPool, migrate, type DbPool } from '../src/index.js';
 import { buildOn, SUITE_TIMEOUT_MS } from './harness.js';
 import { playToEnd } from './playToEnd.js';
 import { signIn } from './session.js';
 
 const ROLES_SQL = readFileSync(
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../ops/lib/db-roles.sql'),
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../ops/kit/lib/db-roles.sql'),
   'utf8',
 );
 const OWNER_PASSWORD = 'a1'.repeat(24);
@@ -51,14 +52,21 @@ function poolOf(database: string, user?: string, password?: string): { pool: DbP
   return { pool, url: url.toString() };
 }
 
-// What `sbr` sends to psql: the script with the env file's passwords.
+// What `sbr` sends to psql (the kit's sk_db_roles_apply): the script with Bingo's names and
+// the env file's passwords.
 async function applyRoles(superuser: DbPool): Promise<void> {
-  await superuser.query(
-    ROLES_SQL.replaceAll('__OWNER_PASSWORD__', OWNER_PASSWORD).replaceAll(
-      '__APP_PASSWORD__',
-      APP_PASSWORD,
-    ),
+  const words = {
+    __SCHEMA__: 'sbr',
+    __OWNER__: 'sbr_owner',
+    __APP__: 'sbr_app',
+    __OWNER_PASSWORD__: OWNER_PASSWORD,
+    __APP_PASSWORD__: APP_PASSWORD,
+  };
+  const sql = Object.entries(words).reduce(
+    (text, [word, value]) => text.replaceAll(word, value),
+    ROLES_SQL,
   );
+  await superuser.query(sql);
 }
 
 // The error a statement fails with, or null.
@@ -136,7 +144,7 @@ describe('an install made before the roles, converted (S1)', () => {
     await applyRoles(superuser);
     const owner = poolOf(database, 'sbr_owner', OWNER_PASSWORD).pool;
     expect(await migrate(owner)).toEqual([]);
-    expect(await grantAppRole(owner)).toBe(true);
+    expect(await grantAppRole(owner, APP_ROLE_GRANTS)).toBe(true);
     ({ pool: app, url: appUrl } = poolOf(database, 'sbr_app', APP_PASSWORD));
   }, SUITE_TIMEOUT_MS);
 
@@ -177,7 +185,7 @@ describe('a fresh install with the roles (S1)', () => {
     await applyRoles(poolOf('fresh').pool);
     const owner = poolOf('fresh', 'sbr_owner', OWNER_PASSWORD).pool;
     expect((await migrate(owner)).length).toBeGreaterThan(10);
-    expect(await grantAppRole(owner)).toBe(true);
+    expect(await grantAppRole(owner, APP_ROLE_GRANTS)).toBe(true);
     const app = poolOf('fresh', 'sbr_app', APP_PASSWORD).pool;
     expect((await app.query('SELECT count(*) FROM sbr.accounts')).rows).toHaveLength(1);
     expect(await refusal(app, 'DELETE FROM sbr.match_events WHERE false')).toMatch(

@@ -12,40 +12,42 @@
  */
 
 .seasons-overview {
-  padding: var(--space-1) var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface-2);
-  font-size: var(--font-size-small);
+  padding: var(--sk-space-1) var(--sk-space-2);
+  border: 1px solid var(--sk-color-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-color-surface-2);
+  font-size: var(--sk-font-size-small);
 }
 
 .seasons-overview summary {
+  min-height: var(--sk-hit-target);
+  align-content: center;
   cursor: pointer;
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--sk-font-weight-strong);
 }
 
 .seasons-overview ul {
   display: grid;
-  gap: var(--space-1);
-  margin: var(--space-1) 0 0;
+  gap: var(--sk-space-1);
+  margin: var(--sk-space-1) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .seasons-overview li {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--sk-space-1);
   align-items: flex-start;
 }
 
-.seasons-overview li > img,
+.seasons-overview li > .sk-season-icon,
 .seasons-overview li > .season-ring {
   flex: none;
 }
 
 .seasons-overview p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
+  margin: var(--sk-space-1) 0 0;
+  color: var(--sk-color-text-muted);
 }
 
 /* The waiting room's body: the overview above the players on a phone (a closed disclosure), and on
@@ -54,7 +56,7 @@
    with the chat strip under the game). */
 .waiting-body {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--sk-space-2);
 }
 
 .waiting-main {
@@ -64,7 +66,7 @@
 @media (min-width: 960px) {
   .waiting-body:has(> .seasons-overview) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: var(--space-3);
+    column-gap: var(--sk-space-3);
     align-items: start;
   }
 

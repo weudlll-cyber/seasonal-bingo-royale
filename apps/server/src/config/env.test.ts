@@ -7,7 +7,8 @@
  *                 development features; SBR_DEV=1 is refused for a public address and
  *                 accepted for localhost; the seed key is required unless SBR_DEV=1 or tests;
  *                 the sign-in mode is local unless set, website mode needs its settings (D37);
- *                 empty mail settings (the installer's lines without mail) count as unset (D60).
+ *                 empty mail settings (the installer's lines without mail) and a standalone
+ *                 install's empty website lines count as unset (D60).
  * Depends on:     ./env, ./seedKey
  * Spec:           docs/spec/03-security-architecture.md §3; docs/spec/09-deployment-architecture.md §1
  */
@@ -63,6 +64,18 @@ describe('the sign-in mode (D37)', () => {
     expect(site.SBR_WEBSITE_HEADER_ID).toBe('x-site-user-id');
     expect(site.SBR_WEBSITE_HEADER_NAME).toBe('x-acting-user');
     expect(site.SBR_WEBSITE_LOGIN_PATH).toBe('/login?next=');
+  });
+
+  it("takes a standalone install's empty website lines as unset", () => {
+    // ops/lib/config.sh writes every website line, empty where the install is standalone.
+    const env = loadEnv({
+      ...DB,
+      SBR_AUTH_MODE: 'local',
+      SBR_WEBSITE_PROXY_SECRET: '',
+      SBR_WEBSITE_LOGIN_PATH: '',
+    });
+    expect(env.SBR_WEBSITE_PROXY_SECRET).toBeUndefined();
+    expect(env.SBR_WEBSITE_LOGIN_PATH).toBe('/login?next=');
   });
 
   it('takes the website login only as a path on the website (D43)', () => {

@@ -21,22 +21,24 @@ import { CutScreen } from './CutScreen.js';
 import { OwnerStatusPanel } from './OwnerStatusPanel.js';
 import { Playback } from './Playback.js';
 import { playbackAt } from '../playback.js';
+import { SessionProvider } from '../shell/session.js';
+import { serveWithLimits } from '../test/matchFixture.js';
 import { numberCard, royaleFixture, SEASON_EFFECTS } from '../test/quickTestFixture.js';
 
 afterEach(cleanup);
 
-const SPRING = 'var(--color-spring)';
-const WINTER = 'var(--color-winter)';
+const SPRING = 'var(--sk-color-spring)';
+const WINTER = 'var(--sk-color-winter)';
 
 describe('season cells', () => {
-  it('show the original season icon file and a frame in the season colour', () => {
+  it("show the season's icon and a frame in the season colour", () => {
     render(<CardGrid accountId="bot-02" card={numberCard(0)} marks={[]} />);
-    const icon = screen.getAllByAltText('spring')[0];
-    expect(icon?.getAttribute('src')).toMatch(/assets\/seasons\/spring\.svg/);
+    const icon = screen.getAllByRole('img', { name: 'Spring' })[0];
+    expect(icon?.getAttribute('data-sk-season')).toBe('spring');
     expect(icon?.parentElement?.parentElement?.style.border).toContain(SPRING);
-    const winter = screen.getAllByAltText('winter');
+    const winter = screen.getAllByRole('img', { name: 'Winter' });
     expect(winter).toHaveLength(1);
-    expect(winter[0]?.getAttribute('src')).toMatch(/assets\/seasons\/winter\.svg/);
+    expect(winter[0]?.getAttribute('data-sk-season')).toBe('winter');
   });
 
   it('show a classicSeasons symbol as its icon on the card, framed in its season colour', () => {
@@ -46,8 +48,8 @@ describe('season cells', () => {
     );
     render(<CardGrid accountId="bot-02" card={{ ...card, cells }} marks={[]} />);
     // The icon has its own season colour, so the cell keeps the card colour behind it.
-    const box = screen.getByAltText('winter').parentElement;
-    expect(box?.style.background).toBe('var(--cell-bg, var(--color-surface-2))');
+    const box = screen.getByRole('img', { name: 'Winter' }).parentElement;
+    expect(box?.style.background).toBe('var(--cell-bg, var(--sk-color-surface-2))');
     expect(box?.style.border).toBe(`2px solid ${WINTER}`);
   });
 });
@@ -64,6 +66,10 @@ const STATUS = {
   shieldCharges: 1,
   seasons: ['spring', 'summer'] as const,
 };
+
+// A season's icon inside one effect's sentence.
+const iconIn = (testId: string, name: string) =>
+  within(screen.getByTestId(testId)).getByRole('img', { name });
 
 describe('OwnerStatusPanel', () => {
   it('says each active effect in a sentence with its season and the ruleset numbers', () => {
@@ -88,8 +94,8 @@ describe('OwnerStatusPanel', () => {
     expect(screen.getByTestId('effect-shield').textContent).toBe(
       'Winter shield: saves you once at a cut if you are at most 3 places below the line — 1 left',
     );
-    expect(within(screen.getByTestId('effect-shield')).getByAltText('winter')).toBeTruthy();
-    expect(within(screen.getByTestId('effect-growth')).getByAltText('spring')).toBeTruthy();
+    expect(iconIn('effect-shield', 'Winter')).toBeTruthy();
+    expect(iconIn('effect-growth', 'Spring')).toBeTruthy();
   });
 
   it('names the seasons of the match, collected ones ticked, and what all four give', () => {
@@ -179,12 +185,14 @@ describe('CutScreen', () => {
     owners: [{ accountId: 'owner-01', outcome }],
   });
 
-  it('tells a survivor when the next round starts, an eliminated owner the cut they went out in', () => {
+  it('tells a survivor when the next round starts, an eliminated owner the cut they went out in', async () => {
     const nextRoundAt = Date.now() + 6_000;
-    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} nextRoundAt={nextRoundAt} />);
-    expect(screen.getByTestId('cut-screen').textContent).toContain(
-      "You're through — next round in 6 s",
-    );
+    // In a session: its answer names the server's time, which the countdown counts on.
+    serveWithLimits();
+    const { rerender } = render(<CutScreen cut={cut(1, 'survived')} nextRoundAt={nextRoundAt} />, {
+      wrapper: SessionProvider,
+    });
+    expect(await screen.findByText(/You're through — next round in 6 s/)).toBeTruthy();
     expect(screen.queryByText('Watch')).toBeNull();
     fireEvent.click(screen.getByText('Keep playing'));
     expect(screen.queryByTestId('cut-screen')).toBeNull();

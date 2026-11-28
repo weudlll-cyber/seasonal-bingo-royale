@@ -167,6 +167,11 @@ describe('Discord steps from the website (2026-11-04)', () => {
     expect(await stepsOf(cookieOf(none))).toEqual([]);
   });
 
+  it("names the member's own steps in the session answer, for the header (K56)", async () => {
+    const r = await signInAs({ id: '1103', name: 'Badged', steps: encode([golden]) });
+    expect((await session(cookieOf(r))).account).toMatchObject({ steps: [golden] });
+  });
+
   it('signs in without steps when the header is not a valid steps list', async () => {
     const bad = encode([{ ladder: 'holder', name: 'X', icon: 'https://evil.example/x.png' }]);
     const r = await signInAs({ id: '1102', name: 'Shady', steps: bad });

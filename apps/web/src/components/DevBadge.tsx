@@ -28,9 +28,9 @@ export function DevBadge(): ReactElement | null {
         // A label only: clicks pass through, so it never blocks a control under it.
         pointerEvents: 'none',
         padding: '0.25rem 0.5rem',
-        fontSize: 'var(--font-size-small)',
-        background: 'var(--color-winter)',
-        color: 'var(--color-on-season)',
+        fontSize: 'var(--sk-font-size-small)',
+        background: 'var(--sk-color-winter)',
+        color: 'var(--sk-color-on-season)',
         borderRadius: '0.25rem',
         zIndex: 1_000,
       }}

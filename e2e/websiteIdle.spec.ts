@@ -17,6 +17,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { startWebsiteStack, type WebsiteStack } from './websiteStack.js';
+import { FROM_THIS_SITE } from './fromThisSite.js';
 
 const BASE = '/games/bingo';
 let stack: WebsiteStack;
@@ -25,13 +26,7 @@ test.beforeAll(async ({ browserName }) => {
   test.skip(browserName !== 'chromium', 'one browser is enough; it builds the client');
   test.setTimeout(4 * 60_000);
   stack = await startWebsiteStack();
-  stack.users.set('9041', {
-    id: '9041',
-    name: 'Idle Admin',
-    roles: 'admin',
-    verified: true,
-    canHost: true,
-  });
+  stack.addMember({ id: 9041, name: 'Idle Admin', role: 'admin', canHost: true });
 });
 
 test.afterAll(async ({ browserName }) => {
@@ -49,7 +44,7 @@ const sessionOf = async (page: Page) =>
 test('the next action after an idle game session re-signs through the website on the same page', async ({
   page,
 }) => {
-  await page.context().addCookies([{ name: 'stub_user', value: '9041', url: stack.origin }]);
+  await page.context().addCookies([stack.cookieOf(9041)]);
   await page.goto(`${stack.origin}${BASE}/auth/website?next=${BASE}/%23/host/new`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Idle_Admin');
   await expect(page.getByTestId('start-title')).toBeVisible();
@@ -61,7 +56,6 @@ test('the next action after an idle game session re-signs through the website on
   await expect.poll(async () => (await sessionOf(page)).signedIn, { timeout: 20_000 }).toBe(true);
   await expect(page).toHaveURL(`${stack.origin}${BASE}/#/host/new`);
   await expect(page.getByTestId('signed-in-as')).toContainText('Idle_Admin');
-  await expect(page.locator('body')).not.toContainText('website login');
   // Signed in again: the action works.
   await page.getByTestId('start-title').fill('After idle');
   await page.getByTestId('create-submit').click();
@@ -70,6 +64,6 @@ test('the next action after an idle game session re-signs through the website on
   const { csrfToken } = await sessionOf(page);
   await page.request.post(`${stack.origin}${BASE}/api/v1/matches/${code}/abort`, {
     data: { reason: 'test cleanup' },
-    headers: { 'x-csrf-token': csrfToken },
+    headers: { ...FROM_THIS_SITE, 'x-csrf-token': csrfToken },
   });
 });

@@ -18,13 +18,12 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { expect, test, type Page } from '@playwright/test';
+import { captureLook, DESKTOP } from '@seasonal/kit/testing';
 
-import { REPO_ROOT } from '../devStack.js';
+import { MAINTENANCE_FLAG } from '../devStack.js';
 import { closeContexts, drawNext, hostMatch, signIn, stopMatch } from '../realGame.js';
-import { captureLook, DESKTOP, SHOTS_DIR } from '../screens.js';
+import { SHOTS_DIR } from '../screens.js';
 import { liveSnap } from './liveSnap.js';
-
-const FLAG = path.join(REPO_ROOT, 'apps', 'server', 'data', 'maintenance');
 
 // What the server says about maintenance (it reads the flag at most every 2 s).
 async function maintenanceOn(page: Page): Promise<boolean> {
@@ -33,7 +32,7 @@ async function maintenanceOn(page: Page): Promise<boolean> {
 }
 
 test.afterEach(async ({ browser }) => {
-  rmSync(FLAG, { force: true });
+  rmSync(MAINTENANCE_FLAG, { force: true });
   await closeContexts(browser);
 });
 
@@ -198,8 +197,8 @@ test('the console during maintenance: Start match disabled with the reason', asy
     maxPlayers: 4,
   });
   try {
-    mkdirSync(path.dirname(FLAG), { recursive: true });
-    writeFileSync(FLAG, 'Database upgrade, back at 22:00\n');
+    mkdirSync(path.dirname(MAINTENANCE_FLAG), { recursive: true });
+    writeFileSync(MAINTENANCE_FLAG, 'Database upgrade, back at 22:00\n');
     await expect.poll(async () => maintenanceOn(host)).toBe(true);
     await host.reload();
     await expect(host.getByTestId('start-match')).toBeDisabled({ timeout: 20_000 });
@@ -211,7 +210,7 @@ test('the console during maintenance: Start match disabled with the reason', asy
       host.getByTestId('start-match'),
     );
   } finally {
-    rmSync(FLAG, { force: true });
+    rmSync(MAINTENANCE_FLAG, { force: true });
     await stopMatch(host, code);
   }
 });

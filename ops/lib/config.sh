@@ -8,11 +8,13 @@
 #                 once (openssl rand), public URL, trusted proxies, sign-in mode (website installs:
 #                 D37), route settings, proxy secret, database role passwords (audit-3 S1;
 #                 apply_db_roles, convert_db_roles for older installs); operator keys kept. Also
-#                 writes install.conf, copies compose files, Caddyfile and sbr CLI to /opt/sbr
-#                 (save_stack/restore_stack keep the previous for rollback), builds the app image
-#                 from a git ref unless that commit's exists, drops older images.
-# Depends on:     ./common.sh (put_file, run, env_value, url_host), git, docker, openssl
-# Used by:        ops/install.sh, ops/sbr (update)
+#                 writes install.conf, copies compose files, Caddyfile, the library, the kit's
+#                 ops folder and the sbr CLI to /opt/sbr (the admin command keeps and restores
+#                 STACK_FILES for a rollback), gets the app image of a git ref: a version tag's
+#                 signed release, else built unless that commit's exists.
+# Depends on:     ./common.sh (put_file, run, env_value, url_host), ./release.sh,
+#                 ../kit/lib/db-roles.sh, git, docker, openssl
+# Used by:        ops/install.sh, ops/sbr (./hooks.sh)
 # Spec:           docs/spec/09-deployment-architecture.md §2, §3
 
 # secret <bytes>: hex from openssl rand (a dry run, which installs nothing, may lack it).
@@ -142,11 +144,10 @@ convert_db_roles() {
 }
 
 # apply_db_roles <env>: the owner and app roles with the env file's passwords and the schema
-# owned by the owner (./db-roles.sql), as the superuser over the database container's local
-# socket. The passwords go into the script with bash's own substitution and reach psql on
-# standard input: never on a command line, never printed.
+# owned by the owner (the kit's ../kit/lib/db-roles.sh, K90), as the superuser over the database
+# container's local socket; the passwords reach psql on standard input only.
 apply_db_roles() {
-  local file="$SBR_ETC/$1.env" owner app sql
+  local file="$SBR_ETC/$1.env" owner app
   if [[ $SBR_DRY_RUN == 1 ]]; then
     info "  would set up the database roles sbr_owner and sbr_app"
     return 0
@@ -155,11 +156,8 @@ apply_db_roles() {
   app=$(env_value "$file" SBR_DB_APP_PASSWORD)
   [[ -n $owner && -n $app ]] || die "the env file has no database role passwords"
   compose "$1" up -d --wait postgres
-  sql=$(<"$SBR_ROOT/lib/db-roles.sql")
-  sql=${sql//__OWNER_PASSWORD__/$owner}
-  sql=${sql//__APP_PASSWORD__/$app}
-  printf '%s\n' "$sql" |
-    compose "$1" exec -T postgres psql -X -q -o /dev/null -v ON_ERROR_STOP=1 -U sbr -d sbr
+  SK_DB_PREFIX=sbr SK_DB_OWNER_PASSWORD=$owner SK_DB_APP_PASSWORD=$app \
+    sk_db_roles_apply compose "$1" exec -T postgres psql -X -q -o /dev/null -v ON_ERROR_STOP=1 -U sbr -d sbr
 }
 
 write_record() {
@@ -171,6 +169,7 @@ SBR_ADDRESS=${SBR_ADDRESS:-}
 SBR_WEBSITE_DOMAIN=${SBR_WEBSITE_DOMAIN:-}
 SBR_REPO=$SBR_REPO
 SBR_REF=$SBR_REF
+SBR_IMAGE_SOURCE=${SBR_IMAGE_SOURCE:-$(env_value "$SBR_ETC/install.conf" SBR_IMAGE_SOURCE)}
 EOF
 }
 
@@ -181,39 +180,32 @@ install_files() {
     put_file "$SBR_ROOT/$name" 0644 <"$from/$name"
   done
   put_file "$SBR_ROOT/caddy/Caddyfile" 0644 <"$from/Caddyfile"
-  # Every file of the library, so a version that adds one brings it along (an update
+  # Every script of the library, so a version that adds one brings it along (an update
   # installs the new version's files with the CLI it replaces); none is ever removed here.
-  for path in "$from"/lib/*.sh "$from"/lib/*.sql; do
+  for path in "$from"/lib/*.sh; do
     [[ -f $path ]] || continue
     put_file "$SBR_ROOT/lib/${path##*/}" 0644 <"$path"
+  done
+  # The kit's operations folder whole, its layout kept (its scripts load lib/ beside
+  # themselves, kit docs/ADOPTION.md "Since v0.25.0").
+  for path in "$from"/kit/*.sh "$from"/kit/lib/*; do
+    [[ -f $path ]] || continue
+    put_file "$SBR_ROOT/kit/${path#"$from/kit/"}" 0644 <"$path"
   done
   put_file "$SBR_ROOT/sbr" 0755 <"$from/sbr"
   [[ -L /usr/local/bin/sbr ]] || run ln -sf "$SBR_ROOT/sbr" /usr/local/bin/sbr
 }
 
 # The stack files an update replaces (install_files): kept for a rollback (audit O1).
-STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr)
+STACK_FILES=(compose.yml compose.website.yml compose.website-nginx.yml caddy lib sbr kit)
 
-# save_stack <dir>: copies the installed stack files to <dir>/stack.
-save_stack() {
-  rm -rf "$1/stack"
-  install -d -m 0700 "$1/stack"
-  (cd "$SBR_ROOT" && cp -a "${STACK_FILES[@]}" "$1/stack/")
-}
-
-# restore_stack <dir>: puts the stack files saved by save_stack back.
-restore_stack() {
-  [[ -d $1/stack ]] || return 0
-  (cd "$1/stack" && cp -a "${STACK_FILES[@]}" "$SBR_ROOT/")
-  rm -rf "$1/stack"
-}
-
-# build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and builds it when missing.
+# build_image <repo> <ref>: sets SBR_IMAGE=sbr-app:<commit> and gets that image: a version
+# tag's signed release (./release.sh), else built on the server when missing.
 build_image() {
   local repo=$1 ref=$2 src="$SBR_ROOT/src" commit
   if [[ $SBR_DRY_RUN == 1 ]]; then
     # A dry run touches nothing, not even the checkout (audit O11).
-    info "  would fetch $ref from $repo into $src and build sbr-app:<commit>"
+    info "  would fetch $ref from $repo into $src and take its image ($(image_source "$ref"))"
     SBR_IMAGE="sbr-app:<commit of $ref>"
     return 0
   fi
@@ -226,6 +218,13 @@ build_image() {
   git -C "$src" fetch --quiet --prune --tags origin
   commit=$(git -C "$src" rev-parse --verify --quiet "origin/$ref^{commit}" || git -C "$src" rev-parse --verify "$ref^{commit}")
   SBR_IMAGE="sbr-app:${commit:0:12}"
+  # A release is verified every time, also where an image of that commit is there already.
+  local from
+  from=$(image_source "$ref")
+  if [[ $from == release ]]; then
+    release_image "$ref" "$commit"
+    return 0
+  fi
   if docker image inspect "$SBR_IMAGE" >/dev/null 2>&1; then
     info "  image $SBR_IMAGE is there already ($ref)"
     return 0
@@ -235,12 +234,4 @@ build_image() {
   # The ref and commit go into the image as SBR_VERSION (the admin Overview's health line).
   docker build --quiet --build-arg "SBR_VERSION=$ref (${commit:0:12})" -t "$SBR_IMAGE" "$src"
   SBR_CHANGES=$((SBR_CHANGES + 1))
-}
-
-# prune_images <keep…>: removes sbr-app images other than the ones named (current, previous).
-prune_images() {
-  local image
-  for image in $(docker image ls sbr-app --format '{{.Repository}}:{{.Tag}}'); do
-    [[ " $* " == *" $image "* ]] || docker image rm "$image" >/dev/null 2>&1 || true
-  done
 }

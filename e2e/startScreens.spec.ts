@@ -15,9 +15,10 @@
  * Spec:           docs/spec/01-game-design.md §7.6, §13; docs/spec/05-api-design.md §2.3
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
+import { captureLook, DESKTOP } from '@seasonal/kit/testing';
 
 import { closeContexts, post, signIn, stopMatch, type Who } from './realGame.js';
-import { captureLook, DESKTOP, SHOTS_DIR } from './screens.js';
+import { SHOTS_DIR } from './screens.js';
 
 type StartRule =
   | { readonly kind: 'host' }

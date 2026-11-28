@@ -73,11 +73,11 @@ export function SignInPage({ register }: { readonly register: boolean }): ReactE
   const website = useWebsiteSignIn();
   if (website === null) return register ? <Register /> : <SignIn />;
   return (
-    <section className="sbr-panel sbr-stack" data-testid="website-sign-in">
+    <section className="sk-panel sbr-stack" data-testid="website-sign-in">
       <h1>Sign in</h1>
       <p>Players sign in with their Seasonal Entertainment account.</p>
       <p>
-        <a className="sbr-btn sbr-btn--primary" href={website}>
+        <a className="sk-btn sk-btn--primary" href={website}>
           Sign in on the website
         </a>
       </p>

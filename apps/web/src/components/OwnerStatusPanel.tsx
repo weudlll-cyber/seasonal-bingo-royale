@@ -10,7 +10,10 @@
  *                 distance below the line; the four seasons by name with collected ones ticked and
  *                 lit, what all four give, that seasons count over the whole match. Icons and
  *                 colours stay beside the words; lines wrap, never truncate. Never from local
- *                 taps. Once eliminated: "Out in cut N" instead.
+ *                 taps. Once eliminated: "Out in cut N" instead. Short (the wide match
+ *                 screens, owner decision of 2026-11-28): the running effects in a few words,
+ *                 the four season marks on one line with what all four give; at the end no
+ *                 effect and no shield.
  * Depends on:     react, ./SeasonIcon, ../game/seasonText, ../playbackTypes, ../types
  * Used by:        ./OwnerArea
  * Spec:           docs/spec/01-game-design.md §8.2, §8.3, §13; docs/spec/15-implementation-plan.md WP-08
@@ -20,7 +23,10 @@ import { Fragment, type ReactElement, type ReactNode } from 'react';
 import { SEASON_MARK_SIZE, SeasonIcon } from './SeasonIcon.js';
 import {
   boostSentence,
+  boostShort,
   growthSentence,
+  growthShort,
+  shieldShort,
   seasonCompleteNote,
   seasonName,
   shieldSavedLine,
@@ -53,6 +59,9 @@ interface OwnerStatusPanelProps {
   // or shield left, so the panel says "Out in cut N" instead.
   readonly outInCut: number | null;
   readonly shieldSaves: readonly ShieldSave[];
+  // The short form, and whether the match is over (no effect runs any more).
+  readonly short?: boolean;
+  readonly over?: boolean;
 }
 
 export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
@@ -75,7 +84,10 @@ export function OwnerStatusPanel(props: OwnerStatusPanelProps): ReactElement {
           Out in cut {String(props.outInCut)}
         </p>
       ) : null}
-      {props.showSeasons && props.outInCut === null ? <SeasonStatus {...props} /> : null}
+      {props.showSeasons && props.outInCut === null && !props.short ? (
+        <SeasonStatus {...props} />
+      ) : null}
+      {props.showSeasons && props.short ? <ShortSeasons {...props} /> : null}
     </section>
   );
 }
@@ -96,6 +108,53 @@ function SeasonStatus({ status, rules, shieldSaves }: OwnerStatusPanelProps): Re
       ) : null}
       <Shield rules={rules} charges={status?.shieldCharges ?? 0} saves={shieldSaves} />
       <Seasons collected={new Set(status?.seasons ?? [])} points={rules.seasonCompletePoints} />
+    </>
+  );
+}
+
+// The running effects in a few words, then the season marks and "+300" on one line.
+function ShortSeasons(props: OwnerStatusPanelProps): ReactElement {
+  const running = props.outInCut === null && props.over !== true;
+  const collected = new Set(props.status?.seasons ?? []);
+  return (
+    <>
+      {running ? <ShortEffects {...props} /> : null}
+      <p className="season-marks" data-testid="seasons-collected" data-count={collected.size}>
+        {SEASON_NAMES.map((s) => (
+          <span key={s} className="season-item">
+            <SeasonIcon season={s} size={SEASON_MARK_SIZE} onColor earned={collected.has(s)} />
+            <span className="sk-visually-hidden">
+              {seasonName(s)}
+              {collected.has(s) ? ' ✓' : ''}
+            </span>
+          </span>
+        ))}
+        <span>+{props.rules.seasonCompletePoints}</span>
+      </p>
+    </>
+  );
+}
+
+function ShortEffects({ status, rules }: OwnerStatusPanelProps): ReactElement {
+  const { multiplier: boost, growth: grow, shield } = rules.effectSeasons;
+  const charges = status?.shieldCharges ?? 0;
+  return (
+    <>
+      {status?.multiplier && boost !== undefined ? (
+        <EffectLine season={boost} testId="effect-multiplier">
+          {boostShort(boost, status.multiplier.factor, status.multiplier.remainingDraws)}
+        </EffectLine>
+      ) : null}
+      {status?.growth && grow !== undefined ? (
+        <EffectLine season={grow} testId="effect-growth">
+          {growthShort(grow, status.growth.remainingDraws)}
+        </EffectLine>
+      ) : null}
+      {shield !== undefined && charges > 0 ? (
+        <EffectLine season={shield} testId="effect-shield">
+          {shieldShort(shield, charges)}
+        </EffectLine>
+      ) : null}
     </>
   );
 }

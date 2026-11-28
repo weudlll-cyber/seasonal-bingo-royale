@@ -11,15 +11,15 @@
  *                 closes at ...", the time the server names (D33, D34); all places taken: "Full ·
  *                 " before the rule. "Starting..." only while the real 10-second countdown runs.
  *                 Display only.
- * Depends on:     react, ../useSecondsUntil, ./useLiveMatch (types)
+ * Depends on:     react, ../shell/session, ./useLiveMatch (types)
  * Used by:        ./WaitingRoom, ./Lobby, ../host/HostLobby, ./ArenaNotice and ./MyMatches
  *                 (whenText)
  * Spec:           docs/spec/01-game-design.md §7.6 (D16, D33, D34); docs/spec/05-api-design.md §2.3
  */
 import type { ReactElement } from 'react';
 
-import { useSecondsUntil } from '../useSecondsUntil.js';
 import type { MatchSummary } from './useLiveMatch.js';
+import { useServerCountdown } from '../shell/session.js';
 
 // "in 40 s", "in 12 min", "in 3 h 5 min", "in 1 day"; "start time reached" at 0. Minutes
 // are rounded to the nearest, so a start 62 s ahead reads "in 1 min", not "in 2 min".
@@ -94,7 +94,7 @@ export function RegistrationStatus({
 }): ReactElement {
   // Re-renders four times a second while a set time or an async lobby's end counts down;
   // the text reads the clock.
-  useSecondsUntil(match.startsAt === null ? countingTo(match) : null);
+  useServerCountdown(match.startsAt === null ? countingTo(match) : null);
   return <span data-testid={testId}>{registrationText(match, Date.now())}</span>;
 }
 

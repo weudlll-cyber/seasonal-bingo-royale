@@ -141,7 +141,7 @@ function SubmitBar(props: {
       {error !== null ? <p className="lobby-error">{error}</p> : null}
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary sbr-btn--big"
+        className="sk-btn sk-btn--primary sk-btn--big"
         disabled={chosen === null}
         data-testid="create-submit"
       >

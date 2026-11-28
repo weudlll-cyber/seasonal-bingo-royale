@@ -48,7 +48,7 @@ function Enrol({ done }: { readonly done: (codes: readonly string[]) => void }):
   };
   const secret = qr === null ? '' : (new URL(qr.uri).searchParams.get('secret') ?? '');
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="tfa-enrol">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="tfa-enrol">
       <h1>Set up two-factor sign-in</h1>
       <p>
         Admin accounts sign in with a code from an authenticator app. Scan this code with the app,
@@ -75,7 +75,7 @@ function Enrol({ done }: { readonly done: (codes: readonly string[]) => void }):
         onChange={setCode}
       />
       <FormError text={error} testId="tfa-error" />
-      <button type="submit" className="sbr-btn sbr-btn--primary" data-testid="tfa-submit">
+      <button type="submit" className="sk-btn sk-btn--primary" data-testid="tfa-submit">
         Confirm
       </button>
     </form>
@@ -90,7 +90,7 @@ function Codes({
   readonly onDone: () => void;
 }): ReactElement {
   return (
-    <section className="sbr-panel account-form" data-testid="tfa-recovery">
+    <section className="sk-panel account-form" data-testid="tfa-recovery">
       <h1>Your recovery codes</h1>
       <p>
         Each one signs you in once if the app is lost. Keep them somewhere safe; they are shown only
@@ -103,7 +103,7 @@ function Codes({
       </ul>
       <button
         type="button"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         data-testid="tfa-saved"
         onClick={onDone}
       >
@@ -127,7 +127,7 @@ function Verify({ onDone }: { readonly onDone: () => void }): ReactElement {
       });
   };
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="tfa-verify">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="tfa-verify">
       <h1>Two-factor sign-in</h1>
       <AccountField
         label={recovery ? 'Recovery code' : 'Code from the app'}
@@ -138,12 +138,12 @@ function Verify({ onDone }: { readonly onDone: () => void }): ReactElement {
         onChange={setValue}
       />
       <FormError text={error} testId="tfa-error" />
-      <button type="submit" className="sbr-btn sbr-btn--primary" data-testid="tfa-submit">
+      <button type="submit" className="sk-btn sk-btn--primary" data-testid="tfa-submit">
         Sign in
       </button>
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         data-testid="tfa-use-recovery"
         onClick={() => {
           setRecovery(!recovery);

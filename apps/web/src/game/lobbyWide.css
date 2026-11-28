@@ -1,0 +1,90 @@
+/**
+ * @file   apps/web/src/game/lobbyWide.css
+ * @module web/game
+ * @brief  The lobby on a wide page (owner decision of 2026-11-28).
+ *
+ * Responsibility: the heading and its sentence on one line; "My matches" as the kit's dense
+ *                 list with its heading on the first row's line, a small "Open" and two rows in
+ *                 sight; the match cards two in a row (more where the width allows): the title,
+ *                 LIVE and the buttons, the chips, the rules in small type. The classes come
+ *                 with ../useWideScreen, so phones and large fonts keep ./game.css's lobby.
+ * Used by:        ./game.css (@import)
+ * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §12
+ */
+
+.lobby--wide .lobby-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--sk-space-2);
+}
+
+.lobby--wide .lobby-head :is(h1, p) {
+  margin: 0;
+}
+
+/* "My matches" on the first row's line; each match one dense row, two rows in sight. */
+.my-matches--wide {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--sk-space-2);
+  padding-block: var(--sk-space-1);
+}
+
+.my-matches--wide h2 {
+  margin: 0;
+  font-size: var(--sk-font-size-body);
+  font-weight: var(--sk-font-weight-strong);
+  line-height: 2rem;
+}
+
+.my-matches-box {
+  max-height: 4.25rem;
+  overflow-y: auto;
+}
+
+.my-matches--wide .own-matches {
+  gap: 0;
+}
+
+.my-matches--wide .own-match {
+  flex-wrap: nowrap;
+  box-sizing: border-box;
+  min-height: 2rem;
+  padding: 0;
+  border-top: 0;
+}
+
+.my-matches--wide .own-match__open {
+  min-height: var(--sk-min-target, 24px);
+  padding-block: 0;
+  font-size: var(--sk-font-size-small);
+}
+
+/* A card: the title, LIVE and the buttons on the first row, the chips, the rules small; the
+   buttons go under the title where the row cannot hold them. */
+.lobby--wide .lobby-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(32rem, 100%), 1fr));
+}
+
+.lobby--wide .lobby-item {
+  gap: 0.25rem;
+  padding-block: var(--sk-space-1);
+}
+
+.lobby--wide .lobby-item-head {
+  justify-content: flex-start;
+}
+
+.lobby--wide .lobby-item-head h2 {
+  margin: 0;
+}
+
+.lobby--wide .lobby-item-actions {
+  margin-left: auto;
+}
+
+.lobby--wide .lobby-item-rules {
+  font-size: var(--sk-font-size-small);
+}

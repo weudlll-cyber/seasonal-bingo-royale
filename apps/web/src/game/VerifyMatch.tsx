@@ -49,10 +49,10 @@ export function VerifyMatch({ code }: { readonly code: string }): ReactElement {
     };
   }, [code]);
   return (
-    <section className="sbr-panel sbr-stack verify-page" data-testid="verify-page">
+    <section className="sk-panel sbr-stack verify-page" data-testid="verify-page">
       <h1>Verify this match</h1>
       <VerifyBody loaded={loaded} />
-      <a className="sbr-btn" href={hrefOf({ name: 'lobby' })}>
+      <a className="sk-btn" href={hrefOf({ name: 'lobby' })}>
         Back to the lobby
       </a>
     </section>
@@ -117,7 +117,12 @@ function VerifyResult({ v }: { readonly v: MatchVerificationView }): ReactElemen
       ) : (
         <RoundTable rounds={v.rounds} />
       )}
-      <a href={download} download={`verify-${v.code}.json`} data-testid="verify-download">
+      <a
+        className="sbr-tap-link"
+        href={download}
+        download={`verify-${v.code}.json`}
+        data-testid="verify-download"
+      >
         Download the verification data (JSON)
       </a>
     </>

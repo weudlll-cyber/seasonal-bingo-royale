@@ -10,7 +10,7 @@
  *                 before. Who completed what comes from the server's patternScored events
  *                 (the fold, ../playbackScoring); nothing is evaluated here.
  * Depends on:     react, ../game/labels, ../playback, ../types, ./matchSide.css
- * Used by:        ../game/MatchScreen
+ * Used by:        ../game/MatchScreen, ../game/WideArena
  * Spec:           docs/spec/01-game-design.md §8.1, §13
  */
 import type { ReactElement } from 'react';
@@ -31,7 +31,7 @@ export function PatternsPanel({
   if (keys.length === 0) return null;
   return (
     <section
-      className="sbr-panel side-panel"
+      className="sk-panel side-panel"
       data-testid="patterns-panel"
       aria-label="Patterns this round"
       // Scrolls where the column is short: a named tab stop, so a keyboard can reach it.

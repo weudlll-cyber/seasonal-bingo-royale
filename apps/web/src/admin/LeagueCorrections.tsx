@@ -47,7 +47,7 @@ export function LeagueCorrections(props: {
       });
   };
   return (
-    <section className="sbr-panel sbr-stack" aria-labelledby="league-corrections-title">
+    <section className="sk-panel sbr-stack" aria-labelledby="league-corrections-title">
       <h2 id="league-corrections-title">Corrections</h2>
       <p className="sbr-muted">
         Adds or takes away league points this season and on the all-time board. The player sees the
@@ -70,7 +70,7 @@ export function LeagueCorrections(props: {
       {error === null ? null : <p className="lobby-error">{error}</p>}
       <button
         type="button"
-        className="sbr-btn"
+        className="sk-btn"
         disabled={!ready}
         data-testid="correction-add"
         onClick={add}
@@ -108,10 +108,10 @@ function Line(props: {
   readonly number?: boolean;
 }): ReactElement {
   return (
-    <label className="sbr-field">
+    <label className="sk-field">
       <span>{props.label}</span>
       <input
-        className="sbr-input"
+        className="sk-input"
         type={props.number === true ? 'number' : 'text'}
         step={1}
         value={props.value}

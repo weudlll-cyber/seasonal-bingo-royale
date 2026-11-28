@@ -35,7 +35,7 @@ export function Register(): ReactElement | null {
   );
   if (limits === null) return null;
   return (
-    <form className="sbr-panel account-form" onSubmit={submit} data-testid="register-form">
+    <form className="sk-panel account-form" onSubmit={submit} data-testid="register-form">
       <h1>Register</h1>
       <AccountField
         label="Display name"
@@ -67,7 +67,7 @@ export function Register(): ReactElement | null {
       <FormError text={error} testId="register-error" />
       <button
         type="submit"
-        className="sbr-btn sbr-btn--primary"
+        className="sk-btn sk-btn--primary"
         disabled={busy}
         data-testid="register-submit"
       >
