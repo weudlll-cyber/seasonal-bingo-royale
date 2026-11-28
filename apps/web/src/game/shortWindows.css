@@ -34,8 +34,10 @@
       padding-block: 0;
     }
 
+    /* The floor: the heading, the group, the top 3 rows and the own row's strip; with more
+       above than fits (every season's effect at once), the panels above scroll. */
     .arena .arena-side > .standings-panel {
-      flex-basis: min(11rem, 60%);
+      flex-basis: min(13.5rem, 60%);
     }
 
     /* Draw next at the big button's own height and closer controls. */
