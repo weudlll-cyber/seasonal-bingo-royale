@@ -549,7 +549,9 @@ async function webLobby(
 async function openedAfresh(page: Page): Promise<void> {
   await page.reload();
   await expect(page.getByTestId('result')).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator('.sk-docked-main[data-more="true"]')).toBeAttached();
+  // The sign on whichever box scrolls: the placement's column, or the game area.
+  const marked = ':is(.arena-notices, .host-end, .sk-docked-main)[data-more="true"]';
+  await expect(page.locator(marked).first()).toBeAttached();
 }
 
 // A round, the interlude after it and the results, for console, player and a spectator.

@@ -115,6 +115,11 @@
   grid-column: 1 / -1;
 }
 
+/* On the smallest phone at a large font the badge goes under the title. */
+.host-console > .arena-head {
+  flex-wrap: wrap;
+}
+
 .host-draw {
   width: 100%;
   min-height: 5.5rem;
@@ -208,7 +213,7 @@
 /* Game type and preset (./StartSteps): tiles that wrap on a phone, the chosen one outlined */
 .start-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr));
   gap: var(--sk-space-1);
 }
 

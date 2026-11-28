@@ -11,7 +11,8 @@
  *                 instead of above them, and at the end the final placement does (it scrolls in
  *                 that column; at least 7 places at 1280×720, owner decision of 2026-11-24); the
  *                 play area puts the ball beside the drawn numbers with the card under them. The
- *                 host console does the same with its recap and its result. No type is smaller
+ *                 host console does the same with its recap and its result
+ *                 (../host/hostWindows.css). No type is smaller
  *                 than elsewhere and nothing is left out; on a phone and at a large font the
  *                 screens stack as before. Short windows have further rules in ./shortWindows.css.
  * Used by:        ./arena.css (@import)
@@ -82,6 +83,38 @@
     grid-column: 3;
     grid-row: 4;
     margin-top: 0;
+  }
+
+  /* The columns' "More below" sign takes back their gap (../scrollHint.css). */
+  #root .arena.fit-window:has(.interlude, .sk-result) > .arena-notices,
+  #root .host-console.fit-window:has(.sk-result) .host-end {
+    --hint-gap: var(--sk-space-1);
+  }
+
+  /* The own card keeps cells of at least a touch target in the pause and at the end (the
+     docked chat's 42 px, owner decision of 2026-11-27, K18); a column too low scrolls. */
+  #root .arena.fit-window:has(.interlude, .sk-result) .own-cards .live-card {
+    --cell-size: max(
+      var(--sk-hit-target),
+      min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5))
+    );
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude, .sk-result) .own-cards .live-card {
+    --cell-size: max(
+      calc(var(--sk-hit-target) - 2px),
+      min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5))
+    );
+  }
+
+  /* The standings' rows keep their height in a narrow or low column (the list scrolls). */
+  .arena .standings-panel .rank-list {
+    grid-auto-rows: max-content;
+  }
+
+  /* Docked, the console's standings take the column's height without sizing the grid. */
+  .sk-docked-main .host-console.fit-window .host-side {
+    contain: size;
   }
 
   /* At the end: the placement in a wider first column, the ball and the numbers over the
@@ -181,105 +214,5 @@
     flex-direction: column;
     margin-top: 0;
     contain: none;
-  }
-
-  /* The console in the pause and at the end: title, rules line, then the grid, docked too. */
-  #root .host-console.fit-window:has(.interlude, .sk-result) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
-    gap: var(--sk-space-1);
-    height: 100%;
-    min-height: 0;
-  }
-
-  #root .host-console.fit-window:has(.interlude, .sk-result) > * {
-    grid-column: 1;
-    margin-bottom: 0;
-  }
-
-  #root .host-console.fit-window:has(.interlude, .sk-result) > .arena-head {
-    display: flex;
-  }
-
-  #root .host-console.fit-window:has(.interlude, .sk-result) .host-side {
-    margin-top: 0;
-  }
-
-  /* The host console between rounds: ball and numbers, the controls, the recap, the standings. */
-  #root .host-console.fit-window:has(.interlude) .host-grid {
-    display: grid;
-    grid-template-columns:
-      minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 1.05fr)
-      minmax(0, 0.9fr);
-    grid-template-rows: auto auto auto minmax(0, 1fr);
-    column-gap: var(--sk-space-2);
-    row-gap: var(--sk-space-1);
-  }
-
-  #root .host-console.fit-window:has(.interlude) .host-controls {
-    display: contents;
-  }
-
-  /* The ball's column and the standings take the height the others leave; they scroll. */
-  #root .host-console.fit-window:has(.interlude) :is(.host-play, .host-side) {
-    contain: size;
-  }
-
-  #root .host-console.fit-window:has(.interlude) .host-play {
-    grid-column: 1;
-    grid-row: 1 / -1;
-  }
-
-  #root .host-console.fit-window:has(.interlude) .host-controls > * {
-    grid-column: 2;
-  }
-
-  #root .host-console.fit-window:has(.interlude) .host-controls > .interlude {
-    grid-column: 3;
-    grid-row: 1 / -1;
-    align-self: start;
-    max-height: 100%;
-    overflow-y: auto;
-  }
-
-  #root .host-console.fit-window:has(.interlude) .host-side {
-    grid-column: 4;
-    grid-row: 1 / -1;
-  }
-
-  /* The rows keep their height in the narrower column (the list scrolls). */
-  .host-console.fit-window .standings-panel .rank-list {
-    grid-auto-rows: max-content;
-  }
-
-  /* The host console at the end: the result in its own column; the numbers, and under them the
-     prizes, beside it (the standings are gone, the placement says them). */
-  #root .host-console.fit-window:has(.sk-result) .host-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
-    column-gap: var(--sk-space-2);
-  }
-
-  #root .host-console.fit-window:has(.sk-result) .host-end {
-    grid-column: 1;
-    grid-row: 1 / -1;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  #root .host-console.fit-window:has(.sk-result) .host-play {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  #root .host-console.fit-window:has(.sk-result) .host-controls {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
-  #root .host-console.fit-window:has(.sk-result) .host-side {
-    display: none;
   }
 }

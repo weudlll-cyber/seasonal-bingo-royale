@@ -45,8 +45,12 @@
 
   .lobby.fit-window > .lobby-scroll {
     flex: 1 1 auto;
-    min-height: 17rem;
+    min-height: 0;
     overflow-y: auto;
+  }
+
+  .lobby.fit-window > .lobby-scroll:has(.lobby-item) {
+    min-height: 17rem;
   }
 }
 
@@ -142,7 +146,7 @@
     padding-block: var(--sk-space-1);
   }
 
-  .lobby.fit-window > .lobby-scroll {
+  .lobby.fit-window > .lobby-scroll:has(.lobby-item) {
     min-height: 15rem;
   }
 

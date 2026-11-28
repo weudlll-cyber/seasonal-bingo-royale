@@ -14,6 +14,7 @@
  *                 async "Jump ahead" (./JumpAhead, lazy).
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ../game/*, ./AbortMatch,
  *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
+ *                 ./hostWindows.css,
  *                 ../shell/router, ../shell/sharedCall
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
@@ -33,6 +34,7 @@ import { intent } from '../game/socket.js';
 import '../game/arena.css';
 import '../game/game.css';
 import './host.css';
+import './hostWindows.css';
 import {
   gameTypeName,
   problemText,
@@ -142,11 +144,16 @@ function HostLive({
   return (
     <div className="host-grid">
       {view.finished ? (
-        <div className="sbr-stack host-end">
+        <ScrollBox
+          className="sbr-stack host-end"
+          role="region"
+          aria-label="Final placement"
+          tabIndex={0}
+        >
           <FinalPlacement result={result} view={view} />
           <EndActions host code={live.match.code} />
           <ResultCallLink />
-        </div>
+        </ScrollBox>
       ) : null}
       {/* Ball, drawn numbers and the newest lines beside the controls; the standings in
           a bounded panel beside both (host.css). */}
