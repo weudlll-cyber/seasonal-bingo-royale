@@ -154,13 +154,9 @@
     grid-row: 3 / -1;
   }
 
-  /* As high as its panels (docked, the column otherwise sizes itself from nothing,
-     ../shell/dockSide.css). */
   #root .arena.fit-window:has(.sk-result) > .arena-grid > .arena-side {
     grid-column: 3;
     grid-row: 3;
-    contain: none;
-    overflow: visible;
   }
 
   #root .arena.fit-window:has(.sk-result) :is(.arena-ball, .arena-ticker, .arena-events) {
@@ -187,6 +183,34 @@
   #root .arena.fit-window:has(.sk-result) .arena-events {
     grid-row: 6;
     max-height: none;
+  }
+
+  /* Above the chat strip the window is lower: the side panels take their column's whole height,
+     the ball and the numbers a narrow column beside them. */
+  #root .sk-docked-main .arena.fit-window:has(.sk-result) {
+    grid-template-columns:
+      minmax(0, 1.5fr) minmax(0, 0.9fr) minmax(0, 0.9fr)
+      fit-content(11rem);
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.sk-result) > .arena-grid > .arena-side {
+    grid-row: 3 / -1;
+  }
+
+  #root .sk-docked-main .arena:has(.sk-result) :is(.arena-ball, .arena-ticker, .arena-events) {
+    grid-column: 4;
+  }
+
+  #root .sk-docked-main .arena:has(.sk-result) .arena-ball {
+    grid-row: 3;
+  }
+
+  #root .sk-docked-main .arena:has(.sk-result) .arena-ticker {
+    grid-row: 4;
+  }
+
+  #root .sk-docked-main .arena:has(.sk-result) .arena-events {
+    grid-row: 5 / -1;
   }
 
   /* Between rounds: the recap with the ball, the numbers and the newest lines under it in the
