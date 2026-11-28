@@ -134,7 +134,7 @@ jobs:
       options: --user 1001
     services: &e2e-services
       postgres:
-        image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+        image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
         env:
           POSTGRES_USER: sbr
           POSTGRES_PASSWORD: ci-only
@@ -144,7 +144,7 @@ jobs:
           --health-retries 30
       # The e2e server's mail (password reset, D60), read back through Mailpit's API.
       mailpit:
-        image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+        image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
     env:
       SBR_E2E_BROWSER: ${{ matrix.browser }}
       # The PostgreSQL service by its name (e2e/devStack.ts; no docker compose in the container).

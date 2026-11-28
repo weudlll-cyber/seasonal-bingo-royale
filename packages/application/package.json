@@ -15,6 +15,6 @@
     "@sbr/domain": "workspace:*"
   },
   "devDependencies": {
-    "fast-check": "4.10.2"
+    "fast-check": "4.11.0"
   }
 }

@@ -95,7 +95,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
     environment:
       POSTGRES_USER: sbr
       POSTGRES_DB: sbr
@@ -125,7 +125,7 @@ services:
   # Standalone only: automatic HTTPS for the public address (internal CA for an IP).
   caddy:
     profiles: ['standalone']
-    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    image: caddy:2.11-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
     environment:
       SBR_SITE_ADDRESS: ${SBR_SITE_ADDRESS:-}
       SBR_TLS: ${SBR_TLS:-}
