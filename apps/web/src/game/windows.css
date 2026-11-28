@@ -154,9 +154,13 @@
     grid-row: 3 / -1;
   }
 
+  /* As high as its panels (docked, the column otherwise sizes itself from nothing,
+     ../shell/dockSide.css). */
   #root .arena.fit-window:has(.sk-result) > .arena-grid > .arena-side {
     grid-column: 3;
     grid-row: 3;
+    contain: none;
+    overflow: visible;
   }
 
   #root .arena.fit-window:has(.sk-result) :is(.arena-ball, .arena-ticker, .arena-events) {
