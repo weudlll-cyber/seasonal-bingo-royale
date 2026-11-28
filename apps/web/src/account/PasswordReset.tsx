@@ -81,7 +81,9 @@ export function ForgotPassword(): ReactElement {
         </p>
       )}
       <p className="sbr-muted">
-        <a href={hrefOf({ name: 'signIn' })}>Back to sign in</a>
+        <a className="sbr-tap-link" href={hrefOf({ name: 'signIn' })}>
+          Back to sign in
+        </a>
       </p>
     </form>
   );

@@ -145,12 +145,15 @@
 /* The create form */
 .create-form {
   display: grid;
+  /* As narrow as the phone at a large font: the steps wrap instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sk-space-2);
   max-width: 40rem;
 }
 
 .create-form fieldset {
   display: grid;
+  min-width: 0;
   gap: var(--sk-space-1);
   margin: 0;
   padding: var(--sk-space-2);

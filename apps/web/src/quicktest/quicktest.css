@@ -30,6 +30,9 @@
 .test-choices {
   display: grid;
   gap: var(--sk-space-2);
+  /* Room under the choices, so the development badge (fixed at the bottom) can be scrolled
+     clear of their words at a large font. */
+  margin-bottom: var(--sk-space-4);
 }
 
 @media (min-width: 640px) {

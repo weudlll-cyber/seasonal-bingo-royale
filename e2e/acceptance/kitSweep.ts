@@ -4,10 +4,12 @@
  * @brief  The kit's sweep over a screen as it stands, at the audit's sizes, collected not thrown.
  *
  * Responsibility: with SBR_SWEEP_KIT=1 the fit audit looks at each screen with the kit's `sweep`
- *                 instead of measuring: the six desktop sizes and 360×780, 390×844, 430×932, root
- *                 font 16 and 32 px (SBR_SWEEP_FONTS), light and dark; the kit's probe, axe (WCAG
- *                 2 A and AA; the website's chat page in its frame left out) and Bingo's text floor
- *                 and overlap check (./fitProbe). The docked result declares its floor of 7
+ *                 instead of measuring: the edge sizes of ./windowFit (owner decision of
+ *                 2026-11-28), light at all of them at root font 16 and 32 px (SBR_SWEEP_FONTS),
+ *                 dark once more at 1280×720 and 390×844 at 16 px for contrast; the kit's probe,
+ *                 axe (WCAG 2 A and AA; the website's chat page in its frame left out), Bingo's
+ *                 text floor and overlap check (./fitProbe), and on a match screen at a desktop
+ *                 size at 16 px that the page does not scroll and its panels are whole. The docked result declares its floor of 7
  *                 places whole at 1280×720 (K116; the kit counts no row anything covers, K123),
  *                 and the log says whether the "Out of the match" divider fell within them. The
  *                 screen keeps its state (only scrolled to the top); the interlude screens are
@@ -19,7 +21,7 @@
  *                 rules stay), and the screens of SBR_SWEEP_CONTRAST (a colour fix) then run
  *                 axe's contrast rule alone, at SBR_SWEEP_CONTRAST_SIZES too.
  * Depends on:     node:fs, node:path, @axe-core/playwright, @playwright/test,
- *                 @seasonal/kit/testing, ../devStack, ./fitProbe
+ *                 @seasonal/kit/testing, ../devStack, ./fitProbe, ./windowFit
  * Used by:        ./fitAudit.spec, ./websiteSweep
  * Spec:           docs/spec/12-testing-strategy.md §4; docs/concepts/fit-audit.md
  */
@@ -38,20 +40,10 @@ import {
 
 import { REPO_ROOT } from '../devStack.js';
 import { probe } from './fitProbe.js';
+import { SWEEP_SIZES, WINDOWS, windowReport } from './windowFit.js';
 
 export const KIT_SWEEP = process.env['SBR_SWEEP_KIT'] === '1';
 
-const SIZES = [
-  [1280, 720],
-  [1366, 768],
-  [1536, 768],
-  [1440, 900],
-  [1900, 860],
-  [1920, 1080],
-  [360, 780],
-  [390, 844],
-  [430, 932],
-] as const;
 const listOf = (name: string): string[] | null => process.env[name]?.split(',') ?? null;
 const ONLY_SIZES = listOf('SBR_SWEEP_SIZES');
 const ONLY_SCREENS = listOf('SBR_SWEEP_SCREENS');
@@ -62,15 +54,24 @@ const AXE_OFF = process.env['SBR_SWEEP_AXE'] === 'off';
 const contrastOnly = (screen: string) => listOf('SBR_SWEEP_CONTRAST')?.includes(screen) === true;
 const sizesOf = (screen: string) => {
   const added = contrastOnly(screen) ? (listOf('SBR_SWEEP_CONTRAST_SIZES') ?? []) : [];
-  return SIZES.filter(([w, h]) => {
+  return SWEEP_SIZES.filter(([w, h]) => {
     const name = `${String(w)}x${String(h)}`;
     return ONLY_SIZES === null || ONLY_SIZES.includes(name) || added.includes(name);
   });
 };
-const BOTH = ['light', 'dark'] as const;
-const themesOf = (screen: string) => {
-  if (listOf('SBR_SWEEP_BOTH')?.includes(screen) === true) return BOTH;
-  return BOTH.filter((t) => listOf('SBR_SWEEP_THEMES')?.includes(t) ?? true);
+type Size = readonly [number, number];
+// Dark changes colours only: once more at these two, at 16 px.
+const DARK = ['1280x720', '390x844'];
+// The passes over a screen: light everywhere, then dark where it is looked at again; a
+// narrowed re-check keeps to SBR_SWEEP_THEMES, with the screens of SBR_SWEEP_BOTH still in both.
+const passesOf = (screen: string, sizes: readonly Size[]) => {
+  const both = listOf('SBR_SWEEP_BOTH')?.includes(screen) === true;
+  const wanted = (theme: string) => both || (listOf('SBR_SWEEP_THEMES')?.includes(theme) ?? true);
+  const dark = sizes.filter(([w, h]) => DARK.includes(`${String(w)}x${String(h)}`));
+  return [
+    { sizes, fonts: FONTS, theme: 'light' as const },
+    { sizes: dark, fonts: FONTS.filter((f) => f === 16), theme: 'dark' as const },
+  ].filter((p) => wanted(p.theme) && p.sizes.length > 0 && p.fonts.length > 0);
 };
 const LOG = path.join(
   REPO_ROOT,
@@ -88,6 +89,25 @@ const contrast: AxeFinder = async (page) => {
   return violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
 };
 
+// Screens without a match scroll like any page.
+const PAGES = /sign-in|register|forgot|reset|leaderboard|profile|account|host-new|quicktest|verify/;
+
+// A match screen in a desktop window at 16 px: no page scroll, no panel cut (owner decision of
+// 2026-11-28).
+async function windowLines(page: Page, screen: string): Promise<string[]> {
+  const view = page.viewportSize();
+  const desktop = WINDOWS.some(([w, h]) => w === view?.width && h === view.height);
+  const font = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize);
+  if (!desktop || font !== '16px' || PAGES.test(screen)) return [];
+  const report = await windowReport(page);
+  const area = report.boxes.filter((b) => b.name.includes('sk-docked-main'));
+  return [
+    ...(report.page > 0 ? [`window: the page scrolls by ${String(report.page)} px`] : []),
+    ...area.map((b) => `window: the game area scrolls by ${String(b.hidden)} px`),
+    ...report.cut.map((c) => `window: ${c.name} is cut by ${String(c.out)} px`),
+  ];
+}
+
 // The screen's axe run (the kit's rules, in a narrowed re-check none or contrast alone), then
 // Bingo's own two rules (the sweep takes one finder).
 const finderOf = (screen: string): AxeFinder => {
@@ -95,6 +115,7 @@ const finderOf = (screen: string): AxeFinder => {
   return async (page) => {
     const own = await probe(page);
     return [
+      ...(await windowLines(page, screen)),
       ...(axe === null ? [] : await axe(page)),
       ...own.smallText.map((t) => `text below 14 px: ${t.sel} "${t.text}" ${String(t.px)} px`),
       ...own.overlaps.map((o) => `text covered: ${o.a} / ${o.b}`),
@@ -167,12 +188,21 @@ export async function kitLooks(
     const named = { name: screen, open: shown, floors: floorsOf(screen, sizes) };
     if (named.floors.length > 0) await dividerWithinFloor(page, screen);
     if (calm) await page.emulateMedia({ reducedMotion: 'reduce' });
-    const looks = await sweep(page, [named], {
-      axe: finderOf(screen),
-      sizes: sizes.map(([width, height]) => ({ width, height })),
-      fonts: FONTS,
-      themes: themesOf(screen),
-    });
+    let looks = 0;
+    const found: string[] = [];
+    for (const pass of passesOf(screen, sizes)) {
+      const floors = pass.theme === 'light' ? named.floors : [];
+      looks += await sweep(page, [{ ...named, floors }], {
+        axe: finderOf(screen),
+        sizes: pass.sizes.map(([width, height]) => ({ width, height })),
+        fonts: pass.fonts,
+        themes: [pass.theme],
+      }).catch((error: unknown) => {
+        found.push(error instanceof Error ? error.message : String(error));
+        return 0;
+      });
+    }
+    if (found.length > 0) throw new Error(found.join('\n'));
     appendFileSync(LOG, `SEEN ${screen}: ${String(looks)} looks, no finding\n`);
   } catch (error) {
     appendFileSync(LOG, `${error instanceof Error ? error.message : String(error)}\n`);

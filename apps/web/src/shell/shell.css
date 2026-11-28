@@ -68,6 +68,18 @@
   }
 }
 
+/* A word too long for a narrow phone at a large font breaks instead of widening the page. */
+.shell-main h1 {
+  overflow-wrap: anywhere;
+}
+
+/* A link on a line of its own is a whole touch target (the sign-in pages, "Verify"). */
+.sbr-tap-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sk-hit-target);
+}
+
 /* Maintenance (sbr maintenance on): the page instead of the lobby, the host's banner */
 .maintenance-page {
   max-width: 36rem;

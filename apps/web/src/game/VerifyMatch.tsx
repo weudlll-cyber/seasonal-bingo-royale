@@ -117,7 +117,12 @@ function VerifyResult({ v }: { readonly v: MatchVerificationView }): ReactElemen
       ) : (
         <RoundTable rounds={v.rounds} />
       )}
-      <a href={download} download={`verify-${v.code}.json`} data-testid="verify-download">
+      <a
+        className="sbr-tap-link"
+        href={download}
+        download={`verify-${v.code}.json`}
+        data-testid="verify-download"
+      >
         Download the verification data (JSON)
       </a>
     </>

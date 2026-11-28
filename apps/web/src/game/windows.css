@@ -24,9 +24,9 @@
 }
 
 @container page (min-width: 48rem) {
-  /* Player and spectator, between rounds and at the end. The selector outweighs the docked
-     grid (../shell/dockSide.css). */
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) {
+  /* Player and spectator, between rounds and at the end. The root's id puts these rules above
+     the docked grid's (../shell/dockSide.css). */
+  #root .arena.fit-window:has(.interlude, .sk-result) {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr);
     grid-template-rows: auto auto auto minmax(0, 1fr);
@@ -36,26 +36,26 @@
     min-height: 0;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) > * {
+  #root .arena.fit-window:has(.interlude, .sk-result) > * {
     grid-column: 1 / -1;
     margin-bottom: 0;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) > .arena-head {
+  #root .arena.fit-window:has(.interlude, .sk-result) > .arena-head {
     display: flex;
     grid-row: 1;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) .arena-head > .sbr-row {
+  #root .arena.fit-window:has(.interlude, .sk-result) .arena-head > .sbr-row {
     height: auto;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) > .arena-rules {
+  #root .arena.fit-window:has(.interlude, .sk-result) > .arena-rules {
     grid-row: 2;
     margin-top: 0;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) > .arena-notices {
+  #root .arena.fit-window:has(.interlude, .sk-result) > .arena-notices {
     display: flex;
     flex-direction: column;
     gap: var(--sk-space-1);
@@ -65,20 +65,20 @@
     overflow-y: auto;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) .arena-notices > * {
+  #root .arena.fit-window:has(.interlude, .sk-result) .arena-notices > * {
     flex: none;
     margin: 0;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) > .arena-grid {
+  #root .arena.fit-window:has(.interlude, .sk-result) > .arena-grid {
     display: contents;
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) .arena-ball .ball {
+  #root .arena.fit-window:has(.interlude, .sk-result) .arena-ball .ball {
     --ball-size: min(6rem, 14vh);
   }
 
-  .shell-main .arena.fit-window:has(.interlude, .sk-result) .arena-side {
+  #root .arena.fit-window:has(.interlude, .sk-result) .arena-side {
     grid-column: 3;
     grid-row: 4;
     margin-top: 0;
@@ -87,7 +87,7 @@
   /* At the end: the placement in a wider first column, the ball and the numbers over the
      card. Its places are as close as under the docked chat (../shell/dockResults.css), at the
      page's own type sizes. */
-  .shell-main .arena.fit-window:has(.sk-result) {
+  #root .arena.fit-window:has(.sk-result) {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.85fr) minmax(0, 0.85fr);
   }
 
@@ -103,7 +103,7 @@
     line-height: 1.15;
   }
 
-  .shell-main .arena.fit-window:has(.sk-result) .arena-play {
+  #root .arena.fit-window:has(.sk-result) .arena-play {
     grid-column: 2;
     grid-row: 4;
     grid-template-columns: fit-content(60%) minmax(0, 1fr);
@@ -115,32 +115,32 @@
     min-height: 0;
   }
 
-  .shell-main .arena.fit-window:has(.sk-result) .arena-events {
+  #root .arena.fit-window:has(.sk-result) .arena-events {
     max-height: 6rem;
   }
 
   /* Between rounds: the recap with the ball, the numbers and the newest lines under it in the
      first column, so the cards take the second column's whole height. */
-  .shell-main .arena.fit-window:has(.interlude) {
+  #root .arena.fit-window:has(.interlude) {
     grid-template-columns: fit-content(7rem) minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr);
     grid-template-rows: auto auto auto minmax(0, auto) auto minmax(0, 1fr);
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-play {
+  #root .arena.fit-window:has(.interlude) .arena-play {
     display: contents;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) > .arena-notices {
+  #root .arena.fit-window:has(.interlude) > .arena-notices {
     grid-column: 1 / 3;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-ball {
+  #root .arena.fit-window:has(.interlude) .arena-ball {
     grid-area: auto;
     grid-column: 1;
     grid-row: 5;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-ticker {
+  #root .arena.fit-window:has(.interlude) .arena-ticker {
     grid-area: auto;
     grid-column: 2;
     grid-row: 5;
@@ -148,34 +148,66 @@
 
   /* Two rows of numbers in the pause, so the recap and its countdown keep their height; the
      panels beside the recap stand closer. */
-  .shell-main .arena.fit-window:has(.interlude) .arena-ticker .draw-ticker {
+  #root .arena.fit-window:has(.interlude) .arena-ticker .draw-ticker {
     max-height: 3.75rem;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-notices > .sk-panel {
+  #root .arena.fit-window:has(.interlude) .arena-notices > .sk-panel {
     padding-block: var(--sk-space-1);
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-events {
+  #root .arena.fit-window:has(.interlude) .arena-events {
     grid-area: auto;
     grid-column: 1 / 3;
     grid-row: 6;
     max-height: none;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-cards {
+  #root .arena.fit-window:has(.interlude) .arena-cards {
     grid-area: auto;
     grid-column: 3;
     grid-row: 4 / -1;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) .arena-side {
+  #root .arena.fit-window:has(.interlude) .arena-side {
     grid-column: 4;
     grid-row: 4 / -1;
   }
 
+  /* Docked, the side column is a two-part grid beside the title (dockSide.css): here it is one
+     column under it, like the other two. */
+  #root .arena.fit-window:has(.interlude) > .arena-grid > .arena-side {
+    display: flex;
+    flex-direction: column;
+    margin-top: 0;
+    contain: none;
+  }
+
+  /* The console in the pause and at the end: title, rules line, then the grid, docked too. */
+  #root .host-console.fit-window:has(.interlude, .sk-result) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: var(--sk-space-1);
+    height: 100%;
+    min-height: 0;
+  }
+
+  #root .host-console.fit-window:has(.interlude, .sk-result) > * {
+    grid-column: 1;
+    margin-bottom: 0;
+  }
+
+  #root .host-console.fit-window:has(.interlude, .sk-result) > .arena-head {
+    display: flex;
+  }
+
+  #root .host-console.fit-window:has(.interlude, .sk-result) .host-side {
+    margin-top: 0;
+  }
+
   /* The host console between rounds: ball and numbers, the controls, the recap, the standings. */
-  .host-console.fit-window:has(.interlude) .host-grid {
+  #root .host-console.fit-window:has(.interlude) .host-grid {
     display: grid;
     grid-template-columns:
       minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 1.05fr)
@@ -185,25 +217,25 @@
     row-gap: var(--sk-space-1);
   }
 
-  .host-console.fit-window:has(.interlude) .host-controls {
+  #root .host-console.fit-window:has(.interlude) .host-controls {
     display: contents;
   }
 
   /* The ball's column and the standings take the height the others leave; they scroll. */
-  .host-console.fit-window:has(.interlude) :is(.host-play, .host-side) {
+  #root .host-console.fit-window:has(.interlude) :is(.host-play, .host-side) {
     contain: size;
   }
 
-  .host-console.fit-window:has(.interlude) .host-play {
+  #root .host-console.fit-window:has(.interlude) .host-play {
     grid-column: 1;
     grid-row: 1 / -1;
   }
 
-  .host-console.fit-window:has(.interlude) .host-controls > * {
+  #root .host-console.fit-window:has(.interlude) .host-controls > * {
     grid-column: 2;
   }
 
-  .host-console.fit-window:has(.interlude) .host-controls > .interlude {
+  #root .host-console.fit-window:has(.interlude) .host-controls > .interlude {
     grid-column: 3;
     grid-row: 1 / -1;
     align-self: start;
@@ -211,7 +243,7 @@
     overflow-y: auto;
   }
 
-  .host-console.fit-window:has(.interlude) .host-side {
+  #root .host-console.fit-window:has(.interlude) .host-side {
     grid-column: 4;
     grid-row: 1 / -1;
   }
@@ -223,30 +255,31 @@
 
   /* The host console at the end: the result in its own column; the numbers, and under them the
      prizes, beside it (the standings are gone, the placement says them). */
-  .host-console.fit-window:has(.sk-result) .host-grid {
+  #root .host-console.fit-window:has(.sk-result) .host-grid {
+    display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     column-gap: var(--sk-space-2);
   }
 
-  .host-console.fit-window:has(.sk-result) .host-end {
+  #root .host-console.fit-window:has(.sk-result) .host-end {
     grid-column: 1;
     grid-row: 1 / -1;
     min-height: 0;
     overflow-y: auto;
   }
 
-  .host-console.fit-window:has(.sk-result) .host-play {
+  #root .host-console.fit-window:has(.sk-result) .host-play {
     grid-column: 2;
     grid-row: 1;
   }
 
-  .host-console.fit-window:has(.sk-result) .host-controls {
+  #root .host-console.fit-window:has(.sk-result) .host-controls {
     grid-column: 2;
     grid-row: 2;
   }
 
-  .host-console.fit-window:has(.sk-result) .host-side {
+  #root .host-console.fit-window:has(.sk-result) .host-side {
     display: none;
   }
 }

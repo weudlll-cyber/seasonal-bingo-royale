@@ -51,27 +51,28 @@
    beside the standings (as under the docked chat), with a narrower column for the ball; the
    console's controls take more width. */
 @media (min-width: 960px) and (max-height: 699px) {
-  .arena:not(:has(.interlude, .sk-result)) > .arena-grid {
+  .arena:not(.sk-docked-main *):not(:has(.interlude, .sk-result)) > .arena-grid {
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     column-gap: var(--sk-space-2);
   }
 
-  .arena:not(:has(.interlude, .sk-result)) .arena-play {
+  .arena:not(.sk-docked-main *):not(:has(.interlude, .sk-result)) .arena-play {
     grid-template-columns: minmax(8.5rem, 0.45fr) minmax(0, 1.55fr);
   }
 
-  .arena:not(:has(.interlude, .sk-result)) .arena-side:has(> .standings-panel) {
+  .arena:not(.sk-docked-main *):not(:has(.interlude, .sk-result))
+    .arena-side:has(> .standings-panel) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-rows: max-content max-content minmax(0, 1fr);
     column-gap: var(--sk-space-1);
   }
 
-  .arena:not(:has(.interlude, .sk-result)) .arena-side > * {
+  .arena:not(.sk-docked-main *):not(:has(.interlude, .sk-result)) .arena-side > * {
     grid-column: 1;
   }
 
-  .arena:not(:has(.interlude, .sk-result)) .arena-side > .standings-panel {
+  .arena:not(.sk-docked-main *):not(:has(.interlude, .sk-result)) .arena-side > .standings-panel {
     grid-column: 2;
     grid-row: 1 / -1;
   }
@@ -85,7 +86,7 @@
     grid-auto-rows: max-content;
   }
 
-  .host-console.fit-window:not(:has(.interlude, .sk-result)) .host-grid {
+  .host-console.fit-window:not(.sk-docked-main *):not(:has(.interlude, .sk-result)) .host-grid {
     grid-template-columns: minmax(10rem, 0.6fr) minmax(0, 1.2fr) minmax(16rem, 0.9fr);
   }
 
@@ -95,23 +96,23 @@
 
   /* Between rounds in such a window: the panels stand closer, the side column takes more width,
      and the host's Start next round heads the recap's column. */
-  .shell-main :is(.arena, .host-console).fit-window:has(.interlude) {
+  #root :is(.arena, .host-console).fit-window:has(.interlude) {
     row-gap: 2px;
   }
 
-  .shell-main :is(.arena, .host-console).fit-window:has(.interlude) h1 {
+  #root :is(.arena, .host-console).fit-window:has(.interlude) h1 {
     margin-block: 0;
   }
 
-  .shell-main .arena.fit-window:has(.interlude) {
+  #root .arena.fit-window:has(.interlude) {
     grid-template-columns: fit-content(7rem) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr);
   }
 
-  .arena.arena:has(.interlude) .watch-card.live-card {
+  #root .arena:has(.interlude) .watch-card.live-card {
     --card-padding: 0.25rem;
   }
 
-  .arena.arena:has(.interlude) .standings-panel .rank-row {
+  #root .arena:has(.interlude) .standings-panel .rank-row {
     gap: 0.25rem;
     padding-inline: 0.25rem;
   }
@@ -135,20 +136,23 @@
 
   /* The standings keep the top 3 rows whole (their floor); where the column is then too short,
      it scrolls. */
-  .arena.arena:has(.interlude) .arena-side {
+  #root .arena:has(.interlude) .arena-side {
     overflow-y: auto;
   }
 
-  .arena.arena:has(.interlude) .arena-side > .standings-panel {
+  #root .arena:has(.interlude) .arena-side > .standings-panel {
     flex: 1 0 12.5rem;
   }
 
-  .host-console.fit-window:has(.interlude) .host-controls > [data-testid='host-next-round-panel'] {
+  #root
+    .host-console.fit-window:has(.interlude)
+    .host-controls
+    > [data-testid='host-next-round-panel'] {
     grid-column: 3;
     grid-row: 1;
   }
 
-  .host-console.fit-window:has(.interlude) .host-controls > .interlude {
+  #root .host-console.fit-window:has(.interlude) .host-controls > .interlude {
     grid-row: 2 / -1;
   }
 }

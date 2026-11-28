@@ -1,0 +1,94 @@
+/**
+ * @file   apps/web/src/shell/dockPause.css
+ * @module web/shell
+ * @brief  Between rounds above the chat strip in a low window (website mode, under 760 px high).
+ *
+ * Responsibility: owner decision of 2026-11-28: with the chat docked and a window under 760 px
+ *                 high, the pause's parts of the player and the spectator stand beside each
+ *                 other: the cards over the whole height, the cut screen over the side column,
+ *                 the recap with the ball and one row of numbers under the title, and the side
+ *                 column in two halves, so the cards are whole and the standings keep their top
+ *                 rows. The recap card and the patterns may still scroll there (the room is too
+ *                 low). Nothing is left out and no type is smaller.
+ * Used by:        ./DockedChat
+ * Spec:           docs/concepts/fit-audit.md §10; ../game/windows.css
+ */
+
+@media (min-width: 960px) and (max-height: 759px) {
+  #root .sk-docked-main .arena.fit-window:has(.interlude) {
+    grid-template-columns: fit-content(7rem) minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.5fr);
+    grid-template-rows: auto auto minmax(0, auto) auto minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) > :is(.arena-head, .arena-rules) {
+    grid-column: 1 / 3;
+    margin-block: 0;
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) > .arena-notices {
+    display: contents;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-notices > * {
+    grid-column: 1 / 3;
+    grid-row: 6;
+    margin: 0;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-notices > .cut-screen {
+    grid-column: 4;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-notices > .interlude {
+    grid-row: 3;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-ball {
+    grid-row: 4;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-ball .ball {
+    --ball-size: 4rem;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-ticker {
+    grid-row: 4;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-ticker .draw-ticker {
+    max-height: 1.75rem;
+  }
+
+  #root .sk-docked-main .arena:has(.interlude) .arena-events {
+    grid-row: 5;
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) .arena-cards {
+    grid-column: 3;
+    grid-row: 1 / -1;
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) > .arena-grid > .arena-side {
+    display: grid;
+    grid-column: 4;
+    grid-row: 3 / -1;
+    align-self: stretch;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    grid-template-rows: max-content max-content minmax(0, 1fr);
+    column-gap: var(--sk-space-1);
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) .arena-side > * {
+    grid-column: 1;
+  }
+
+  #root .sk-docked-main .arena.fit-window:has(.interlude) .arena-side > .standings-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+}

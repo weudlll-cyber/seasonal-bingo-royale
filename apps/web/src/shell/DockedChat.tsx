@@ -15,7 +15,7 @@
  *                 no dock, no frame, no request (./dock.css).
  * Depends on:     react, @seasonal/kit/react (DockedScreen, WebsiteChatFrame), ./router (types),
  *                 ./session, ./sharedCall, ../useScrollHint, ./dock.css, ./dockSide.css, ./dockWatch.css,
- *                 ./dockResults.css
+ *                 ./dockResults.css, ./dockPause.css
  * Used by:        ./AppShell
  * Spec:           docs/spec/07-integration-architecture.md §6; Seasonal Entertainment docs/EMBED.md
  */
@@ -30,6 +30,7 @@ import './dock.css';
 import './dockSide.css';
 import './dockWatch.css';
 import './dockResults.css';
+import './dockPause.css';
 
 // The screens the chat is docked under.
 const CHAT_ROUTES: ReadonlySet<Route['name']> = new Set(['lobby', 'match', 'host']);

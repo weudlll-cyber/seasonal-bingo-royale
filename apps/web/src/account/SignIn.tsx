@@ -51,7 +51,11 @@ export function SignIn(): ReactElement {
       </button>
       {session?.features?.passwordReset === true ? (
         <p className="sbr-muted">
-          <a href={hrefOf({ name: 'forgotPassword' })} data-testid="forgot-link">
+          <a
+            className="sbr-tap-link"
+            href={hrefOf({ name: 'forgotPassword' })}
+            data-testid="forgot-link"
+          >
             Forgot your password?
           </a>
         </p>
