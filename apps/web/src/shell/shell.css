@@ -67,6 +67,20 @@
   }
 }
 
+/* Headings in the kit's sizes, never the browser's own (kit text sizes, 2026-11-28); a
+   screen's own rules win over these. */
+:where(h1) {
+  font-size: var(--sk-font-size-title);
+}
+
+:where(h2, h3) {
+  font-size: var(--sk-font-size-lead);
+}
+
+:where(h4) {
+  font-size: var(--sk-font-size-body);
+}
+
 /* A word too long for a narrow phone at a large font breaks instead of widening the page. */
 .shell-main h1 {
   overflow-wrap: anywhere;

@@ -32,6 +32,13 @@
   min-height: 0;
 }
 
+/* "While you were away" keeps its height above the columns and scrolls inside itself. */
+.wide > .away-summary {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
 .wide-grid {
   display: grid;
   flex: 1 1 0;
@@ -178,35 +185,6 @@
   --cell-font: var(--sk-font-size-lead);
 }
 
-/* The final placement: its heading in body bold, the own place in lead bold, places one line
-   high, so at least 7 are whole above the chat strip at 1280×720 (owner decision of
-   2026-11-24). */
-.wide .sk-result .sk-result-head > h3:first-child {
-  font-size: var(--sk-font-size-body);
-  font-weight: var(--sk-font-weight-strong);
-}
-
-.wide .sk-result .final-own {
-  font-size: var(--sk-font-size-lead);
-}
-
-.wide .final-rule {
-  margin: 0;
-  font-size: var(--sk-font-size-small);
-}
-
-.wide .sk-result .rank-row,
-.wide .sk-result .podium-step {
-  min-height: var(--sk-space-3);
-  padding-block: 0;
-}
-
-.wide .sk-result .rank-divider {
-  margin: 0;
-  padding-block: 0;
-  line-height: 1.15;
-}
-
 /* A low window: the page, the head and the parts stand closer. */
 @media (max-height: 759px) {
   #root:has(.wide) > .shell-main {
@@ -218,7 +196,12 @@
   }
 
   .wide-left .arena-ball .ball {
-    --ball-size: min(5.5rem, 10.5vh);
+    --ball-size: min(5.5rem, 12.5vh);
+  }
+
+  /* The small ball takes the smaller step, so its number stays inside. */
+  .wide .ball-number {
+    font-size: var(--sk-font-size-lead);
   }
 
   .arena.wide,

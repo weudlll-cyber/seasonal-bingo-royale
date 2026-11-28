@@ -7,7 +7,7 @@
  * Responsibility: the one head row (./MatchHead) with its rules link, the slim notice strips,
  *                 the recap in its compact form (./Interlude), the patterns' line, the status's
  *                 season marks, and the "Whole match log" link with the sheet it opens
- *                 (../components/MatchLogLink). Kit tokens only.
+ *                 (../components/MatchLogLink), and the final placement's sizes. Kit tokens only.
  * Used by:        ./wide.css (@import)
  * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §12
  */
@@ -223,4 +223,33 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--sk-space-1);
+}
+
+/* The final placement: its heading in body bold, the own place in lead bold, places one line
+   high, so at least 7 are whole above the chat strip at 1280×720 (owner decision of
+   2026-11-24). */
+.wide .sk-result .sk-result-head > h3:first-child {
+  font-size: var(--sk-font-size-body);
+  font-weight: var(--sk-font-weight-strong);
+}
+
+.wide .sk-result .final-own {
+  font-size: var(--sk-font-size-lead);
+}
+
+.wide .final-rule {
+  margin: 0;
+  font-size: var(--sk-font-size-small);
+}
+
+.wide .sk-result .rank-row,
+.wide .sk-result .podium-step {
+  min-height: var(--sk-space-3);
+  padding-block: 0;
+}
+
+.wide .sk-result .rank-divider {
+  margin: 0;
+  padding-block: 0;
+  line-height: 1.15;
 }

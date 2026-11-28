@@ -61,10 +61,12 @@ export function awayLines(s: Summary): readonly string[] {
   return lines.filter((l): l is string => l !== null);
 }
 
-// The summary to show (null: nothing new), and Dismiss.
-function useAwaySummary(code: string): readonly [Summary | null, () => void] {
+// The summary to show (null: nothing new), and Dismiss. Held by the match screen, so it stays
+// when the screen changes between its stacked and its wide form (a fetch shows it only once).
+export function useAwaySummary(code: string, wanted: boolean): AwayState {
   const [summary, setSummary] = useState<Summary | null>(null);
   useEffect(() => {
+    if (!wanted) return undefined;
     // Every answer that has a summary is shown, also one that arrives after a re-run of
     // this effect (React's strict mode runs it twice): the fetch has acknowledged it, so
     // the next fetch would have nothing.
@@ -84,7 +86,7 @@ function useAwaySummary(code: string): readonly [Summary | null, () => void] {
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [code]);
+  }, [code, wanted]);
   return [
     summary,
     () => {
@@ -93,8 +95,10 @@ function useAwaySummary(code: string): readonly [Summary | null, () => void] {
   ];
 }
 
-export function AwaySummary({ code }: { readonly code: string }): ReactElement | null {
-  const [summary, dismiss] = useAwaySummary(code);
+export type AwayState = readonly [Summary | null, () => void];
+
+export function AwaySummary({ away }: { readonly away: AwayState }): ReactElement | null {
+  const [summary, dismiss] = away;
   if (summary === null) return null;
   return (
     <section

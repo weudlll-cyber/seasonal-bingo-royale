@@ -34,7 +34,7 @@ import { playerHref } from '../league/playerHref.js';
 import type { PlaybackView } from '../playback.js';
 import { ResultCallLink } from '../shell/sharedCall.js';
 import { OwnCards, Watching } from './ArenaCards.js';
-import { AwaySummary } from './AwaySummary.js';
+import { AwaySummary, type AwayState } from './AwaySummary.js';
 import { EndActions } from './EndActions.js';
 import { HostLink } from './HostLink.js';
 import { currentRecap, Interlude } from './Interlude.js';
@@ -51,6 +51,8 @@ export interface WideArenaProps {
   // The player this watching screen follows, and the choice of one (D24).
   readonly followed: string | null;
   readonly follow: (name: string | null) => void;
+  // "While you were away" of an asynchronous match (./AwaySummary).
+  readonly away: AwayState;
 }
 
 // What every column reads.
@@ -80,7 +82,7 @@ export function WideArena(props: WideArenaProps): ReactElement {
         progress={<span data-testid="arena-progress">{progressText(live, view)}</span>}
         actions={<HostLink match={live.match} short />}
       />
-      {live.match.mode === 'async' ? <AwaySummary code={live.match.code} /> : null}
+      <AwaySummary away={props.away} />
       <div className={`wide-grid wide-grid--${moment}${withCard ? '' : ' is-cardless'}`}>
         {moment === 'result' ? <ResultColumns {...seen} /> : null}
         {moment === 'round' ? <RoundLeft {...seen} /> : null}

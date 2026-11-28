@@ -23,15 +23,19 @@ function wide(): boolean {
   return window.innerWidth >= STEPS * font;
 }
 
+// A new root font leaves the window as it is, so a box as wide as one root-font step, out of
+// sight, is watched too.
 function follow(changed: () => void): () => void {
   window.addEventListener('resize', changed);
-  // A new root font changes the page's height, not the window's size.
+  const step = document.createElement('div');
+  step.style.cssText = 'position:absolute;width:1rem;height:0;visibility:hidden';
+  document.body.append(step);
   const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(changed) : null;
-  observer?.observe(document.documentElement);
-  observer?.observe(document.body);
+  observer?.observe(step);
   return () => {
     window.removeEventListener('resize', changed);
     observer?.disconnect();
+    step.remove();
   };
 }
 

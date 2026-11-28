@@ -32,7 +32,7 @@ import { playerHref } from '../league/playerHref.js';
 import { playbackAt, type PlaybackView } from '../playback.js';
 import { OwnCards, Watching } from './ArenaCards.js';
 import { ArenaNotice } from './ArenaNotice.js';
-import { AwaySummary } from './AwaySummary.js';
+import { AwaySummary, useAwaySummary } from './AwaySummary.js';
 import { CurrentBall } from './CurrentBall.js';
 import { HostLink } from './HostLink.js';
 import { progressText, rulesLine, runningBadge } from './labels.js';
@@ -47,6 +47,8 @@ import './game.css';
 export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   const { live, error, follow } = useLiveMatch(code);
   const wide = useWideScreen();
+  // An asynchronous match tells a returning player what happened (01 §11).
+  const away = useAwaySummary(code, live?.match.mode === 'async' && live.match.status !== 'lobby');
   const [followed, setFollowed] = useState<string | null>(null);
   const choose = (name: string | null): void => {
     setFollowed(name);
@@ -59,7 +61,7 @@ export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   if (live.match.status === 'lobby') return <WaitingRoom live={live} view={view} />;
   if (live.match.status === 'aborted') return <MatchCancelled live={live} />;
   const Screen = wide ? WideArena : Arena;
-  return <Screen live={live} view={view} followed={followed} follow={choose} />;
+  return <Screen live={live} view={view} followed={followed} follow={choose} away={away} />;
 }
 
 interface CardsBoxProps {
@@ -96,7 +98,7 @@ function CardsBox({ live, view, watching, followed, choose }: CardsBoxProps): Re
   );
 }
 
-function Arena({ live, view, followed, follow: choose }: WideArenaProps): ReactElement {
+function Arena({ live, view, followed, follow: choose, away }: WideArenaProps): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
   // A player out (after the round of their cut) or a spectator watches the top 4 (D24).
@@ -108,8 +110,7 @@ function Arena({ live, view, followed, follow: choose }: WideArenaProps): ReactE
       <ArenaHeader live={live} view={view} />
       {/* Under the title on desktop, below the play area on a phone (arena.css). */}
       <p className="sbr-muted arena-rules">{rulesLine(live.match)}</p>
-      {/* An asynchronous match tells a returning player what happened (01 §11). */}
-      {live.match.mode === 'async' ? <AwaySummary code={live.match.code} /> : null}
+      <AwaySummary away={away} />
       <ArenaNotice live={live} view={view} />
       <div className="arena-grid">
         {/* Ball, drawn numbers, the newest lines and the whole card (or the watched cards)
