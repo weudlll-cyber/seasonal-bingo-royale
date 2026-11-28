@@ -212,7 +212,7 @@
 }
 
 /* In a low window the line does not fit under the recap. */
-@media (max-height: 699px) {
+@media (max-height: 619px) {
   .patterns-line {
     display: none;
   }

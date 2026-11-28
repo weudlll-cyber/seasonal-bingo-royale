@@ -205,7 +205,7 @@ pnpm preview-matches
 It takes a few minutes and creates two matches with 19 bots, each held between two rounds, and prints their addresses:
 
 - **Preview: you play** — you are still in (your numbers are tapped for you in the first round). If your card has no luck and you are cut, that match is aborted and another played.
-- **Preview: you watch** — you are cut and watch.
+- **Preview: you watch** — you are cut and watch; it waits one round after your cut, so you see the others' cards.
 
 The match screen is the player's view, the host address the same match's console: **Start next round** shows the round, **Draw next** draws its numbers, and after the round the match waits again. Running the command again makes two new matches; abort the old ones in their consoles. The address of the preview can be changed with `SBR_PREVIEW_ORIGIN`.
 

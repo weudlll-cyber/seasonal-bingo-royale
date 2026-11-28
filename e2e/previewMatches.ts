@@ -159,10 +159,13 @@ async function heldPlaying(): Promise<string> {
   throw new Error('the member was cut in every attempt');
 }
 
-// The watching member's match, left in the pause after the member's cut.
+// The watching member's match, left in the pause one round after the member's cut: the member
+// then watches the others' cards there too, not their own last one.
 async function heldWatching(): Promise<string> {
   const code = await createMatch('watches');
   while (!isOut(await playRound(code, 'watches'))) await must(`/matches/${code}/next-round`, {});
+  await must(`/matches/${code}/next-round`, {});
+  await playRound(code, 'watches');
   return code;
 }
 
