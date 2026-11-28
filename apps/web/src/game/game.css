@@ -29,6 +29,27 @@
   list-style: none;
 }
 
+/* Desktop (owner decision of 2026-11-28): the lobby fills the window below the top bar and the
+   matches scroll in their box, a first row of them whole (the floor); the page itself does not
+   scroll. */
+@media (min-width: 960px) {
+  .lobby.fit-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .lobby.fit-window > * {
+    flex: none;
+  }
+
+  .lobby.fit-window > .lobby-scroll {
+    flex: 1 1 auto;
+    min-height: 17rem;
+    overflow-y: auto;
+  }
+}
+
 .lobby-item {
   display: grid;
   /* As narrow as the phone at a large font: the title breaks, the rows wrap. */
@@ -105,6 +126,39 @@
 .waiting-players li.is-me {
   background: var(--sk-color-active-bg);
   outline: 1px solid var(--sk-color-accent);
+}
+
+/* A short window: the lobby's and the waiting room's parts stand closer. */
+@media (min-width: 960px) and (max-height: 699px) {
+  .lobby.fit-window {
+    gap: var(--sk-space-1);
+  }
+
+  .lobby-head :is(h1, p) {
+    margin-block: 0;
+  }
+
+  .lobby .sk-panel {
+    padding-block: var(--sk-space-1);
+  }
+
+  .lobby.fit-window > .lobby-scroll {
+    min-height: 15rem;
+  }
+
+  .waiting,
+  .waiting-body,
+  .waiting-main {
+    gap: var(--sk-space-1);
+  }
+
+  .waiting h1 {
+    margin-block: 0;
+  }
+
+  .waiting .sk-panel {
+    padding-block: var(--sk-space-1);
+  }
 }
 
 .countdown {

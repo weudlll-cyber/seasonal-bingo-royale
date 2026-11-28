@@ -11,8 +11,10 @@
  *                 open lobby with a place left (signed-in players; full reads "Full"), "Watch" or
  *                 "View". Join calls POST /matches/:code/join and opens the match. A signed-in
  *                 player's unfinished matches come first, from the same answer (./MyMatches, D39).
- *                 Without a session it points to the sign-in buttons.
- * Depends on:     react, @sbr/contracts (types), ../account/WebsiteSignIn, ../shell/http, ../shell/router, ../shell/session,
+ *                 Without a session it points to the sign-in buttons. On a desktop it fills the
+ *                 window and the matches scroll in their own box (./game.css).
+ * Depends on:     react, @sbr/contracts (types), ../account/WebsiteSignIn, ../components/ScrollBox,
+ *                 ../shell/http, ../shell/router, ../shell/session,
  *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13 (D39)
@@ -21,6 +23,7 @@ import type { MyMatch } from '@sbr/contracts';
 import { useEffect, useState, type ReactElement } from 'react';
 
 import { useSignInToPlay } from '../account/WebsiteSignIn.js';
+import { ScrollBox } from '../components/ScrollBox.js';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useScreens, useSession } from '../shell/session.js';
@@ -86,7 +89,8 @@ export function Lobby(): ReactElement {
       });
   };
   return (
-    <div className="sbr-stack">
+    // fit-window: on a desktop the lobby fills the window and the matches scroll in their box.
+    <div className="sbr-stack lobby fit-window">
       <LobbyHead />
       <MyMatches matches={mine} />
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
@@ -96,17 +100,19 @@ export function Lobby(): ReactElement {
           No match is open right now.{can('match.create') ? ' Host one with “Host a match”.' : ''}
         </p>
       ) : null}
-      <ul className="lobby-list" data-testid="lobby-list">
-        {matches?.map((m) => (
-          <LobbyItem
-            key={m.code}
-            match={m}
-            canJoin={can('match.join')}
-            onJoin={join}
-            signIn={signIn}
-          />
-        ))}
-      </ul>
+      <ScrollBox className="lobby-scroll" role="region" aria-label="Matches" tabIndex={0}>
+        <ul className="lobby-list" data-testid="lobby-list">
+          {matches?.map((m) => (
+            <LobbyItem
+              key={m.code}
+              match={m}
+              canJoin={can('match.join')}
+              onJoin={join}
+              signIn={signIn}
+            />
+          ))}
+        </ul>
+      </ScrollBox>
     </div>
   );
 }

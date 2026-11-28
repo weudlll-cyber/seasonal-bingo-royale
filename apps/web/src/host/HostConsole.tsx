@@ -61,11 +61,12 @@ export function HostConsole({ code }: { readonly code: string }): ReactElement {
   // Only the match's host gets controls (the server refuses everyone else as well).
   if (live.match.youHost !== true) return <NotYourMatch code={code} />;
   const view = playbackAt(live.view, live.view.events.length);
-  const playing = live.match.status === 'running';
+  // While the match runs and with its result.
+  const oneWindow = live.match.status === 'running' || live.match.status === 'finished';
   return (
-    // fit-window: while the match runs the console fills the window below the top bar.
+    // fit-window: the console then fills the window below the top bar.
     <div
-      className={`sbr-stack host-console${playing ? ' fit-window' : ''}`}
+      className={`sbr-stack host-console${oneWindow ? ' fit-window' : ''}`}
       data-testid="host-console"
       data-seq={live.seq}
     >

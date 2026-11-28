@@ -82,7 +82,8 @@ const PANELS = [
   '[data-testid="interlude"]',
   '[data-testid="cut-screen"]',
   '[data-testid="host-draw-controls"]',
-  '.lobby-item',
+  // The first row of matches (the lobby box's floor); the rest scroll in the box.
+  '.lobby-list > .lobby-item:first-child',
   '.waiting-room',
 ];
 
@@ -115,7 +116,8 @@ function panelsOf(panels: readonly string[]): Pick<WindowReport, 'cut' | 'standi
     let top = Math.max(r.top, 0);
     let bottom = Math.min(r.bottom, window.innerHeight);
     for (let a = el.parentElement; a !== null && a !== document.body; a = a.parentElement) {
-      if (!clips(a)) continue;
+      // A box that is not drawn (display: contents) clips nothing.
+      if (!clips(a) || getComputedStyle(a).display === 'contents') continue;
       const box = a.getBoundingClientRect();
       const sign = a.getAttribute('data-more') === 'true';
       const strip = sign ? parseFloat(getComputedStyle(a, '::after').height) || 0 : 0;

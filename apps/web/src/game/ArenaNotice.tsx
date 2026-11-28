@@ -39,13 +39,15 @@ export function ArenaNotice({
   readonly live: LiveState;
   readonly view: PlaybackView;
 }): ReactElement {
+  // One box: on a desktop it is a column beside the play area in the pause and at the end
+  // (./windows.css); elsewhere it is not there (display: contents).
   if (view.finished) {
     return (
-      <>
+      <div className="arena-notices">
         <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
         <EndActions host={false} code={live.match.code} />
         <ResultCallLink />
-      </>
+      </div>
     );
   }
   const recap = currentRecap(live.view.recaps, view);
@@ -56,7 +58,7 @@ export function ArenaNotice({
     view.drawsSoFar.length > 0 &&
     cut.owners.every((o) => o.outcome !== 'eliminated');
   return (
-    <>
+    <div className="arena-notices">
       {survivedEarlier ? null : <CutScreen cut={cut} nextRoundAt={live.match.nextRoundAt} />}
       <FinalNotice result={live.view} view={view} />
       {/* The recap of the round just played, below the cut screen (D20). */}
@@ -82,6 +84,6 @@ export function ArenaNotice({
           Waiting for the host to start round {view.currentRound + 2}
         </p>
       ) : null}
-    </>
+    </div>
   );
 }

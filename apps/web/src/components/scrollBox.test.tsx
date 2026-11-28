@@ -11,7 +11,7 @@
  * Depends on:     @testing-library/react, ./ScrollBox
  * Spec:           docs/concepts/fit-audit.md §8
  */
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ScrollBox } from './ScrollBox.js';
@@ -54,6 +54,16 @@ describe('ScrollBox', () => {
       fireEvent.scroll(box);
     });
     expect(box.dataset['more']).toBe('false');
+  });
+
+  // A result that arrives on an open page: no scroll, and no watched box changes its size.
+  it('says there is more when content arrives without a scroll or a resize', async () => {
+    const box = boxWith({ scrollHeight: 400, clientHeight: 300 });
+    box.dataset['more'] = 'false';
+    box.appendChild(document.createElement('section'));
+    await waitFor(() => {
+      expect(box.dataset['more']).toBe('true');
+    });
   });
 
   it('says nothing is cut when the content fits', () => {

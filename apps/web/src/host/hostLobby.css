@@ -1,0 +1,29 @@
+/**
+ * @file   apps/web/src/host/hostLobby.css
+ * @module web/host
+ * @brief  The host's console while the match is open: its two columns.
+ *
+ * Responsibility: the layout of ./HostLobby (the rest of the console's look is ./host.css).
+ * Used by:        ./HostLobby
+ * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §10
+ */
+
+/* The console while the match is open (./HostLobby): one column; on a desktop two, so the
+   start is in view in a short window (owner decision of 2026-11-28). */
+.host-lobby {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--sk-space-2);
+}
+
+@container page (min-width: 48rem) {
+  .host-lobby {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    column-gap: var(--sk-space-3);
+  }
+
+  .host-lobby > * {
+    align-content: start;
+  }
+}

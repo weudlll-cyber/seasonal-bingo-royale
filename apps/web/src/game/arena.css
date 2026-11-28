@@ -18,6 +18,9 @@
  */
 
 @import './liveCard.css';
+/* The pause and the end in columns on a desktop. */
+@import './windows.css';
+@import './shortWindows.css';
 
 /* Arena: one column that never grows past the window (a wide child scrolls or wraps
    inside it instead of pushing the side panels out, fit audit F9) */

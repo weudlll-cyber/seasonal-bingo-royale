@@ -38,9 +38,11 @@
     align-items: start;
   }
 
+  /* Title, rules line, then the grid with the rest (with two rows the rules line took the
+     flexible one and the grid ran over it in a short window). */
   .host-console.fit-window {
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     gap: var(--sk-space-2);
   }
 
