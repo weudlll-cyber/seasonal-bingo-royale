@@ -27,14 +27,21 @@ function wide(): boolean {
 // sight, is watched too.
 function follow(changed: () => void): () => void {
   window.addEventListener('resize', changed);
+  // A frame later: a layout changed inside the observer's own delivery would loop it.
+  let frame = 0;
+  const later = (): void => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(changed);
+  };
   const step = document.createElement('div');
   step.style.cssText = 'position:absolute;width:1rem;height:0;visibility:hidden';
   document.body.append(step);
-  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(changed) : null;
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(later) : null;
   observer?.observe(step);
   return () => {
     window.removeEventListener('resize', changed);
     observer?.disconnect();
+    cancelAnimationFrame(frame);
     step.remove();
   };
 }

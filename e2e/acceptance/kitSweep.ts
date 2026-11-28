@@ -129,7 +129,7 @@ const DESKTOPS = ['1920x950', '1280x720', '1024x600', '1278x629'].map(sizeOf);
 // The owner's floors, each with the screens it speaks of.
 const FLOORS: readonly (VisibleFloor & { readonly on: RegExp })[] = [
   {
-    on: /console-round|player-royale|player-classic|spectator|interlude/,
+    on: /console-round|player-royale|player-classic|(?<!results-)spectator|interlude/,
     selector: '.standings-panel .rank-list > .rank-row',
     least: 3,
     first: true,
@@ -137,7 +137,8 @@ const FLOORS: readonly (VisibleFloor & { readonly on: RegExp })[] = [
     sizes: DESKTOPS,
   },
   {
-    on: /spectator/,
+    // The top 4 in a round and between rounds (a followed card stands alone).
+    on: /spectator-4|interlude-spectator/,
     selector: '[data-testid="watch-cards"] .watch-card',
     least: 4,
     decision: 'owner decision of 2026-11-28',
@@ -150,6 +151,15 @@ const FLOORS: readonly (VisibleFloor & { readonly on: RegExp })[] = [
     decision: 'owner decision of 2026-11-24',
     sizes: [sizeOf('1280x720')],
   },
+];
+
+// Sizes the owner decided outside the kit's four (G1 speaks of the wide screens, which use the
+// tokens; phones and large fonts keep their screens): the ball's number and letter take their
+// size from the ball so they stay inside it (owner decision of 2026-11-01), and a card's numbers
+// follow its cells, 16 px at least (owner decision of 2026-11-20).
+const DECIDED = [
+  'text size outside the tokens: [current-ball] span.ball-',
+  'text size outside the tokens: [owner-cell-',
 ];
 
 const walked = (size: Size) =>
@@ -214,7 +224,8 @@ export async function kitLooks(
     const floors = floorsOf(screen);
     if (screen.startsWith('website-results-')) await dividerWithinFloor(page, screen);
     if (calm) await page.emulateMedia({ reducedMotion: 'reduce' });
-    const looks = await sweep(page, [{ name: screen, open: shown, floors }], {
+    const named = { name: screen, open: shown, floors, allow: DECIDED };
+    const looks = await sweep(page, [named], {
       axe: finderOf(screen),
       ...(ONLY_SIZES === null ? { edges: EDGES } : { sizes: ONLY_SIZES, themes: ['light'] }),
       ...(FONTS === undefined ? {} : { fonts: FONTS }),
