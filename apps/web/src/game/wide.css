@@ -247,7 +247,7 @@
    whole. */
 @media (max-height: 649px) {
   .wide .watch-card.live-card {
-    --cell-size: max(1.35rem, min(3.4rem, calc((50cqh - 4.5rem) / 5), calc((50cqw - 2rem) / 5)));
+    --cell-size: max(1.3rem, min(3.4rem, calc((50cqh - 4.5rem) / 5), calc((50cqw - 2rem) / 5)));
     --cell-font: var(--sk-font-size-small);
   }
 }
