@@ -194,6 +194,21 @@ It asks you to type the environment's name (`prod`), then removes the game's con
 - **No late join:** players join only while the match is in its lobby (D53).
 - **Chat:** the game has no chat of its own; inside the website the website's chat is used (D55).
 
+## 8b. Test matches in the local preview
+
+For looking at the match screens on your own PC, never on a server (it needs the development tools). Start the preview as [CONTRIBUTING.md](../CONTRIBUTING.md) says ("Look at website mode locally"), then, from the repository's root:
+
+```powershell
+pnpm preview-matches
+```
+
+It takes a few minutes and creates two matches with 19 bots, each held between two rounds, and prints their addresses:
+
+- **Preview: you play** — you are still in (your numbers are tapped for you in the first round). If your card has no luck and you are cut, that match is aborted and another played.
+- **Preview: you watch** — you are cut and watch.
+
+The match screen is the player's view, the host address the same match's console: **Start next round** shows the round, **Draw next** draws its numbers, and after the round the match waits again. Running the command again makes two new matches; abort the old ones in their consoles. The address of the preview can be changed with `SBR_PREVIEW_ORIGIN`.
+
 ## 9. Good to know
 
 - Settings and secrets live in `/etc/sbr/prod.env` (readable by root only). Running the installer again (also with `--yes`) keeps the secrets, your earlier answers and any setting you added to that file yourself, and changes only what you changed; an empty SMTP answer keeps the saved one; it never switches between standalone and website without asking.

@@ -49,7 +49,7 @@ $env:SBR_WEBSITE_PROXY_SECRET = "preview-only-for-this-computer-0000"
 pnpm exec sk-preview --slug bingo --app http://127.0.0.1:3902 --secret-header X-Sbr-Proxy-Secret --secret-env SBR_WEBSITE_PROXY_SECRET --can-host --port 4490
 ```
 
-The preview listens on 4490 (the kit's default, 4400, may be another game's preview). The test member "Preview Member" has three step badges and may host. The client is the built one, so it has no development tools: a match is played by people (each in a window of their own) or made through the API as a development match (`devTools: true`, then `/bots` and `/start`). The shared call is a stand-in; the real one is only on the website. Stop both with Ctrl+C and throw the database away: `docker exec sbr-dev-postgres-1 dropdb -U sbr --force sbr_preview`.
+The preview listens on 4490 (the kit's default, 4400, may be another game's preview). The test member "Preview Member" has three step badges and may host. The client is the built one, so it has no development tools: `pnpm preview-matches` makes two test matches with bots, held between rounds ([docs/operator-guide.md](docs/operator-guide.md) §8b); other matches are played by people (each in a window of their own) or made through the API (`devTools: true`, then `/bots` and `/start`). The shared call is a stand-in; the real one is only on the website. Stop both with Ctrl+C and throw the database away: `docker exec sbr-dev-postgres-1 dropdb -U sbr --force sbr_preview`.
 
 ## Branching
 

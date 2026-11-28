@@ -21,6 +21,7 @@
     "e2e": "playwright test -c e2e/playwright.config.ts",
     "e2e:quiet": "playwright test -c e2e/playwright.config.ts --reporter=dot",
     "test-server": "pnpm --filter @sbr/server exec tsx ../../e2e/testServer.ts",
+    "preview-matches": "pnpm --filter @sbr/server exec tsx ../../e2e/previewMatches.ts",
     "demo-league": "pnpm --filter @sbr/server demo-league",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "verify:quiet": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:quiet"
