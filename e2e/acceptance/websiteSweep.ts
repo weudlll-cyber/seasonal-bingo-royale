@@ -21,7 +21,8 @@
  *                 (./kitSweep). Helpers sign a stand-in member in via the proxy and post with the
  *                 CSRF token.
  * Depends on:     node:fs, node:path, @playwright/test, @axe-core/playwright, ../devStack,
- *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe, ./kitSweep
+ *                 ../screens, ../websiteStack (types), ./fitMeasure, ./fitProbe, ./kitSweep,
+ *                 ./windowFit
  * Used by:        ./fitAudit.spec
  * Spec:           docs/concepts/fit-audit.md §7; docs/spec/01-game-design.md §13
  */
@@ -37,6 +38,7 @@ import type { WebsiteStack } from '../websiteStack.js';
 import { atSize, findingsOf, keysOutOf, ROUND_KEYS } from './fitMeasure.js';
 import { probe } from './fitProbe.js';
 import { KIT_SWEEP, kitLooks } from './kitSweep.js';
+import { WINDOW_FIT, windowLooks } from './windowFit.js';
 import { FROM_THIS_SITE } from '../fromThisSite.js';
 
 export const BASE = '/games/bingo';
@@ -221,8 +223,11 @@ async function review(page: Page, name: string, wanted: boolean): Promise<void> 
 
 // One screen at every sweep size, both themes, chat closed and open; `kind` names a round
 // screen's key boxes (./fitMeasure ROUND_KEYS).
-export const sweep = (page: Page, screen: string, kind?: string): Promise<void> =>
-  KIT_SWEEP ? kitLooks(page, `website-${screen}`) : measured(page, screen, kind);
+export function sweep(page: Page, screen: string, kind?: string): Promise<void> {
+  if (KIT_SWEEP) return kitLooks(page, `website-${screen}`);
+  if (WINDOW_FIT) return windowLooks(page, `website-${screen}`);
+  return measured(page, screen, kind);
+}
 
 async function measured(page: Page, screen: string, kind?: string): Promise<void> {
   if (SCREENS !== null && !SCREENS.includes(screen)) return;

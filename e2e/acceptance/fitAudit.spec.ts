@@ -41,6 +41,7 @@ import { probe, type Probe } from './fitProbe.js';
 import { dividerWithinFloor, KIT_SWEEP, kitLooks, openMenu } from './kitSweep.js';
 import { tapCurrent } from './screenPlay.js';
 import { BASE, freshSweep, signInMember, sweep, webPost } from './websiteSweep.js';
+import { WINDOW_FIT, windowLooks } from './windowFit.js';
 
 test.use({ trace: 'off' });
 test.describe.configure({ mode: 'default' });
@@ -105,6 +106,7 @@ async function shoot(page: Page, name: string, dark: boolean): Promise<void> {
 // Every size and font of one screen; `kind` names a round screen's key boxes.
 async function measure(page: Page, group: string, screen: string, kind?: string): Promise<void> {
   if (KIT_SWEEP) return kitLooks(page, `standalone-${screen}`);
+  if (WINDOW_FIT) return windowLooks(page, `standalone-${screen}`);
   if (await hasToggle(page)) await setTheme(page, 'light');
   if (process.env['SBR_FIT_DOM'] === '1') {
     mkdirSync(DOM, { recursive: true });
@@ -204,7 +206,7 @@ const FLOORS = [
 ] as const;
 
 async function cardComparison(page: Page): Promise<void> {
-  if (KIT_SWEEP) return;
+  if (KIT_SWEEP || WINDOW_FIT) return;
   writeFileSync(path.join(LOGS, `${TAG}-cards.jsonl`), '');
   for (const [w, h] of SIZES) {
     for (const [floor, rem] of FLOORS) {
@@ -292,6 +294,9 @@ function cellFacts(): { minPx: number; sizes: number[]; spill: number } {
 async function lobbyScreens(browser: Browser, host: Page, code: string): Promise<void> {
   await measure(host, 'royale', 'console-lobby');
   const joiner = await newPage(browser, 'player-2');
+  // The lobby with an open match in it.
+  await visit(joiner, '', 'lobby-list');
+  await measure(joiner, 'royale', 'lobby-open');
   await joinFromLobby(joiner, code);
   await measure(joiner, 'royale', 'waiting-room');
   await visit(joiner, '', 'my-matches');
@@ -523,6 +528,9 @@ async function webLobby(
   code: string,
 ): Promise<void> {
   await sweep(host, 'console-lobby');
+  await player.goto(`${stack.origin}${BASE}/#/`);
+  await expect(player.getByTestId('lobby-list')).toBeVisible({ timeout: 30_000 });
+  await sweep(player, 'lobby-open');
   expect((await webPost(player, stack, `/matches/${code}/join`, {})).status()).toBe(204);
   await player.goto(`${stack.origin}${BASE}/#/match/${code}`);
   await expect(player.getByTestId('waiting-room')).toBeVisible({ timeout: 30_000 });
