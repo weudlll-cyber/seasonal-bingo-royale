@@ -284,3 +284,14 @@ Pin `v0.40.0` (`23f10b9`), workflows too; `ops/kit/` did not change. From the ki
 | The test server and its throw-away databases    | `e2e/testServer.ts`, `testDatabase.ts`, `globalTeardown.ts` | The kit asks for it (K125) and has no helper; the database and settings are the game's. |
 | The one tight divider line in the docked result | `apps/web/src/shell/dockResults.css`                        | Bingo's content in the kit's dense frame; the frame and list are the kit's.             |
 | Which case of the 7 places floor a sweep saw    | `e2e/acceptance/kitSweep.ts`                                | A match's seed is the server's, so the run says where the divider stood.                |
+
+## 14. v0.41.0 (branch `feat/kit-0.22`, 2026-11-28)
+
+Pin `v0.41.0` (`a360957`), workflows too; `ops/kit/` did not change. The six migration lines for Bingo (kit CHANGELOG):
+
+1. **The 100 px strip** under 760 px high (K126) comes with the kit's `dock.css` and `call.css`; the chat is the website's frame, which lays itself out. Bingo sets no strip height of its own.
+2. **The scale floor 0.6** (`FIT_FLOORS.bingo`): the match screens fit by their layout; `useFitScale('bingo')` is used only where a screen cannot (fit-audit.md §12).
+3. **Window sizes:** the sweep's default walk with Bingo's `edges` (fit-audit.md §11); Bingo's own size lists and measurements are removed.
+4. **"A screen meant to fit"** (K127) stands in `CLAUDE.md` "How we check".
+5. **Text sizes:** every match screen and the lobby use the kit's four tokens (fit-audit.md §12).
+6. **Floors:** `first: true` for the standings' top 3.

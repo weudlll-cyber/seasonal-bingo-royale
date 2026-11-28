@@ -27,7 +27,7 @@ Everything in this repository is English: code, comments, commit messages, docs,
 
 ## How we check
 
-The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of 2026-11-06, 2026-11-23, 2026-11-25 and 2026-11-27, kit K82 and K110). "Done" for a piece means built, pushed and quick-checked.
+The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of 2026-11-06, 2026-11-23, 2026-11-25, 2026-11-27 and 2026-11-28, kit K82, K110 and K127). "Done" for a piece means built, pushed and quick-checked.
 
 ### A small task
 
@@ -48,6 +48,16 @@ The Seasonal projects' one rule (kit HANDBOOK "How we check"; owner decisions of
 - The full browser suite runs nightly and on demand (`browsers.yml`), not on every pull request; a pull request runs the unit tests, the static checks and the browser specs of what it changed. A red nightly run is fixed before the next merge.
 - After a merge, check the master run of the merge commit before the next merge and before the final report; if it is red, stop and fix master first.
 - Your own play-throughs (acceptance, screenshots) use the fast test rules / "Short royale rounds", except one realtime royale at full length per task that changes the game screens or rules.
+
+### A screen meant to fit
+
+Owner decisions of 2026-11-28, for every game (kit K127, K128).
+
+- A screen meant to fit (a round, the screens between rounds, a result, a lobby with a few matches) shows no page scroll at any desktop size, and its panels show their content whole. It is looked at 1024x600 first.
+- A list longer than the window scrolls inside its box, and the box keeps a floor of items in sight (the sweep's `floors`; `first: true` where a decision means the first items).
+- Where layout alone cannot fit, use the kit's fit (`useFitScale`, `fit.css`, scale floor 0.6), never fixed sizes.
+- The sweep looks at the edges: the kit's five window sizes and, as `edges`, the two sizes either side of each width or height where Bingo's own layout switches, with 1278x629 (the owner's window).
+- A re-check after a fix runs only what the fix can change. Size or spacing: the probe and the floors at the sizes where the finding appeared, plus 1920x950, 1024x600, 320x568 and the 32 px font, without axe (`sizes`, `themes: ['light']`, `axe: false`). A colour: contrast only. A match needed to reach screens is played once per re-check.
 
 ### Where a check may look and write
 

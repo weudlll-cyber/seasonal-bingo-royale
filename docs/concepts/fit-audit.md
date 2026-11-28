@@ -451,8 +451,18 @@ The recap screens are looked at with reduced motion: the next card comes by a ti
 
 **Sizes** (kit planning, owner decision of 2026-11-28, passed as `SweepOptions.sizes`): the sweep looks at the edges, since a screen that fits the tightest window fits every larger one. Desktop 1920×950, 1280×720 (owner decisions name it) and 1024×600, the tightest corner: narrower and lower than a 1920×1080 laptop at 150 % without its bars (1278×629), with room for a bookmarks bar (kit planning wrote 1024×630, one pixel taller than that window: Bingo planning's change). Phones 390×844 and 320×568. Once either side of each switch of the layout between them: 480/481, 640/641 and 959/960 wide (Bingo's own rules), 1599/1600 wide and 759/760 high (the kit's header account and chat strip). Light at all of them at root font 16 and 32 px; dark once more at 1280×720 and 390×844 at 16 px.
 
-**Tools:** `e2e/acceptance/windowFit.ts` measures what scrolls and what is not whole (`SBR_WINDOWS=1`, `reports/logs/<tag>-windows.jsonl`); the kit sweep reports the same as findings on the match screens at the desktop sizes at 16 px.
+**Tools** of that task were replaced with kit v0.41.0 (§11).
 
 **How it fits:** between rounds and at the end the notices (cut screen, recap, placement) stand in a column beside the play area and the side column (`game/windows.css`, `host/hostWindows.css`), scrolling inside with the "More below" sign where a window is too low; short windows put title and progress on one line, stand the standings' rows closer and, under 700 px, the side column in two halves (`game/shortWindows.css`); the docked pause stands side by side, and under 700 px its game area scrolls with the recap at a readable height and the standings heading the side column (`shell/dockPause.css`); the console's lobby takes two columns; the lobby's matches scroll in their own box. The kit's fit (`src/fit.ts`) is not used: Bingo's scale floor there is 1 (K14), so it cannot shrink anything.
 
 **What still does not fit** is listed with a proposal in docs/MORNING.md.
+
+## 11. Kit v0.41.0: the sweep, its edges and floors (owner decisions of 2026-11-28)
+
+The fit audit looks at every screen with the kit's sweep alone (`e2e/acceptance/kitSweep.ts`); Bingo's own size lists and measurements (§1, §8, §9, §10) are gone.
+
+- **Sizes:** the kit's default walk (K128: 1920×950, 1280×720, 1024×600, 390×844, 320×568 at root font 16 and 32 px in light; 1280×720 and 390×844 at 16 px in dark) and Bingo's `edges`: 1278×629 (the owner's window), 480/481, 640/641 and 959/960 wide, 1599/1600 wide, 759/760 high.
+- **Findings of Bingo's own:** text under 14 px, covered text, and on a screen meant to fit (K127) in a desktop window at 16 px a page or game area that scrolls.
+- **Floors** (the kit's `floors`): the standings' first 3 whole (`first: true`) on the desktop sizes; the spectator's four cards whole at 1280×720 and 1278×629; the docked result at least 7 places at 1280×720.
+- **Run:** `SBR_ACCEPTANCE=1 pnpm e2e:quiet acceptance/fitAudit.spec --project=chromium`; findings in `reports/logs/<tag>-kit-sweep.log` (`SBR_FIT_TAG`).
+- **A re-check:** `SBR_SWEEP_SCREENS`, `SBR_SWEEP_SIZES` (light only), `SBR_SWEEP_FONTS`, `SBR_SWEEP_AXE=off` (size or spacing) or `contrast` (colour).
