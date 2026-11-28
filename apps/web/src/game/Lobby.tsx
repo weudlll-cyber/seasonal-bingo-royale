@@ -12,9 +12,12 @@
  *                 "View". Join calls POST /matches/:code/join and opens the match. A signed-in
  *                 player's unfinished matches come first, from the same answer (./MyMatches, D39).
  *                 Without a session it points to the sign-in buttons. On a desktop it fills the
- *                 window and the matches scroll in their own box (./game.css).
+ *                 window and the matches scroll in their own box (./game.css). On a wide page
+ *                 (owner decision of 2026-11-28) the heading and its sentence share a line and a
+ *                 card's first row holds the title, LIVE and the buttons; LIVE then stands for
+ *                 the "Running" chip.
  * Depends on:     react, @sbr/contracts (types), ../account/WebsiteSignIn, ../components/ScrollBox,
- *                 ../shell/http, ../shell/router, ../shell/session,
+ *                 ../shell/http, ../shell/router, ../shell/session, ../useWideScreen,
  *                 ./useLiveMatch (types), ./labels, ./MyMatches, ./Registration, ./game.css
  * Used by:        ../shell/AppShell, ../host/YourMatches
  * Spec:           docs/spec/05-api-design.md §2.3; docs/spec/01-game-design.md §3a, §5, §6, §13 (D39)
@@ -27,6 +30,7 @@ import { ScrollBox } from '../components/ScrollBox.js';
 import { api, ApiError } from '../shell/http.js';
 import { hrefOf, navigate } from '../shell/router.js';
 import { useScreens, useSession } from '../shell/session.js';
+import { useWideScreen } from '../useWideScreen.js';
 import { gameTypeName, problemText, rulesLine, runningBadge, statusName } from './labels.js';
 import { MyMatches } from './MyMatches.js';
 import { RegistrationStatus } from './Registration.js';
@@ -72,6 +76,7 @@ export function useMatchList(): {
 
 export function Lobby(): ReactElement {
   const { can } = useSession();
+  const wide = useWideScreen();
   // Website mode without an account: "Sign in to join" goes to the website login (D43).
   const signIn = useSignInToPlay();
   // Finished matches show their result, cancelled ones their end page (D17).
@@ -90,9 +95,9 @@ export function Lobby(): ReactElement {
   };
   return (
     // fit-window: on a desktop the lobby fills the window and the matches scroll in their box.
-    <div className="sbr-stack lobby fit-window">
+    <div className={`sbr-stack lobby fit-window${wide ? ' lobby--wide' : ''}`}>
       <LobbyHead />
-      <MyMatches matches={mine} />
+      <MyMatches matches={mine} wide={wide} />
       {(joinError ?? error) !== null ? <p className="lobby-error">{joinError ?? error}</p> : null}
       {matches === null ? <p className="sbr-muted">Loading…</p> : null}
       {matches?.length === 0 ? (
@@ -109,6 +114,7 @@ export function Lobby(): ReactElement {
               canJoin={can('match.join')}
               onJoin={join}
               signIn={signIn}
+              wide={wide}
             />
           ))}
         </ul>
@@ -136,6 +142,7 @@ interface LobbyItemProps {
   readonly canJoin: boolean;
   readonly onJoin: (code: string) => void;
   readonly signIn: string | null;
+  readonly wide?: boolean;
 }
 
 // The signed-in account hosts this match and it can still be run (server says so).
@@ -143,8 +150,17 @@ export function manageable(m: MatchSummary): boolean {
   return m.youHost === true && (m.status === 'lobby' || m.status === 'running');
 }
 
-function LobbyItem({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): ReactElement {
+function LobbyItem(props: LobbyItemProps): ReactElement {
+  const { match: m, wide = false } = props;
   const done = m.status === 'finished' || m.status === 'aborted';
+  const actions = (
+    <div className="sbr-row lobby-item-actions">
+      <LobbyAction {...props} />
+      <a className="sk-btn" href={`#/match/${m.code}`}>
+        {done ? 'View' : 'Watch'}
+      </a>
+    </div>
+  );
   return (
     <li className="sk-panel lobby-item" data-testid={`lobby-match-${m.code}`}>
       <div className="lobby-item-head">
@@ -152,29 +168,25 @@ function LobbyItem({ match: m, canJoin, onJoin, signIn }: LobbyItemProps): React
         {m.status === 'running' ? (
           <span className="sk-badge-live">{runningBadge(m.mode)}</span>
         ) : null}
+        {wide ? actions : null}
       </div>
       <p className="sbr-row">
         <span className="sk-chip">{gameTypeName(m.gameType)}</span>
         <span className="sk-chip">
           {m.players} / {m.maxPlayers} players
         </span>
-        <span className="sk-chip">{statusName(m)}</span>
+        {wide && m.status === 'running' ? null : <span className="sk-chip">{statusName(m)}</span>}
         <span className="sk-chip" data-testid={`code-${m.code}`}>
           Code {m.code}
         </span>
       </p>
-      <p className="sbr-muted">{rulesLine(m)}</p>
+      <p className="sbr-muted lobby-item-rules">{rulesLine(m)}</p>
       {m.status === 'lobby' ? (
         <p>
           <RegistrationStatus match={m} testId={`registration-${m.code}`} />
         </p>
       ) : null}
-      <div className="sbr-row">
-        <LobbyAction match={m} canJoin={canJoin} onJoin={onJoin} signIn={signIn} />
-        <a className="sk-btn" href={`#/match/${m.code}`}>
-          {done ? 'View' : 'Watch'}
-        </a>
-      </div>
+      {wide ? null : actions}
     </li>
   );
 }

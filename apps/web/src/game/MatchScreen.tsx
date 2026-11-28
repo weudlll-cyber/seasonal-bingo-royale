@@ -10,10 +10,12 @@
  *                 (final placement, cut, final's fresh start, round recap, quiet hours, waiting
  *                 for host); names link to profiles;
  *                 ./MatchCancelled (D17); async matches show "While you were away" on top
- *                 (./AwaySummary, 01 §11). Remounted per code.
+ *                 (./AwaySummary, 01 §11). A wide page takes the columns of ./WideArena
+ *                 instead. Remounted per code.
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ./useLiveMatch, ./ArenaCards,
  *                 ./ArenaNotice, ./AwaySummary, ./CurrentBall, ./HostLink, ./WaitingRoom,
- *                 ./MatchCancelled, ./labels, ../league/playerHref, ./arena.css, ./game.css
+ *                 ./MatchCancelled, ./WideArena, ./labels, ../league/playerHref,
+ *                 ../useWideScreen, ./arena.css, ./game.css
  * Used by:        ../shell/AppShell; BallAndNumbers also by ../host/HostConsole
  * Spec:           docs/spec/01-game-design.md §3–§13; docs/spec/15-implementation-plan.md WP-12, WP-13
  */
@@ -37,25 +39,27 @@ import { progressText, rulesLine, runningBadge } from './labels.js';
 import { MatchCancelled } from './MatchCancelled.js';
 import { useLiveMatch, type LiveState } from './useLiveMatch.js';
 import { WaitingRoom } from './WaitingRoom.js';
+import { WideArena, type WideArenaProps } from './WideArena.js';
+import { useWideScreen } from '../useWideScreen.js';
 import './arena.css';
 import './game.css';
 
 export function MatchScreen({ code }: { readonly code: string }): ReactElement {
   const { live, error, follow } = useLiveMatch(code);
+  const wide = useWideScreen();
+  const [followed, setFollowed] = useState<string | null>(null);
+  const choose = (name: string | null): void => {
+    setFollowed(name);
+    follow(name);
+  };
   if (live === null) {
     return <p className="sbr-muted">{error ?? 'Loading the match…'}</p>;
   }
   const view = playbackAt(live.view, live.view.events.length);
   if (live.match.status === 'lobby') return <WaitingRoom live={live} view={view} />;
   if (live.match.status === 'aborted') return <MatchCancelled live={live} />;
-  return <Arena live={live} view={view} follow={follow} />;
-}
-
-interface ArenaProps {
-  readonly live: LiveState;
-  readonly view: PlaybackView;
-  // A watching screen follows one player still in, or the top 4 again (D24).
-  readonly follow: (name: string | null) => void;
+  const Screen = wide ? WideArena : Arena;
+  return <Screen live={live} view={view} followed={followed} follow={choose} />;
 }
 
 interface CardsBoxProps {
@@ -92,16 +96,11 @@ function CardsBox({ live, view, watching, followed, choose }: CardsBoxProps): Re
   );
 }
 
-function Arena({ live, view, follow }: ArenaProps): ReactElement {
+function Arena({ live, view, followed, follow: choose }: WideArenaProps): ReactElement {
   const result = live.view;
   const owner = view.owners[0];
   // A player out (after the round of their cut) or a spectator watches the top 4 (D24).
   const watching = owner === undefined || !inPlay(owner, view);
-  const [followed, setFollowed] = useState<string | null>(null);
-  const choose = (name: string | null): void => {
-    setFollowed(name);
-    follow(name);
-  };
   return (
     // data-seq: the server's event number this screen shows (the play-through compares it).
     // fit-window: during a round the arena fills the window below the top bar (shell.css).

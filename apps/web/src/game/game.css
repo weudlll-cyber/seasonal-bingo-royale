@@ -10,10 +10,16 @@
  * Spec:           docs/spec/01-game-design.md §13
  */
 
+@import './lobbyWide.css';
+
 .lobby-head h1,
 .arena-head h1,
 .waiting h1 {
   font-size: var(--sk-font-size-title);
+}
+
+.lobby-item h2 {
+  font-size: var(--sk-font-size-lead);
 }
 
 .lobby-error {

@@ -3,24 +3,16 @@
  * @module web/game
  * @brief  The arena of a live match: layout, current number, drawn numbers, the player's card.
  *
- * Responsibility: the arena layout (stacked on phones and at a large font, ball and drawn
- *                 numbers above the card; on a wide enough desktop page (`page` container,
- *                 ../shell/shell.css) the arena fills the window below the top bar: ball, drawn
- *                 numbers and the newest lines beside the card, which takes its cell size from
- *                 the space it has, the side column beside them with the standings filling the
- *                 rest, room for the top 3 rows and the own row kept, the column never scrolling
- *                 itself, so the page does not scroll during a round, 01 §13); the player's card
- *                 itself is in ./liveCard.css (imported here). Colours and sizes from @sbr/ui
- *                 tokens.
+ * Responsibility: the stacked arena of phones and large fonts, ball and drawn numbers above
+ *                 the card and the side column under the play area (a wide page takes
+ *                 ./wide.css's columns instead); the player's card itself is in ./liveCard.css
+ *                 (imported here). Colours and sizes from @sbr/ui tokens.
  * Used by:        ./MatchScreen, ../host/HostConsole (header, ball and numbers),
  *                 ../components/OwnerCard
  * Spec:           docs/spec/01-game-design.md §13
  */
 
 @import './liveCard.css';
-/* The pause and the end in columns on a desktop. */
-@import './windows.css';
-@import './shortWindows.css';
 
 /* Arena: one column that never grows past the window (a wide child scrolls or wraps
    inside it instead of pushing the side panels out, fit audit F9) */
@@ -99,8 +91,11 @@
   white-space: nowrap;
 }
 
-.arena-cards {
+.arena:not(.wide) .arena-cards {
   grid-area: cards;
+}
+
+.arena-cards {
   min-width: 0;
   /* The cards take their cells from this box's width (container units, ./liveCard.css,
      ./watch.css); from 960 px from its width and height (below). */
@@ -164,117 +159,5 @@
 
   .arena-ticker p {
     font-size: var(--sk-font-size-small);
-  }
-}
-
-/* Desktop: the arena fills the window below the top bar (../shell/shell.css .fit-window):
-   title, rules and notices on top, then the play area beside the side column with what is
-   left. In the play area the ball, the drawn numbers and the newest lines sit beside the
-   card, which takes its cell size from its box (container units), so it is always whole.
-   In the side column the standings take the rest of the height and scroll inside; the
-   other panels scroll inside themselves when the window is short. */
-@container page (min-width: 48rem) {
-  /* A column: title, rules and whatever notices there are, then the play area with the
-     rest of the height (never less than 20rem or half the window, whichever is smaller: at
-     a large font the rem floor alone pushed the round past the window, fit audit F12; a
-     tall recap in a pause may scroll). */
-  .arena {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sk-space-2);
-  }
-
-  .arena-grid {
-    flex: 1 1 min(20rem, 50vh);
-    grid-template-columns: minmax(0, 1.7fr) minmax(19rem, 1fr);
-    grid-template-rows: minmax(0, 1fr);
-    min-height: min(20rem, 50vh);
-  }
-
-  /* In a pause the recap stands above: the play area keeps a readable height and the page
-     may scroll (only a running round must fit, 01 §13). */
-  .arena:has(.interlude) .arena-grid {
-    flex-basis: 32rem;
-    min-height: 32rem;
-  }
-
-  /* At the end the own card keeps cells of 44 px; the finished screen may scroll. */
-  .arena:has(.sk-result) .arena-grid {
-    flex-basis: calc(8 * var(--sk-hit-target));
-    min-height: calc(8 * var(--sk-hit-target));
-  }
-
-  .arena-play {
-    grid-template-columns: minmax(11rem, 0.55fr) minmax(0, 1.45fr);
-    grid-template-rows: auto auto minmax(0, 1fr);
-    grid-template-areas:
-      'ball cards'
-      'ticker cards'
-      'events cards';
-    align-items: start;
-    min-height: 0;
-  }
-
-  /* A size of its own, never a share of its cell (a share of the shrink-to-fit cell made
-     the ball as narrow as its number); the column is at least 11rem wide. */
-  .arena-ball .ball {
-    --ball-size: min(9rem, 18vh);
-  }
-
-  /* Four whole rows. */
-  .arena-ticker .draw-ticker {
-    max-height: 7.75rem;
-  }
-
-  .arena-events {
-    max-height: 100%;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  .arena-cards {
-    container-type: size;
-    align-self: stretch;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  /* Five rows of cells plus the letters, the feedback line and the padding fit the box.
-     The cell never gets smaller than its 16 px number with the season icon needs (2.2rem
-     grows with the font): rather than the numbers shrinking or touching, the box scrolls
-     (fit audit F6, F15). */
-  .arena-cards .live-card {
-    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5)));
-    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
-  }
-
-  /* The side column never scrolls itself: the status, the patterns (or prizes) keep their
-     height while it fits, else scroll inside themselves; the standings keep room for the
-     top 3 rows and the viewer's own row in its strip, and get the rest. */
-  .arena-side {
-    display: flex;
-    flex-direction: column;
-    gap: var(--sk-space-1);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .arena-side > * {
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-  }
-
-  /* At least 15rem (the heading, the top 3 rows with the dense list's room between them and
-     the own row's strip), but never more than 60 % of the column: at a large font the rem
-     floor alone pushed the panel past the column and cut that strip (fit audit). */
-  .arena-side > .standings-panel {
-    flex: 1 0 min(15rem, 60%);
-    overflow: hidden;
-  }
-
-  .arena-rules {
-    order: 0;
-    margin-top: calc(0.25rem - var(--sk-space-2));
   }
 }

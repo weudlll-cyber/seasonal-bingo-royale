@@ -15,12 +15,11 @@
  * Used by:        ./MatchScreen
  * Spec:           docs/spec/01-game-design.md §5, §7, §11, §13
  */
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 
 import { CutScreen } from '../components/CutScreen.js';
 import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
-import { ScrollBox } from '../components/ScrollBox.js';
 import { playerHref } from '../league/playerHref.js';
 import type { PlaybackView } from '../playback.js';
 import { ResultCallLink } from '../shell/sharedCall.js';
@@ -28,23 +27,6 @@ import { EndActions } from './EndActions.js';
 import { currentRecap, Interlude } from './Interlude.js';
 import { whenText } from './Registration.js';
 import type { LiveState } from './useLiveMatch.js';
-
-// One box: on a desktop it is a column beside the play area in the pause and at the end
-// (./windows.css), where it scrolls inside itself and says so, a named tab stop (WCAG 2.1.1);
-// elsewhere it is not there (display: contents).
-function NoticeColumn({
-  label,
-  children,
-}: {
-  readonly label: string;
-  readonly children: ReactNode;
-}): ReactElement {
-  return (
-    <ScrollBox className="arena-notices" role="region" aria-label={label} tabIndex={0}>
-      {children}
-    </ScrollBox>
-  );
-}
 
 // Above the arena: the final placement at the end; otherwise the cut screen (a survivor's
 // goes once the next round draws), the final's fresh start (D23), the recap of the round
@@ -59,11 +41,11 @@ export function ArenaNotice({
 }): ReactElement {
   if (view.finished) {
     return (
-      <NoticeColumn label="Final placement">
+      <>
         <FinalPlacement result={live.view} view={view} profileHref={playerHref} />
         <EndActions host={false} code={live.match.code} />
         <ResultCallLink />
-      </NoticeColumn>
+      </>
     );
   }
   const recap = currentRecap(live.view.recaps, view);
@@ -74,7 +56,7 @@ export function ArenaNotice({
     view.drawsSoFar.length > 0 &&
     cut.owners.every((o) => o.outcome !== 'eliminated');
   return (
-    <NoticeColumn label="Round news">
+    <>
       {survivedEarlier ? null : <CutScreen cut={cut} nextRoundAt={live.match.nextRoundAt} />}
       <FinalNotice result={live.view} view={view} />
       {/* The recap of the round just played, below the cut screen (D20). */}
@@ -100,6 +82,6 @@ export function ArenaNotice({
           Waiting for the host to start round {view.currentRound + 2}
         </p>
       ) : null}
-    </NoticeColumn>
+    </>
   );
 }

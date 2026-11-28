@@ -466,3 +466,26 @@ The fit audit looks at every screen with the kit's sweep alone (`e2e/acceptance/
 - **Floors** (the kit's `floors`): the standings' first 3 whole (`first: true`) on the desktop sizes; the spectator's four cards whole at 1280×720 and 1278×629; the docked result at least 7 places at 1280×720.
 - **Run:** `SBR_ACCEPTANCE=1 pnpm e2e:quiet acceptance/fitAudit.spec --project=chromium`; findings in `reports/logs/<tag>-kit-sweep.log` (`SBR_FIT_TAG`).
 - **A re-check:** `SBR_SWEEP_SCREENS`, `SBR_SWEEP_SIZES` (light only), `SBR_SWEEP_FONTS`, `SBR_SWEEP_AXE=off` (size or spacing) or `contrast` (colour).
+
+## 12. The match screens re-laid (owner decisions of 2026-11-28, D66)
+
+After the owner's look, Bingo planning drafted every screen in the owner's window (1278×629: a 1920×1080 laptop at 150 % without the browser's bars) with styles laid over the running page; the owner chose these layouts on 2026-11-28. They replace §10's arrangement of the match screens; the rules are in [01 §13](../spec/01-game-design.md) (D66).
+
+| Decision (2026-11-28)                                  | Where                                                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| G1 text only in the kit's four sizes                   | `game/wide.css`, `game/widePanels.css`, `game/lobbyWide.css`                            |
+| G2 at most one scrollbar a column, only on a long list | `game/wide.css`                                                                         |
+| G3 one head row, “Host console” secondary              | `game/MatchHead.tsx`, `game/HostLink.tsx`                                               |
+| G4 the rules behind a link                             | `game/MatchHead.tsx`                                                                    |
+| G5 notices as strips without a button                  | `components/CutScreen.tsx`, `FinalNotice.tsx`                                           |
+| G6 the log as a link over the screen                   | `components/MatchLogLink.tsx`                                                           |
+| G7 the host's controls never covered                   | `host/WideConsole.tsx` (their own column)                                               |
+| S1 lobby                                               | `game/Lobby.tsx`, `MyMatches.tsx`, `lobbyWide.css`                                      |
+| S2, S3 round                                           | `game/WideArena.tsx`, `WideBall.tsx`, `components/OwnerStatusPanel.tsx`                 |
+| S4 between rounds                                      | `game/WideArena.tsx`, `Interlude.tsx`, `FittedNames.tsx`, `components/PatternsLine.tsx` |
+| S5 result                                              | `game/WideArena.tsx`, `components/FinalPlacement.tsx`                                   |
+| S6 host console                                        | `host/WideConsole.tsx`                                                                  |
+
+**Which page is wide:** `useWideScreen` (from 960 px and 52 root-font steps); the same layout stands above the chat strip in website mode, so the docked stylesheets of §8 and §10 are gone. Narrower, and at a large font, the stacked screens of before render unchanged.
+
+**The kit's fit** (`useFitScale('bingo')`, floor 0.6) is not used: the layouts fit by themselves or, in the tightest windows, leave one column scrolling; what does is listed in docs/MORNING.md.

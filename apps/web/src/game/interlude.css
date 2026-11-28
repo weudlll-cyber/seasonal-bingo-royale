@@ -61,7 +61,7 @@
 
 .interlude-facts {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--sk-font-size-lead);
   font-weight: var(--sk-font-weight-strong);
 }
 

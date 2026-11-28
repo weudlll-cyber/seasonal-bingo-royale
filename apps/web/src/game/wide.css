@@ -1,0 +1,297 @@
+/**
+ * @file   apps/web/src/game/wide.css
+ * @module web/game
+ * @brief  The match screens on a wide page: the head row's grid and the three columns (owner
+ *         decisions of 2026-11-28).
+ *
+ * Responsibility: the screen fills the window below the top bar, standalone and above the chat
+ *                 strip alike: the head row, then columns by the match's moment (round,
+ *                 pause, result; the console's own). A column scrolls only where it holds a long
+ *                 list or where the window is too low for it; the cards take their cells from
+ *                 their column. The head row, the notice strips, the recap and the log's sheet
+ *                 are in ./widePanels.css (imported here). Which page is wide:
+ *                 ../useWideScreen.
+ * Used by:        ./WideArena, ../host/WideConsole (through ./MatchHead's screens)
+ * Spec:           docs/spec/01-game-design.md §13; docs/concepts/fit-audit.md §12
+ */
+
+@import './widePanels.css';
+
+.arena.wide,
+.host-console.wide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-space-1);
+  height: 100%;
+  min-height: 0;
+}
+
+/* Above the chat strip the screen takes the game area's height. */
+.sk-docked-main > .wide.fit-window {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.wide-grid {
+  display: grid;
+  flex: 1 1 0;
+  grid-template-rows: minmax(0, 1fr);
+  column-gap: var(--sk-space-2);
+  min-height: 0;
+}
+
+.wide-grid--round {
+  grid-template-columns: minmax(13rem, 0.8fr) minmax(0, 1.6fr) minmax(15rem, 1fr);
+}
+
+.wide-grid--pause {
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+.wide-grid--result {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.wide-grid--result.is-cardless {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.1fr);
+}
+
+.wide-console {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.wide-console--result {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+
+.wide-col {
+  --hint-gap: var(--sk-space-1);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-space-1);
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.wide-col > * {
+  flex: none;
+  margin-block: 0;
+}
+
+/* The standings take the column's height under whatever stands above them; their rows scroll
+   inside, the top 3 and the viewer's own row in sight. */
+.wide-col > .standings-panel {
+  flex: 1 1 0;
+  min-height: 11rem;
+  overflow: hidden;
+}
+
+.wide-col .standings-panel .rank-list {
+  grid-auto-rows: max-content;
+}
+
+.wide-col > .standings-panel {
+  padding-inline: var(--sk-space-1);
+}
+
+/* Close enough that a long name with its marks and points stays one line. */
+.wide-col .standings-panel .rank-row {
+  gap: 0.25rem;
+  min-height: 1.75rem;
+  padding: 0 0.25rem;
+}
+
+/* The left column: the ball, the newest numbers in two rows. */
+.wide-left .arena-ball .ball {
+  --ball-size: min(7rem, 15vh);
+}
+
+.wide-left .arena-ball {
+  align-self: center;
+}
+
+.wide-left .arena-ticker p {
+  font-size: var(--sk-font-size-small);
+}
+
+.wide-left .arena-ticker .draw-ticker {
+  max-height: 3.75rem;
+  overflow: hidden;
+}
+
+.wide .ball-number {
+  font-size: var(--sk-font-size-title);
+}
+
+.wide .ball-letter {
+  font-size: var(--sk-font-size-small);
+}
+
+/* The cards fill their column: the cell from its width and height. */
+.wide-col.arena-cards {
+  container-type: size;
+}
+
+.wide .arena-cards .own-cards .live-card {
+  --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3.6rem) / 5)));
+  --cell-font: var(--sk-font-size-lead);
+}
+
+/* The four watched cards, two by two, each with a head of one line, so all keep one height. */
+.wide .watch-cards,
+.wide .watch-grid {
+  gap: 0.25rem;
+}
+
+.wide .watch-card.live-card {
+  --card-padding: 0.25rem;
+  --cell-size: max(1.5rem, min(3.4rem, calc((50cqh - 4.5rem) / 5), calc((50cqw - 2rem) / 5)));
+  --cell-font: var(--sk-font-size-body);
+
+  border-radius: var(--sk-radius);
+}
+
+.wide .watch-card > div {
+  gap: 2px !important;
+}
+
+/* The head is one line where half the column holds it, whatever the cells' width. */
+.wide .watch-head {
+  max-width: calc(50cqw - 1.5rem);
+}
+
+/* "1 to go" stands in the head line; the patterns are there for a screen reader and as the
+   words' hint. */
+.wide .watch-togo__names {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.wide .watch-cards.is-following .watch-card.live-card {
+  --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8rem) / 5), calc((100cqw - 3rem) / 5)));
+  --cell-font: var(--sk-font-size-lead);
+}
+
+/* The final placement: its heading in body bold, the own place in lead bold, places one line
+   high, so at least 7 are whole above the chat strip at 1280×720 (owner decision of
+   2026-11-24). */
+.wide .sk-result .sk-result-head > h3:first-child {
+  font-size: var(--sk-font-size-body);
+  font-weight: var(--sk-font-weight-strong);
+}
+
+.wide .sk-result .final-own {
+  font-size: var(--sk-font-size-lead);
+}
+
+.wide .final-rule {
+  margin: 0;
+  font-size: var(--sk-font-size-small);
+}
+
+.wide .sk-result .rank-row,
+.wide .sk-result .podium-step {
+  min-height: var(--sk-space-3);
+  padding-block: 0;
+}
+
+.wide .sk-result .rank-divider {
+  margin: 0;
+  padding-block: 0;
+  line-height: 1.15;
+}
+
+/* A low window: the page, the head and the parts stand closer. */
+@media (max-height: 759px) {
+  #root:has(.wide) > .shell-main {
+    padding-block: var(--sk-space-1);
+  }
+
+  .wide .match-head h1 {
+    line-height: 1.1;
+  }
+
+  .wide-left .arena-ball .ball {
+    --ball-size: min(5.5rem, 10.5vh);
+  }
+
+  .arena.wide,
+  .host-console.wide,
+  .wide-col {
+    gap: 0.25rem;
+  }
+
+  .wide .sk-panel {
+    padding-block: var(--sk-space-1);
+  }
+
+  .wide .host-draw {
+    min-height: calc(var(--sk-space-4) + var(--sk-space-3));
+  }
+
+  .wide .host-controls .sbr-stack {
+    gap: var(--sk-space-1);
+  }
+}
+
+/* The owner's window (1278×629) and lower: smaller cells, so all four watched cards are
+   whole. */
+@media (max-height: 649px) {
+  .wide .watch-card.live-card {
+    --cell-size: max(1.35rem, min(3.4rem, calc((50cqh - 4.5rem) / 5), calc((50cqw - 2rem) / 5)));
+    --cell-font: var(--sk-font-size-small);
+  }
+}
+
+/* A narrow desktop: the patterns' lines need the left column wider. */
+@media (max-width: 1099px) {
+  .wide-grid--round {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.25fr) minmax(0, 1fr);
+  }
+}
+
+/* Lower still (1024×600 and the like): the kit's smaller type steps for the title and the
+   panels, one row of numbers and smaller watched cards. */
+@media (max-height: 619px) {
+  .wide .match-head h1 {
+    font-size: var(--sk-font-size-lead);
+  }
+
+  .wide-left .arena-ball .ball {
+    --ball-size: 4rem;
+  }
+
+  .wide-left {
+    gap: 2px;
+  }
+
+  .wide-left .arena-ticker .draw-ticker {
+    max-height: 1.75rem;
+  }
+
+  .wide .side-panel h3 {
+    margin: 0;
+    font-size: var(--sk-font-size-body);
+  }
+
+  .wide .pattern-rows {
+    gap: 0;
+    font-size: var(--sk-font-size-small);
+  }
+
+  .wide .host-draw {
+    min-height: var(--sk-hit-target);
+    font-size: var(--sk-font-size-lead);
+  }
+
+  .wide .host-controls p {
+    margin: 0;
+    font-size: var(--sk-font-size-small);
+  }
+}

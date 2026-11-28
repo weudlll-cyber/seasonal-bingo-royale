@@ -9,8 +9,7 @@
  *                 scroll during a round; the `page` container the match screens' desktop layouts
  *                 ask (a large font stacks them). The maintenance page and banner. Colours come from
  *                 @sbr/ui.
- * Used by:        ./AppShell; the `page` container: ../game/arena.css, ../game/watch.css,
- *                 ../host/host.css, ./dockSide.css, ./dockWatch.css, ./dockResults.css
+ * Used by:        ./AppShell; the `page` container: ../host/hostLobby.css
  * Spec:           docs/spec/01-game-design.md §13
  */
 

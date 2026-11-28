@@ -10,9 +10,11 @@
  *                 none is highlighted, so the last number does not read as "tap now".
  *                 Where a screen caps the row's height (the player screen, ../game/arena.css)
  *                 it scrolls, and each new draw scrolls it to the newest; it is a named
- *                 region and a tab stop, so a keyboard can scroll it (WCAG 2.1.1).
+ *                 region and a tab stop, so a keyboard can scroll it (WCAG 2.1.1). With
+ *                 `last` only the newest so many show and nothing scrolls (the wide match
+ *                 screens, owner decision of 2026-11-28; the log keeps every draw's story).
  * Depends on:     react, ./SeasonIcon, ../types, ../useReducedMotion
- * Used by:        ./Playback, ../game/MatchScreen
+ * Used by:        ./Playback, ../game/MatchScreen, ../game/WideBall
  * Spec:           docs/spec/15-implementation-plan.md WP-08, docs/spec/01-game-design.md §7 (D21), §13
  */
 import { useEffect, useRef, type ReactElement } from 'react';
@@ -28,6 +30,8 @@ interface DrawTickerProps {
   readonly showWindow?: boolean;
   // The pause between rounds: no draw is highlighted as the newest.
   readonly paused?: boolean;
+  // Only the newest so many, in a row that does not scroll.
+  readonly last?: number;
 }
 
 export function DrawTicker({
@@ -35,10 +39,12 @@ export function DrawTicker({
   speedWindowMs,
   showWindow = true,
   paused = false,
+  last,
 }: DrawTickerProps): ReactElement {
   const reduced = useReducedMotion();
   const newest = paused ? -1 : draws.length - 1;
   const row = useScrolledToNewest(draws.length);
+  const from = last === undefined ? 0 : Math.max(0, draws.length - last);
   return (
     <div>
       {showWindow ? (
@@ -53,41 +59,58 @@ export function DrawTicker({
         data-testid="draw-ticker"
         role="region"
         aria-label="Drawn numbers"
-        tabIndex={0}
+        tabIndex={last === undefined ? 0 : undefined}
         style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}
       >
-        {draws.map((item, i) => {
-          const season = seasonOfSymbol(item);
-          return (
-            <span
-              key={`${String(item)}-${String(i)}`}
-              data-testid={i === newest ? 'draw-newest' : undefined}
-              data-item={item}
-              className={i === newest && !reduced ? 'sbr-anim-fade' : undefined}
-              style={{
-                padding: '0.1rem 0.4rem',
-                borderRadius: '0.25rem',
-                // Theme tokens: the newest on Autumn, the others on the inset surface.
-                background: i === newest ? 'var(--sk-color-autumn)' : 'var(--sk-color-surface-2)',
-                color: i === newest ? 'var(--sk-color-on-season)' : 'var(--sk-color-text)',
-                minWidth: '2rem',
-                textAlign: 'center',
-              }}
-            >
-              {/* A season draw shows its icon and its name, never a bare dot. */}
-              {season === null ? (
-                ballLabel(item)
-              ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <SeasonIcon season={season} size="0.9rem" />
-                  {ballLabel(item)}
-                </span>
-              )}
-            </span>
-          );
-        })}
+        {draws.slice(from).map((item, at) => (
+          <Draw
+            key={`${String(item)}-${String(from + at)}`}
+            item={item}
+            newest={from + at === newest}
+            fades={!reduced}
+          />
+        ))}
       </div>
     </div>
+  );
+}
+
+// One drawn number; the newest highlighted, fading in unless motion is reduced.
+function Draw({
+  item,
+  newest,
+  fades,
+}: {
+  readonly item: number;
+  readonly newest: boolean;
+  readonly fades: boolean;
+}): ReactElement {
+  const season = seasonOfSymbol(item);
+  return (
+    <span
+      data-testid={newest ? 'draw-newest' : undefined}
+      data-item={item}
+      className={newest && fades ? 'sbr-anim-fade' : undefined}
+      style={{
+        padding: '0.1rem 0.4rem',
+        borderRadius: '0.25rem',
+        // Theme tokens: the newest on Autumn, the others on the inset surface.
+        background: newest ? 'var(--sk-color-autumn)' : 'var(--sk-color-surface-2)',
+        color: newest ? 'var(--sk-color-on-season)' : 'var(--sk-color-text)',
+        minWidth: '2rem',
+        textAlign: 'center',
+      }}
+    >
+      {/* A season draw shows its icon and its name, never a bare dot. */}
+      {season === null ? (
+        ballLabel(item)
+      ) : (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+          <SeasonIcon season={season} size="0.9rem" />
+          {ballLabel(item)}
+        </span>
+      )}
+    </span>
   );
 }
 

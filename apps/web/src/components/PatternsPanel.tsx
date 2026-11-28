@@ -10,7 +10,7 @@
  *                 before. Who completed what comes from the server's patternScored events
  *                 (the fold, ../playbackScoring); nothing is evaluated here.
  * Depends on:     react, ../game/labels, ../playback, ../types, ./matchSide.css
- * Used by:        ../game/MatchScreen
+ * Used by:        ../game/MatchScreen, ../game/WideArena
  * Spec:           docs/spec/01-game-design.md §8.1, §13
  */
 import type { ReactElement } from 'react';

@@ -3,7 +3,7 @@
  * @module web/shell
  * @brief  The page around the kit's docked screen (./DockedChat, @seasonal/kit/dock.css).
  *
- * Responsibility: the kit's rules give the strip (190 px, 150 px in a window under 760 px high)
+ * Responsibility: the kit's rules give the strip (190 px, 100 px in a window under 760 px high)
  *                 or the phone bar and sheet, and a box as high as its container. Here the
  *                 container is the page: while the chat is docked the page is one window high
  *                 (on a phone the visible height, `--sk-visible-height`, so the bar stays above

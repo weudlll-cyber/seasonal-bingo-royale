@@ -4,8 +4,8 @@
  * @brief  The cards a player out or a spectator watches (D24): top 4, or one followed player.
  *
  * Responsibility: the watched cards in the card look of a player's own card (./liveCard.css
- *                 .live-card), smaller: 2 × 2 on desktop, sized from the play area's box
- *                 (container units, ./arena.css .arena-cards), the first 2 side by side on a
+ *                 .live-card), smaller: 2 × 2 (a wide page sizes them from their column,
+ *                 ./wide.css), the first 2 side by side on a
  *                 phone; a followed player's card alone and larger; the heading with place,
  *                 name, points and "1 to go", the grids of cards side by side lined up.
  *                 Colours and spacing from @sbr/ui tokens.
@@ -99,20 +99,5 @@
       min(4.1rem, calc((100cqw - 1.5rem) / 5.4), calc((100svh - 30rem) / 5))
     );
     --cell-font: 1rem;
-  }
-}
-
-/* Desktop (the `page` container, ../shell/shell.css): 2 × 2 cards fill the play area's box; a followed card fills it alone. A cell
-   never gets smaller than its 16 px number needs (rem floors grow with the font): rather
-   than the numbers shrinking or touching, the play area's box scrolls (fit audit F5, F15). */
-@container page (min-width: 48rem) {
-  .watch-card.live-card {
-    /* Two cards high: each with padding, a heading of up to two lines and the letters. */
-    --cell-size: max(1.6rem, min(3.4rem, calc((50cqh - 7rem) / 5), calc((50cqw - 2.2rem) / 5)));
-    --cell-font: max(1rem, calc(var(--cell-size) * 0.36));
-  }
-
-  .watch-cards.is-following .watch-card.live-card {
-    --cell-size: max(2.2rem, min(4.1rem, calc((100cqh - 8.5rem) / 5), calc((100cqw - 3rem) / 5)));
   }
 }

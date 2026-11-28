@@ -10,9 +10,11 @@
  *                 line they were (from the server), an eliminated owner "You're out in cut N
  *                 — you can keep watching"; the button reads "Keep playing" or "Watch" (D15). A new cut
  *                 scrolls into view. It never pauses playback: an eliminated owner keeps
- *                 watching the spectator view to the end.
+ *                 watching the spectator view to the end. As a strip (the wide match screens,
+ *                 owner decision of 2026-11-28) it is one slim line without a button: it stays
+ *                 through the pause and goes when the next round starts.
  * Depends on:     react, ../game/seasonText, ../playback, ../useReducedMotion, ../shell/session
- * Used by:        ./Playback, ../game/ArenaNotice
+ * Used by:        ./Playback, ../game/ArenaNotice, ../game/WideArena
  * Spec:           docs/spec/01-game-design.md §7.4, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import { useEffect, useRef, useState, type ReactElement } from 'react';
@@ -26,12 +28,16 @@ interface CutScreenProps {
   readonly cut: CutView | null;
   // When the next round starts (live matches); null shows no countdown.
   readonly nextRoundAt?: number | null;
+  // One line without a button; the caller shows it for as long as it belongs on screen.
+  readonly strip?: boolean;
 }
 
-export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactElement | null {
+export function CutScreen(props: CutScreenProps): ReactElement | null {
+  const { cut, nextRoundAt = null, strip = false } = props;
   const reduced = useReducedMotion();
   const [closed, setClosed] = useState(0);
-  const left = useServerCountdown(nextRoundAt);
+  // The wide screens say the countdown in their head row.
+  const left = useServerCountdown(strip ? null : nextRoundAt);
   const box = useRef<HTMLElement>(null);
   const shown = cut?.number ?? 0;
   // A new cut comes into view, also for a player scrolled down to their card.
@@ -47,7 +53,7 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
       ref={box}
       role="status"
       data-testid="cut-screen"
-      className={`cut-screen${allOut ? ' is-out' : ''}${reduced ? '' : ' sbr-anim-fade'}`}
+      className={boxClasses(strip, allOut, reduced)}
     >
       {cut.owners.map((o) => (
         <p key={o.accountId} className="cut-screen-line">
@@ -55,17 +61,35 @@ export function CutScreen({ cut, nextRoundAt = null }: CutScreenProps): ReactEle
           <strong>{outcomeText(o, cut.number, left)}</strong>
         </p>
       ))}
-      <button
-        type="button"
-        className="sk-btn"
-        onClick={() => {
-          setClosed(cut.number);
-        }}
-      >
-        {/* D15: a survivor plays on, an eliminated player watches. */}
-        {allOut ? 'Watch' : 'Keep playing'}
-      </button>
+      {strip ? null : (
+        <CloseButton
+          allOut={allOut}
+          onClose={() => {
+            setClosed(cut.number);
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+const boxClasses = (strip: boolean, allOut: boolean, reduced: boolean): string =>
+  ['cut-screen', strip && 'notice-strip', allOut && 'is-out', !reduced && 'sbr-anim-fade']
+    .filter(Boolean)
+    .join(' ');
+
+// D15: a survivor plays on, an eliminated player watches.
+function CloseButton({
+  allOut,
+  onClose,
+}: {
+  readonly allOut: boolean;
+  readonly onClose: () => void;
+}): ReactElement {
+  return (
+    <button type="button" className="sk-btn" onClick={onClose}>
+      {allOut ? 'Watch' : 'Keep playing'}
+    </button>
   );
 }
 

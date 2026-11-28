@@ -11,15 +11,16 @@
  *                 event lines, standings (active first, grouped, bounded panel), prizes, abort
  *                 with a reason (./AbortMatch); fills the window on desktop; final placement on
  *                 top at the end; after a result the way back to a live shared call. Dev builds:
- *                 async "Jump ahead" (./JumpAhead, lazy).
+ *                 async "Jump ahead" (./JumpAhead, lazy). While a match runs and at its end a
+ *                 wide page takes ./WideConsole instead.
  * Depends on:     react, ../playback, ../components/* (ScrollBox), ../game/*, ./AbortMatch,
- *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only), ./host.css,
- *                 ./hostWindows.css,
- *                 ../shell/router, ../shell/sharedCall
+ *                 ./HostDrawControls, ./HostLobby, ./JumpAhead (development only),
+ *                 ./StartNextRound, ./WideConsole, ./host.css, ../shell/router,
+ *                 ../shell/sharedCall, ../useWideScreen
  * Used by:        ../shell/AppShell
  * Spec:           docs/spec/05-api-design.md §3; docs/spec/11-admin-panel.md §3.2; docs/spec/01-game-design.md §5
  */
-import { lazy, Suspense, useState, type ReactElement } from 'react';
+import { lazy, Suspense, type ReactElement } from 'react';
 
 import { FinalNotice } from '../components/FinalNotice.js';
 import { FinalPlacement } from '../components/FinalPlacement.js';
@@ -30,19 +31,10 @@ import { currentRecap, Interlude } from '../game/Interlude.js';
 import { BallAndNumbers } from '../game/MatchScreen.js';
 import { EndActions } from '../game/EndActions.js';
 import { MatchCancelled } from '../game/MatchCancelled.js';
-import { intent } from '../game/socket.js';
 import '../game/arena.css';
 import '../game/game.css';
 import './host.css';
-import './hostWindows.css';
-import {
-  gameTypeName,
-  problemText,
-  progressText,
-  rulesLine,
-  runningBadge,
-  statusName,
-} from '../game/labels.js';
+import { gameTypeName, progressText, rulesLine, runningBadge, statusName } from '../game/labels.js';
 import { hrefOf } from '../shell/router.js';
 import { ResultCallLink } from '../shell/sharedCall.js';
 import { useLiveMatch, type LiveState } from '../game/useLiveMatch.js';
@@ -50,6 +42,9 @@ import { playbackAt, type PlaybackView } from '../playback.js';
 import { HostDrawControls } from './HostDrawControls.js';
 import { AbortMatch } from './AbortMatch.js';
 import { HostLobby } from './HostLobby.js';
+import { StartNextRound } from './StartNextRound.js';
+import { WideConsole } from './WideConsole.js';
+import { useWideScreen } from '../useWideScreen.js';
 
 // Development only (time travel): a production build replaces import.meta.env.DEV with false
 // and leaves the module out.
@@ -59,16 +54,19 @@ const JumpAhead = import.meta.env.DEV
 
 export function HostConsole({ code }: { readonly code: string }): ReactElement {
   const { live, error } = useLiveMatch(code);
+  const wide = useWideScreen();
   if (live === null) return <p className="sbr-muted">{error ?? 'Loading the match…'}</p>;
   // Only the match's host gets controls (the server refuses everyone else as well).
   if (live.match.youHost !== true) return <NotYourMatch code={code} />;
   const view = playbackAt(live.view, live.view.events.length);
-  // While the match runs and with its result.
-  const oneWindow = live.match.status === 'running' || live.match.status === 'finished';
+  const playing = live.match.status === 'running';
+  if (wide && (playing || live.match.status === 'finished')) {
+    return <WideConsole live={live} view={view} tools={<DevJump live={live} />} />;
+  }
   return (
-    // fit-window: the console then fills the window below the top bar.
+    // fit-window: while the match runs the console fills the window below the top bar.
     <div
-      className={`sbr-stack host-console${oneWindow ? ' fit-window' : ''}`}
+      className={`sbr-stack host-console${playing ? ' fit-window' : ''}`}
       data-testid="host-console"
       data-seq={live.seq}
     >
@@ -144,16 +142,11 @@ function HostLive({
   return (
     <div className="host-grid">
       {view.finished ? (
-        <ScrollBox
-          className="sbr-stack host-end"
-          role="region"
-          aria-label="Final placement"
-          tabIndex={0}
-        >
+        <div className="sbr-stack host-end">
           <FinalPlacement result={result} view={view} />
           <EndActions host code={live.match.code} />
           <ResultCallLink />
-        </ScrollBox>
+        </div>
       ) : null}
       {/* Ball, drawn numbers and the newest lines beside the controls; the standings in
           a bounded panel beside both (host.css). */}
@@ -175,8 +168,8 @@ function HostLive({
   );
 }
 
-// Between royale rounds: Start next round (D14) or Start next round now (D21), and the
-// recap of the round just played below it (D20).
+// Between royale rounds: ./StartNextRound and the recap of the round just played below it
+// (D20).
 function BetweenRounds({
   live,
   view,
@@ -185,18 +178,9 @@ function BetweenRounds({
   readonly view: PlaybackView;
 }): ReactElement {
   const recap = currentRecap(live.view.recaps, view);
-  // A timed pause between royale rounds: the host may end it early (D21).
-  const running = live.match.status === 'running';
-  const timedPause = running && view.roundOver && live.match.nextRoundAt !== null;
   return (
     <>
-      {live.match.waitingForHost || timedPause ? (
-        <StartNextRound
-          code={live.match.code}
-          round={view.currentRound + 2}
-          timed={!live.match.waitingForHost}
-        />
-      ) : null}
+      <StartNextRound live={live} view={view} />
       {recap === null ? null : (
         <>
           <Interlude
@@ -210,42 +194,6 @@ function BetweenRounds({
         </>
       )}
     </>
-  );
-}
-
-// The pause between royale rounds when the host starts them (D14), or a timed pause the
-// host may end early (D21): the same intent starts the next round for everyone.
-function StartNextRound({
-  code,
-  round,
-  timed,
-}: {
-  readonly code: string;
-  readonly round: number;
-  readonly timed: boolean;
-}): ReactElement {
-  const [note, setNote] = useState<string | null>(null);
-  return (
-    <section className="sk-panel sbr-stack" data-testid="host-next-round-panel">
-      <p>
-        {timed
-          ? `The round is over. Round ${String(round)} starts after the pause, or now if you start it.`
-          : `The round is over. Players wait for you to start round ${String(round)}.`}
-      </p>
-      <button
-        type="button"
-        className="sk-btn sk-btn--primary sk-btn--big"
-        data-testid={timed ? 'host-next-round-now' : 'host-next-round'}
-        onClick={() => {
-          void intent('round.next', { code }).then((a) => {
-            setNote(a.ok ? null : problemText(a.code));
-          });
-        }}
-      >
-        {timed ? 'Start next round now' : 'Start next round'}
-      </button>
-      {note !== null ? <p className="lobby-error">{note}</p> : null}
-    </section>
   );
 }
 

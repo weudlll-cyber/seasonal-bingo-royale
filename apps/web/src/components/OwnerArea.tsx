@@ -11,7 +11,7 @@
  *                 cards disappear after the round of the cut. Without an owner card, the
  *                 first bot cards show read-only.
  * Depends on:     react, ./CardGrid, ./OwnerCard, ./OwnerStatusPanel, ../playback, ../types
- * Used by:        ./Playback; OwnerStatusFor and inPlay also by ../game/MatchScreen
+ * Used by:        ./Playback; OwnerStatusFor and inPlay also by ../game/MatchScreen, ../game/WideArena
  * Spec:           docs/spec/01-game-design.md §6, §13; docs/spec/15-implementation-plan.md WP-08
  */
 import type { ReactElement } from 'react';
@@ -73,13 +73,17 @@ export function OwnerStatusFor({
   result,
   view,
   owner,
+  short = false,
 }: {
   readonly result: QuickTestResult;
   readonly view: PlaybackView;
   readonly owner: PlaybackView['owners'][number];
+  readonly short?: boolean;
 }): ReactElement {
   return (
     <OwnerStatusPanel
+      short={short}
+      over={view.finished}
       accountId={owner.accountId}
       points={owner.points}
       rank={ownerRank(result, view, owner.accountId)}
