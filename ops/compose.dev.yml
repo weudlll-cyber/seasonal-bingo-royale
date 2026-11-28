@@ -15,7 +15,7 @@ name: sbr-dev
 
 services:
   postgres:
-    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    image: postgres:17-alpine@sha256:f9cf3e1f0066f0eb0c48707d864f0ac5941e9ff454a072077d97a4d278d07d73
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?pass --env-file ops/.env.dev.example}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?pass --env-file ops/.env.dev.example}
@@ -32,7 +32,7 @@ services:
 
   # Catches every outgoing mail of the dev server.
   mailpit:
-    image: axllent/mailpit:v1.31.6@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    image: axllent/mailpit:v1.34.0@sha256:23a2ef85bc50853ab3093645d1d64679afd8887e89da5e48a88940c172591a4e
     ports:
       - '127.0.0.1:${SBR_DEV_MAILPIT_SMTP_PORT:?pass --env-file ops/.env.dev.example}:1025'
       - '127.0.0.1:${SBR_DEV_MAILPIT_UI_PORT:?pass --env-file ops/.env.dev.example}:8025'
