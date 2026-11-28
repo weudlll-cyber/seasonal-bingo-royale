@@ -86,68 +86,66 @@ const PANELS = [
   '.waiting-room',
 ];
 
-export function windowReport(page: Page): Promise<WindowReport> {
-  return page.evaluate((panels): WindowReport => {
-    const nameOf = (el: Element): string => {
-      const id = el.getAttribute('data-testid');
-      if (id !== null) return `[${id}]`;
-      return `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}`;
-    };
-    const scrolls = (el: Element) => /auto|scroll|hidden|clip/.test(getComputedStyle(el).overflowY);
-    // The part of an element the reader sees: the window less every clipping box around it.
-    const seen = (el: Element) => {
-      const r = el.getBoundingClientRect();
-      let top = Math.max(r.top, 0);
-      let bottom = Math.min(r.bottom, window.innerHeight);
-      for (let a = el.parentElement; a !== null && a !== document.body; a = a.parentElement) {
-        if (!scrolls(a)) continue;
-        const box = a.getBoundingClientRect();
-        const sign = a.getAttribute('data-more') === 'true';
-        const strip = sign ? parseFloat(getComputedStyle(a, '::after').height) || 0 : 0;
-        top = Math.max(top, box.top);
-        bottom = Math.min(bottom, box.bottom - strip);
-      }
-      return { high: r.height, shown: Math.max(0, bottom - top) };
-    };
-    const all = [...document.body.querySelectorAll<HTMLElement>('*')].filter((el) =>
-      el.checkVisibility(),
-    );
-    const boxes = all
-      .filter((el) => /auto|scroll|hidden/.test(getComputedStyle(el).overflowY))
-      .filter((el) => el.clientHeight > 20 && el.scrollHeight - el.clientHeight > 1)
-      .map((el) => ({
-        name: nameOf(el),
-        hidden: el.scrollHeight - el.clientHeight,
-        high: el.clientHeight,
-      }));
-    const cut = panels
-      .flatMap((sel) => [...document.querySelectorAll(sel)])
-      .filter((el) => el.checkVisibility())
-      .map((el) => ({ name: nameOf(el), ...seen(el) }))
-      .filter((p) => p.high - p.shown > 1)
-      .map((p) => ({
-        name: p.name,
-        out: Math.round(p.high - p.shown),
-        high: Math.round(p.high),
-      }));
-    const wholeOf = (selector: string) => {
-      const items = [...document.querySelectorAll(selector)].filter((el) => el.checkVisibility());
-      if (items.length === 0) return null;
-      const whole = items.filter((el) => {
-        const s = seen(el);
-        return s.high - s.shown <= 1;
-      });
-      return { whole: whole.length, of: items.length };
-    };
-    const root = document.scrollingElement ?? document.documentElement;
-    return {
-      page: Math.max(0, root.scrollHeight - window.innerHeight),
-      boxes,
-      cut,
-      standings: wholeOf('.standings-panel .rank-list > .rank-row'),
-      places: wholeOf('.sk-result .podium-step, .sk-result .rank-row'),
-    };
-  }, PANELS);
+// The page's own scroll and every box that hides content.
+function scrollsOf(): Pick<WindowReport, 'page' | 'boxes'> {
+  const nameOf = (el: Element): string => {
+    const id = el.getAttribute('data-testid');
+    if (id !== null) return `[${id}]`;
+    return `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join('.')}`;
+  };
+  const boxes = [...document.body.querySelectorAll<HTMLElement>('*')]
+    .filter((el) => el.checkVisibility())
+    .filter((el) => /auto|scroll|hidden/.test(getComputedStyle(el).overflowY))
+    .filter((el) => el.clientHeight > 20 && el.scrollHeight - el.clientHeight > 1)
+    .map((el) => ({
+      name: nameOf(el),
+      hidden: el.scrollHeight - el.clientHeight,
+      high: el.clientHeight,
+    }));
+  const root = document.scrollingElement ?? document.documentElement;
+  return { page: Math.max(0, root.scrollHeight - window.innerHeight), boxes };
+}
+
+// The panels not whole in sight, and the whole standings rows and result places.
+function panelsOf(panels: readonly string[]): Pick<WindowReport, 'cut' | 'standings' | 'places'> {
+  const clips = (el: Element) => /auto|scroll|hidden|clip/.test(getComputedStyle(el).overflowY);
+  // The part of an element the reader sees: the window less every clipping box around it.
+  const seen = (el: Element) => {
+    const r = el.getBoundingClientRect();
+    let top = Math.max(r.top, 0);
+    let bottom = Math.min(r.bottom, window.innerHeight);
+    for (let a = el.parentElement; a !== null && a !== document.body; a = a.parentElement) {
+      if (!clips(a)) continue;
+      const box = a.getBoundingClientRect();
+      const sign = a.getAttribute('data-more') === 'true';
+      const strip = sign ? parseFloat(getComputedStyle(a, '::after').height) || 0 : 0;
+      top = Math.max(top, box.top);
+      bottom = Math.min(bottom, box.bottom - strip);
+    }
+    return { high: r.height, out: r.height - Math.max(0, bottom - top) };
+  };
+  const shown = (selector: string) =>
+    [...document.querySelectorAll(selector)].filter((el) => el.checkVisibility());
+  const cut = panels.flatMap((name) =>
+    shown(name)
+      .map((el) => seen(el))
+      .filter((p) => p.out > 1)
+      .map((p) => ({ name, out: Math.round(p.out), high: Math.round(p.high) })),
+  );
+  const wholeOf = (selector: string) => {
+    const items = shown(selector);
+    if (items.length === 0) return null;
+    return { whole: items.filter((el) => seen(el).out <= 1).length, of: items.length };
+  };
+  return {
+    cut,
+    standings: wholeOf('.standings-panel .rank-list > .rank-row'),
+    places: wholeOf('.sk-result .podium-step, .sk-result .rank-row'),
+  };
+}
+
+export async function windowReport(page: Page): Promise<WindowReport> {
+  return { ...(await page.evaluate(scrollsOf)), ...(await page.evaluate(panelsOf, PANELS)) };
 }
 
 const LOG = path.join(
